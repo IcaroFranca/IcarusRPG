@@ -110,12 +110,14 @@ public final class ItemTierService {
         }
         String name = m.name();
         String family = name.endsWith("_" + kind) ? name.substring(0, name.length() - kind.length() - 1) : name;
+        // Compressed on purpose: everything iron-and-below (wood, gold, stone, copper,
+        // iron, chainmail/leather/turtle) sits at D, diamond at C, netherite at B -
+        // leaving A and S free for the plugin's own future gear (see SwordDamageService
+        // for the matching attack-damage rework), rather than spreading vanilla
+        // materials across the whole scale like the old NETHERITE=S/DIAMOND=A mapping did.
         return switch (family) {
-            case "NETHERITE" -> ItemTier.S;
-            case "DIAMOND" -> ItemTier.A;
-            case "IRON", "GOLDEN", "GOLD", "COPPER", "CHAINMAIL" -> ItemTier.B;
-            case "STONE" -> ItemTier.C;
-            case "WOODEN", "WOOD", "LEATHER", "TURTLE" -> ItemTier.D;
+            case "NETHERITE" -> ItemTier.B;
+            case "DIAMOND" -> ItemTier.C;
             default -> ItemTier.D;
         };
     }
