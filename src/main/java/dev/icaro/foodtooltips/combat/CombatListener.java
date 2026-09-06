@@ -71,6 +71,7 @@ public final class CombatListener implements Listener {
     private final double hpXp;
     private final double levelXp;
     private final double mobHealthMultiplier;
+    private final boolean healToFullOnMapEnter;
     private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
@@ -91,6 +92,7 @@ public final class CombatListener implements Listener {
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
         this.mobHealthMultiplier = Math.max(1.0, p.getConfig().getDouble("mob-visuals.health-multiplier", 5.0));
+        this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
     }
 
     @EventHandler
@@ -275,15 +277,21 @@ public final class CombatListener implements Listener {
 
     /**
      * Re-derives every source of Max Health bonus (base, Bestiary milestones, Global
-     * Level) and restores the player's actual current Health across the whole
-     * sequence. Each individual step can momentarily drop Max Health below the
-     * player's real current Health - {@code stats.applyBaseHealth} resets the base
-     * to the plain config value *before* the bonuses below reattach, and vanilla
-     * auto-clamps current Health down the instant that happens. That clamp is
-     * irreversible (Health doesn't bounce back up once the bonuses return), so
-     * without capturing/restoring around the whole sequence a player's real HP
-     * silently erodes towards the bare base on every join or world change - this
-     * was the bug behind "HP volta pra 100 quando eu troco de mapa".
+     * Level) and sets the player's Health across the whole sequence - each individual
+     * step can momentarily drop Max Health below the player's actual current Health
+     * ({@code stats.applyBaseHealth} resets the base to the plain config value
+     * *before* the bonuses below reattach), and vanilla auto-clamps current Health
+     * down the instant that happens; that clamp is irreversible (Health doesn't
+     * bounce back up once the bonuses return), so capturing intent up front and only
+     * setting Health once at the very end - after every bonus is back in place - is
+     * what keeps a player's HP from silently eroding on every join or world change.
+     *
+     * <p>What Health to land on is a deliberate design choice ({@code
+     * stats.heal-to-full-on-map-enter}, default {@code true} - a "checkpoint" full
+     * heal every time a player appears in a map, join or world-change alike, same
+     * as a hub/lobby world would): full Max Health when enabled, otherwise whatever
+     * Health the player had right before this method touched anything (preserves it
+     * instead of healing, but still guards against the clamp-then-never-recover bug).
      */
     private void reapplyHealthStack(Player p) {
         if (p.isDead()) {
@@ -295,7 +303,7 @@ public final class CombatListener implements Listener {
         this.global.applyHealth(p);
         AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
         double max = a == null ? 20.0 : a.getValue();
-        p.setHealth(Math.min(before, max));
+        p.setHealth(this.healToFullOnMapEnter ? max : Math.min(before, max));
     }
 
     @EventHandler

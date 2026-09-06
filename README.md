@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.40.3.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.41.0.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -876,15 +876,24 @@ sem desconectar, caso a troca de mundo dispare uma reconstrução da
 `AttributeInstance` que derruba os modificadores transitórios de Vida
 Máxima do mesmo jeito.
 
-**Correção**: `CombatListener#reapplyHealthStack` agora captura a Vida
-*antes* de qualquer coisa mexer nos atributos, reaplica base + Bestiário +
-Nível Global (nessa ordem, incluindo o bônus que faltava), e só então
-restaura a Vida do jogador — cortada apenas se o teto real e definitivo for
-menor que isso, nunca por um vácuo momentâneo entre duas chamadas. Usado no
-join **e** num novo handler de `PlayerChangedWorldEvent` (cobre troca de
-mundo em Multiverse/portais sem precisar desconectar), e o mesmo padrão foi
-replicado no laço de `onEnable` que reaplica tudo pros jogadores já online
-num `/reload`.
+**Correção**: `CombatListener#reapplyHealthStack` agora reaplica base +
+Bestiário + Nível Global (nessa ordem, incluindo o bônus que faltava) e só
+então define a Vida do jogador uma única vez, no final — nunca no meio do
+caminho, onde um vácuo momentâneo sem os bônus faria o motor do jogo cortar
+a Vida sozinho. Usado no join **e** num novo handler de
+`PlayerChangedWorldEvent` (cobre troca de mundo em Multiverse/portais sem
+precisar desconectar); o laço de `onEnable` que reaplica tudo pros
+jogadores já online num `/reload` recebeu a mesma proteção contra o corte,
+mas preservando o valor anterior (não cura — um `/reload` no meio de uma
+luta não devia curar todo mundo de graça).
+
+**Vida cheia ao aparecer no mapa** (`stats.heal-to-full-on-map-enter` no
+`config.yml`, `true` por padrão): em vez de só preservar a Vida de antes,
+o padrão agora é curar o jogador por inteiro toda vez que ele aparece num
+mapa — join no servidor ou troca de mundo, os dois casos que
+`reapplyHealthStack` já cobre — como um "checkpoint" de hub/lobby. Desliga
+essa opção pra voltar ao comportamento de só preservar o que já era (ainda
+protegido contra o corte espúrio de qualquer forma, só sem o heal grátis).
 
 **Sobre o Gamemode mudando ao trocar de mundo**: isso **não é o
 IcarusRPG** — o plugin não toca em `GameMode` em lugar nenhum do código
