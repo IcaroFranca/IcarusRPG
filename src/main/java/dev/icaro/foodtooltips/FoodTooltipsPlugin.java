@@ -81,7 +81,7 @@ extends JavaPlugin {
         CombatValorService valor = new CombatValorService((Plugin)this);
         ArmorDefenseService armor = new ArmorDefenseService();
         ItemTierService tiers = new ItemTierService((Plugin)this);
-        SwordDamageService swordDamage = new SwordDamageService((Plugin)this);
+        SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
@@ -250,6 +250,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);
@@ -268,6 +269,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             global.migrate((Player)p);
