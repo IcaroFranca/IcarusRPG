@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.39.0.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.40.0.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -53,7 +53,7 @@ texto/UI. Updates maiores (features novas, mudanças de sistema, como a
 - `food` — tooltips de comida.
 - `global` — nível global, XP, cores de badge/tema.
 - `i18n` — idiomas.
-- `item` — sistema de raridade por Tiers (`ItemTierService`).
+- `item` — sistema de raridade por Tiers (`ItemTierService`) e dano de espadas por material (`SwordDamageService`).
 - `mining` — baú do tesouro, gemas, menu de mineração.
 - `protect` — hooks de proteção (WorldGuard / GriefPrevention).
 - `skills` — habilidades de combate, mochilas, skills gerais.
@@ -395,9 +395,12 @@ próprio pedido já usava em português.
 **`ItemTierService#tierOf(Material)`** resolve o tier de qualquer `Material`:
 primeiro checa um override de config (`item-tiers` no `config.yml`, vazio por
 padrão), depois — se for uma ferramenta/arma/armadura — o tier vem da família
-do material (Netherite=S, Diamond=A, Iron/Golden/Copper/Chainmail=B,
-Stone=C, Wooden/Leather=D, mais alguns casos sem prefixo como Arco/Tridente
-julgados à parte), depois um conjunto curado de itens notáveis (lingotes,
+do material, comprimida de propósito pra deixar A e S livres pro equipamento
+próprio do plugin (ver `SwordDamageService` pro rebalanceamento de dano que
+acompanha essa mudança): Netherite=B, Diamond=C, e tudo de ferro pra baixo
+(Iron/Golden/Copper/Stone/Wooden/Chainmail/Leather/Turtle) cai em D pelo
+próprio `default` do switch — mais alguns casos sem prefixo como Arco/Tridente
+julgados à parte —, depois um conjunto curado de itens notáveis (lingotes,
 blocos de minério, drops raros) em S/A/B/C, depois um conjunto de "blocos
 crus" em E (terra, pedra, cascalho, graveto...) — e cai em `D` (Common) como
 padrão pra tudo que não foi listado, garantindo que **nenhum item fica sem
@@ -440,6 +443,46 @@ agora reagrupa as pilhas iguais do inventário (`coalesce`, respeitando o
 stack size máximo) logo depois de aplicar a tag, todo tick — cura tanto essa
 fragmentação causada pelo sistema de tiers quanto qualquer outra pilha
 partida por acidente.
+
+## Dano das espadas rebalanceado (`SwordDamageService`)
+
+Os 4-8 de dano vanilla das espadas não tinham relação nenhuma com as
+centenas de HP que essa RPG já usa (jogadores com 917 HP no exemplo do
+Guardião do Núcleo) — trocado por uma progressão fixa por material:
+
+| Material | Dano total |
+|---|---|
+| Madeira / Ouro | 20 |
+| Pedra / Cobre | 25 |
+| Ferro | 30 |
+| Diamante | 35 |
+| Netherite | 40 |
+
+Essa progressão de dano é **independente** do tier de raridade (acima) — os
+cinco materiais viram tiers diferentes de dano mas continuam todos Tier D
+de raridade, só Diamante (C) e Netherite (B) saem do chão; dano e raridade
+são dois eixos separados de propósito, do mesmo jeito que itens de mesma
+raridade no Hypixel SkyBlock têm status bem diferentes entre si.
+
+Implementado via `AttributeModifier` direto no `ItemMeta` (`Attribute.ATTACK_DAMAGE`,
+`EquipmentSlotGroup.MAINHAND`), não como código-de-evento reescrevendo dano
+na hora do hit — assim o valor aparece certinho na própria tooltip vanilla
+do item e o Arremesso de Espada (que lê `Attribute.ATTACK_DAMAGE` do jogador
+pra calcular sua fração de dano) automaticamente escala junto, sem precisar
+de nenhum ajuste separado.
+
+**Pegadinha evitada**: setar explicitamente o `attribute_modifiers` de um
+item **substitui** o conjunto implícito de modificadores que o material já
+carregava (não soma em cima) — então toda espada perderia silenciosamente
+sua penalidade de velocidade de ataque vanilla (a diferença entre os 4
+ataques/s de mãos vazias e os 1.6 ataques/s característicos de espada) assim
+que ganhasse o modificador de dano customizado. `SwordDamageService`
+redeclara essa penalidade (`Attribute.ATTACK_SPEED`, -2.4) junto com o dano,
+igual em todo material, pra nenhuma espada acabar batendo rápido demais.
+
+Mesmo padrão idempotente (flag na `PersistentDataContainer`) e mesmo ciclo
+join+tick do `ItemTierService`, então cobre espada comprada, minerada, dropada
+ou dada por comando sem precisar instrumentar cada sistema separadamente.
 
 ## Loja removida (por enquanto)
 
