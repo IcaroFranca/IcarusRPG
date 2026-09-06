@@ -439,6 +439,7 @@ public final class SkillsMenuService {
                 this.text("☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.AQUA),
                 this.text("☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.AQUA),
                 this.text("Ⓕ Ferocity: " + Math.round(s.ferocity()), NamedTextColor.RED),
+                this.text("⚔ " + l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)), NamedTextColor.GOLD),
                 this.text("↔ " + l.choose("Alcance de Ataque: ", "Swing Range: ") + String.format(Locale.US, "%.1f", s.swingRange()), NamedTextColor.YELLOW),
                 this.text("✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA),
                 this.text("❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%", NamedTextColor.LIGHT_PURPLE),
