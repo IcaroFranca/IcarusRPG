@@ -26,6 +26,10 @@ stats:
   # NOT granted by the combat tree (unlike every other stat on the Combat Stats screen) —
   # reserved for future gear/enchant sources.
   base-true-defense: 0.0
+  # Full-heals the player every time they appear in a map (server join or world
+  # change, e.g. Multiverse-Core/portals) - a "checkpoint" heal, like returning to
+  # a hub. Set to false to instead just preserve whatever Health they already had.
+  heal-to-full-on-map-enter: true
 hud:
   update-ticks: 5
   spacing: "     "
