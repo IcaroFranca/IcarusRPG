@@ -263,6 +263,13 @@ extends JavaPlugin {
             }
         }
         this.getServer().getOnlinePlayers().forEach(p -> {
+            // Captured before applyBaseHealth/applyBonusHealth/migrate touch Max Health -
+            // each can momentarily drop it below the player's real current Health before
+            // the next call's bonus reattaches, and vanilla auto-clamps Health down the
+            // instant that happens (irreversible once the bonuses return). Restoring from
+            // this snapshot afterwards is what actually preserves it across a /reload with
+            // players already online - same fix as CombatListener#reapplyHealthStack.
+            double healthBefore = ((Player)p).getHealth();
             stats.applyBaseHealth((Player)p);
             combat.applyAttackSpeed((Player)p);
             stats.applySwingRange((Player)p);
@@ -273,6 +280,9 @@ extends JavaPlugin {
             swordDamage.applySwordDamage((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             global.migrate((Player)p);
+            if (!((Player)p).isDead()) {
+                ((Player)p).setHealth(Math.min(healthBefore, stats.stats((Player)p).maxHealth()));
+            }
             foodListener.refresh((Player)p);
             this.visuals.track((LivingEntity)p);
             economy.updateBoard((Player)p);

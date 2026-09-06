@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.40.2.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.40.3.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -856,3 +856,46 @@ perceptível, independente de virar loop infinito ou não. Por isso o valor
 final é bem mais conservador: **1.000 blocos** por ação — generoso (várias
 construções/paredes inteiras de uma vez), mas curto o bastante pra não
 gerar uma trava sentida pelos jogadores.
+
+## Bug corrigido: HP caindo pra 100 ao voltar do mapa / trocar de mundo
+
+**Causa raiz**: `CombatListener#join` chamava `stats.applyBaseHealth` (zera a
+base de Vida Máxima pro valor puro do `config.yml`, 100) *antes* dos bônus —
+Bestiário (`bestiary.applyBonusHealth`) e Nível Global
+(`GlobalLevelService#applyHealth`) — serem reanexados. No instante entre
+esses dois passos, a Vida Máxima efetiva do jogador já caiu pra 100 sem os
+bônus ainda em cima, e o próprio motor do jogo corta a Vida atual pro novo
+teto automaticamente assim que o atributo muda — um corte que não volta
+sozinho quando os bônus reaparecem alguns milissegundos depois. Pior: o
+bônus do Nível Global nem era reanexado nesse método — só o do Bestiário —
+então esse pedaço ficava perdido até o jogador ganhar XP Global de novo.
+
+Isso disparava toda vez que o jogador reconectava (`PlayerJoinEvent`), e
+muito provavelmente também ao trocar de mundo via Multiverse-Core/portais
+sem desconectar, caso a troca de mundo dispare uma reconstrução da
+`AttributeInstance` que derruba os modificadores transitórios de Vida
+Máxima do mesmo jeito.
+
+**Correção**: `CombatListener#reapplyHealthStack` agora captura a Vida
+*antes* de qualquer coisa mexer nos atributos, reaplica base + Bestiário +
+Nível Global (nessa ordem, incluindo o bônus que faltava), e só então
+restaura a Vida do jogador — cortada apenas se o teto real e definitivo for
+menor que isso, nunca por um vácuo momentâneo entre duas chamadas. Usado no
+join **e** num novo handler de `PlayerChangedWorldEvent` (cobre troca de
+mundo em Multiverse/portais sem precisar desconectar), e o mesmo padrão foi
+replicado no laço de `onEnable` que reaplica tudo pros jogadores já online
+num `/reload`.
+
+**Sobre o Gamemode mudando ao trocar de mundo**: isso **não é o
+IcarusRPG** — o plugin não toca em `GameMode` em lugar nenhum do código
+(só *lê* pra decidir mecânicas da Varinha/Mão, nunca escreve). É quase
+certamente o próprio Multiverse-Core aplicando um gamemode forçado por
+mundo (configurável em `worlds.yml`, ou via `/mv modify <mundo> set
+gamemode <valor>`) — o fix é limpar essa config lá (`/mv modify <mundo> set
+gamemode` sem valor, ou apagar a linha `gamemode:` do `worlds.yml` daquele
+mundo específico), não algo pra corrigir por aqui. Deliberadamente não
+implementei um "lembra e restaura o gamemode" no plugin pra contornar isso
+— brigar com a configuração de outro plugin desse jeito é frágil e corre o
+risco de reverter até uma troca de gamemode legítima (um admin te colocando
+em Creative, por exemplo). Se depois de ajustar o Multiverse o problema
+persistir, aí sim vale revisitar.
