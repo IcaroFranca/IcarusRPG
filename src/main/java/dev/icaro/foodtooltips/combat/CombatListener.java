@@ -43,6 +43,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -249,12 +250,52 @@ public final class CombatListener implements Listener {
 
     @EventHandler
     public void join(PlayerJoinEvent e) {
-        this.stats.applyBaseHealth(e.getPlayer());
-        this.combat.applyAttackSpeed(e.getPlayer());
-        this.stats.applySwingRange(e.getPlayer());
-        this.bestiary.applyBonusHealth(e.getPlayer());
-        this.visuals.track(e.getPlayer());
-        this.economy.updateBoard(e.getPlayer());
+        Player p = e.getPlayer();
+        this.reapplyHealthStack(p);
+        this.combat.applyAttackSpeed(p);
+        this.stats.applySwingRange(p);
+        this.visuals.track(p);
+        this.economy.updateBoard(p);
+    }
+
+    /**
+     * Multiverse-Core (and portals in general) can move a player into a different
+     * world mid-session without a full relog - if that world's own AttributeInstance
+     * ever drops the transient Max Health bonuses (Bestiary, Global Level), the same
+     * clamp-on-the-way-down bug {@link #reapplyHealthStack} guards against on join
+     * can happen here too, with no relog to trigger the join-time fix.
+     */
+    @EventHandler
+    public void changedWorld(PlayerChangedWorldEvent e) {
+        Player p = e.getPlayer();
+        this.reapplyHealthStack(p);
+        this.combat.applyAttackSpeed(p);
+        this.stats.applySwingRange(p);
+    }
+
+    /**
+     * Re-derives every source of Max Health bonus (base, Bestiary milestones, Global
+     * Level) and restores the player's actual current Health across the whole
+     * sequence. Each individual step can momentarily drop Max Health below the
+     * player's real current Health - {@code stats.applyBaseHealth} resets the base
+     * to the plain config value *before* the bonuses below reattach, and vanilla
+     * auto-clamps current Health down the instant that happens. That clamp is
+     * irreversible (Health doesn't bounce back up once the bonuses return), so
+     * without capturing/restoring around the whole sequence a player's real HP
+     * silently erodes towards the bare base on every join or world change - this
+     * was the bug behind "HP volta pra 100 quando eu troco de mapa".
+     */
+    private void reapplyHealthStack(Player p) {
+        if (p.isDead()) {
+            return;
+        }
+        double before = p.getHealth();
+        this.stats.applyBaseHealth(p);
+        this.bestiary.applyBonusHealth(p);
+        this.global.applyHealth(p);
+        AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
+        double max = a == null ? 20.0 : a.getValue();
+        p.setHealth(Math.min(before, max));
     }
 
     @EventHandler
