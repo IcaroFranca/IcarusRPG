@@ -19,6 +19,7 @@ public final class SwordDamageListener implements Listener {
 
     @EventHandler
     public void join(PlayerJoinEvent e) {
+        this.swordDamage.neutralizeBaseAttackDamage(e.getPlayer());
         this.swordDamage.applySwordDamage(e.getPlayer());
     }
 }
