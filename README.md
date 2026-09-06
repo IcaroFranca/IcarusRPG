@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.40.0.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.40.1.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -344,12 +344,22 @@ vazio mostra "Nada equipado."
 
 **"Status de Combate" virou uma lista única e completa** (estilo Hypixel
 SkyBlock): Vida, Defesa, Defesa Verdadeira, Strength, Chance Crítica, Dano
-Crítico, Ferocity, Alcance de Ataque, Inteligência, Dano de Habilidade,
-Regen. de Vida, Vitality e Mending, tudo no mesmo item (`combatStatsItem`,
-antes dividido em 4 itens separados — Combate/Vitalidade/Magia/Defesa — que
-saíram do menu). Como quase todas essas stats agora vêm parcialmente da
-árvore de combate, os números aqui já refletem qualquer bônus de habilidade
-ativa.
+Crítico, Ferocity, Velocidade de Ataque, Alcance de Ataque, Inteligência,
+Dano de Habilidade, Regen. de Vida, Vitality e Mending, tudo no mesmo item
+(`combatStatsItem`, antes dividido em 4 itens separados —
+Combate/Vitalidade/Magia/Defesa — que saíram do menu). Como quase todas
+essas stats agora vêm parcialmente da árvore de combate, os números aqui já
+refletem qualquer bônus de habilidade ativa.
+
+**Velocidade de Ataque adicionada ao Status de Combate**: lia
+`Attribute.ATTACK_SPEED` (mesmo padrão que já lia `MOVEMENT_SPEED` no
+preview condensado), mas nunca tinha sido exibida em lugar nenhum apesar de
+já ser uma mecânica real — soma da penalidade de espada do
+`SwordDamageService` (-2.4) com o bônus por nível de Combate
+(`CombatSkillService#attackSpeed`, curva configurável em
+`combat.attack-speed-level-0/25/50`, que sobe de 4.0 em nível 0 pra 20.0 no
+nível 50 e depois **para de crescer** até o 200, diferente de Chance/Dano
+Crítico que continuam escalando linearmente até o teto).
 
 ## Reorganização do menu de Skills
 
