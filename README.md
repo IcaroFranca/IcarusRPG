@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.40.1.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.40.2.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -476,10 +476,30 @@ raridade no Hypixel SkyBlock têm status bem diferentes entre si.
 
 Implementado via `AttributeModifier` direto no `ItemMeta` (`Attribute.ATTACK_DAMAGE`,
 `EquipmentSlotGroup.MAINHAND`), não como código-de-evento reescrevendo dano
-na hora do hit — assim o valor aparece certinho na própria tooltip vanilla
-do item e o Arremesso de Espada (que lê `Attribute.ATTACK_DAMAGE` do jogador
-pra calcular sua fração de dano) automaticamente escala junto, sem precisar
-de nenhum ajuste separado.
+na hora do hit — assim o Arremesso de Espada (que lê `Attribute.ATTACK_DAMAGE`
+do jogador pra calcular sua fração de dano) automaticamente escala junto,
+sem precisar de nenhum ajuste separado.
+
+**Bug corrigido: a tooltip mostrava o valor configurado menos 1** (ex.:
+Netherite configurado pra 40 aparecia como "+39 Attack Damage"). A causa: todo
+jogador tem uma base vanilla de `Attribute.ATTACK_DAMAGE` = 1.0 sempre
+presente, então um modificador de item de "39" somado a essa base dava 40 no
+total — mas a *tooltip* do item mostra só o modificador do próprio item
+(39), não o total já somado à base do jogador, então o número exibido nunca
+batia com o configurado. `SwordDamageService#neutralizeBaseAttackDamage`
+zera essa base vanilla uma vez por jogador (mesma ideia de
+`ArmorDefenseService#neutralizeVanillaArmor` substituir Defesa por inteiro,
+mas aqui cancelando só o 1.0 fixo da base — o que a própria espada contribui
+continua intacto), então agora o modificador da espada é *o único*
+componente que sobra e pode ser literalmente o valor configurado (40), sem
+nenhuma subtração escondida em lugar nenhum.
+
+**Efeito colateral, documentado de propósito**: como a base zerada é do
+*jogador*, não da espada, ela vale sempre, independente do que estiver na
+mão — então socar com a mão vazia agora causa 0 de dano em vez do 1 vanilla,
+e ferramentas fora da progressão de espada (machado, tridente...) também
+perdem esse 1 de base escondido, já que o próprio plugin não mexe nos
+atributos delas.
 
 **Pegadinha evitada**: setar explicitamente o `attribute_modifiers` de um
 item **substitui** o conjunto implícito de modificadores que o material já
@@ -488,11 +508,21 @@ sua penalidade de velocidade de ataque vanilla (a diferença entre os 4
 ataques/s de mãos vazias e os 1.6 ataques/s característicos de espada) assim
 que ganhasse o modificador de dano customizado. `SwordDamageService`
 redeclara essa penalidade (`Attribute.ATTACK_SPEED`, -2.4) junto com o dano,
-igual em todo material, pra nenhuma espada acabar batendo rápido demais.
+igual em todo material.
 
-Mesmo padrão idempotente (flag na `PersistentDataContainer`) e mesmo ciclo
-join+tick do `ItemTierService`, então cobre espada comprada, minerada, dropada
-ou dada por comando sem precisar instrumentar cada sistema separadamente.
+**Tooltip vanilla escondida, lore própria no lugar** (mesmo padrão de
+`ArmorDefenseService#applyDefenseTooltip` pra Defesa): `ItemFlag.HIDE_ATTRIBUTES`
+esconde o bloco "When in Main Hand" inteiro, substituído por duas linhas
+próprias — "Dano de Ataque" (estático, o valor configurado, inserido uma
+vez) e **"Velocidade de Ataque"**, que **não é estática**: mostra o valor
+*real* que o jogador vai sentir empunhando aquela espada, recalculado a
+cada refresh a partir do nível de Combate atual (`combat.attackSpeed(level)
++ (-2.4)`) — em vez do "-2.4" cru do modificador do item, que sozinho não
+diz nada sobre a velocidade final (que varia de 1.6 no nível 0 até 17.6 no
+nível 50+, ver a seção de Velocidade de Ataque acima). Por isso essa linha
+específica não é idempotente feito o resto da tooltip: é conferida e
+reescrita (só quando o texto realmente muda) toda vez que o ciclo
+join+tick roda, pra nunca ficar mostrando um nível de Combate desatualizado.
 
 ## Loja removida (por enquanto)
 
