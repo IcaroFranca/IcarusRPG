@@ -1102,3 +1102,18 @@ só em `GeneralSkillService` (`fortunePerLevel()`/`healthPerLevel()`/
 `strengthPerLevel()`/`maxManaPerLevel()`), lidos tanto pelo menu quanto
 pela mensagem de level-up, em vez de cada um repetir o número por conta
 própria.
+
+## Durabilidade de todo item multiplicada por 5
+
+`DurabilityService` + `DurabilityListener` (pacote `item`): a Durabilidade
+Máxima de todo item danificável — ferramentas, armas, armaduras, arco,
+besta, tridente, maça, escudo, vara de pescar, elytra, tudo que
+`Material#getMaxDurability()` reporta maior que zero — é multiplicada por
+`items.durability-multiplier` (padrão 5) no config.yml. Mesmo padrão
+idempotente do `ItemTierService#applyItemTiers`: marcado uma vez por item
+via PDC, aplicado no login e reaplicado a cada tick do HUD, então alcança
+qualquer item crafado/minerado/comprado/dado depois, sem precisar de um
+hook dedicado de craft/pickup/clique. O dano atual do item é multiplicado
+junto com o máximo, então uma ferramenta já 80% gasta continua 80% gasta
+(proporcionalmente) em vez do multiplicador dar durabilidade de graça pra
+item já usado.

@@ -134,4 +134,10 @@ destroyer-hand:
   # idea as builder-wand.max-length (Line and Face modes alike), just for the
   # opposite direction.
   max-length: 64
+items:
+  # Every damageable item's Max Durability is multiplied by this (vanilla materials
+  # only care about relative wear, so a bigger number just means more uses before it
+  # breaks) - applied once per item (like item-tiers below) via a PDC marker, so
+  # raising/lowering this later only affects items that haven't been touched yet.
+  durability-multiplier: 5
 item-tiers: {}
