@@ -3,11 +3,13 @@ package dev.icaro.foodtooltips.skills;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -19,11 +21,12 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Keeps {@link SkillsStarService}'s star pinned to its hotbar slot and wires
- * right-clicking it (or, if the inventory is open, clicking it there too) to
- * {@link SkillsMenuService#openMain}. Every handler here either re-grants the star
- * (join/respawn/death) or cancels an interaction that would move/drop/destroy it -
- * nothing here ever lets it actually leave slot {@value SkillsStarService#SLOT}.
+ * Keeps {@link SkillsStarService}'s star pinned to its hotbar slot and wires any
+ * click while holding it - left or right, air or block, plus clicking it in the
+ * inventory screen if it's open - to {@link SkillsMenuService#openMain}. Every
+ * handler here either re-grants the star (join/respawn/death) or cancels an
+ * interaction that would move/drop/destroy it - nothing here ever lets it actually
+ * leave slot {@value SkillsStarService#SLOT}.
  */
 public final class SkillsStarListener implements Listener {
     private final Plugin plugin;
@@ -52,16 +55,37 @@ public final class SkillsStarListener implements Listener {
         e.getDrops().removeIf(this.star::isStar);
     }
 
-    /** Right-click while it's the held item - the normal way to use it now that it lives in the hotbar. */
-    @EventHandler(ignoreCancelled = true)
+    /**
+     * Left-click (air or block) rides {@link PlayerAnimationEvent} - the plain
+     * arm-swing animation - instead of {@code PlayerInteractEvent}'s
+     * {@code LEFT_CLICK_AIR}. Bukkit's air-click interact event is throttled/best-effort
+     * in a way block clicks aren't, so a swing with nothing in reach doesn't reliably
+     * reach {@link #interact}. The animation event has no such caveat: it fires for
+     * every left-click, air or not (same fix {@code BuilderWandListener#swing} uses).
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void swing(PlayerAnimationEvent e) {
+        Player p = e.getPlayer();
+        if (this.star.isStar(p.getInventory().getItemInMainHand())) {
+            this.menus.openMain(p);
+        }
+    }
+
+    /** Right-click (air or block) opens the menu directly; left-click-on-block only needs cancelling here - the open itself already ran off {@link #swing}. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void interact(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND || !this.star.isStar(e.getItem())) {
             return;
         }
-        e.setCancelled(true);
-        if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            this.menus.openMain(e.getPlayer());
+        if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
+            e.setCancelled(true);
+            return;
         }
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        e.setCancelled(true);
+        this.menus.openMain(e.getPlayer());
     }
 
     @EventHandler(ignoreCancelled = true)
