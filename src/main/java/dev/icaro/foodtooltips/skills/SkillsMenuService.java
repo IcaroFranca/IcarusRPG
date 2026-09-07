@@ -353,6 +353,7 @@ public final class SkillsMenuService {
                 this.text(l.choose("Veja seu equipamento, status e mais!", "View your equipment, stats, and more!"), NamedTextColor.GRAY),
                 Component.empty(),
                 this.text("🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent, NamedTextColor.WHITE),
+                this.text("🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(this.stats.effectiveAgility(p)), NamedTextColor.WHITE),
                 this.text("✹ Strength: " + s.strength(), NamedTextColor.RED),
                 this.text("✦ " + l.choose("Defesa: ", "Defense: ") + defense, NamedTextColor.GREEN),
                 this.text("☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.BLUE),
@@ -409,11 +410,13 @@ public final class SkillsMenuService {
     /**
      * The full Combat Stats list in one place — every combat stat the player has, in the
      * order Health/Defense/True Defense/Strength/Crit Chance/Crit Damage/Ferocity/Swing
-     * Range/Intelligence/Ability Damage/Health Regen/Vitality/Mending, each followed by a
-     * gray sub-line naming exactly where its number comes from. Everything here except
-     * True Defense is upgradeable through the combat tree and/or a general skill (see
-     * {@link CombatAbilityService}'s class doc for which ability grants which bonus, and
-     * {@link GeneralSkillService} for Mining/Farming/Fishing/Foraging/Alchemy/Enchanting).
+     * Range/Intelligence/Agility/Speed/Ability Damage/Health Regen/Vitality/Mending, each
+     * followed by a gray sub-line naming exactly where its number comes from. Everything
+     * here except True Defense is upgradeable through the combat tree and/or a general
+     * skill (see {@link CombatAbilityService}'s class doc for which ability grants which
+     * bonus, and {@link GeneralSkillService} for Mining/Farming/Fishing/Foraging/Alchemy/
+     * Enchanting). Agility/Speed is the odd one out - its only source today is a
+     * legendary weapon (Baruka's Dagger), not the tree or a general skill.
      */
     private ItemStack combatStatsItem(Player p, Language l) {
         PlayerStats s = this.stats.stats(p);
@@ -486,6 +489,21 @@ public final class SkillsMenuService {
         this.stat(lore, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA,
                 this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseIntelligence()),
                         alchemyEnchantingIntelligence > 0 ? l.choose("Alquimia/Encantamento +", "Alchemy/Enchanting +") + alchemyEnchantingIntelligence : null));
+
+        // Agility/Speed is the same pairing as Intelligence/Mana above - a plain stat
+        // (base plus whatever's currently wielded) that feeds a resource one-for-one,
+        // just expressed as a percentage since Speed is a real vanilla attribute rather
+        // than a fully custom one - see PlayerStatsService#effectiveAgility.
+        double agility = this.stats.effectiveAgility(p);
+        double heldAgility = agility - this.stats.baseAgility();
+        this.stat(lore, "🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(agility), NamedTextColor.WHITE,
+                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseAgility()),
+                        heldAgility > 0 ? l.choose("Arma equipada +", "Held weapon +") + Math.round(heldAgility) : null));
+
+        long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
+        this.stat(lore, "🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent + "%", NamedTextColor.WHITE,
+                this.join(l.choose("Base 100%", "Base 100%"),
+                        agility > 0 ? l.choose("Agilidade +", "Agility +") + Math.round(agility) + "%" : null));
 
         this.stat(lore, "❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%", NamedTextColor.LIGHT_PURPLE,
                 l.choose("Base (config)", "Base (config)"));

@@ -53,8 +53,14 @@ public final class LegendaryWeaponService {
 
     /** Daggers swing 1 block shorter than a normal sword - Kamish's Wrath is exempt (see its class doc). */
     private static final double DAGGER_RANGE_PENALTY = -1.0;
-    /** Baruka's Dagger: +10 Agility -&gt; +2% of vanilla's base Movement Speed (0.1) per point while wielded. */
-    private static final double AGILITY_SPEED_PER_POINT = 0.002;
+    /**
+     * 1 point of Agility -&gt; +1% of vanilla's base Movement Speed (0.1) while wielded -
+     * the same clean one-for-one relationship Intelligence has with Max Mana, just
+     * expressed as a percentage since Speed (unlike Mana) is a real vanilla attribute
+     * the stats screen displays as "100 = normal speed" (see {@code
+     * SkillsMenuService#head}).
+     */
+    private static final double AGILITY_SPEED_PER_POINT = 0.001;
     /** Demon King's Daggers' "Two as One": extra flat damage per point of the wielder's Strength. */
     private static final double TWO_AS_ONE_DAMAGE_PER_STRENGTH = 0.5;
     /** Kamish's Wrath: extra flat damage per point of the wielder's Strength. */
@@ -164,6 +170,12 @@ public final class LegendaryWeaponService {
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Agility granted by whatever the player is currently wielding in their main hand (0 for every weapon except Baruka's Dagger) - the number {@code PlayerStatsService#effectiveAgility} shows on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. The real Movement Speed change itself comes from the item's own attribute modifier (see {@link #create}), not from this method - this is purely the display-facing number. */
+    public int heldAgilityBonus(Player p) {
+        LegendaryWeapon w = of(p.getInventory().getItemInMainHand());
+        return w == null ? 0 : w.agility();
     }
 
     // ---- Melee damage hooks (called from CombatListener#damage) -------------
