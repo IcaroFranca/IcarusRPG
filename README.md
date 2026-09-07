@@ -1294,3 +1294,30 @@ deixar o Arremesso de Espada disparar em cima da Espada Longa do Rei
 Demônio, que já tem sua própria habilidade na tecla F). Os três agora
 checam `LegendaryWeaponService.isLegendary(item)` primeiro e saem sem
 fazer nada quando é uma arma lendária.
+
+## Agilidade é pra Velocidade o que Inteligência é pra Mana
+
+Antes, o +10 de Agilidade da Adaga de Baruka só existia escondido dentro
+de um `AttributeModifier` no próprio item - não tinha nenhum número
+"Agilidade" visível em lugar nenhum, diferente de Inteligência (que já
+aparecia como stat própria mesmo alimentando o Mana Máximo por trás).
+
+Agora Agilidade segue exatamente o mesmo padrão: `PlayerStatsService`
+ganhou `baseAgility()` (config `stats.base-agility`, default 0, igual a
+`baseIntelligence()`) e `effectiveAgility(Player)` (base + o que a arma
+atualmente equipada concede - `LegendaryWeaponService#heldAgilityBonus`,
+ligado via um `stats.legendary(LegendaryWeaponService)` setter pós-
+construção, mesmo padrão de `general`/`abilities`/`global`). Esse número
+aparece tanto no resumo rápido (`SkillsMenuService#head`, a cabeça no
+menu de Habilidades) quanto na aba "Status de Combate" detalhada, com
+linha de fonte igual à de Inteligência ("Base X" + "Arma equipada +Y").
+
+A relação com Velocidade também virou 1-por-1: cada ponto de Agilidade
+agora soma exatamente +1% de Velocidade (era +2% antes da correção do
+fator de conversão em `LegendaryWeaponService`), o mesmo tipo de
+proporção limpa que 1 Inteligência = +1 Mana Máximo já tinha. A aba de
+Status de Combate ganhou uma linha de Velocidade nova (não existia lá
+antes, só no resumo rápido) mostrando "Base 100%" + "Agilidade +X%".
+Velocidade continua lendo o atributo vanilla de verdade (não um número
+puramente calculado como Mana), então continua refletindo também
+qualquer outra fonte (poções etc.) além da Agilidade.
