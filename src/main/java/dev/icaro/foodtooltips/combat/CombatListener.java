@@ -72,6 +72,7 @@ public final class CombatListener implements Listener {
     private final double levelXp;
     private final double mobHealthMultiplier;
     private final boolean healToFullOnMapEnter;
+    private final boolean pvpFullDamageStack;
     private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
@@ -93,6 +94,7 @@ public final class CombatListener implements Listener {
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
         this.mobHealthMultiplier = Math.max(1.0, p.getConfig().getDouble("mob-visuals.health-multiplier", 5.0));
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
+        this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
     }
 
     @EventHandler
@@ -141,15 +143,21 @@ public final class CombatListener implements Listener {
             return;
         }
         if (this.abilities.isAbilityDamageInFlight(p)) {
-            // Sword Throw's own damage bypasses melee multipliers and Ferocity's extra
-            // hits entirely — just show feedback. This is what keeps it single-target.
+            // Sword Throw's own damage (and Ferocity's own extra hits below, which also
+            // go through dealAbilityDamage now) bypass melee multipliers entirely here —
+            // already fully computed before dealAbilityDamage fired this event, so
+            // reprocessing would double-apply them or, for Ferocity specifically, let an
+            // extra hit itself roll more extra hits.
             if (!(target instanceof Player)) {
                 this.visuals.track(target);
                 this.visuals.damageNumber(target, e.getFinalDamage(), false);
             }
             return;
         }
-        if (target instanceof Player) {
+        boolean playerTarget = target instanceof Player;
+        if (playerTarget && !this.pvpFullDamageStack) {
+            // combat.pvp-full-damage-stack: false reverts to the old PvP formula (only
+            // Global Strength applies) instead of the same stack PvE gets below.
             e.setDamage(e.getDamage() * this.global.strengthMultiplier(p));
             return;
         }
@@ -158,21 +166,36 @@ public final class CombatListener implements Listener {
         boolean skillCritical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         boolean vanillaCritical = e.getDamager() == p && p.getFallDistance() > 0.0f && !p.isOnGround() && !p.isInWater() && !p.isClimbing() && !p.isSprinting() && p.getVehicle() == null;
         boolean critical = skillCritical || vanillaCritical;
-        double mobBonus = 1.0 + this.bestiary.damageBonus(p, target.getType());
+        // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
+        // else (level, crit, ability outgoing multiplier, Global Strength) does, same
+        // formula PvE gets, so a player's progression means the same thing in both.
+        double mobBonus = playerTarget ? 1.0 : 1.0 + this.bestiary.damageBonus(p, target.getType());
         double damage = e.getDamage() * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                 * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0);
         e.setDamage(damage);
-        this.visuals.track(target);
-        this.visuals.damageNumber(target, e.getFinalDamage(), critical);
+        if (!playerTarget) {
+            this.visuals.track(target);
+            this.visuals.damageNumber(target, e.getFinalDamage(), critical);
+        }
         int extraHits = CombatTreeMath.extraHits(this.stats.stats(p).ferocity(), ThreadLocalRandom.current().nextDouble(100.0));
         Bukkit.getScheduler().runTask(this.plugin, () -> {
-            this.visuals.update(target);
+            if (!playerTarget) {
+                this.visuals.update(target);
+            }
             if (extraHits > 0 && target.isValid() && !target.isDead()) {
                 double extraDamage = e.getFinalDamage();
                 for (int i = 0; i < extraHits && !target.isDead(); i++) {
-                    double newHealth = Math.max(0.0, target.getHealth() - extraDamage);
-                    target.setHealth(newHealth);
-                    this.visuals.damageNumber(target, extraDamage, false);
+                    // Via dealAbilityDamage (a real target.damage() call, flagged so the
+                    // check above skips reprocessing it), not a raw target.setHealth() -
+                    // that used to bypass Defense (ArmorDefenseListener only reacts to a
+                    // genuine EntityDamageEvent) and Second Wind entirely, so a tanky
+                    // target took full, unmitigated damage from every extra Ferocity hit
+                    // regardless of its actual Defense stat.
+                    this.abilities.dealAbilityDamage(p, target, extraDamage);
+                    if (!playerTarget) {
+                        this.visuals.damageNumber(target, extraDamage, false);
+                    }
+                    this.visuals.ferocityHit(p, target);
                 }
             }
         });

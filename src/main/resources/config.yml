@@ -45,6 +45,10 @@ combat:
   xp-exponent: 1.65
   hostile-xp-health-multiplier: 2.0
   hostile-xp-level-multiplier: 3.0
+  # Whether PvP damage gets the same multiplier stack PvE does (Combat level %,
+  # crit chance/damage, Ferocity extra hits, ability outgoing multiplier) instead of
+  # just Global Strength. false reverts to the old PvP-only formula.
+  pvp-full-damage-stack: true
 combat-tree:
   # Blood Points are the currency spent in the Combat Ability Tree to unlock and upgrade nodes.
   # Every node's rank-1 cost and per-rank cost scale with its tier (how deep it sits in the

@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.41.0.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.42.0.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -908,3 +908,81 @@ implementei um "lembra e restaura o gamemode" no plugin pra contornar isso
 risco de reverter até uma troca de gamemode legítima (um admin te colocando
 em Creative, por exemplo). Se depois de ajustar o Multiverse o problema
 persistir, aí sim vale revisitar.
+
+## Correções na Ferocity e no PvP, partículas de acerto extra, `/resetstats`
+
+**Bug corrigido: os hits extras da Ferocity ignoravam Defesa e Segundo
+Fôlego.** Em vez de gerar um `EntityDamageEvent` de verdade, o código
+chamava `target.setHealth()` direto:
+
+```java
+double newHealth = Math.max(0.0, target.getHealth() - extraDamage);
+target.setHealth(newHealth);
+```
+
+Isso pulava completamente `ArmorDefenseListener` (só reage a
+`EntityDamageEvent` de verdade) e `CombatListener#secondWind` — um mob
+"tanque" com Defesa alta tomava o hit extra da Ferocity cheio, sem nenhuma
+mitigação, e o jogador não conseguia usar Segundo Fôlego pra sobreviver a
+um hit extra que seria fatal. Corrigido reaproveitando
+`CombatAbilityService#dealAbilityDamage` (o mesmo mecanismo que o Arremesso
+de Espada já usa) pra cada hit extra: chama `target.damage()` de verdade,
+sinalizado (`isAbilityDamageInFlight`) pra `CombatListener#damage` não
+reprocessar o hit no stack de multiplicadores nem deixar um hit extra rolar
+mais hits extras — mas Defesa e Segundo Fôlego, que reagem ao evento de
+dano em si (não ao código que o disparou), agora funcionam normalmente.
+
+**Novo: linha de partículas vermelhas em cada hit extra da Ferocity**
+(`MobVisualService#ferocityHit`) — uma linha curta de `Particle.DUST`
+vermelho do atacante até o alvo, uma por hit extra. Motivo: numa luta
+cheia de números de dano, animação de hit do mob e efeitos de outros
+jogadores, um número que aparece e some em menos de um segundo passa
+despercebido; uma linha visível deixa claro que o hit extra realmente
+aconteceu.
+
+**Bug/lacuna corrigida: PvP não usava o mesmo stack de dano do PvE.** Antes:
+
+```java
+if (target instanceof Player) {
+    e.setDamage(e.getDamage() * this.global.strengthMultiplier(p));
+    return;
+}
+```
+
+Só o multiplicador de Strength do Nível Global se aplicava — nada de
+crítico, Ferocity ou multiplicador de dano por Nível de Combate, que o PvE
+sempre recebeu. Com espadas batendo 20-40 de base e PvE multiplicando isso
+bastante por nível/crítico, um build endgame batia desproporcionalmente
+mais fraco em outro jogador do que num mob. Unificado: PvP agora passa pelo
+mesmo stack (nível, crítico, Ferocity, multiplicador de habilidades,
+Strength), exceto o bônus por tipo de mob do Bestiário, que não faz sentido
+contra jogador. Configurável em `combat.pvp-full-damage-stack` no
+`config.yml` (`true` por padrão) pra quem preferir voltar à fórmula antiga
+(só Strength) sem recompilar.
+
+**Limpeza**: um comentário em `SwordThrowListener` mencionava
+"CombatListener skips Cleave's splash" — não existe (nem nunca existiu,
+até onde os fontes mostram) nenhuma habilidade "Cleave"/dano em área no
+projeto. Comentário desatualizado/confuso, reescrito pra descrever o que o
+código realmente faz.
+
+**Novo comando `/resetstats <player>`** (`foodtooltips.admin`): reseta
+*todos* os status que o plugin já guardou daquele jogador pros valores
+iniciais — Mana/Vitalidade, Nível/XP de Combate, skills gerais, ranks da
+Árvore de Combate, Valor de Combate, Moedas, Nível Global (com checkpoints
+e a flag de migração) e abates/marcos do Bestiário. Implementado de forma
+deliberadamente "bruta": em vez de zerar sistema por sistema (uma lista que
+precisaria ser atualizada toda vez que um stat novo for adicionado no
+futuro), remove toda chave da `PersistentDataContainer` do jogador sob o
+namespace `"foodtooltips"` — o namespace literal fixo que todo stat de
+jogador do plugin usa (metadado de item, como Tier ou Dano de Espada, mora
+no `ItemMeta` do item sob um namespace por-instância-de-plugin, nunca no
+jogador, então fica intocado). Depois disso, reaplica o pipeline de
+atributos (Vida base, Mana/Vitalidade, Attack Speed, Defesa, cura total)
+pro jogador já sair do comando com tudo refletido, sem precisar relogar.
+
+**Não é tocado**: inventário/itens, XP/nível vanilla, posição, gamemode. A
+capacidade da Mochila de Combate também reseta pro tier base — se a mochila
+tiver mais itens do que a capacidade nova (menor) permite, os itens não são
+apagados, mas podem ficar inacessíveis até os nós de capacidade serem
+comprados de novo.

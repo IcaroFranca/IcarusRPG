@@ -47,6 +47,7 @@ import dev.icaro.foodtooltips.skills.SkillsMenuService;
 import dev.icaro.foodtooltips.skills.SwordThrowListener;
 import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import dev.icaro.foodtooltips.stats.ResetStatsCommand;
 import dev.icaro.foodtooltips.stats.StatsHudService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -136,6 +137,9 @@ extends JavaPlugin {
         SetSkillLevelCommand setSkill = new SetSkillLevelCommand(combat, general, global);
         this.getCommand("setskilllevel").setExecutor((CommandExecutor)setSkill);
         this.getCommand("setskilllevel").setTabCompleter((TabCompleter)setSkill);
+        ResetStatsCommand resetStats = new ResetStatsCommand(stats, combat, armor, global, bestiaryProgress, economy);
+        this.getCommand("resetstats").setExecutor((CommandExecutor)resetStats);
+        this.getCommand("resetstats").setTabCompleter((TabCompleter)resetStats);
         GlobalLevelCommand globalCommand = new GlobalLevelCommand(global);
         this.getCommand("nivelglobal").setExecutor((CommandExecutor)globalCommand);
         this.getCommand("nivelglobal").setTabCompleter((TabCompleter)globalCommand);
