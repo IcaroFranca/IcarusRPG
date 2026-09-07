@@ -30,8 +30,6 @@ import dev.icaro.foodtooltips.mining.MiningMenuListener;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseListener;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
-import dev.icaro.foodtooltips.skills.BackpackListener;
-import dev.icaro.foodtooltips.skills.BackpackService;
 import dev.icaro.foodtooltips.skills.BedrockSwordThrowListener;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
@@ -68,7 +66,6 @@ public final class FoodTooltipsPlugin
 extends JavaPlugin {
     private MobVisualService visuals;
     private SkillProgressBarService progressBar;
-    private BackpackService backpacks;
 
     public void onEnable() {
         this.saveDefaultConfig();
@@ -94,8 +91,6 @@ extends JavaPlugin {
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor);
-        this.backpacks = new BackpackService((Plugin)this, combat, general, abilities);
-        menus.backpacks(this.backpacks);
         BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         this.visuals = new MobVisualService((Plugin)this);
@@ -117,7 +112,6 @@ extends JavaPlugin {
         pm.registerEvents((Listener)levelColorMenu, (Plugin)this);
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
-        pm.registerEvents((Listener)new BackpackListener(this.backpacks, menus), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
@@ -300,9 +294,6 @@ extends JavaPlugin {
         }
         if (this.progressBar != null) {
             this.progressBar.shutdown();
-        }
-        if (this.backpacks != null) {
-            this.backpacks.shutdown();
         }
     }
 
