@@ -275,7 +275,15 @@ public final class PlayerStatsService {
         }
     }
 
-    private static Attribute resolveEntityInteractionRangeAttribute() {
+    /**
+     * The vanilla melee/interaction-range attribute this server version exposes under
+     * the registry key {@link #applySwingRange} knows about, or null if none resolve -
+     * exposed (not private) so other per-item Swing Range sources (see {@code
+     * LegendaryWeaponService}'s -1 dagger penalty) can attach their own {@link
+     * EquipmentSlotGroup#MAINHAND}-scoped modifier to the very same attribute without
+     * duplicating this resolution logic.
+     */
+    public static Attribute resolveEntityInteractionRangeAttribute() {
         if (attributeResolved) {
             return entityInteractionRangeAttribute;
         }

@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,8 +65,14 @@ import org.bukkit.plugin.Plugin;
  * {@link #realAttackSpeed} mirrors that same arithmetic to compute the lore text.
  */
 public final class SwordDamageService {
-    /** Vanilla's own attack-speed penalty for any sword (base 4.0 -&gt; 1.6), identical across materials. */
-    private static final double ATTACK_SPEED_DELTA = -2.4;
+    /**
+     * Vanilla's own attack-speed penalty for any sword (base 4.0 -&gt; 1.6), identical
+     * across materials - public so {@code LegendaryWeaponService} can apply the exact
+     * same penalty to its own custom weapons (also built on {@code _SWORD} materials,
+     * but excluded from this class's own {@link #rewrite} via its legendary-item guard)
+     * instead of every bladed weapon in the plugin drifting apart over time.
+     */
+    public static final double ATTACK_SPEED_DELTA = -2.4;
     /** Players' base {@link Attribute#ATTACK_DAMAGE} with an empty hand - cancelled by {@link #neutralizeBaseAttackDamage}. */
     private static final double BASE_ATTACK_DAMAGE = 1.0;
 
@@ -153,7 +160,12 @@ public final class SwordDamageService {
      * it depends on the wielder's Combat level, which can change at any time.
      */
     private ItemStack rewrite(ItemStack item, Player p, Language l) {
-        if (item == null || item.isEmpty()) {
+        if (item == null || item.isEmpty() || LegendaryWeaponService.isLegendary(item)) {
+            // Legendary weapons (Kasaka's Venom Fang, Demon King's Longsword...) are
+            // built on ordinary _SWORD materials too, but manage their own Attack
+            // Damage/Speed and lore entirely - see LegendaryWeaponService#create.
+            // Letting this class's generic per-material formula also run on them would
+            // overwrite that with the wrong (material-family) numbers.
             return null;
         }
         Double total = totalDamage(item.getType());

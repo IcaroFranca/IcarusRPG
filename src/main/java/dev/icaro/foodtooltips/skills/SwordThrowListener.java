@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.skills;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import java.util.HashMap;
@@ -57,7 +58,11 @@ implements Listener {
     public boolean attemptThrow(Player p) {
         long ready;
         ItemStack sword = p.getInventory().getItemInMainHand();
-        if (!sword.getType().name().endsWith("_SWORD") || !this.abilities.enabled(p, CombatAbility.SWORD_THROW)) {
+        if (!sword.getType().name().endsWith("_SWORD") || !this.abilities.enabled(p, CombatAbility.SWORD_THROW)
+                || LegendaryWeaponService.isLegendary(sword)) {
+            // Legendary weapons (Demon King's Longsword in particular - also a _SWORD
+            // material) have their own F-key ability; letting Sword Throw also fire on
+            // them would spend Mana and start its own cooldown on top.
             return false;
         }
         long now = System.currentTimeMillis();
