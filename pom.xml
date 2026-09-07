@@ -52,6 +52,15 @@
       <version>7.0.13</version>
       <scope>provided</scope>
     </dependency>
+    <!-- GUI toolkit for inventory menus (Skills, Bestiary, Mineração, Cores de
+         Nível...). Not a server plugin like WorldGuard - nothing provides it
+         at runtime, so it's shaded (and relocated) into our own jar below
+         instead of being "provided". -->
+    <dependency>
+      <groupId>com.github.stefvanschie.inventoryframework</groupId>
+      <artifactId>IF</artifactId>
+      <version>0.12.1</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -70,6 +79,31 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
+      </plugin>
+      <!-- Shades IF into our jar (it isn't a server plugin, so nothing else
+           provides it at runtime) and relocates its package so it can't
+           clash with a different IF version shaded by some other plugin on
+           the same server. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <relocations>
+                <relocation>
+                  <pattern>com.github.stefvanschie.inventoryframework</pattern>
+                  <shadedPattern>dev.icaro.foodtooltips.libs.inventoryframework</shadedPattern>
+                </relocation>
+              </relocations>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
