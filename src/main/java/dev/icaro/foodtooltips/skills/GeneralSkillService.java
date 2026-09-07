@@ -25,6 +25,7 @@ public final class GeneralSkillService {
     private static final int HEALTH_PER_LEVEL = 2;
     private static final int STRENGTH_PER_LEVEL = 1;
     private static final int MAX_MANA_PER_LEVEL = 1;
+    private static final int DEFENSE_PER_LEVEL = 1;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
 
     public SkillProgress progress(Player p, SkillType type) {
@@ -92,9 +93,19 @@ public final class GeneralSkillService {
         return (this.progress(player, SkillType.ALCHEMY).level() + this.progress(player, SkillType.ENCHANTING).level()) * MAX_MANA_PER_LEVEL;
     }
 
+    /** Mining grants {@value #DEFENSE_PER_LEVEL} Defense per level, on top of its own Fortune - see {@code ArmorDefenseService#defense}. */
+    public int bonusDefense(Player player) {
+        return this.progress(player, SkillType.MINING).level() * DEFENSE_PER_LEVEL;
+    }
+
     /** How much {@link #fortune} grows per level (Mining/Farming/Foraging). Exposed so menu/level-up messages don't hardcode the number separately. */
     public int fortunePerLevel() {
         return FORTUNE_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusDefense} grows per Mining level. */
+    public int defensePerLevel() {
+        return DEFENSE_PER_LEVEL;
     }
 
     /** How much {@link #bonusHealth} grows per level (Farming/Fishing), per contributing skill. */

@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.skills;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalLevelSnapshot;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
@@ -41,11 +42,12 @@ public final class SkillsMenuService {
     private final MiningMenuService mining;
     private final GlobalLevelService global;
     private final ArmorDefenseService armor;
+    private final BestiaryProgressService bestiaryProgress;
     private LevelColorMenuService levelColors;
     private CombatTreeMenuService tree;
     private final Map<UUID, View> views = new HashMap<>();
 
-    public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor) {
+    public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
         this.combat = c;
         this.general = g;
         this.stats = s;
@@ -53,6 +55,7 @@ public final class SkillsMenuService {
         this.mining = m;
         this.global = global;
         this.armor = armor;
+        this.bestiaryProgress = bestiaryProgress;
     }
 
     public void levelColors(LevelColorMenuService levelColors) {
@@ -138,6 +141,7 @@ public final class SkillsMenuService {
             lines.add(this.text("+" + this.general.fortunePerLevel() + " " + t.name(l == Language.PT) + " Fortune", NamedTextColor.AQUA));
         }
         switch (t) {
+            case MINING -> lines.add(this.text("+" + this.general.defensePerLevel() + " " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN));
             case FARMING, FISHING -> lines.add(this.text("+" + this.general.healthPerLevel() + " " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED));
             case FORAGING -> lines.add(this.text("+" + this.general.strengthPerLevel() + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW));
             case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.maxManaPerLevel() + " " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE));

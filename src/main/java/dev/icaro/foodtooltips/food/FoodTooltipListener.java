@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.food;
 
 import dev.icaro.foodtooltips.food.FoodTooltipService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.ItemStackUtil;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -82,9 +83,19 @@ implements Listener {
 
     private boolean update(Inventory inv, Language l, Player p) {
         boolean changed = false;
-        for (ItemStack i : inv.getContents()) {
+        ItemStack[] contents = inv.getContents();
+        for (ItemStack i : contents) {
             if (i == null || i.isEmpty()) continue;
             changed |= this.service.update(i, l, p);
+        }
+        // Heals same-item stacks left split by this rewrite (or ItemTierService's,
+        // running on its own schedule) landing on the two stacks in a different
+        // order - see ItemStackUtil's class doc.
+        if (ItemStackUtil.coalesce(contents)) {
+            changed = true;
+        }
+        if (changed) {
+            inv.setContents(contents);
         }
         return changed;
     }

@@ -310,6 +310,7 @@ implements Listener {
             parts.add("+" + (levelsGained * this.skills.fortunePerLevel()) + " " + t.name(l == Language.PT) + " Fortune");
         }
         switch (t) {
+            case MINING -> parts.add("+" + (levelsGained * this.skills.defensePerLevel()) + " " + l.choose("Defesa", "Defense"));
             case FARMING, FISHING -> parts.add("+" + (levelsGained * this.skills.healthPerLevel()) + " " + l.choose("Vida M\u00e1xima", "Max Health"));
             case FORAGING -> parts.add("+" + (levelsGained * this.skills.strengthPerLevel()) + " " + l.choose("For\u00e7a", "Strength"));
             case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.maxManaPerLevel()) + " " + l.choose("Mana M\u00e1xima", "Max Mana"));

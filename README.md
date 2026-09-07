@@ -1117,3 +1117,46 @@ hook dedicado de craft/pickup/clique. O dano atual do item é multiplicado
 junto com o máximo, então uma ferramenta já 80% gasta continua 80% gasta
 (proporcionalmente) em vez do multiplicador dar durabilidade de graça pra
 item já usado.
+
+## Mineração também dá Defesa por nível
+
+`GeneralSkillService#bonusDefense`: Mineração agora concede +1 Defesa por
+nível, além da sua Fortune de +4/nível de sempre. Diferente dos outros
+bônus de skill geral (que ou são atributos independentes como Strength/
+Mana, ou precisam de `AttributeModifier` como Vida Máxima), Defesa nunca
+teve modificador próprio — é só um número somado sob demanda em
+`ArmorDefenseService#defense`, junto com a soma do equipamento — então o
+bônus de Mineração passa a valer automaticamente em tudo que já lia
+`defense()`: a redução de dano de verdade (`ArmorDefenseListener`), o HUD,
+e a tela de Status de Combate. `ArmorDefenseService` ganhou uma referência
+opcional a `GeneralSkillService` (`general(GeneralSkillService)`, mesmo
+padrão de wiring pós-construção que `PlayerStatsService#general` já usa)
+pra isso — mobs continuam sem bônus algum, só jogadores.
+
+(Nota: uma versão antiga do menu de Skills já alegava "+1 Defesa por
+nível" pra Mineração, mas isso não era real desde que Defesa passou a vir
+só do equipamento — essa lore foi removida numa limpeza anterior por ser
+falsa. Agora ela é real de novo, e a lore/mensagem de level-up foram
+reescritas pra refletir isso.)
+
+## Correção: itens do mesmo tipo não empilhavam (ex.: Carne Podre)
+
+Dois stacks idênticos de um mesmo item (mesmo nome, mesma lore, tudo igual
+visualmente) às vezes ficavam presos como slots separados, nunca se
+juntando. Causa: tanto `ItemTierService` (tag de Tier) quanto
+`FoodTooltipListener` (atributos de comida) reescrevem a lore de um item
+*uma vez*, no primeiro tick em que o veem, cada um no seu próprio
+cronograma de eventos - se dois stacks do mesmo item passam por essas
+duas reescritas em **ordens diferentes** entre si (ex.: um primeiro ganha
+a tag de Tier e depois os atributos de comida, o outro na ordem inversa),
+as linhas de lore ficam no mesmo conteúdo mas em **ordem diferente** pra
+sempre, e o jogo nunca mais considera os dois stacks "iguais" pra
+empilhar.
+
+`ItemStackUtil.coalesce` (extraído de dentro do `ItemTierService`, que já
+tinha essa lógica só pra si mesmo) agora roda tanto em
+`ItemTierService#applyItemTiers` quanto em `FoodTooltipListener#update` -
+depois de cada rodada de reescrita de lore, varre o inventário mesclando
+qualquer par de stacks que já bateu igual, então mesmo que a ordem das
+linhas tenha ficado diferente por um tick, a primeira reescrita que
+finalmente igualar as duas já os re-junta.
