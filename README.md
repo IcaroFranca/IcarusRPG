@@ -1219,3 +1219,78 @@ skills, mensagem de level-up, aba de skill em Status & Equipamento) virou
 "+1 Inteligência", e a linha-fonte da Inteligência no Combat Stats passou
 a discriminar "Base X" + "Alquimia/Encantamento +Y", no mesmo padrão das
 outras linhas de origem.
+
+## Armas Lendárias (`/rpgitems`) e o novo tipo de arma Adaga
+
+Novo comando admin-only `/rpgitems` (`foodtooltips.admin`) abre um menu de
+54 slots (`LegendaryItemsMenuService`, mesmo padrão visual dos menus de
+`SkillsMenuService`) com um item por arma lendária - clicar entrega uma
+cópia pra você mesmo. Por enquanto essas armas só existem via esse menu,
+sem craft nem drop de mob (a ideia é que outras fontes cheguem depois,
+sem precisar redesenhar nada disso).
+
+`LegendaryWeapon` (`dev.icaro.foodtooltips.item.legendary`) cataloga as 6
+armas, cada uma com Tipo (Adaga ou Espada Longa), Raridade, Ataque base e,
+quando aplicável, Agilidade:
+
+- **Presa de Veneno de Kasaka** (Adaga, C) - +25 Ataque. A cada acerto, 25%
+  de chance independente de Paralisia (Slowness bem alto + Jump Boost
+  negativo, ~3s - trava o alvo sem precisar de teleporte/cancelamento de
+  movimento manual) e 25% de chance de Sangramento (2% da vida máxima do
+  alvo por segundo, por 4 segundos; empilha até 3 vezes ao mesmo tempo -
+  um 4º proc enquanto já tem 3 ativos simplesmente não faz nada).
+- **Matador de Cavaleiros** (Adaga, B) - +75 Ataque. +25% de dano contra
+  qualquer alvo (jogador ou mob) usando pelo menos 1 peça de armadura.
+- **Adaga de Baruka** (Adaga, A) - +110 Ataque, +10 Agilidade (a stat é
+  nova: converte em Velocidade de Movimento enquanto a adaga está na mão,
+  +0.002 por ponto de Agilidade sobre a base vanilla de 0.1).
+- **Adagas do Rei Demônio** (Adaga, S) - +220 Ataque. Two as One: +0.5 de
+  dano adicional por ponto de Strength do usuário, somado antes do resto
+  da pilha de multiplicadores de combate (então também se beneficia de
+  crítico etc., como o resto do dano da arma).
+- **Espada Longa do Rei Demônio** (Espada Longa, S) - +350 Ataque. Storm of
+  White Flames: tecla F (mesmo gatilho de Arremesso de Espada - ignorado
+  agachado), custa 40 de Mana, 30s de recarga; crava 6 raios cosméticos
+  espalhados numa área de até 4 blocos ao redor de onde você está mirando
+  (até 20 blocos de alcance) e aplica 100 de dano a qualquer LivingEntity
+  perto de cada raio via `CombatAbilityService#dealAbilityDamage` (mesmo
+  mecanismo do Arremesso de Espada, pra não reprocessar pela pilha de
+  multiplicadores de golpe corpo a corpo).
+- **Fúria de Kamish** (Adaga, ??) - Ataque escala com Strength (1500 base +
+  1 por ponto de Strength do usuário) em vez de um número fixo. "Alterar o
+  peso como quiser" é implementado como uma isenção fixa da penalidade de
+  alcance de Adaga - o alcance dela é o de uma espada comum.
+
+**Mecânica universal de Adaga** (`WeaponType.DAGGER`, todas exceto a
+Espada Longa do Rei Demônio e - só na parte do alcance - a Fúria de
+Kamish): -1 bloco de alcance de ataque, aplicado como um
+`AttributeModifier` de -1 na mesma attribute de alcance
+(`entity_interaction_range`) que `PlayerStatsService#applySwingRange` já
+usa, mas escopado a `EquipmentSlotGroup.MAINHAND` no próprio item - soma
+normalmente com qualquer bônus que o jogador já tenha (Arremesso de
+Espada etc.), sem precisar de nenhum código novo em
+`PlayerStatsService`. E dobra o dano ao acertar um golpe vindo de trás da
+direção que o alvo está olhando (jogador ou mob, checagem puramente
+horizontal via produto escalar entre a direção do alvo e o vetor
+atacante→alvo).
+
+Toda arma lendária é criada uma única vez, com todo atributo (Ataque,
+Velocidade de Ataque igual à penalidade padrão de espada, Agilidade,
+alcance) já embutido via `AttributeModifier` escopado à mão principal -
+diferente de `SwordDamageService`, não precisa de nenhuma passagem
+periódica de "refresh", porque nada nelas muda com o nível/skill de quem
+segura (as únicas partes dinâmicas - Two as One e Fúria de Kamish - são
+calculadas na hora do golpe, não gravadas na lore). São `Unbreakable` e
+ganham brilho de encantamento se Raridade S ou "??".
+
+Como essas armas usam materiais `_SWORD` normais por baixo (só pra ter um
+modelo 3D decente sem precisar de resource pack), três sistemas genéricos
+que rodam sobre todo item do jogo precisaram de uma exceção pra não
+sobrescrever o trabalho todo: `SwordDamageService` (ia recalcular
+Ataque/Velocidade pelo material, ignorando os valores customizados),
+`ItemTierService` (ia recolorir o nome pra cor da tier do material e
+apendar uma linha "TIER X SWORD" na lore) e `SwordThrowListener` (ia
+deixar o Arremesso de Espada disparar em cima da Espada Longa do Rei
+Demônio, que já tem sua própria habilidade na tecla F). Os três agora
+checam `LegendaryWeaponService.isLegendary(item)` primeiro e saem sem
+fazer nada quando é uma arma lendária.

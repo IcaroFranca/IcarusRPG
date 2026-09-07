@@ -8,6 +8,7 @@ import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
@@ -68,6 +69,7 @@ public final class CombatListener implements Listener {
     private final CombatValorService valor;
     private final ArmorDefenseService armor;
     private final GeneralSkillService general;
+    private final LegendaryWeaponService legendary;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     private final double critMultiplier;
     private final double hpXp;
@@ -79,7 +81,8 @@ public final class CombatListener implements Listener {
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, EconomyService economyService, GlobalLevelService global,
-                           PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general) {
+                           PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
+                           LegendaryWeaponService legendary) {
         this.plugin = p;
         this.combat = c;
         this.visuals = v;
@@ -92,6 +95,7 @@ public final class CombatListener implements Listener {
         this.valor = valor;
         this.armor = armor;
         this.general = general;
+        this.legendary = legendary;
         this.critMultiplier = p.getConfig().getDouble("combat.critical-damage-multiplier", 1.5);
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
@@ -173,9 +177,15 @@ public final class CombatListener implements Listener {
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
         // formula PvE gets, so a player's progression means the same thing in both.
         double mobBonus = playerTarget ? 1.0 : 1.0 + this.bestiary.damageBonus(p, target.getType());
-        double damage = e.getDamage() * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
-                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0);
+        ItemStack weapon = p.getInventory().getItemInMainHand();
+        double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
+        double backstab = this.legendary.backstabMultiplier(p, target, weapon);
+        double armored = this.legendary.armoredMultiplier(target, weapon);
+        double damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
+                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0)
+                * backstab * armored;
         e.setDamage(damage);
+        this.legendary.onHit(p, target, weapon);
         if (!playerTarget) {
             this.visuals.track(target);
             this.visuals.damageNumber(target, e.getFinalDamage(), critical);

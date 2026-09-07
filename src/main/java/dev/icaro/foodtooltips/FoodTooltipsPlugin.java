@@ -27,6 +27,10 @@ import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.item.legendary.DemonKingStormListener;
+import dev.icaro.foodtooltips.item.legendary.LegendaryItemsListener;
+import dev.icaro.foodtooltips.item.legendary.LegendaryItemsMenuService;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.mining.GemService;
 import dev.icaro.foodtooltips.mining.MiningMenuListener;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
@@ -99,6 +103,8 @@ extends JavaPlugin {
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
+        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats);
+        LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         this.visuals = new MobVisualService((Plugin)this);
@@ -124,8 +130,10 @@ extends JavaPlugin {
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, economy, global, stats, valor, armor, general);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, economy, global, stats, valor, armor, general, legendary);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
+        pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
+        pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
         pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);
@@ -222,6 +230,15 @@ extends JavaPlugin {
             if (s instanceof Player) {
                 Player p = (Player)s;
                 menus.openMain(p);
+            } else {
+                s.sendMessage((Component)Component.text((String)"Only players."));
+            }
+            return true;
+        });
+        this.getCommand("rpgitems").setExecutor((s, c, l, a) -> {
+            if (s instanceof Player) {
+                Player p = (Player)s;
+                legendaryItemsMenu.open(p);
             } else {
                 s.sendMessage((Component)Component.text((String)"Only players."));
             }

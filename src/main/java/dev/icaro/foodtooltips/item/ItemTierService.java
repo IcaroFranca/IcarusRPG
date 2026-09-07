@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -228,7 +229,11 @@ public final class ItemTierService {
 
     /** Returns the mutated item if it needed rewriting, or null if it's not taggable or was already done. */
     private ItemStack tooltip(ItemStack item, Language l) {
-        if (item == null || item.isEmpty() || !item.getType().isItem()) {
+        if (item == null || item.isEmpty() || !item.getType().isItem() || LegendaryWeaponService.isLegendary(item)) {
+            // Legendary weapons carry their own rarity-colored name and lore (see
+            // LegendaryWeaponService#create) - the generic tier system recoloring the
+            // name to its base Material's tier and appending a "TIER X SWORD" line
+            // would clobber that.
             return null;
         }
         ItemMeta meta = item.getItemMeta();
