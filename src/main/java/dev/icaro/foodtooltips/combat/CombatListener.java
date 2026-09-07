@@ -14,6 +14,7 @@ import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.skills.CombatTreeMath;
 import dev.icaro.foodtooltips.skills.CombatValorService;
+import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
@@ -66,6 +67,7 @@ public final class CombatListener implements Listener {
     private final PlayerStatsService stats;
     private final CombatValorService valor;
     private final ArmorDefenseService armor;
+    private final GeneralSkillService general;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     private final double critMultiplier;
     private final double hpXp;
@@ -77,7 +79,7 @@ public final class CombatListener implements Listener {
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, EconomyService economyService, GlobalLevelService global,
-                           PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor) {
+                           PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general) {
         this.plugin = p;
         this.combat = c;
         this.visuals = v;
@@ -89,6 +91,7 @@ public final class CombatListener implements Listener {
         this.stats = stats;
         this.valor = valor;
         this.armor = armor;
+        this.general = general;
         this.critMultiplier = p.getConfig().getDouble("combat.critical-damage-multiplier", 1.5);
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
@@ -300,7 +303,8 @@ public final class CombatListener implements Listener {
 
     /**
      * Re-derives every source of Max Health bonus (base, Bestiary milestones, Global
-     * Level) and sets the player's Health across the whole sequence - each individual
+     * Level, Farming/Fishing skill levels) and sets the player's Health across the
+     * whole sequence - each individual
      * step can momentarily drop Max Health below the player's actual current Health
      * ({@code stats.applyBaseHealth} resets the base to the plain config value
      * *before* the bonuses below reattach), and vanilla auto-clamps current Health
@@ -324,6 +328,7 @@ public final class CombatListener implements Listener {
         this.stats.applyBaseHealth(p);
         this.bestiary.applyBonusHealth(p);
         this.global.applyHealth(p);
+        this.general.applyBonusHealth(p);
         AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
         double max = a == null ? 20.0 : a.getValue();
         p.setHealth(this.healToFullOnMapEnter ? max : Math.min(before, max));
