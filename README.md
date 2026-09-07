@@ -991,7 +991,7 @@ arquivos ainda estão lá.
 
 ## Dependência: IF (Inventory Framework) pra menus
 
-Adicionado `com.github.stefvanschie.inventoryframework:IF:0.12.1` como
+Adicionado `com.github.stefvanschie.inventoryframework:IF` como
 dependência (Maven Central) pra construir os menus de inventário
 (`ChestGui`, `StaticPane`, `GuiItem`) em vez de `Inventory` +
 `InventoryClickEvent`/`InventoryDragEvent`/`InventoryCloseEvent` cru. Como
@@ -1001,6 +1001,18 @@ colidir com uma versão diferente que outro plugin no mesmo servidor também
 tenha shadado) direto no jar final pelo `maven-shade-plugin` — o jar
 gerado passou de ~310 KB pra ~1,9 MB, mas continua sendo o único arquivo
 que precisa ir pra pasta `plugins/` do servidor.
+
+**Pinado em `0.12.0`, não a última (`0.12.1`)**: a `0.12.1` adicionou
+processamento de anotações de clique/drag/close no construtor de `Gui`
+(`Gui#processMethodAnnotations`) que lê `method.getParameterTypes()[0]`
+sem checar se o método tem 0 parâmetros antes — e `ChestGui` declara vários
+métodos de 0 parâmetro próprios (`copy()`, `getRows()`...), então **toda**
+construção de `ChestGui` derruba com `ArrayIndexOutOfBoundsException`,
+com ou sem anotação em uso (foi assim que apareceu em produção: `/levelcolor`
+crashando 100% das vezes). Confirmado que o bug ainda está no `master` do
+IF em 28/08/2026 — bug deles, não nosso. Voltar pra `0.12.1`\+ só quando
+upstream corrigir; a API que usamos (`ChestGui(int, String, Plugin)`,
+`StaticPane`, `GuiItem`, `Slot.fromXY`) é idêntica nas duas versões.
 
 `LevelColorMenuService` foi o primeiro menu migrado, como prova de
 conceito: o `Set<UUID> viewers` manual e os três `@EventHandler` de
