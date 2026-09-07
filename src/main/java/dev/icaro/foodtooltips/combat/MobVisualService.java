@@ -14,7 +14,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -29,6 +31,7 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.WaterMob;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -162,6 +165,28 @@ public final class MobVisualService {
             x.setViewRange(this.damageRange);
         });
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> ((TextDisplay)d).remove(), 24L);
+    }
+
+    private static final Particle.DustOptions FEROCITY_DUST = new Particle.DustOptions(Color.fromRGB(200, 0, 0), 1.1f);
+
+    /**
+     * A short line of red dust particles from the attacker to the target, one per
+     * Ferocity extra hit — a busy fight has a lot going on (damage numbers, mob
+     * flinch animation, other players' effects), so a number that pops up and fades
+     * in under a second is easy to miss; a visible line makes "yes, that extra swing
+     * really landed" unambiguous.
+     */
+    public void ferocityHit(Player attacker, LivingEntity target) {
+        World world = target.getWorld();
+        Location from = attacker.getEyeLocation();
+        Location to = target.getLocation().add(0.0, target.getHeight() * 0.5, 0.0);
+        Vector step = to.toVector().subtract(from.toVector());
+        int points = 6;
+        for (int i = 0; i <= points; i++) {
+            double t = (double) i / points;
+            Location at = from.clone().add(step.clone().multiply(t));
+            world.spawnParticle(Particle.DUST, at, 1, 0.0, 0.0, 0.0, 0.0, FEROCITY_DUST);
+        }
     }
 
     private Component criticalNumber(String value) {
