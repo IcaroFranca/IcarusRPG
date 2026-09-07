@@ -21,6 +21,7 @@ import org.bukkit.persistence.PersistentDataType;
 public final class GeneralSkillService {
     private static final int MAX_LEVEL = 200;
     private static final int[] MINING_MILESTONE_THRESHOLDS = {25, 100, 250, 500, 1000};
+    private static final int FORTUNE_PER_LEVEL = 4;
     private static final int HEALTH_PER_LEVEL = 2;
     private static final int STRENGTH_PER_LEVEL = 1;
     private static final int MAX_MANA_PER_LEVEL = 1;
@@ -71,7 +72,7 @@ public final class GeneralSkillService {
 
     public int fortune(Player player, SkillType type) {
         return switch (type) {
-            case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * 4;
+            case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
     }
@@ -89,6 +90,26 @@ public final class GeneralSkillService {
     /** Alchemy and Enchanting each grant {@value #MAX_MANA_PER_LEVEL} Max Mana per level. */
     public int bonusMaxMana(Player player) {
         return (this.progress(player, SkillType.ALCHEMY).level() + this.progress(player, SkillType.ENCHANTING).level()) * MAX_MANA_PER_LEVEL;
+    }
+
+    /** How much {@link #fortune} grows per level (Mining/Farming/Foraging). Exposed so menu/level-up messages don't hardcode the number separately. */
+    public int fortunePerLevel() {
+        return FORTUNE_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusHealth} grows per level (Farming/Fishing), per contributing skill. */
+    public int healthPerLevel() {
+        return HEALTH_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusStrength} grows per Foraging level. */
+    public int strengthPerLevel() {
+        return STRENGTH_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusMaxMana} grows per level (Alchemy/Enchanting), per contributing skill. */
+    public int maxManaPerLevel() {
+        return MAX_MANA_PER_LEVEL;
     }
 
     /**

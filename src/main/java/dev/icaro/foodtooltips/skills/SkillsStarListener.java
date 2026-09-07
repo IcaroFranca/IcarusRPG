@@ -4,18 +4,23 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Keeps {@link SkillsStarService}'s star pinned to its slot and wires clicking it to
+ * Keeps {@link SkillsStarService}'s star pinned to its hotbar slot and wires
+ * right-clicking it (or, if the inventory is open, clicking it there too) to
  * {@link SkillsMenuService#openMain}. Every handler here either re-grants the star
  * (join/respawn/death) or cancels an interaction that would move/drop/destroy it -
  * nothing here ever lets it actually leave slot {@value SkillsStarService#SLOT}.
@@ -47,6 +52,18 @@ public final class SkillsStarListener implements Listener {
         e.getDrops().removeIf(this.star::isStar);
     }
 
+    /** Right-click while it's the held item - the normal way to use it now that it lives in the hotbar. */
+    @EventHandler(ignoreCancelled = true)
+    public void interact(PlayerInteractEvent e) {
+        if (e.getHand() != EquipmentSlot.HAND || !this.star.isStar(e.getItem())) {
+            return;
+        }
+        e.setCancelled(true);
+        if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            this.menus.openMain(e.getPlayer());
+        }
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void click(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) {
@@ -69,6 +86,19 @@ public final class SkillsStarListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void drag(InventoryDragEvent e) {
         if (this.star.isStar(e.getOldCursor())) {
+            e.setCancelled(true);
+        }
+    }
+
+    /**
+     * Blocks the F-key hand swap whenever the star is one of the two items involved -
+     * living in the hotbar now means it can be the held item, and an un-sneaking swap
+     * isn't caught by {@code SkillsListener#shortcut} (that one only cancels while
+     * sneaking, to open the Skills menu - a different feature entirely).
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void swap(PlayerSwapHandItemsEvent e) {
+        if (this.star.isStar(e.getMainHandItem()) || this.star.isStar(e.getOffHandItem())) {
             e.setCancelled(true);
         }
     }

@@ -113,13 +113,8 @@ public final class SkillsMenuService {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(this.text(l.choose("Continue usando esta skill para evoluir.", "Keep using this skill to level up."), NamedTextColor.GRAY)));
             lore.addAll(this.attributeRewardLines(t, l));
-            if (t == SkillType.MINING) {
-                lore.add(this.text("+1 " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN));
-                if (level == 3) {
-                    lore.add(this.text("✦ " + l.choose("Desbloqueia: Vein Miner", "Unlocks: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
-                } else {
-                    lore.add(this.text(l.choose("Nenhuma habilidade neste nível.", "No ability at this level."), NamedTextColor.DARK_GRAY));
-                }
+            if (t == SkillType.MINING && level == 3) {
+                lore.add(this.text("✦ " + l.choose("Desbloqueia: Vein Miner", "Unlocks: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
             } else {
                 lore.add(this.text(l.choose("Nenhuma habilidade neste nível.", "No ability at this level."), NamedTextColor.DARK_GRAY));
             }
@@ -140,12 +135,12 @@ public final class SkillsMenuService {
     private List<Component> attributeRewardLines(SkillType t, Language l) {
         List<Component> lines = new ArrayList<>();
         if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
-            lines.add(this.text("+4 " + t.name(l == Language.PT) + " Fortune", NamedTextColor.AQUA));
+            lines.add(this.text("+" + this.general.fortunePerLevel() + " " + t.name(l == Language.PT) + " Fortune", NamedTextColor.AQUA));
         }
         switch (t) {
-            case FARMING, FISHING -> lines.add(this.text("+2 " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED));
-            case FORAGING -> lines.add(this.text("+1 " + l.choose("Força", "Strength"), NamedTextColor.YELLOW));
-            case ALCHEMY, ENCHANTING -> lines.add(this.text("+1 " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE));
+            case FARMING, FISHING -> lines.add(this.text("+" + this.general.healthPerLevel() + " " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED));
+            case FORAGING -> lines.add(this.text("+" + this.general.strengthPerLevel() + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW));
+            case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.maxManaPerLevel() + " " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE));
             default -> {}
         }
         if (lines.isEmpty()) {

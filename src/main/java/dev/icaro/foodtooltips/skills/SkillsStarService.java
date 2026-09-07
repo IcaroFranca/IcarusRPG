@@ -2,7 +2,6 @@ package dev.icaro.foodtooltips.skills;
 
 import dev.icaro.foodtooltips.i18n.Language;
 import java.util.List;
-import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -18,11 +17,13 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
- * A Nether Star permanently pinned to inventory slot {@value #SLOT} (the top-left slot
- * of the main inventory, right under the hotbar) that opens the Skills menu when
- * clicked - a tap target that works the same on keyboard/mouse, controller and
- * touchscreen, unlike the {@code /skills} command (awkward to type on console/mobile)
- * or the sneak+swap-hands shortcut (no obvious controller/touch equivalent).
+ * A Nether Star permanently pinned to hotbar slot {@value #SLOT} (the last hotbar
+ * slot, "9" the way the vanilla UI numbers it) that opens the Skills menu on
+ * right-click - reachable without ever opening the inventory screen, unlike the
+ * {@code /skills} command (awkward to type on console/mobile) or the sneak+swap-hands
+ * shortcut (no obvious controller/touch equivalent). Living in the hotbar rather than
+ * the main inventory is what makes that true: it's always one scroll/number-key/tap
+ * away, exactly like a compass or a map.
  *
  * <p>Identified by a tag in its own {@link ItemMeta}'s {@link PersistentDataContainer}
  * (same pattern as {@code BuilderWandService#isWand}), not by slot alone, so it's never
@@ -31,7 +32,7 @@ import org.bukkit.plugin.Plugin;
  * would move, drop or destroy it) and re-grants it on join/respawn if ever missing.
  */
 public final class SkillsStarService {
-    public static final int SLOT = 9;
+    public static final int SLOT = 8;
 
     private final NamespacedKey starKey;
 
@@ -53,7 +54,7 @@ public final class SkillsStarService {
         ItemMeta meta = star.getItemMeta();
         meta.displayName(Component.text("★ " + l.choose("Habilidades", "Skills"), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
-                Component.text(l.choose("Clique para abrir o menu de Habilidades.", "Click to open the Skills menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text(l.choose("Clique direito para abrir o menu de Habilidades.", "Right-click to open the Skills menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text(l.choose("Não pode ser removido ou dado a outro jogador.", "Cannot be removed or given to another player."), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         meta.setEnchantmentGlintOverride(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
