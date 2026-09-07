@@ -19,9 +19,9 @@ import org.bukkit.plugin.Plugin;
  * combat ability tree layers additional bonuses on top for every stat here
  * except {@link PlayerStats#trueDefense()} (deliberately tree-independent —
  * see {@link CombatAbilityService}'s class doc for which ability grants
- * which bonus). Max Mana also gets {@link GeneralSkillService#bonusMaxMana}
- * (Alchemy/Enchanting, 1 per level) layered on top — see
- * {@link #effectiveMaxMana(Player)}. {@link #abilities(CombatAbilityService)}
+ * which bonus). Intelligence also gets {@link GeneralSkillService#bonusIntelligence}
+ * (Alchemy/Enchanting, 1 per level) layered on top, which in turn feeds
+ * Max Mana one-for-one — see {@link #effectiveMaxMana(Player)}. {@link #abilities(CombatAbilityService)}
  * and {@link #general(GeneralSkillService)} are wired in after construction
  * (these services depend on each other) exactly like
  * {@link #global(GlobalLevelService)} already is.
@@ -121,9 +121,13 @@ public final class PlayerStatsService {
         return this.trueDefense;
     }
 
-    /** Base Max Mana plus Intelligence plus {@link GeneralSkillService#bonusMaxMana} (Alchemy/Enchanting, 1 per level). */
+    /** Base Max Mana plus effective Intelligence (base plus {@link GeneralSkillService#bonusIntelligence}, Alchemy/Enchanting, 1 per level). */
     private double effectiveMaxMana(Player p) {
-        return this.get(p, this.maxMana, this.base) + this.intelligence + (this.general == null ? 0 : this.general.bonusMaxMana(p));
+        return this.get(p, this.maxMana, this.base) + this.effectiveIntelligence(p);
+    }
+
+    private double effectiveIntelligence(Player p) {
+        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p));
     }
 
     public void init(Player p) {
@@ -167,7 +171,7 @@ public final class PlayerStatsService {
                 globalStrength,
                 clamp(this.ferocity, 0.0, this.ferocityCap),
                 clamp(this.swingRange + swingRangeBonus, 0.0, this.swingRangeCap),
-                this.intelligence,
+                this.effectiveIntelligence(p),
                 this.abilityDamage,
                 this.healthRegen + healthRegenBonus,
                 Math.min(storedMaxVitality, storedVitality),

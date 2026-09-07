@@ -134,7 +134,7 @@ public final class SkillsMenuService {
         this.open(p, v, new View(Type.GENERAL, page, t));
     }
 
-    /** Per-level attribute rewards for a general skill (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusMaxMana}) - a skill can grant more than one. */
+    /** Per-level attribute rewards for a general skill (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusIntelligence}) - a skill can grant more than one. */
     private List<Component> attributeRewardLines(SkillType t, Language l) {
         List<Component> lines = new ArrayList<>();
         if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
@@ -144,7 +144,7 @@ public final class SkillsMenuService {
             case MINING -> lines.add(this.text("+" + this.general.defensePerLevel() + " " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN));
             case FARMING, FISHING -> lines.add(this.text("+" + this.general.healthPerLevel() + " " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED));
             case FORAGING -> lines.add(this.text("+" + this.general.strengthPerLevel() + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW));
-            case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.maxManaPerLevel() + " " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE));
+            case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.intelligencePerLevel() + " " + l.choose("Inteligência", "Intelligence"), NamedTextColor.LIGHT_PURPLE));
             default -> {}
         }
         if (lines.isEmpty()) {
@@ -482,8 +482,10 @@ public final class SkillsMenuService {
                 this.join(l.choose("Base ", "Base ") + String.format(Locale.US, "%.1f", this.stats.baseSwingRange()),
                         swingRangeBonus > 0 ? l.choose("Arremesso de Espada +", "Sword Throw +") + String.format(Locale.US, "%.1f", swingRangeBonus) : null));
 
+        long alchemyEnchantingIntelligence = this.general.bonusIntelligence(p);
         this.stat(lore, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA,
-                l.choose("Base (config)", "Base (config)"));
+                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseIntelligence()),
+                        alchemyEnchantingIntelligence > 0 ? l.choose("Alquimia/Encantamento +", "Alchemy/Enchanting +") + alchemyEnchantingIntelligence : null));
 
         this.stat(lore, "❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%", NamedTextColor.LIGHT_PURPLE,
                 l.choose("Base (config)", "Base (config)"));
@@ -545,8 +547,8 @@ public final class SkillsMenuService {
                     this.rate(l, level, this.general.healthPerLevel()));
             case FORAGING -> this.stat(lore, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW,
                     this.rate(l, level, this.general.strengthPerLevel()));
-            case ALCHEMY, ENCHANTING -> this.stat(lore, "+" + (level * this.general.maxManaPerLevel()) + " " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE,
-                    this.rate(l, level, this.general.maxManaPerLevel()));
+            case ALCHEMY, ENCHANTING -> this.stat(lore, "+" + (level * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence"), NamedTextColor.LIGHT_PURPLE,
+                    this.rate(l, level, this.general.intelligencePerLevel()));
             default -> {}
         }
         return this.item(t.icon(), t.name(l == Language.PT), lore);

@@ -1173,3 +1173,49 @@ quando aplicável, +Defesa/Vida/Força/Mana quando aplicável) com a mesma
 linha cinza de fonte que o Combat Stats ganhou antes ("Nível N ×
 X/nível"), pro detalhamento de origem valer em todas as skills, não só em
 Combate.
+
+## Correção: painéis de vidro do menu empilhando em vez de preencher os slots vazios
+
+Regressão introduzida pela própria correção de empilhamento acima: o
+`ItemStackUtil.coalesce` recém-adicionado em `FoodTooltipListener#update`
+rodava em cima de `p.getOpenInventory().getTopInventory()` sem
+distinguir um inventário de verdade (um baú, por exemplo) de um menu
+virtual do próprio plugin. Todo menu criado por
+`SkillsMenuService#inv` (Skills, Status & Equipamento, cada aba de
+skill...) preenche os 54 slots com a **mesma referência** de
+`ItemStack` de `GRAY_STAINED_GLASS_PANE` pra cada slot vazio - então,
+toda vez que `refresh()` rodava com um desses menus aberto (o que
+acontece em quase qualquer ação do jogador: entrar, clicar, trocar item
+na mão...), o coalesce enxergava dezenas de "stacks" idênticos e os
+fundia numa pilha só, esvaziando o resto do fundo do menu.
+
+`refresh(Player p)` agora só roda a passagem (tooltip + coalesce) sobre
+o inventário do topo quando `topInventory.getHolder() != null` - o
+discriminador entre um inventário real, com dono (baú, baú de ender...)
+e um headless criado via `Bukkit.createInventory(null, ...)` como os
+menus do plugin. Baús e outros containers de verdade continuam
+recebendo tooltip de comida e correção de empilhamento normalmente; os
+menus do plugin nunca mais têm o próprio fundo decorativo mexido.
+
+## Bônus de Alquimia/Encantamento agora é Inteligência, não Mana Máxima direto
+
+Cada ponto de Mana Máxima já vinha, na prática, de um ponto de
+Inteligência (`PlayerStatsService#effectiveMaxMana` soma
+`baseIntelligence` + bônus de skill ao Mana Máximo base), então o bônus
+de nível de Alquimia/Encantamento fazia mais sentido nomeado como
+Inteligência - é exatamente isso que ele já era por baixo dos panos, só
+que exibido com o nome errado (e nem aparecia na própria linha de
+Inteligência do Combat Stats, escondido só dentro do total de Mana
+Máxima).
+
+`GeneralSkillService#bonusMaxMana`/`maxManaPerLevel` foram renomeados
+para `bonusIntelligence`/`intelligencePerLevel` (mesmo valor, +1/nível
+por skill); `PlayerStatsService` ganhou `effectiveIntelligence(Player)`
+centralizando "Inteligência base + bônus de Alquimia/Encantamento", usado
+tanto por `effectiveMaxMana` (o Mana Máximo final não muda) quanto pelo
+snapshot de `PlayerStats#intelligence()` (que agora inclui o bônus,
+antes só mostrava a base). Todo texto de "+1 Mana Máxima" (menu de
+skills, mensagem de level-up, aba de skill em Status & Equipamento) virou
+"+1 Inteligência", e a linha-fonte da Inteligência no Combat Stats passou
+a discriminar "Base X" + "Alquimia/Encantamento +Y", no mesmo padrão das
+outras linhas de origem.

@@ -303,7 +303,7 @@ implements Listener {
         p.sendMessage(Component.text("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", NamedTextColor.DARK_GRAY));
     }
 
-    /** Per-level attribute rewards actually gained this level-up (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusMaxMana}) - a skill can grant more than one, joined like Combat's Crit Chance/Damage line. */
+    /** Per-level attribute rewards actually gained this level-up (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusIntelligence}) - a skill can grant more than one, joined like Combat's Crit Chance/Damage line. */
     private String rewardLine(SkillType t, Language l, int levelsGained) {
         List<String> parts = new ArrayList<>();
         if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
@@ -313,7 +313,7 @@ implements Listener {
             case MINING -> parts.add("+" + (levelsGained * this.skills.defensePerLevel()) + " " + l.choose("Defesa", "Defense"));
             case FARMING, FISHING -> parts.add("+" + (levelsGained * this.skills.healthPerLevel()) + " " + l.choose("Vida M\u00e1xima", "Max Health"));
             case FORAGING -> parts.add("+" + (levelsGained * this.skills.strengthPerLevel()) + " " + l.choose("For\u00e7a", "Strength"));
-            case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.maxManaPerLevel()) + " " + l.choose("Mana M\u00e1xima", "Max Mana"));
+            case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.intelligencePerLevel()) + " " + l.choose("Intelig\u00eancia", "Intelligence"));
             default -> {}
         }
         return String.join(" \u2022 ", parts);

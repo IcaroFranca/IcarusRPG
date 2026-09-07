@@ -24,7 +24,7 @@ public final class GeneralSkillService {
     private static final int FORTUNE_PER_LEVEL = 4;
     private static final int HEALTH_PER_LEVEL = 2;
     private static final int STRENGTH_PER_LEVEL = 1;
-    private static final int MAX_MANA_PER_LEVEL = 1;
+    private static final int INTELLIGENCE_PER_LEVEL = 1;
     private static final int DEFENSE_PER_LEVEL = 1;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
 
@@ -88,9 +88,9 @@ public final class GeneralSkillService {
         return this.progress(player, SkillType.FORAGING).level() * STRENGTH_PER_LEVEL;
     }
 
-    /** Alchemy and Enchanting each grant {@value #MAX_MANA_PER_LEVEL} Max Mana per level. */
-    public int bonusMaxMana(Player player) {
-        return (this.progress(player, SkillType.ALCHEMY).level() + this.progress(player, SkillType.ENCHANTING).level()) * MAX_MANA_PER_LEVEL;
+    /** Alchemy and Enchanting each grant {@value #INTELLIGENCE_PER_LEVEL} Intelligence per level (which in turn raises Max Mana - see {@code PlayerStatsService#effectiveMaxMana}). */
+    public int bonusIntelligence(Player player) {
+        return (this.progress(player, SkillType.ALCHEMY).level() + this.progress(player, SkillType.ENCHANTING).level()) * INTELLIGENCE_PER_LEVEL;
     }
 
     /** Mining grants {@value #DEFENSE_PER_LEVEL} Defense per level, on top of its own Fortune - see {@code ArmorDefenseService#defense}. */
@@ -118,9 +118,9 @@ public final class GeneralSkillService {
         return STRENGTH_PER_LEVEL;
     }
 
-    /** How much {@link #bonusMaxMana} grows per level (Alchemy/Enchanting), per contributing skill. */
-    public int maxManaPerLevel() {
-        return MAX_MANA_PER_LEVEL;
+    /** How much {@link #bonusIntelligence} grows per level (Alchemy/Enchanting), per contributing skill. */
+    public int intelligencePerLevel() {
+        return INTELLIGENCE_PER_LEVEL;
     }
 
     /**
