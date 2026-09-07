@@ -83,6 +83,44 @@ public final class PlayerStatsService {
         this.general = general;
     }
 
+    // ---- Base config values (for the Combat Stats breakdown - see SkillsMenuService#combatStatsItem) ----
+
+    public double baseHealth() {
+        return this.baseHealth;
+    }
+
+    public double baseVitality() {
+        return this.baseVitality;
+    }
+
+    public double baseFerocity() {
+        return this.ferocity;
+    }
+
+    public double baseSwingRange() {
+        return this.swingRange;
+    }
+
+    public double baseIntelligence() {
+        return this.intelligence;
+    }
+
+    public double baseAbilityDamage() {
+        return this.abilityDamage;
+    }
+
+    public double baseHealthRegen() {
+        return this.healthRegen;
+    }
+
+    public double baseMending() {
+        return this.mending;
+    }
+
+    public double baseTrueDefense() {
+        return this.trueDefense;
+    }
+
     /** Base Max Mana plus Intelligence plus {@link GeneralSkillService#bonusMaxMana} (Alchemy/Enchanting, 1 per level). */
     private double effectiveMaxMana(Player p) {
         return this.get(p, this.maxMana, this.base) + this.intelligence + (this.general == null ? 0 : this.general.bonusMaxMana(p));

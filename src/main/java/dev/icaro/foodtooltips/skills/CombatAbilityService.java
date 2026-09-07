@@ -104,6 +104,11 @@ public final class CombatAbilityService {
         return this.criticalMultiplier(p, this.baseCritMultiplier);
     }
 
+    /** The plain config value {@link #criticalDamageMultiplier} falls back to when Critical Mastery isn't unlocked - for a stat-source breakdown, not used in the actual multiplier logic (see {@link #criticalMultiplier}). */
+    public double baseCriticalDamageMultiplier() {
+        return this.baseCritMultiplier;
+    }
+
     // ---- Rank / unlock state -------------------------------------------------
 
     public int rank(Player p, CombatAbility a) {
