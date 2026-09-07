@@ -134,6 +134,15 @@ implements Listener {
         if (this.isLog(m)) {
             this.gain(p, SkillType.FORAGING, this.logXp(m));
             this.targets.put(k, new Target(SkillType.FORAGING, m));
+        } else if (m == Material.SUGAR_CANE) {
+            // Sugar cane's own Ageable#getAge() is an internal 0-15 "ticks until the next
+            // segment grows" counter, not a wheat-style maturity gate - it resets to 0 the
+            // instant a new segment sprouts, so the segments a player actually harvests
+            // (anything below the still-growing top one) are essentially never caught at
+            // max age. Every placed-and-grown cane segment is already the finished product
+            // (no immature visual/functional state the way wheat has), so it always counts.
+            this.gain(p, SkillType.FARMING, this.cropXp(m));
+            this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
