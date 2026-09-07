@@ -76,7 +76,14 @@ implements Listener {
     public void refresh(Player p) {
         Language l = Language.of(p);
         boolean changed = this.update((Inventory)p.getInventory(), l, p);
-        if (changed |= this.update(p.getOpenInventory().getTopInventory(), l, p)) {
+        Inventory top = p.getOpenInventory().getTopInventory();
+        // A plugin GUI (Skills menu and every sub-screen) is a headless inventory built
+        // via Bukkit.createInventory(null, ...) - no holder. Running the coalesce pass
+        // on one of those merges its decorative filler tiles (every empty slot shares
+        // the SAME ItemStack reference, see SkillsMenuService#inv) into a single stack
+        // instead of leaving the background filled - only real, holder-backed
+        // inventories (chests, ender chests...) should get this pass at all.
+        if (top.getHolder() != null && (changed |= this.update(top, l, p))) {
             p.updateInventory();
         }
     }
