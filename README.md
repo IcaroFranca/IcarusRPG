@@ -1046,3 +1046,25 @@ Fortune de Mineração/Agricultura/Coleta que já existia:
 O menu de cada skill (`/skills` → skill individual) mostra a recompensa de
 atributo de cada nível na lore do nó — igual já fazia pra Fortune e pro
 +1 Defesa da Mineração.
+
+## Estrela do Nether fixa no slot 9 — atalho pro menu de Skills
+
+`SkillsStarService` + `SkillsStarListener` (pacote `skills`): toda vez que
+um jogador entra, o slot 9 do inventário (primeiro slot da mochila, logo
+abaixo da hotbar) recebe uma Estrela do Nether identificada por uma tag na
+própria `ItemMeta` (mesmo padrão de `BuilderWandService#isWand`) — clicar
+nela abre o menu de Habilidades (`SkillsMenuService#openMain`), igual o
+`/skills` ou o atalho de shift+trocar-de-mão, mas sem precisar digitar
+comando ou saber o atalho — clicar num item no inventário funciona igual
+em teclado/mouse, controle e touch, o que importa principalmente pra quem
+joga no console ou celular.
+
+**Irremovível e intransferível**: qualquer clique/drag que envolva a
+estrela (pegar, mover, dar shift-click, hotbar-swap) é cancelado
+(`SkillsStarListener`), ela é retirada da lista de drops se o jogador
+morrer com `keepInventory` desligado, e é sempre re-concedida no login, no
+respawn e num `/reload` com jogadores já online — sem tag correta, um
+Nether Star qualquer não conta como a estrela e não abre nada. Se o slot 9
+já tiver algo quando a estrela chega (jogador que já existia antes dessa
+mudança), aquele item é reencaixado em outro slot livre da mochila (ou
+cai no chão se não couber) em vez de ser apagado.

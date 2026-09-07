@@ -42,6 +42,8 @@ import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillsListener;
 import dev.icaro.foodtooltips.skills.SkillsMenuService;
+import dev.icaro.foodtooltips.skills.SkillsStarListener;
+import dev.icaro.foodtooltips.skills.SkillsStarService;
 import dev.icaro.foodtooltips.skills.SwordThrowListener;
 import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
@@ -92,6 +94,7 @@ extends JavaPlugin {
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor);
+        SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         this.visuals = new MobVisualService((Plugin)this);
@@ -111,6 +114,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new GlobalPlayerListener(global), (Plugin)this);
         pm.registerEvents((Listener)presentation, (Plugin)this);
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);
+        pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
@@ -277,6 +281,8 @@ extends JavaPlugin {
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
+            general.applyBonusHealth((Player)p);
+            skillsStar.ensure((Player)p);
             global.migrate((Player)p);
             if (!((Player)p).isDead()) {
                 ((Player)p).setHealth(Math.min(healthBefore, stats.stats((Player)p).maxHealth()));
