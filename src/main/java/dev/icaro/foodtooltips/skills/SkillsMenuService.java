@@ -111,7 +111,8 @@ public final class SkillsMenuService {
         SkillProgress x = this.general.progress(p, t);
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
-            ArrayList<Component> lore = new ArrayList<>(List.of(this.text(l.choose("Continue usando esta skill para evoluir.", "Keep using this skill to level up."), NamedTextColor.GRAY), this.text(t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING ? "+4 " + t.name(l == Language.PT) + " Fortune" : l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), NamedTextColor.AQUA)));
+            ArrayList<Component> lore = new ArrayList<>(List.of(this.text(l.choose("Continue usando esta skill para evoluir.", "Keep using this skill to level up."), NamedTextColor.GRAY)));
+            lore.addAll(this.attributeRewardLines(t, l));
             if (t == SkillType.MINING) {
                 lore.add(this.text("+1 " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN));
                 if (level == 3) {
@@ -133,6 +134,24 @@ public final class SkillsMenuService {
         }
         this.nav(v, l, page, this.general.maxLevel());
         this.open(p, v, new View(Type.GENERAL, page, t));
+    }
+
+    /** Per-level attribute rewards for a general skill (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusMaxMana}) - a skill can grant more than one. */
+    private List<Component> attributeRewardLines(SkillType t, Language l) {
+        List<Component> lines = new ArrayList<>();
+        if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
+            lines.add(this.text("+4 " + t.name(l == Language.PT) + " Fortune", NamedTextColor.AQUA));
+        }
+        switch (t) {
+            case FARMING, FISHING -> lines.add(this.text("+2 " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED));
+            case FORAGING -> lines.add(this.text("+1 " + l.choose("Força", "Strength"), NamedTextColor.YELLOW));
+            case ALCHEMY, ENCHANTING -> lines.add(this.text("+1 " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE));
+            default -> {}
+        }
+        if (lines.isEmpty()) {
+            lines.add(this.text(l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), NamedTextColor.AQUA));
+        }
+        return lines;
     }
 
     public void openGlobal(Player p, int page) {

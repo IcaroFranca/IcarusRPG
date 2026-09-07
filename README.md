@@ -1022,3 +1022,27 @@ drag dentro do menu e sabe de quem é a `Gui` aberta sem precisar de
 rastreamento próprio. Os outros menus (`SkillsMenuService`,
 `CombatTreeMenuService`, `BestiaryMenuService`, `MiningMenuService`) ainda
 estão no estilo manual antigo — migração deles fica pra depois.
+
+## Skills gerais agora dão bônus de atributo, não só Fortune
+
+`GeneralSkillService` ganhou três bônus novos, cada um por nível da skill
+(`bonusHealth`, `bonusStrength`, `bonusMaxMana`), no mesmo espírito da
+Fortune de Mineração/Agricultura/Coleta que já existia:
+
+- **Agricultura (Farming) e Pesca (Fishing)**: +2 Vida Máxima por nível
+  cada (Agricultura mantém sua Fortune de +4 também). Aplicado como
+  `AttributeModifier` em `MAX_HEALTH` (`GeneralSkillService#applyBonusHealth`),
+  chamado junto com o de Bestiário e Nível Global sempre que a Vida Máxima
+  é re-derivada (join, troca de mundo, `/resetstats`, e agora também em
+  todo ganho de XP/level up e em `/setskilllevel`).
+- **Coleta (Foraging)**: +1 Strength por nível (mantém sua Fortune de +4
+  também). Strength não tem attribute modifier próprio — é só um número
+  somado dentro de `GlobalLevelService#snapshot` junto com o Strength de
+  Nível Global, então aparece automaticamente em tudo que já lia Strength
+  (multiplicador de dano, HUD de status).
+- **Alquimia e Encantamento**: +1 Mana Máxima por nível cada. Somado em
+  `PlayerStatsService#effectiveMaxMana`, junto com a Inteligência.
+
+O menu de cada skill (`/skills` → skill individual) mostra a recompensa de
+atributo de cada nível na lore do nó — igual já fazia pra Fortune e pro
++1 Defesa da Mineração.

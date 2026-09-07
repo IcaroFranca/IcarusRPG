@@ -76,6 +76,7 @@ extends JavaPlugin {
         PlayerStatsService stats = new PlayerStatsService((Plugin)this);
         CombatSkillService combat = new CombatSkillService((Plugin)this);
         GeneralSkillService general = new GeneralSkillService();
+        stats.general(general);
         CombatValorService valor = new CombatValorService((Plugin)this);
         ArmorDefenseService armor = new ArmorDefenseService();
         ItemTierService tiers = new ItemTierService((Plugin)this);
@@ -115,7 +116,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, economy, global, stats, valor, armor);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, economy, global, stats, valor, armor, general);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
@@ -130,7 +131,7 @@ extends JavaPlugin {
         SetSkillLevelCommand setSkill = new SetSkillLevelCommand(combat, general, global);
         this.getCommand("setskilllevel").setExecutor((CommandExecutor)setSkill);
         this.getCommand("setskilllevel").setTabCompleter((TabCompleter)setSkill);
-        ResetStatsCommand resetStats = new ResetStatsCommand(stats, combat, armor, global, bestiaryProgress, economy);
+        ResetStatsCommand resetStats = new ResetStatsCommand(stats, combat, armor, global, bestiaryProgress, economy, general);
         this.getCommand("resetstats").setExecutor((CommandExecutor)resetStats);
         this.getCommand("resetstats").setTabCompleter((TabCompleter)resetStats);
         GlobalLevelCommand globalCommand = new GlobalLevelCommand(global);
