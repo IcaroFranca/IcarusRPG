@@ -1047,19 +1047,23 @@ O menu de cada skill (`/skills` → skill individual) mostra a recompensa de
 atributo de cada nível na lore do nó — igual já fazia pra Fortune e pro
 +1 Defesa da Mineração.
 
-## Estrela do Nether fixa na hotbar — atalho pro menu de Skills
+## Estrela do Nether fixa na hotbar — atalho pro Menu
 
 `SkillsStarService` + `SkillsStarListener` (pacote `skills`): toda vez que
 um jogador entra, o **último slot da hotbar** (o "9" da forma como o jogo
-numera, índice 8 na API) recebe uma Estrela do Nether identificada por uma
-tag na própria `ItemMeta` (mesmo padrão de `BuilderWandService#isWand`) —
-clique direito nela (segurando, como bússola/mapa) abre o menu de
-Habilidades (`SkillsMenuService#openMain`), sem precisar abrir o
-inventário, digitar `/skills` ou saber o atalho de shift+trocar-de-mão.
-Fica na hotbar (não na mochila) de propósito: assim dá pra selecionar e
-usar com um scroll/tecla numérica/toque, sempre visível na tela — o que
-importa principalmente pra quem joga no console ou celular. Clicar nela
-com o inventário aberto também funciona, pra quem preferir.
+numera, índice 8 na API) recebe uma Estrela do Nether chamada "★ Menu",
+identificada por uma tag na própria `ItemMeta` (mesmo padrão de
+`BuilderWandService#isWand`) — **qualquer clique nela** (esquerdo ou
+direito, no ar ou num bloco/objeto, segurando ela como bússola/mapa, ou
+clicando nela dentro do inventário aberto) abre o menu de Habilidades
+(`SkillsMenuService#openMain`), sem precisar digitar `/skills` ou saber o
+atalho de shift+trocar-de-mão. Clique esquerdo usa `PlayerAnimationEvent`
+em vez do `LEFT_CLICK_AIR` de `PlayerInteractEvent` (que é best-effort e
+não dispara toda vez que balança o braço no ar sem nada por perto) — mesma
+solução que `BuilderWandListener#swing` já usava. Fica na hotbar (não na
+mochila) de propósito: assim dá pra selecionar e usar com um scroll/tecla
+numérica/toque, sempre visível na tela — o que importa principalmente pra
+quem joga no console ou celular.
 
 **Irremovível e intransferível**: qualquer clique/drag que envolva a
 estrela (pegar, mover, dar shift-click, hotbar-swap, trocar de mão com F)
@@ -1070,6 +1074,12 @@ correta, um Nether Star qualquer não conta como a estrela e não abre
 nada. Se o slot já tiver algo quando a estrela chega (jogador que já
 existia antes dessa mudança), aquele item é reencaixado em outro slot
 livre da mochila (ou cai no chão se não couber) em vez de ser apagado.
+`SkillsStarService#ensure` também varre a mochila inteira procurando
+cópias perdidas da estrela em qualquer outro slot e some com elas antes
+de garantir a do slot certo — sem isso, todo jogador que já tinha
+recebido a estrela na primeira versão (que vivia no primeiro slot da
+mochila, não da hotbar) ficaria pra sempre com duas estrelas idênticas,
+uma órfã sem função alguma e impossível de descartar sozinho.
 
 ## Mensagens de level-up das skills gerais no mesmo padrão do Combate
 

@@ -18,8 +18,9 @@ import org.bukkit.plugin.Plugin;
 
 /**
  * A Nether Star permanently pinned to hotbar slot {@value #SLOT} (the last hotbar
- * slot, "9" the way the vanilla UI numbers it) that opens the Skills menu on
- * right-click - reachable without ever opening the inventory screen, unlike the
+ * slot, "9" the way the vanilla UI numbers it) that opens the Skills menu on any
+ * click - left or right, air or block - reachable without ever opening the
+ * inventory screen, unlike the
  * {@code /skills} command (awkward to type on console/mobile) or the sneak+swap-hands
  * shortcut (no obvious controller/touch equivalent). Living in the hotbar rather than
  * the main inventory is what makes that true: it's always one scroll/number-key/tap
@@ -52,9 +53,9 @@ public final class SkillsStarService {
         Language l = Language.of(p);
         ItemStack star = ItemStack.of(Material.NETHER_STAR);
         ItemMeta meta = star.getItemMeta();
-        meta.displayName(Component.text("★ " + l.choose("Habilidades", "Skills"), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("★ " + l.choose("Menu", "Menu"), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
-                Component.text(l.choose("Clique direito para abrir o menu de Habilidades.", "Right-click to open the Skills menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text(l.choose("Clique para abrir o Menu.", "Click to open the Menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text(l.choose("Não pode ser removido ou dado a outro jogador.", "Cannot be removed or given to another player."), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         meta.setEnchantmentGlintOverride(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
@@ -69,9 +70,20 @@ public final class SkillsStarService {
      * dropping it at the player's feet if there's no room - rather than deleting it.
      * Safe to call repeatedly (join, respawn, self-healing after a click): a no-op once
      * the star is already in place.
+     *
+     * <p>Also wipes any stray tagged star sitting in another slot first - a leftover
+     * from {@link #SLOT} having moved (a player who joined while the star still lived
+     * in the main inventory keeps that old copy forever otherwise, since every other
+     * safeguard treats a tagged star as untouchable regardless of which slot it's in).
      */
     public void ensure(Player p) {
         PlayerInventory inventory = p.getInventory();
+        ItemStack[] contents = inventory.getContents();
+        for (int i = 0; i < contents.length; i++) {
+            if (i != SLOT && this.isStar(contents[i])) {
+                inventory.setItem(i, null);
+            }
+        }
         ItemStack current = inventory.getItem(SLOT);
         if (this.isStar(current)) {
             return;
