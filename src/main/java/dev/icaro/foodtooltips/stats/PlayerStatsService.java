@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.stats;
 
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
+import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -18,8 +19,11 @@ import org.bukkit.plugin.Plugin;
  * combat ability tree layers additional bonuses on top for every stat here
  * except {@link PlayerStats#trueDefense()} (deliberately tree-independent —
  * see {@link CombatAbilityService}'s class doc for which ability grants
- * which bonus). {@link #abilities(CombatAbilityService)} is wired in after
- * construction (the two services depend on each other) exactly like
+ * which bonus). Max Mana also gets {@link GeneralSkillService#bonusMaxMana}
+ * (Alchemy/Enchanting, 1 per level) layered on top — see
+ * {@link #effectiveMaxMana(Player)}. {@link #abilities(CombatAbilityService)}
+ * and {@link #general(GeneralSkillService)} are wired in after construction
+ * (these services depend on each other) exactly like
  * {@link #global(GlobalLevelService)} already is.
  */
 public final class PlayerStatsService {
@@ -42,6 +46,7 @@ public final class PlayerStatsService {
     private final double trueDefense;
     private GlobalLevelService global;
     private CombatAbilityService abilities;
+    private GeneralSkillService general;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -74,6 +79,15 @@ public final class PlayerStatsService {
         this.abilities = abilities;
     }
 
+    public void general(GeneralSkillService general) {
+        this.general = general;
+    }
+
+    /** Base Max Mana plus Intelligence plus {@link GeneralSkillService#bonusMaxMana} (Alchemy/Enchanting, 1 per level). */
+    private double effectiveMaxMana(Player p) {
+        return this.get(p, this.maxMana, this.base) + this.intelligence + (this.general == null ? 0 : this.general.bonusMaxMana(p));
+    }
+
     public void init(Player p) {
         PersistentDataContainer d = p.getPersistentDataContainer();
         if (!d.has(this.maxMana, PersistentDataType.DOUBLE)) {
@@ -96,9 +110,8 @@ public final class PlayerStatsService {
     }
 
     public PlayerStats stats(Player p) {
-        double storedMaxMana = this.get(p, this.maxMana, this.base);
-        double effectiveMaxMana = storedMaxMana + this.intelligence;
-        double storedMana = this.get(p, this.mana, storedMaxMana);
+        double effectiveMaxMana = this.effectiveMaxMana(p);
+        double storedMana = this.get(p, this.mana, effectiveMaxMana);
         double storedMaxVitality = this.get(p, this.maxVitality, this.baseVitality);
         double storedVitality = this.get(p, this.vitality, storedMaxVitality);
         AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
@@ -145,8 +158,7 @@ public final class PlayerStatsService {
     }
 
     public void setMana(Player p, double n) {
-        double m = this.get(p, this.maxMana, this.base) + this.intelligence;
-        p.getPersistentDataContainer().set(this.mana, PersistentDataType.DOUBLE, clamp(n, 0.0, m));
+        p.getPersistentDataContainer().set(this.mana, PersistentDataType.DOUBLE, clamp(n, 0.0, this.effectiveMaxMana(p)));
     }
 
     public void setMaxMana(Player p, double n) {

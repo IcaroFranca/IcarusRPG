@@ -6,6 +6,7 @@ import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
+import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -48,15 +49,18 @@ public final class ResetStatsCommand implements TabExecutor {
     private final GlobalLevelService global;
     private final BestiaryProgressService bestiary;
     private final EconomyService economy;
+    private final GeneralSkillService general;
 
     public ResetStatsCommand(PlayerStatsService stats, CombatSkillService combat, ArmorDefenseService armor,
-                              GlobalLevelService global, BestiaryProgressService bestiary, EconomyService economy) {
+                              GlobalLevelService global, BestiaryProgressService bestiary, EconomyService economy,
+                              GeneralSkillService general) {
         this.stats = stats;
         this.combat = combat;
         this.armor = armor;
         this.global = global;
         this.bestiary = bestiary;
         this.economy = economy;
+        this.general = general;
     }
 
     @Override
@@ -101,6 +105,7 @@ public final class ResetStatsCommand implements TabExecutor {
         this.armor.applyDefenseTooltip(target);
         this.bestiary.applyBonusHealth(target);
         this.global.applyHealth(target);
+        this.general.applyBonusHealth(target);
         if (!target.isDead()) {
             AttributeInstance a = target.getAttribute(Attribute.MAX_HEALTH);
             target.setHealth(a == null ? 20.0 : a.getValue());
