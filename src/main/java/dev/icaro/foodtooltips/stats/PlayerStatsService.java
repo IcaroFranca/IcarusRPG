@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.stats;
 
 import dev.icaro.foodtooltips.global.GlobalLevelService;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import net.kyori.adventure.key.Key;
@@ -21,9 +22,16 @@ import org.bukkit.plugin.Plugin;
  * see {@link CombatAbilityService}'s class doc for which ability grants
  * which bonus). Intelligence also gets {@link GeneralSkillService#bonusIntelligence}
  * (Alchemy/Enchanting, 1 per level) layered on top, which in turn feeds
- * Max Mana one-for-one — see {@link #effectiveMaxMana(Player)}. {@link #abilities(CombatAbilityService)}
- * and {@link #general(GeneralSkillService)} are wired in after construction
- * (these services depend on each other) exactly like
+ * Max Mana one-for-one — see {@link #effectiveMaxMana(Player)}. Agility is the same
+ * kind of pairing for movement Speed: {@link #effectiveAgility(Player)} (base plus
+ * {@link LegendaryWeaponService#heldAgilityBonus}, e.g. Baruka's Dagger) is the number
+ * shown on the stats screen, and separately feeds the real vanilla Movement Speed
+ * attribute one-for-one — as a percentage point per point of Agility, see {@code
+ * LegendaryWeaponService#create}'s own attribute modifier on the item, since unlike
+ * Mana (a fully custom resource) Speed has to end up on the real attribute for the
+ * player to actually move faster. {@link #abilities(CombatAbilityService)},
+ * {@link #general(GeneralSkillService)} and {@link #legendary(LegendaryWeaponService)}
+ * are wired in after construction (these services depend on each other) exactly like
  * {@link #global(GlobalLevelService)} already is.
  */
 public final class PlayerStatsService {
@@ -40,6 +48,7 @@ public final class PlayerStatsService {
     private final double swingRange;
     private final double swingRangeCap;
     private final double intelligence;
+    private final double agility;
     private final double abilityDamage;
     private final double healthRegen;
     private final double mending;
@@ -47,6 +56,7 @@ public final class PlayerStatsService {
     private GlobalLevelService global;
     private CombatAbilityService abilities;
     private GeneralSkillService general;
+    private LegendaryWeaponService legendary;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -60,6 +70,7 @@ public final class PlayerStatsService {
         this.swingRangeCap = p.getConfig().getDouble("stats.swing-range-cap", 15.0);
         this.swingRange = clamp(p.getConfig().getDouble("stats.base-swing-range", 3.0), 0.0, this.swingRangeCap);
         this.intelligence = Math.max(0.0, p.getConfig().getDouble("stats.base-intelligence", 0.0));
+        this.agility = Math.max(0.0, p.getConfig().getDouble("stats.base-agility", 0.0));
         this.abilityDamage = Math.max(0.0, p.getConfig().getDouble("stats.base-ability-damage", 0.0));
         this.healthRegen = Math.max(0.0, p.getConfig().getDouble("stats.base-health-regen", 100.0));
         this.mending = Math.max(0.0, p.getConfig().getDouble("stats.base-mending", 100.0));
@@ -83,6 +94,10 @@ public final class PlayerStatsService {
         this.general = general;
     }
 
+    public void legendary(LegendaryWeaponService legendary) {
+        this.legendary = legendary;
+    }
+
     // ---- Base config values (for the Combat Stats breakdown - see SkillsMenuService#combatStatsItem) ----
 
     public double baseHealth() {
@@ -103,6 +118,10 @@ public final class PlayerStatsService {
 
     public double baseIntelligence() {
         return this.intelligence;
+    }
+
+    public double baseAgility() {
+        return this.agility;
     }
 
     public double baseAbilityDamage() {
@@ -128,6 +147,11 @@ public final class PlayerStatsService {
 
     private double effectiveIntelligence(Player p) {
         return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p));
+    }
+
+    /** Base Agility plus whatever the player's currently-held weapon grants (e.g. Baruka's Dagger, +10 while wielded) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
+    public double effectiveAgility(Player p) {
+        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p));
     }
 
     public void init(Player p) {
