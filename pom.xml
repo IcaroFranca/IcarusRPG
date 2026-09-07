@@ -55,11 +55,19 @@
     <!-- GUI toolkit for inventory menus (Skills, Bestiary, Mineração, Cores de
          Nível...). Not a server plugin like WorldGuard - nothing provides it
          at runtime, so it's shaded (and relocated) into our own jar below
-         instead of being "provided". -->
+         instead of being "provided". Pinned to 0.12.0, NOT the latest 0.12.1:
+         0.12.1 added click/drag/close annotation processing to the Gui
+         constructor (Gui#processMethodAnnotations) that unconditionally reads
+         method.getParameterTypes()[0] for every declared method on the class,
+         throwing ArrayIndexOutOfBoundsException the instant you construct
+         *any* Gui - ChestGui itself declares plenty of 0-parameter methods
+         (copy(), getRows()...), so this crashes whether or not you use the
+         annotations at all. Confirmed still present on IF's master as of
+         2026-08-28; bump past 0.12.1 once upstream ships a fix. -->
     <dependency>
       <groupId>com.github.stefvanschie.inventoryframework</groupId>
       <artifactId>IF</artifactId>
-      <version>0.12.1</version>
+      <version>0.12.0</version>
     </dependency>
   </dependencies>
 
