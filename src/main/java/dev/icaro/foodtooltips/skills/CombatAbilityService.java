@@ -23,9 +23,7 @@ import org.bukkit.plugin.Plugin;
 /**
  * Runtime engine for the combat ability tree: rank storage/progression
  * (spending Blood Points to unlock and upgrade nodes) and every rank-scaled
- * gameplay effect. Also owns the 6 Combat Backpack capacity nodes (see
- * {@link CombatAbility#BACKPACK_1} and friends) — {@link BackpackService}
- * reads their unlock state instead of the Combat skill's level directly.
+ * gameplay effect.
  *
  * <p>Of the stats shown on the "Combat Stats" screen, Crit Chance (Ruthless
  * Strikes), Crit Damage (Critical Mastery), Swing Range (Sword Throw),
@@ -91,7 +89,7 @@ public final class CombatAbilityService {
      * gate. Sword Throw sits at tier 4 (it requires both branch finishers, Critical Mastery and
      * Second Wind) but is meant to open up right alongside them, not two tiers of grinding later
      * - so it uses tier 3's level (35) instead of tier 4's (60). Nothing else in the tree needs
-     * an override today, including the tier-4 Backpack node, which keeps the plain tier default.
+     * an override today.
      */
     private static final Map<CombatAbility, Integer> LEVEL_REQUIREMENT_OVERRIDES = Map.of(CombatAbility.SWORD_THROW, 35);
 
@@ -344,45 +342,6 @@ public final class CombatAbilityService {
         return this.enabled(p, CombatAbility.SECOND_WIND) ? CombatTreeMath.secondWindMendingBonus(this.rank(p, CombatAbility.SECOND_WIND), this.maxRank(CombatAbility.SECOND_WIND)) : 0.0;
     }
 
-    // ---- Combat Backpack capacity (feed BackpackService) -------------------------
-
-    private static final CombatAbility[] BACKPACK_CHAIN = {
-            CombatAbility.BACKPACK_1, CombatAbility.BACKPACK_2, CombatAbility.BACKPACK_3,
-            CombatAbility.BACKPACK_4, CombatAbility.BACKPACK_5, CombatAbility.BACKPACK_6,
-    };
-
-    /**
-     * How many of the 6 Combat Backpack nodes are unlocked, 0-6 — the chain's
-     * prerequisites keep this contiguous from BACKPACK_1, so it's safe to stop at the
-     * first gap. Deliberately keyed on {@link #unlocked}, not {@link #enabled}: unlike
-     * every other passive, toggling a backpack node off would shrink the bag's visible
-     * size, stranding whatever the player already stored past the new smaller capacity.
-     */
-    public int backpackRank(Player p) {
-        int count = 0;
-        for (CombatAbility a : BACKPACK_CHAIN) {
-            if (!this.unlocked(p, a)) {
-                break;
-            }
-            count++;
-        }
-        return count;
-    }
-
-    /** "9 slots" / "18 slots" / ... for the tree tooltip preview - mirrors {@code BackpackService#size}'s capacity table. */
-    private static String backpackCapacityLabel(CombatAbility a) {
-        int slots = switch (a) {
-            case BACKPACK_1 -> 9;
-            case BACKPACK_2 -> 18;
-            case BACKPACK_3 -> 27;
-            case BACKPACK_4 -> 36;
-            case BACKPACK_5 -> 45;
-            case BACKPACK_6 -> 54;
-            default -> 0;
-        };
-        return slots + " slots";
-    }
-
     // ---- Numeric stat preview (tree tooltip) ------------------------------------
 
     /** One "current level → next level" numeric readout row for the tree tooltip. */
@@ -425,8 +384,6 @@ public final class CombatAbilityService {
                 out.add(this.pctAbs(pt ? "Cura ao ativar" : "Heal on trigger", CombatTreeMath::secondWindHealFraction, cur, next, hasNext, max));
                 out.add(this.pctPlus(pt ? "Mending" : "Mending", CombatTreeMath::secondWindMendingBonus, cur, next, hasNext, max));
             }
-            case BACKPACK_1, BACKPACK_2, BACKPACK_3, BACKPACK_4, BACKPACK_5, BACKPACK_6 ->
-                    out.add(new StatPreview(pt ? "Capacidade" : "Capacity", backpackCapacityLabel(a), null));
         }
         return out;
     }
@@ -510,8 +467,6 @@ public final class CombatAbilityService {
             case SOUL_HARVEST -> pt ? "Cura adicional por abate hostil e aumenta Regen. de Vida, escala por nível." : "Additional heal per hostile kill and raises Health Regen, scales per level.";
             case CRITICAL_MASTERY -> pt ? "Aumenta o multiplicador de dano crítico, escala por nível." : "Increases the critical damage multiplier, scales per level.";
             case SECOND_WIND -> pt ? "Evita um golpe fatal e aumenta Mending; recarga e cura escalam por nível." : "Prevents a fatal hit and raises Mending; cooldown and heal scale per level.";
-            case BACKPACK_1, BACKPACK_2, BACKPACK_3, BACKPACK_4, BACKPACK_5, BACKPACK_6 ->
-                    pt ? "Aumenta a capacidade da Mochila de Combate." : "Increases the Combat Backpack's capacity.";
         };
     }
 

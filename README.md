@@ -31,7 +31,7 @@ Maven. Funcionalmente deve corresponder ao jar original, mas:
 mvn package
 ```
 
-Gera `target/IcarusRPG-0.42.0.jar`. Requer acesso ao repositório da PaperMC
+Gera `target/IcarusRPG-0.43.0.jar`. Requer acesso ao repositório da PaperMC
 (`https://repo.papermc.io/repository/maven-public/`) e, para o hook de
 WorldGuard, ao repositório da EngineHub (`https://maven.enginehub.org/repo/`).
 
@@ -56,7 +56,7 @@ texto/UI. Updates maiores (features novas, mudanças de sistema, como a
 - `item` — sistema de raridade por Tiers (`ItemTierService`) e dano de espadas por material (`SwordDamageService`).
 - `mining` — baú do tesouro, gemas, menu de mineração.
 - `protect` — hooks de proteção (WorldGuard / GriefPrevention).
-- `skills` — habilidades de combate, mochilas, skills gerais.
+- `skills` — habilidades de combate, skills gerais.
 - `stats` — status do jogador e HUD.
 
 O pacote `shop` (loja, itens, portais) foi removido — ver "Loja removida
@@ -290,8 +290,8 @@ skills estiverem prontas:
   ARMOR/ARMOR_TOUGHNESS.
 
   **A tooltip do item mostra a Defesa de verdade**: `ArmorDefenseService#applyDefenseTooltip`
-  reescreve a peça de armadura em si (equipada, na mochila, ou na mão
-  secundária — em qualquer slot do inventário do jogador) pra esconder os
+  reescreve a peça de armadura em si (equipada, solta no inventário, ou na
+  mão secundária — em qualquer slot do inventário do jogador) pra esconder os
   atributos vanilla (`ItemFlag.HIDE_ATTRIBUTES`) e mostrar em vez disso uma
   linha "Defesa: +N" em verde, igual ao número que realmente conta. Roda no
   join e a cada tick do HUD, uma vez por item (guardado por uma flag na PDC
@@ -367,12 +367,13 @@ O menu principal (`/skills`, `SkillsMenuService#openMain`) agora mostra
 *só* a cabeça de status (slot 4) e os ícones de skill (Combate + as 6 gerais
 + Nível Global): Bestiário e Árvore de Combate deixaram de ter botão aqui —
 só são acessíveis pela tela de Combate (`openCombat`, que já os tinha nos
-slots 39/41); Bestiário continua alcançável também via `/bestiary`. Mochilas,
-Cores do Nível e Loja continuam com botão no menu principal (removê-los
-deixaria Mochilas sem nenhuma forma de acesso, já que não tem comando
-próprio — Loja e Cores do Nível têm `/shop` e `/levelcolor`). *(A Loja e o
-`/shop` foram removidos numa leva posterior — ver "Loja removida (por
-enquanto)" mais abaixo; o botão dela some junto do menu principal.)*
+slots 39/41); Bestiário continua alcançável também via `/bestiary`. Cores do
+Nível e Loja continuam com botão no menu principal (mesmo já tendo comando
+próprio, `/levelcolor` e `/shop`, o botão é mais rápido de achar que decorar
+um comando). *(A Loja e o `/shop` foram removidos numa leva posterior — ver
+"Loja removida (por enquanto)" mais abaixo; o botão dela some junto do menu
+principal. A mecânica de Mochilas também foi removida numa leva ainda mais
+posterior — ver "Mecânica de Mochilas removida" mais abaixo.)*
 
 **Nível Global virou um ícone de skill**: em vez do botão separado que
 tinha, agora fica no slot 13 (centralizado, logo abaixo da cabeça de status),
@@ -536,7 +537,7 @@ reviver a loja depois se for o caso. `EconomyService` (moedas, `/coins`)
 continua existindo normalmente — só perdeu o bônus de Caçador de Tesouros
 (ver seção seguinte), não a loja em si.
 
-## Árvore de Combate reduzida e reordenada; Mochila de Combate migrou pra árvore
+## Árvore de Combate reduzida e reordenada
 
 **12 habilidades removidas**: Vampirismo, Execução, Caçador de Tesouros,
 Instinto do Caçador, Vontade Inabalável, Toque Vital, Maestria de Combate,
@@ -560,22 +561,6 @@ subiu pro topo da árvore**: agora exige Maestria Crítica *e* Segundo Fôlego
 (o topo das duas cadeias) em vez de ser raiz de um galho próprio atrás de
 uma passiva descartável — é a habilidade de pico da árvore agora, não mais
 enterrada Vidência.
-
-**Mochila de Combate virou parte da árvore**: os 6 níveis de capacidade
-(9/18/27/36/45/54 slots) que antes desbloqueavam automaticamente pelo nível
-da skill de Combate (1/10/20/30/40/50) agora são 6 nós próprios na árvore
-(`CombatAbility.BACKPACK_1`..`BACKPACK_6`, ramo novo `CombatBranch.STORAGE`,
-maxRank 1 cada — desbloqueio único, não uma habilidade que sobe de nível),
-comprados com Pontos de Sangue como qualquer outro nó, em cadeia linear até
-o topo da árvore (BACKPACK_6 no capstone, slot 4). `BackpackService` agora
-lê `CombatAbilityService#backpackRank` (quantos nós desbloqueados, 0-6) em
-vez do nível da skill pra calcular a capacidade da mochila de Combate — as
-outras 6 mochilas (Mineração, Pesca etc.) continuam do jeito que estavam,
-level-based. Só conta nós *desbloqueados* (`unlocked`), não *ativados*
-(`enabled`): diferente de toda outra passiva, desativar um nó de mochila via
-shift-clique encolheria a capacidade visível e prenderia itens já guardados
-além do novo limite menor — por isso o menu da árvore recusa esse
-shift-clique nesses nós com uma mensagem explicando o motivo.
 
 ## Varinha do Construtor (`dev.icaro.foodtooltips.builder`)
 
@@ -685,9 +670,9 @@ ganhou um mecanismo de override por habilidade (`LEVEL_REQUIREMENT_OVERRIDES`),
 separado do requisito genérico por tier — só o Arremesso de Espada usa isso
 por enquanto (fixo em 35 no código, não é uma opção de `config.yml`, já que é
 uma decisão de design específica dessa habilidade, não um ajuste fino que
-faça sentido variar por servidor). O nó Mochila do próprio tier 4
-(`BACKPACK_4`) continua usando o requisito padrão de 60 normalmente — o
-override é por habilidade, não por tier inteiro.
+faça sentido variar por servidor) — qualquer outro nó que algum dia caia no
+tier 4 continua usando o requisito padrão de 60 normalmente, o override é
+por habilidade, não por tier inteiro.
 
 **A posição na grade também mudou**, não só o número: o slot do Arremesso de
 Espada saiu de 22 (linha do tier 4, ao lado do medidor "60") pra 31 (linha do
@@ -981,8 +966,25 @@ jogador, então fica intocado). Depois disso, reaplica o pipeline de
 atributos (Vida base, Mana/Vitalidade, Attack Speed, Defesa, cura total)
 pro jogador já sair do comando com tudo refletido, sem precisar relogar.
 
-**Não é tocado**: inventário/itens, XP/nível vanilla, posição, gamemode. A
-capacidade da Mochila de Combate também reseta pro tier base — se a mochila
-tiver mais itens do que a capacidade nova (menor) permite, os itens não são
-apagados, mas podem ficar inacessíveis até os nós de capacidade serem
-comprados de novo.
+**Não é tocado**: inventário/itens, XP/nível vanilla, posição, gamemode.
+
+## Mecânica de mochilas removida
+
+Todo o sistema de mochilas extras (a de Combate, que vivia na árvore de
+habilidades, e as outras 6 por skill geral — Mineração, Pesca, Agricultura,
+Coleta, Encantamento, Alquimia) foi removido do IcarusRPG por completo:
+`BackpackService`, `BackpackListener` e `BackpackType` (pacote `skills`)
+saíram do projeto, os 6 nós de capacidade da árvore de Combate
+(`CombatAbility.BACKPACK_1`..`BACKPACK_6`) e o ramo `CombatBranch.STORAGE`
+que os continha deixaram de existir, e toda referência a eles no menu de
+Skills, na Árvore de Combate e no `/resetstats` foi removida junto.
+
+Motivo: essa funcionalidade de armazenamento vai virar um plugin próprio,
+separado do IcarusRPG (inspirado no mod Sophisticated Storage), então não
+faz sentido o IcarusRPG continuar oferecendo sua própria versão dela.
+Servidores que já tinham mochilas em uso vão perder o acesso aos itens
+guardados nelas — os arquivos `.yml` da pasta `backpacks/` na pasta de
+dados do plugin não são apagados automaticamente por essa mudança (o
+código que os lia é que não existe mais), então quem quiser recuperar o
+conteúdo antes de descartar precisa fazer isso manualmente enquanto os
+arquivos ainda estão lá.
