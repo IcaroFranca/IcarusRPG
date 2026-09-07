@@ -97,7 +97,7 @@ extends JavaPlugin {
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);
         LevelBadgeRenderer badgeRenderer = new LevelBadgeRenderer(this.getConfig().getInt("global-level.badge-animation-smoothness", 4));
         GlobalPresentationService presentation = new GlobalPresentationService((Plugin)this, global, levelColors, badgeRenderer);
-        LevelColorMenuService levelColorMenu = new LevelColorMenuService(global, levelColors, badgeRenderer, presentation, menus::openMain);
+        LevelColorMenuService levelColorMenu = new LevelColorMenuService((Plugin)this, global, levelColors, presentation, menus::openMain);
         menus.levelColors(levelColorMenu);
         CombatTreeMenuService treeMenu = new CombatTreeMenuService(combat, abilities, valor, menus::openMain);
         menus.tree(treeMenu);
@@ -109,7 +109,6 @@ extends JavaPlugin {
         PluginManager pm = this.getServer().getPluginManager();
         pm.registerEvents((Listener)new GlobalPlayerListener(global), (Plugin)this);
         pm.registerEvents((Listener)presentation, (Plugin)this);
-        pm.registerEvents((Listener)levelColorMenu, (Plugin)this);
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);

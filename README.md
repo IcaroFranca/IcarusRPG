@@ -988,3 +988,25 @@ dados do plugin não são apagados automaticamente por essa mudança (o
 código que os lia é que não existe mais), então quem quiser recuperar o
 conteúdo antes de descartar precisa fazer isso manualmente enquanto os
 arquivos ainda estão lá.
+
+## Dependência: IF (Inventory Framework) pra menus
+
+Adicionado `com.github.stefvanschie.inventoryframework:IF:0.12.1` como
+dependência (Maven Central) pra construir os menus de inventário
+(`ChestGui`, `StaticPane`, `GuiItem`) em vez de `Inventory` +
+`InventoryClickEvent`/`InventoryDragEvent`/`InventoryCloseEvent` cru. Como
+o IF não é um plugin que já vem instalado no servidor, ele é *shadado* (e
+relocado pra `dev.icaro.foodtooltips.libs.inventoryframework`, pra não
+colidir com uma versão diferente que outro plugin no mesmo servidor também
+tenha shadado) direto no jar final pelo `maven-shade-plugin` — o jar
+gerado passou de ~310 KB pra ~1,9 MB, mas continua sendo o único arquivo
+que precisa ir pra pasta `plugins/` do servidor.
+
+`LevelColorMenuService` foi o primeiro menu migrado, como prova de
+conceito: o `Set<UUID> viewers` manual e os três `@EventHandler` de
+click/drag/close saíram, e cada item do menu agora carrega seu próprio
+clique (`GuiItem(item, event -> ...)`) — o IF cancela sozinho clique e
+drag dentro do menu e sabe de quem é a `Gui` aberta sem precisar de
+rastreamento próprio. Os outros menus (`SkillsMenuService`,
+`CombatTreeMenuService`, `BestiaryMenuService`, `MiningMenuService`) ainda
+estão no estilo manual antigo — migração deles fica pra depois.
