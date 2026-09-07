@@ -378,9 +378,12 @@ public final class SkillsMenuService {
         v.setItem(38, this.armorSlot(p.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
         v.setItem(47, this.armorSlot(p.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
         v.setItem(24, this.combatStatsItem(p, l));
-        v.setItem(40, this.fortuneItem(p, SkillType.MINING, l, NamedTextColor.AQUA));
-        v.setItem(42, this.fortuneItem(p, SkillType.FARMING, l, NamedTextColor.GREEN));
-        v.setItem(44, this.fortuneItem(p, SkillType.FORAGING, l, NamedTextColor.DARK_GREEN));
+        v.setItem(39, this.skillBonusItem(p, SkillType.MINING, l));
+        v.setItem(40, this.skillBonusItem(p, SkillType.FARMING, l));
+        v.setItem(41, this.skillBonusItem(p, SkillType.FISHING, l));
+        v.setItem(42, this.skillBonusItem(p, SkillType.FORAGING, l));
+        v.setItem(43, this.skillBonusItem(p, SkillType.ALCHEMY, l));
+        v.setItem(44, this.skillBonusItem(p, SkillType.ENCHANTING, l));
         v.setItem(45, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
         this.open(p, v, new View(Type.STATS, 0, null));
     }
@@ -521,9 +524,37 @@ public final class SkillsMenuService {
         return String.join(" + ", parts);
     }
 
-    private ItemStack fortuneItem(Player p, SkillType t, Language l, NamedTextColor color) {
-        List<Component> lore = List.of(this.text(t.name(l == Language.PT) + " Fortune: " + this.general.fortune(p, t), color));
-        return this.item(t.icon(), t.name(l == Language.PT) + " Fortune", lore);
+    /**
+     * One tile per general skill (Mining/Farming/Fishing/Foraging/Alchemy/Enchanting) —
+     * every attribute bonus that skill grants (see {@link GeneralSkillService}), each
+     * with the same "stat line + gray source line" treatment {@link #combatStatsItem}
+     * uses, so every skill's contribution is visible somewhere in Stats & Equipment,
+     * not just the three that happen to grant Fortune.
+     */
+    private ItemStack skillBonusItem(Player p, SkillType t, Language l) {
+        int level = this.general.progress(p, t).level();
+        List<Component> lore = new ArrayList<>();
+        if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
+            this.stat(lore, t.name(l == Language.PT) + " Fortune: " + this.general.fortune(p, t), NamedTextColor.AQUA,
+                    this.rate(l, level, this.general.fortunePerLevel()));
+        }
+        switch (t) {
+            case MINING -> this.stat(lore, "+" + (level * this.general.defensePerLevel()) + " " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN,
+                    this.rate(l, level, this.general.defensePerLevel()));
+            case FARMING, FISHING -> this.stat(lore, "+" + (level * this.general.healthPerLevel()) + " " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED,
+                    this.rate(l, level, this.general.healthPerLevel()));
+            case FORAGING -> this.stat(lore, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW,
+                    this.rate(l, level, this.general.strengthPerLevel()));
+            case ALCHEMY, ENCHANTING -> this.stat(lore, "+" + (level * this.general.maxManaPerLevel()) + " " + l.choose("Mana Máxima", "Max Mana"), NamedTextColor.LIGHT_PURPLE,
+                    this.rate(l, level, this.general.maxManaPerLevel()));
+            default -> {}
+        }
+        return this.item(t.icon(), t.name(l == Language.PT), lore);
+    }
+
+    /** "Level N × rate/level" - the source line every {@link #skillBonusItem} entry shares. */
+    private String rate(Language l, int level, int perLevel) {
+        return l.choose("Nível " + level + " × " + perLevel + "/nível", "Level " + level + " × " + perLevel + "/level");
     }
 
     private double value(Player p, Attribute a, double f) {
