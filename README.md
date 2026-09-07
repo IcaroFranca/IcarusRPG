@@ -1160,3 +1160,16 @@ depois de cada rodada de reescrita de lore, varre o inventário mesclando
 qualquer par de stacks que já bateu igual, então mesmo que a ordem das
 linhas tenha ficado diferente por um tick, a primeira reescrita que
 finalmente igualar as duas já os re-junta.
+
+## Aba de cada skill geral em Status & Equipamento (não só Fortune)
+
+`SkillsMenuService#skillBonusItem` substitui o antigo `fortuneItem`: a
+tela "Status & Equipamento" (clique na cabeça no menu de Habilidades)
+agora tem uma aba pra cada uma das 6 skills gerais — Mineração,
+Agricultura, Pesca, Coleta, Alquimia e Encantamento — não só as 3 que
+davam Fortune antes (Pesca, Alquimia e Encantamento estavam faltando por
+completo). Cada aba mostra todo bônus de atributo daquela skill (Fortune
+quando aplicável, +Defesa/Vida/Força/Mana quando aplicável) com a mesma
+linha cinza de fonte que o Combat Stats ganhou antes ("Nível N ×
+X/nível"), pro detalhamento de origem valer em todas as skills, não só em
+Combate.
