@@ -282,9 +282,40 @@ implements Listener {
         this.bars.show(p, t, xp, after, this.skills.maxLevel());
         if (levels > 0) {
             long reward = this.global.creditSkillLevels(p, GlobalSkill.of(t), before.level(), after.level());
-            Language l = Language.of(p);
-            p.sendMessage((Component)Component.text((String)("\u2726 " + t.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE N\u00cdVEL! ", "LEVEL UP! ") + before.level() + " \u2192 " + after.level() + " \u2022 +" + reward + " " + l.choose("XP de N\u00edvel Global", "Global Level XP")), (TextColor)NamedTextColor.GOLD));
+            this.levelUpMessage(p, t, before.level(), after.level(), reward);
         }
+    }
+
+    /** Same boxed multi-line style as {@code CombatListener#levelUpMessage}. */
+    private void levelUpMessage(Player p, SkillType t, int before, int after, long globalXp) {
+        Language l = Language.of(p);
+        p.sendMessage(Component.text("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", NamedTextColor.DARK_GRAY));
+        p.sendMessage(Component.text("\u2726 " + t.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE N\u00cdVEL!", "LEVEL UP!") + " \u2726", NamedTextColor.GOLD));
+        p.sendMessage(Component.text(before + " \u2192 " + after, NamedTextColor.GREEN));
+        String reward = this.rewardLine(t, l, after - before);
+        if (!reward.isEmpty()) {
+            p.sendMessage(Component.text(reward, NamedTextColor.AQUA));
+        }
+        p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de N\u00edvel Global", "Global Level XP"), NamedTextColor.AQUA));
+        if (t == SkillType.MINING && before < 3 && after >= 3) {
+            p.sendMessage(Component.text("\u2726 " + l.choose("Desbloqueado: Vein Miner", "Unlocked: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
+        }
+        p.sendMessage(Component.text("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", NamedTextColor.DARK_GRAY));
+    }
+
+    /** Per-level attribute rewards actually gained this level-up (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusMaxMana}) - a skill can grant more than one, joined like Combat's Crit Chance/Damage line. */
+    private String rewardLine(SkillType t, Language l, int levelsGained) {
+        List<String> parts = new ArrayList<>();
+        if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
+            parts.add("+" + (levelsGained * this.skills.fortunePerLevel()) + " " + t.name(l == Language.PT) + " Fortune");
+        }
+        switch (t) {
+            case FARMING, FISHING -> parts.add("+" + (levelsGained * this.skills.healthPerLevel()) + " " + l.choose("Vida M\u00e1xima", "Max Health"));
+            case FORAGING -> parts.add("+" + (levelsGained * this.skills.strengthPerLevel()) + " " + l.choose("For\u00e7a", "Strength"));
+            case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.maxManaPerLevel()) + " " + l.choose("Mana M\u00e1xima", "Max Mana"));
+            default -> {}
+        }
+        return String.join(" \u2022 ", parts);
     }
 
     private boolean isLog(Material m) {

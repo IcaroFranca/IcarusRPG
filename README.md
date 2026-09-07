@@ -1047,24 +1047,48 @@ O menu de cada skill (`/skills` → skill individual) mostra a recompensa de
 atributo de cada nível na lore do nó — igual já fazia pra Fortune e pro
 +1 Defesa da Mineração.
 
-## Estrela do Nether fixa no slot 9 — atalho pro menu de Skills
+## Estrela do Nether fixa na hotbar — atalho pro menu de Skills
 
 `SkillsStarService` + `SkillsStarListener` (pacote `skills`): toda vez que
-um jogador entra, o slot 9 do inventário (primeiro slot da mochila, logo
-abaixo da hotbar) recebe uma Estrela do Nether identificada por uma tag na
-própria `ItemMeta` (mesmo padrão de `BuilderWandService#isWand`) — clicar
-nela abre o menu de Habilidades (`SkillsMenuService#openMain`), igual o
-`/skills` ou o atalho de shift+trocar-de-mão, mas sem precisar digitar
-comando ou saber o atalho — clicar num item no inventário funciona igual
-em teclado/mouse, controle e touch, o que importa principalmente pra quem
-joga no console ou celular.
+um jogador entra, o **último slot da hotbar** (o "9" da forma como o jogo
+numera, índice 8 na API) recebe uma Estrela do Nether identificada por uma
+tag na própria `ItemMeta` (mesmo padrão de `BuilderWandService#isWand`) —
+clique direito nela (segurando, como bússola/mapa) abre o menu de
+Habilidades (`SkillsMenuService#openMain`), sem precisar abrir o
+inventário, digitar `/skills` ou saber o atalho de shift+trocar-de-mão.
+Fica na hotbar (não na mochila) de propósito: assim dá pra selecionar e
+usar com um scroll/tecla numérica/toque, sempre visível na tela — o que
+importa principalmente pra quem joga no console ou celular. Clicar nela
+com o inventário aberto também funciona, pra quem preferir.
 
 **Irremovível e intransferível**: qualquer clique/drag que envolva a
-estrela (pegar, mover, dar shift-click, hotbar-swap) é cancelado
-(`SkillsStarListener`), ela é retirada da lista de drops se o jogador
-morrer com `keepInventory` desligado, e é sempre re-concedida no login, no
-respawn e num `/reload` com jogadores já online — sem tag correta, um
-Nether Star qualquer não conta como a estrela e não abre nada. Se o slot 9
-já tiver algo quando a estrela chega (jogador que já existia antes dessa
-mudança), aquele item é reencaixado em outro slot livre da mochila (ou
-cai no chão se não couber) em vez de ser apagado.
+estrela (pegar, mover, dar shift-click, hotbar-swap, trocar de mão com F)
+é cancelado (`SkillsStarListener`), ela é retirada da lista de drops se o
+jogador morrer com `keepInventory` desligado, e é sempre re-concedida no
+login, no respawn e num `/reload` com jogadores já online — sem tag
+correta, um Nether Star qualquer não conta como a estrela e não abre
+nada. Se o slot já tiver algo quando a estrela chega (jogador que já
+existia antes dessa mudança), aquele item é reencaixado em outro slot
+livre da mochila (ou cai no chão se não couber) em vez de ser apagado.
+
+## Mensagens de level-up das skills gerais no mesmo padrão do Combate
+
+As mensagens de subir de nível de Agricultura/Pesca/Mineração/Coleta/
+Alquimia/Encantamento (`GeneralSkillListener#levelUpMessage`) agora usam a
+mesma "caixa" de linhas do level-up de Combate/Bestiário
+(`CombatListener#levelUpMessage`/`#milestoneMessage`): separador, título
+com nível antes → depois, uma linha com a recompensa de atributo realmente
+ganha nesse level-up (Fortune/Vida/Força/Mana, multiplicada pela
+quantidade de níveis subidos de uma vez), a linha de XP de Nível Global, e
+(só pra Mineração cruzando o nível 3) o aviso de Vein Miner desbloqueado.
+Antes era uma única linha simples.
+
+De passagem: a lore do menu de Mineração alegava "+1 Defesa por nível", o
+que não é mais verdade desde que Defesa passou a vir inteiramente do
+equipamento (`ArmorDefenseService`, não mais do nível de Mineração) — essa
+linha errada foi removida do menu e nunca apareceu na mensagem de level-up
+nova. Os números de bônus por nível (Fortune/Vida/Força/Mana) agora moram
+só em `GeneralSkillService` (`fortunePerLevel()`/`healthPerLevel()`/
+`strengthPerLevel()`/`maxManaPerLevel()`), lidos tanto pelo menu quanto
+pela mensagem de level-up, em vez de cada um repetir o número por conta
+própria.
