@@ -1,5 +1,6 @@
 target/
 build/
+dependency-reduced-pom.xml
 .gradle/
 *.class
 *.log
