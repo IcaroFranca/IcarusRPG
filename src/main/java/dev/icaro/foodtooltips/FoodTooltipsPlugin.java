@@ -21,6 +21,8 @@ import dev.icaro.foodtooltips.global.LevelColorCommand;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.global.LevelColorService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.DurabilityListener;
+import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -82,6 +84,7 @@ extends JavaPlugin {
         CombatValorService valor = new CombatValorService((Plugin)this);
         ArmorDefenseService armor = new ArmorDefenseService();
         ItemTierService tiers = new ItemTierService((Plugin)this);
+        DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
@@ -124,6 +127,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)combatListener, (Plugin)this);
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
+        pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);
         pm.registerEvents((Listener)new SwordDamageListener(swordDamage), (Plugin)this);
         pm.registerEvents((Listener)new BuilderWandListener(builderWand), (Plugin)this);
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
@@ -252,6 +256,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            durability.applyDurability((Player)p);
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
@@ -278,6 +283,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            durability.applyDurability((Player)p);
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
