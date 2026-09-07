@@ -83,6 +83,7 @@ extends JavaPlugin {
         stats.general(general);
         CombatValorService valor = new CombatValorService((Plugin)this);
         ArmorDefenseService armor = new ArmorDefenseService();
+        armor.general(general);
         ItemTierService tiers = new ItemTierService((Plugin)this);
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
@@ -96,7 +97,7 @@ extends JavaPlugin {
         MiningMenuService mining = new MiningMenuService(gems);
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
-        SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor);
+        SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
