@@ -68,8 +68,11 @@ public final class SkillsStarService {
      * Makes sure slot {@value #SLOT} holds the tagged star, moving whatever was there
      * (if anything, and it isn't already the star) elsewhere in the inventory - or
      * dropping it at the player's feet if there's no room - rather than deleting it.
-     * Safe to call repeatedly (join, respawn, self-healing after a click): a no-op once
-     * the star is already in place.
+     * Safe to call repeatedly (join, respawn, self-healing after a click): always
+     * re-creates the star even when one's already there, so a name/lore change in
+     * {@link #create} (like the "Skills" -&gt; "Menu" rename) reaches stars granted
+     * under an older version instead of leaving them stuck with whatever text they
+     * had the day they were first handed out.
      *
      * <p>Also wipes any stray tagged star sitting in another slot first - a leftover
      * from {@link #SLOT} having moved (a player who joined while the star still lived
@@ -85,11 +88,9 @@ public final class SkillsStarService {
             }
         }
         ItemStack current = inventory.getItem(SLOT);
-        if (this.isStar(current)) {
-            return;
-        }
+        boolean alreadyStar = this.isStar(current);
         inventory.setItem(SLOT, this.create(p));
-        if (current != null && !current.getType().isAir()) {
+        if (!alreadyStar && current != null && !current.getType().isAir()) {
             for (ItemStack leftover : inventory.addItem(current).values()) {
                 p.getWorld().dropItemNaturally(p.getLocation(), leftover);
             }

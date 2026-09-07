@@ -406,34 +406,119 @@ public final class SkillsMenuService {
     /**
      * The full Combat Stats list in one place — every combat stat the player has, in the
      * order Health/Defense/True Defense/Strength/Crit Chance/Crit Damage/Ferocity/Swing
-     * Range/Intelligence/Ability Damage/Health Regen/Vitality/Mending. Everything here
-     * except the first three is upgradeable through the combat tree (see
-     * {@link CombatAbilityService}'s class doc for which ability grants which bonus).
+     * Range/Intelligence/Ability Damage/Health Regen/Vitality/Mending, each followed by a
+     * gray sub-line naming exactly where its number comes from. Everything here except
+     * True Defense is upgradeable through the combat tree and/or a general skill (see
+     * {@link CombatAbilityService}'s class doc for which ability grants which bonus, and
+     * {@link GeneralSkillService} for Mining/Farming/Fishing/Foraging/Alchemy/Enchanting).
      */
     private ItemStack combatStatsItem(Player p, Language l) {
         PlayerStats s = this.stats.stats(p);
         CombatProgress c = this.combat.progress(p);
+        GlobalLevelSnapshot g = this.global.snapshot(p);
         int defense = this.armor.defense(p);
-        double critChance = this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p);
+        double combatCritChance = this.combat.critChance(c.level());
+        double critChanceBonus = this.abilities.critChanceBonus(p);
+        double critChance = combatCritChance + critChanceBonus;
+        boolean criticalMastery = this.abilities.enabled(p, CombatAbility.CRITICAL_MASTERY);
         double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0;
-        List<Component> lore = List.of(
+        long globalStrength = g.level() / (long) this.global.levelsPerStrength() * (long) this.global.strengthPerGroup();
+        long foragingStrength = this.general.bonusStrength(p);
+        double baseHealth = this.stats.baseHealth();
+        double bestiaryHealth = this.bestiaryProgress.bonusHealth(p);
+        double globalHealth = g.bonusHealth();
+        double skillHealth = this.general.bonusHealth(p);
+        int helmetDef = ArmorDefenseService.pieceDefense(p.getInventory().getHelmet());
+        int chestDef = ArmorDefenseService.pieceDefense(p.getInventory().getChestplate());
+        int legsDef = ArmorDefenseService.pieceDefense(p.getInventory().getLeggings());
+        int bootsDef = ArmorDefenseService.pieceDefense(p.getInventory().getBoots());
+        int miningDef = this.general.bonusDefense(p);
+
+        List<Component> lore = new ArrayList<>(List.of(
                 this.text(l.choose("Status que influenciam quanto dano você recebe e causa em combate.", "Stats that influence how much damage you take and deal in combat."), NamedTextColor.GRAY),
-                Component.empty(),
-                this.text("❤ " + l.choose("Vida: ", "Health: ") + Math.round(s.health()) + "/" + Math.round(s.maxHealth()), NamedTextColor.RED),
-                this.text("✦ " + l.choose("Defesa: ", "Defense: ") + defense, NamedTextColor.GREEN),
-                this.text("🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()), NamedTextColor.GRAY),
-                this.text("✹ Strength: " + s.strength(), NamedTextColor.RED),
-                this.text("☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.AQUA),
-                this.text("☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.AQUA),
-                this.text("Ⓕ Ferocity: " + Math.round(s.ferocity()), NamedTextColor.RED),
-                this.text("⚔ " + l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)), NamedTextColor.GOLD),
-                this.text("↔ " + l.choose("Alcance de Ataque: ", "Swing Range: ") + String.format(Locale.US, "%.1f", s.swingRange()), NamedTextColor.YELLOW),
-                this.text("✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA),
-                this.text("❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%", NamedTextColor.LIGHT_PURPLE),
-                this.text("❣ " + l.choose("Regen. de Vida: ", "Health Regen: ") + Math.round(s.healthRegen()) + "%", NamedTextColor.RED),
-                this.text("✿ Vitality: " + Math.round(s.vitality()) + "/" + Math.round(s.maxVitality()), NamedTextColor.LIGHT_PURPLE),
-                this.text("❋ " + l.choose("Cura (Mending): ", "Mending: ") + Math.round(s.mending()) + "%", NamedTextColor.GREEN));
+                Component.empty()));
+
+        this.stat(lore, "❤ " + l.choose("Vida: ", "Health: ") + Math.round(s.health()) + "/" + Math.round(s.maxHealth()), NamedTextColor.RED,
+                this.join(l.choose("Base ", "Base ") + Math.round(baseHealth),
+                        bestiaryHealth > 0 ? l.choose("Bestiário +", "Bestiary +") + Math.round(bestiaryHealth) : null,
+                        globalHealth > 0 ? l.choose("Nível Global +", "Global Level +") + Math.round(globalHealth) : null,
+                        skillHealth > 0 ? l.choose("Agricultura/Pesca +", "Farming/Fishing +") + Math.round(skillHealth) : null));
+
+        this.stat(lore, "✦ " + l.choose("Defesa: ", "Defense: ") + defense, NamedTextColor.GREEN,
+                this.join(null,
+                        helmetDef > 0 ? l.choose("Elmo +", "Helmet +") + helmetDef : null,
+                        chestDef > 0 ? l.choose("Peitoral +", "Chestplate +") + chestDef : null,
+                        legsDef > 0 ? l.choose("Calças +", "Leggings +") + legsDef : null,
+                        bootsDef > 0 ? l.choose("Botas +", "Boots +") + bootsDef : null,
+                        miningDef > 0 ? l.choose("Mineração +", "Mining +") + miningDef : null,
+                        defense == 0 ? l.choose("Nenhuma fonte", "No source") : null));
+
+        this.stat(lore, "🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()), NamedTextColor.GRAY,
+                l.choose("Base (config)", "Base (config)"));
+
+        this.stat(lore, "✹ Strength: " + s.strength(), NamedTextColor.RED,
+                this.join(l.choose("Nível Global +", "Global Level +") + globalStrength,
+                        foragingStrength > 0 ? l.choose("Coleta +", "Foraging +") + foragingStrength : null));
+
+        this.stat(lore, "☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.AQUA,
+                this.join(l.choose("Nível de Combate +", "Combat Level +") + String.format(Locale.US, "%.1f", combatCritChance) + "%",
+                        critChanceBonus > 0 ? l.choose("Golpes Implacáveis +", "Ruthless Strikes +") + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null));
+
+        this.stat(lore, "☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.AQUA,
+                criticalMastery ? l.choose("Maestria Crítica (rank ", "Critical Mastery (rank ") + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
+                        : l.choose("Base (config) - Maestria Crítica não desbloqueada", "Base (config) - Critical Mastery not unlocked"));
+
+        this.stat(lore, "Ⓕ Ferocity: " + Math.round(s.ferocity()), NamedTextColor.RED,
+                l.choose("Base (config)", "Base (config)"));
+
+        this.stat(lore, "⚔ " + l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)), NamedTextColor.GOLD,
+                l.choose("Nível de Combate " + c.level(), "Combat Level " + c.level()));
+
+        double swingRangeBonus = this.abilities.swingRangeBonus(p);
+        this.stat(lore, "↔ " + l.choose("Alcance de Ataque: ", "Swing Range: ") + String.format(Locale.US, "%.1f", s.swingRange()), NamedTextColor.YELLOW,
+                this.join(l.choose("Base ", "Base ") + String.format(Locale.US, "%.1f", this.stats.baseSwingRange()),
+                        swingRangeBonus > 0 ? l.choose("Arremesso de Espada +", "Sword Throw +") + String.format(Locale.US, "%.1f", swingRangeBonus) : null));
+
+        this.stat(lore, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA,
+                l.choose("Base (config)", "Base (config)"));
+
+        this.stat(lore, "❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%", NamedTextColor.LIGHT_PURPLE,
+                l.choose("Base (config)", "Base (config)"));
+
+        double healthRegenBonus = this.abilities.healthRegenBonus(p);
+        this.stat(lore, "❣ " + l.choose("Regen. de Vida: ", "Health Regen: ") + Math.round(s.healthRegen()) + "%", NamedTextColor.RED,
+                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseHealthRegen()) + "%",
+                        healthRegenBonus > 0 ? l.choose("Colheita de Almas +", "Soul Harvest +") + Math.round(healthRegenBonus) + "%" : null));
+
+        this.stat(lore, "✿ Vitality: " + Math.round(s.vitality()) + "/" + Math.round(s.maxVitality()), NamedTextColor.LIGHT_PURPLE,
+                l.choose("Base (config)", "Base (config)"));
+
+        double mendingBonus = this.abilities.mendingBonus(p);
+        this.stat(lore, "❋ " + l.choose("Cura (Mending): ", "Mending: ") + Math.round(s.mending()) + "%", NamedTextColor.GREEN,
+                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseMending()) + "%",
+                        mendingBonus > 0 ? l.choose("Segundo Fôlego +", "Second Wind +") + Math.round(mendingBonus) + "%" : null));
+
         return this.item(Material.IRON_SWORD, l.choose("Status de Combate", "Combat Stats"), lore);
+    }
+
+    /** Adds a stat line plus its gray "where this comes from" sub-line right under it. */
+    private void stat(List<Component> lore, String line, NamedTextColor color, String source) {
+        lore.add(this.text(line, color));
+        lore.add(this.text("  " + source, NamedTextColor.DARK_GRAY));
+    }
+
+    /** Joins non-null parts with " + " - null entries (a bonus that's currently zero) are simply skipped. */
+    private String join(String first, String... rest) {
+        List<String> parts = new ArrayList<>();
+        if (first != null) {
+            parts.add(first);
+        }
+        for (String part : rest) {
+            if (part != null) {
+                parts.add(part);
+            }
+        }
+        return String.join(" + ", parts);
     }
 
     private ItemStack fortuneItem(Player p, SkillType t, Language l, NamedTextColor color) {
