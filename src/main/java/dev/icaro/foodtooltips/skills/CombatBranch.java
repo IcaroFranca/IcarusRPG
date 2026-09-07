@@ -7,8 +7,7 @@ import net.kyori.adventure.text.format.TextColor;
 public enum CombatBranch {
     FURY(NamedTextColor.RED, "Fúria", "Fury"),
     SUSTAIN(NamedTextColor.DARK_RED, "Sangue", "Blood"),
-    UTILITY(NamedTextColor.AQUA, "Precisão", "Precision"),
-    STORAGE(NamedTextColor.YELLOW, "Mochila", "Backpack");
+    UTILITY(NamedTextColor.AQUA, "Precisão", "Precision");
 
     private final TextColor color;
     private final String pt;

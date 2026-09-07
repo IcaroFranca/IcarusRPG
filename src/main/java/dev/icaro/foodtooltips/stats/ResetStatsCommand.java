@@ -26,7 +26,7 @@ import org.bukkit.persistence.PersistentDataContainer;
  * {@code /resetstats <player>} — wipes every stat this plugin has ever stored on a
  * player back to a fresh character: Mana/Vitality, Combat level+XP, General skills,
  * Combat Ability tree ranks, Combat Valor, Coins, Global Level (+ checkpoints and
- * migration flag), Bestiary kills/milestones, Combat Backpack capacity — all of it.
+ * migration flag), Bestiary kills/milestones — all of it.
  *
  * <p>Deliberately blunt rather than picking individual systems apart: removes every
  * {@link PersistentDataContainer} key under the {@code "foodtooltips"} namespace,
@@ -40,10 +40,6 @@ import org.bukkit.persistence.PersistentDataContainer;
  * every time a new stat is added anywhere in the plugin.
  *
  * <p><b>Not</b> touched: inventory/items, vanilla XP/level, position, gamemode.
- * Combat Backpack capacity resets to its base tier along with everything else — if
- * the backpack currently holds more items than the reset (smaller) capacity allows,
- * those items aren't deleted, but may sit inaccessible until the capacity nodes are
- * purchased back.
  */
 public final class ResetStatsCommand implements TabExecutor {
     private final PlayerStatsService stats;

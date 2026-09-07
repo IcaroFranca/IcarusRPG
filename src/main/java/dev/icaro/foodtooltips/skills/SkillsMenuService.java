@@ -41,7 +41,6 @@ public final class SkillsMenuService {
     private final MiningMenuService mining;
     private final GlobalLevelService global;
     private final ArmorDefenseService armor;
-    private BackpackService backpacks;
     private LevelColorMenuService levelColors;
     private CombatTreeMenuService tree;
     private final Map<UUID, View> views = new HashMap<>();
@@ -54,10 +53,6 @@ public final class SkillsMenuService {
         this.mining = m;
         this.global = global;
         this.armor = armor;
-    }
-
-    public void backpacks(BackpackService backpacks) {
-        this.backpacks = backpacks;
     }
 
     public void levelColors(LevelColorMenuService levelColors) {
@@ -83,9 +78,6 @@ public final class SkillsMenuService {
             v.setItem(e.getKey(), this.item(t.icon(), t.name(l == Language.PT), List.of(this.skillLine(p, t, l), this.click(l))));
         }
         v.setItem(13, this.globalLevelIcon(p, l));
-        if (this.backpacks != null) {
-            v.setItem(46, this.backpacks.menuIcon(l.choose("Mochilas", "Backpacks"), List.of(this.text(l.choose("Mochilas de todas as skills.", "Backpacks for every skill."), NamedTextColor.YELLOW))));
-        }
         if (this.levelColors != null) {
             v.setItem(47, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
         }
@@ -120,10 +112,6 @@ public final class SkillsMenuService {
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(this.text(l.choose("Continue usando esta skill para evoluir.", "Keep using this skill to level up."), NamedTextColor.GRAY), this.text(t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING ? "+4 " + t.name(l == Language.PT) + " Fortune" : l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), NamedTextColor.AQUA)));
-            Component bag = this.bagReward(level, l);
-            if (bag != null) {
-                lore.add(bag);
-            }
             if (t == SkillType.MINING) {
                 lore.add(this.text("+1 " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN));
                 if (level == 3) {
@@ -193,9 +181,6 @@ public final class SkillsMenuService {
                     this.openCombat(p, 0);
                 } else if (S.containsKey(slot)) {
                     this.openGeneral(p, S.get(slot), 0);
-                } else if (slot == 46 && this.backpacks != null) {
-                    this.views.remove(p.getUniqueId());
-                    this.backpacks.openMenu(p);
                 } else if (slot == 47 && this.levelColors != null) {
                     this.views.remove(p.getUniqueId());
                     this.levelColors.open(p);
@@ -336,22 +321,6 @@ public final class SkillsMenuService {
 
     private Component click(Language l) {
         return this.text(l.choose("Clique para ver!", "Click to view!"), NamedTextColor.YELLOW);
-    }
-
-    private Component bagReward(int level, Language l) {
-        int slots = switch (level) {
-            case 1 -> 9;
-            case 10 -> 18;
-            case 20 -> 27;
-            case 30 -> 36;
-            case 40 -> 45;
-            case 50 -> 54;
-            default -> 0;
-        };
-        if (slots == 0) {
-            return null;
-        }
-        return this.text("🎒 " + (level == 1 ? l.choose("Desbloqueia mochila: ", "Unlocks backpack: ") : l.choose("Melhora mochila: ", "Upgrades backpack: ")) + slots + l.choose(" espaços", " slots"), NamedTextColor.GOLD);
     }
 
     /** Condensed hover preview (the head icon in the main menu) — click it to open {@link #openStats}. */
