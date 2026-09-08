@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.50.0</version>
+  <version>0.51.0</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>
@@ -31,6 +31,10 @@
     <repository>
       <id>enginehub</id>
       <url>https://maven.enginehub.org/repo/</url>
+    </repository>
+    <repository>
+      <id>citizens-repo</id>
+      <url>https://maven.citizensnpcs.co/repo</url>
     </repository>
   </repositories>
 
@@ -68,6 +72,18 @@
       <groupId>com.github.stefvanschie.inventoryframework</groupId>
       <artifactId>IF</artifactId>
       <version>0.12.0</version>
+    </dependency>
+    <!-- Optional soft-depend, same story as WorldGuard above: CitizensIntegrationService
+         talks to Citizens' NPC API directly at compile time so it needs this, but the
+         plugin only spawns Citizens NPCs when Citizens is actually installed. Citizens
+         itself is free and open-source (github.com/CitizensDev/Citizens2) despite also
+         being listed as a "pay what you want" resource on SpigotMC - either build works,
+         no feature is gated behind payment. -->
+    <dependency>
+      <groupId>net.citizensnpcs</groupId>
+      <artifactId>citizensapi</artifactId>
+      <version>2.0.43-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
