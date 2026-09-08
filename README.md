@@ -1498,76 +1498,109 @@ A Builder's Wand agora usa Blaze Rod como item (era Stick) e a Biome's
 Wand usa Stick (era Grass Block) - troca puramente cosmética, cada
 wand já se identifica por uma tag PDC própria, não pelo Material.
 
-## Mobs customizados da ilha de combate (Citizens2 + Sentinel)
+## Mobs customizados da ilha de combate (`dev.icaro.foodtooltips.island`)
 
-Citizens2 e Sentinel foram adicionados como soft-dependencies (`pom.xml`
-compila contra eles em escopo `provided`; `plugin.yml` os lista em
-`softdepend`) para permitir mobs de combate customizados com skin de
-jogador de verdade, no estilo Hypixel SkyBlock. Ambos são gratuitos e
-open-source (a listagem "Premium [Paid]" do Citizens no SpigotMC é só
-um "pague se quiser apoiar o dev" - o build oficial gratuito vem do
-próprio repositório Maven/CI do projeto, sem diferença de
-funcionalidade).
+A primeira versão desse sistema usava Citizens2 + Sentinel (NPCs
+`EntityType.PLAYER` com skin de jogador de verdade, estilo Hypixel
+SkyBlock) - foi abandonada depois de vários problemas (skin caindo pro
+padrão Steve por causa da ordem de chamada, NPCs órfãos persistidos
+pelo próprio Citizens sobrevivendo a reinícios do servidor mesmo
+depois do código parar de criá-los, e o fato de um NPC `PLAYER`
+continuar sendo `instanceof Player` pro Bukkit - dano real contra ele
+era tratado como PvP). A versão atual usa só mobs vanilla mesmo
+(Zumbi, Esqueleto...) com equipamento customizado - mais simples,
+mais robusta, e sem nenhuma dependência externa. Citizens2/Sentinel
+não são mais usados por nada no plugin (mas `FoodTooltipsPlugin`
+ainda limpa, uma vez no `onEnable`, qualquer NPC órfão chamado
+"Sentinela da Ilha" que sobrou de servidores que rodaram aquela
+versão antiga).
 
-Um bioma customizado de verdade (com cor de grama própria, tipo
-`hypixel:midnight_forest`) exigiria um datapack - isso ficou
-deliberadamente de fora por enquanto; a decisão foi focar primeiro em
-mobs customizados numa zona, sem mexer no bioma.
+**`IslandMobDefinition`** descreve um tipo de mob inteiramente via
+config (`config.yml` -> `island-mobs.mobs.<id>`) - `entity-type`
+(qualquer `EntityType` vanilla), vida, dano, multiplicador de
+velocidade, arma (`weapon`, um `Material` simples, ou
+`legendary-weapon`, o nome de uma `LegendaryWeapon` real - nesse caso
+o mob segura uma cópia de verdade do item, tags e tudo), se usa
+armadura de ferro completa (`armored`), textura de cabeça customizada
+(`head-texture`, opcional) e a chance de dropar sua `legendary-weapon`
+ao morrer (`drop-chance-percent`). Adicionar um mob novo não pede
+nenhuma mudança de código, só uma entrada nova aqui. Todo mob usa
+algum capacete (um de ferro liso se não tiver `head-texture`) - não é
+estético, é o que impede um morto-vivo vanilla de pegar fogo durante
+o dia.
 
-**`CitizensIntegrationService`** (`dev.icaro.foodtooltips.citizens`)
-detecta a presença de cada plugin (`available()` para o Citizens,
-`sentinelAvailable()` para os dois juntos) e expõe o método estático
-`isNpc(Entity)`, que checa a metadata `"NPC"` que o Citizens marca em
-toda entidade que cria. Isso é essencial porque um NPC Citizens do
-tipo `PLAYER` (necessário pra ter skin de jogador) continua sendo
-`instanceof Player` pro Bukkit - sem esse guard, dano real contra um
-desses mobs seria tratado como PvP. `CombatListener` usa esse guard em
-todo ponto que trata `Player` de forma especial: `attacker()`, o
-cálculo de `playerTarget` (fórmula de dano/Bestiário/loot), Second
-Wind e o rastreio de `hostileHit`; e trata `instanceof Enemy ||
-CitizensIntegrationService.isNpc(...)` como "isso foi um abate
-hostil" pra conceder moedas/Valor/XP de Combate (já que um NPC
-Player-type nunca é `instanceof Enemy`).
+**A zona é o próprio bioma, não coordenadas**: `IslandMobZone` guarda
+o bioma "Cemitério Sombrio" (resolvido pela mesma `BiomeOption` que a
+Biome's Wand usa, via `Registry.BIOME`) em vez de um retângulo X/Z -
+`contains(Location)` checa se o bloco ali é de fato aquele bioma, então
+a população acompanha automaticamente onde a área foi pintada de
+verdade (encolhe/cresce junto, sem precisar reconfigurar nada).
+`island-mobs.min-x/max-x/min-z/max-z` no config viraram só uma "área de
+busca" (onde procurar o bioma), não mais um limite rígido -
+`IslandMobService` varre essa área em passos de 4 blocos (mesma célula
+de bioma da wand), separa as colunas que realmente têm o bioma, e só
+então distribui os spawns de cada `IslandMobDefinition` entre elas
+(embaralhadas). A altura de cada spawn usa
+`HeightMap.MOTION_BLOCKING_NO_LEAVES` (não a busca padrão, que conta
+copa de árvore como "chão" e enterraria o mob nela), e como cada ponto
+já vem confirmado como parte do bioma pintado, nunca cai fora do
+contorno real da ilha flutuante.
 
-**Bestiário com entrada própria por variante**: o sistema de Bestiário
-era rigidamente indexado por `EntityType` vanilla (todo Zumbi cai na
-mesma entrada, por exemplo). `BestiaryEntry` ganhou um campo `id`
-(a chave real de progresso/PDC - pra um mob vanilla, sempre
+`IslandMobListener` cancela qualquer `CreatureSpawnEvent` cuja razão
+não seja `CUSTOM` dentro dessa zona (então só os mobs deste sistema
+aparecem ali - `World#spawn(...)`, usado por `IslandMobService`, gera
+razão `CUSTOM`, então nunca se autocancela) e, na morte de um mob seu
+(identificado pela tag PDC de variante do Bestiário), agenda um
+respawn no mesmo ponto (`respawn-ticks`) e rola a chance de drop da
+`legendary-weapon` configurada - registrado em prioridade `MONITOR`,
+depois do `CombatListener` (que roda na mesma prioridade e foi
+registrado primeiro - Bukkit preserva ordem de registro dentro da
+mesma prioridade), pra um drop raro desses nunca ser duplicado pelo
+bônus de loot do Bestiário. Comando `/islandmobs` (admin) reinicia a
+população na hora, sem precisar reiniciar o servidor.
+
+Bestiário com entrada própria por variante: `BestiaryEntry` tem um
+campo `id` (a chave real de progresso/PDC - pra um mob vanilla, sempre
 `type.key().value()`) e um `customName` opcional; um mob "variante"
-(nosso NPC customizado) recebe um `id` próprio e reaproveita
-`EntityType.PLAYER` só pra fins de ícone/categoria, nunca pra
-identidade. `BestiaryCatalog.VARIANT_KEY` (PDC) marca a entidade
-spawnada com esse `id`; `BestiaryCatalog.find(Entity)` checa essa tag
-primeiro e só cai pro lookup por `EntityType` puro se não achar -
-que por sua vez ignora qualquer entrada variante (`find(EntityType)`
-exige `id() == type.key().value()`), então matar um jogador de
-verdade em PvP jamais é confundido com abater o mob customizado.
-`BestiaryProgressService` e `BestiaryMenuService` foram migrados pra
-operar sobre `BestiaryEntry` inteiro (não mais `EntityType` cru) em
-toda API pública.
+recebe um `id` próprio, então `BestiaryCatalog.find(Entity)` (que
+checa a tag PDC primeiro) nunca confunde matar um mob customizado com
+matar um vanilla comum do mesmo `EntityType`, nem com PvP de verdade.
+O ícone de menu de uma entrada variante nunca usa o ovo-de-spawn
+automático (só entradas vanilla "canônicas" ganham essa conveniência) -
+`Dealt` mostra a própria cabeça customizada configurada
+(`island-mobs.mobs.dealt.head-texture`), `Espectro Ossudo` mostra uma
+cabeça de esqueleto (`Material.SKELETON_SKULL`).
 
-**`IslandMobService`** (`dev.icaro.foodtooltips.island`) spawna e
-mantém a população de mobs customizados numa zona retangular X/Z (é a
-altura toda do mundo, não uma caixa 3D) configurada em
-`config.yml` -> `island-mobs`; só age se Citizens e Sentinel
-estiverem instalados. Cada NPC é criado como `EntityType.PLAYER` (via
-`CitizensAPI.getNPCRegistry().createNPC(...)`), recebe uma
-`SkinTrait` com o nick configurado (`island-mobs.sentinela.skin`),
-tem sua proteção removida (`npc.setProtected(false)` - NPCs Citizens
-nascem invulneráveis por padrão) e ganha uma `SentinelTrait`
-configurada com vida/dano/alvo ("player") - Sentinel cuida sozinho de
-perseguir, atacar e respawnar o NPC (`sentinel.respawnTime`) no seu
-próprio `spawnPoint` depois de morto, então o serviço só precisa
-posicionar a população inicial (chamado uma vez, 2s depois do
-`onEnable`, pra dar tempo de mundos tipo Multiverse terminarem de
-carregar). `IslandMobListener` cancela qualquer spawn natural (não
-marcado como NPC) dentro da zona, então só os mobs customizados
-aparecem lá. Comando `/islandmobs` (admin) reinicia a população na
-hora, sem precisar reiniciar o servidor - útil pra testar depois de
-mudar o config.
+Mobs atuais:
+- **Dealt** (Zumbi) - 200 de vida, 12 de dano, +20% de velocidade,
+  armadura de ferro completa, cabeça customizada, Undead's Sword na mão.
+- **Espectro Ossudo** (Esqueleto) - mesmos atributos, sem armadura, só
+  a Undead's Sword na mão - sem arco no inventário, então a própria IA
+  vanilla do esqueleto (só ativa o comportamento de arco quando ele
+  está segurando um de verdade) nunca entra em modo à distância e ele
+  luta só corpo a corpo.
 
-Primeiro mob: **Sentinela da Ilha** (`island-mobs.sentinela` no
-config) - 200 de vida, 12 de dano corpo-a-corpo, skin do jogador
-configurado, entrada própria no Bestiário (`island_sentinel`, sem
-item de drop fixo por enquanto - recompensa vem de Pontos de
-Sangue/XP de Bestiário).
+Os dois têm 2.5% de chance (rolagem independente cada) de dropar uma
+Undead's Sword ao morrer, além de valer normalmente XP de Combate,
+moedas e Pontos de Sangue como qualquer mob hostil de verdade (ambos
+são `instanceof Enemy`, então seguem o mesmo caminho de recompensa sem
+nenhum guard especial).
+
+## Undead's Sword (`/rpgitems`)
+
+Sétima Arma Lendária, e a primeira de um tipo novo: `WeaponType.SWORD`
+(ao lado de `DAGGER` e `LONGSWORD`) - sem penalidade/bônus de alcance
+e sem dobro de dano por trás, já que a identidade inteira dessa arma é
+um bônus situacional, não um gimmick de posicionamento. Representada
+por uma Espada de Ferro comum (Tier C), mesmo Dano de Ataque de uma
+espada de ferro normal (+30, igual `SwordDamageService`), mas
+`LegendaryWeaponService#undeadMultiplier` dobra o dano final (+100%)
+quando o alvo é um dos `UNDEAD_TYPES` (Zumbi, Esqueleto, Afogado,
+Wither Skeleton, Phantom... o mesmo grupo que Smite e poções de
+Dano/Cura Instantânea reconhecem como morto-vivo) - multiplicador a
+mais na mesma cadeia que já tinha backstab/blindado, sem efeito ativo
+próprio.
+
+Além do menu `/rpgitems`, também dropa dos mobs da ilha de combate
+(Dealt e Espectro Ossudo, 2.5% cada) - a primeira Arma Lendária a ter
+uma segunda fonte de obtenção além do menu admin.

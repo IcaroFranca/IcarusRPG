@@ -4,6 +4,9 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.biome.BiomeOption;
+import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -47,6 +51,7 @@ public final class IslandMobService {
     private static final int CELL = 4;
 
     private final Plugin plugin;
+    private final LegendaryWeaponService legendary;
     private final IslandMobZone zone;
     private final boolean enabled;
     private final boolean suppressNaturalSpawns;
@@ -59,8 +64,9 @@ public final class IslandMobService {
     private final List<UUID> spawnedIds = new ArrayList<>();
     private final List<BukkitTask> pendingRespawns = new ArrayList<>();
 
-    public IslandMobService(Plugin plugin) {
+    public IslandMobService(Plugin plugin, LegendaryWeaponService legendary) {
         this.plugin = plugin;
+        this.legendary = legendary;
         this.enabled = plugin.getConfig().getBoolean("island-mobs.enabled", true);
         this.suppressNaturalSpawns = plugin.getConfig().getBoolean("island-mobs.suppress-natural-spawns", true);
         this.zone = new IslandMobZone(
@@ -97,6 +103,15 @@ public final class IslandMobService {
                 continue;
             }
             Material weapon = Material.matchMaterial(m.getString("weapon", "IRON_SWORD").toUpperCase(Locale.ROOT));
+            String legendaryWeaponName = m.getString("legendary-weapon", "");
+            LegendaryWeapon legendaryWeapon = null;
+            if (!legendaryWeaponName.isBlank()) {
+                try {
+                    legendaryWeapon = LegendaryWeapon.valueOf(legendaryWeaponName.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException ex) {
+                    plugin.getLogger().warning("island-mobs.mobs." + id + ": invalid legendary-weapon '" + legendaryWeaponName + "', ignoring.");
+                }
+            }
             result.add(new IslandMobDefinition(
                     id,
                     m.getString("display-name", id),
@@ -105,6 +120,8 @@ public final class IslandMobService {
                     m.getDouble("damage", 3.0),
                     m.getDouble("speed-multiplier", 1.0),
                     weapon == null ? Material.IRON_SWORD : weapon,
+                    legendaryWeapon,
+                    m.getDouble("drop-chance-percent", 0.0),
                     m.getBoolean("armored", false),
                     m.getString("head-texture", ""),
                     m.getInt("respawn-ticks", 200),
@@ -169,7 +186,9 @@ public final class IslandMobService {
         entity.getPersistentDataContainer().set(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING, def.id());
         EntityEquipment equipment = entity.getEquipment();
         if (equipment != null) {
-            equipment.setItemInMainHand(new ItemStack(def.weapon()));
+            equipment.setItemInMainHand(def.legendaryWeapon() != null ? this.legendary.create(def.legendaryWeapon(), Language.PT) : new ItemStack(def.weapon()));
+            // Drops are handled by IslandMobListener's own chance roll (rollDrop), not by
+            // this held copy - it must never drop on its own regardless of that roll.
             equipment.setItemInMainHandDropChance(0.0f);
             // Every undead mob here wears something on its head - a real vanilla headgear
             // (any helmet, not just a pumpkin) is what stops it from catching fire in
@@ -209,6 +228,18 @@ public final class IslandMobService {
             return;
         }
         this.pendingRespawns.add(Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.spawnOne(def, point), Math.max(1, def.respawnTicks())));
+    }
+
+    /** Called by {@link IslandMobListener} on death - rolls this mob kind's drop-chance-percent and returns a fresh copy of its legendary-weapon drop if it hits, else null. */
+    public ItemStack rollDrop(String defId) {
+        IslandMobDefinition def = this.definitionsById.get(defId);
+        if (def == null || def.legendaryWeapon() == null || def.dropChancePercent() <= 0.0) {
+            return null;
+        }
+        if (ThreadLocalRandom.current().nextDouble(100.0) >= def.dropChancePercent()) {
+            return null;
+        }
+        return this.legendary.create(def.legendaryWeapon(), Language.PT);
     }
 
     /** This entity's island-mob definition id, or null if it isn't one of ours. */

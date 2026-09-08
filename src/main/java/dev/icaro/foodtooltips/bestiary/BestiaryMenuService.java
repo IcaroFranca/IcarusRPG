@@ -4,6 +4,8 @@ import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.bestiary.BestiaryCategory;
 import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.CombatValorService;
@@ -25,15 +27,19 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.Plugin;
 
 public final class BestiaryMenuService {
     private static final int PAGE_SIZE = 45;
+    private final Plugin plugin;
     private final BestiaryProgressService progress;
     private final EconomyService economy;
     private final CombatValorService valor;
     private final Map<UUID, View> viewers = new HashMap<UUID, View>();
 
-    public BestiaryMenuService(BestiaryProgressService p, EconomyService e, CombatValorService valor) {
+    public BestiaryMenuService(Plugin plugin, BestiaryProgressService p, EconomyService e, CombatValorService valor) {
+        this.plugin = plugin;
         this.progress = p;
         this.economy = e;
         this.valor = valor;
@@ -92,7 +98,7 @@ public final class BestiaryMenuService {
         int done = this.progress.achieved(p, e);
         int start = this.progress.startOfStep(e, done);
         int needed = this.progress.nextStepKills(e, done);
-        inv.setItem(4, this.item(this.spawnEgg(e), e.displayName(), List.of(Component.text((String)(l.choose("Abates: ", "Kills: ") + kills), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Milestones conclu\u00eddas: ", "Milestones completed: ") + done), (TextColor)NamedTextColor.GOLD), Component.text((String)(needed == 0 ? l.choose("Progresso: M\u00c1XIMO \u2022 50 abates", "Progress: MAXIMUM \u2022 50 kills") : l.choose("Progresso atual: ", "Current progress: ") + Math.max(0, kills - start) + "/" + needed), (TextColor)NamedTextColor.GREEN), Component.text((String)(l.choose("Dano b\u00f4nus: ", "Damage bonus: ") + this.percent(this.progress.damageBonus(p, e))), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Loot b\u00f4nus: ", "Loot bonus: ") + this.percent(this.progress.lootBonus(p, e))), (TextColor)NamedTextColor.YELLOW))));
+        inv.setItem(4, this.icon(e, e.displayName(), List.of(Component.text((String)(l.choose("Abates: ", "Kills: ") + kills), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Milestones conclu\u00eddas: ", "Milestones completed: ") + done), (TextColor)NamedTextColor.GOLD), Component.text((String)(needed == 0 ? l.choose("Progresso: M\u00c1XIMO \u2022 50 abates", "Progress: MAXIMUM \u2022 50 kills") : l.choose("Progresso atual: ", "Current progress: ") + Math.max(0, kills - start) + "/" + needed), (TextColor)NamedTextColor.GREEN), Component.text((String)(l.choose("Dano b\u00f4nus: ", "Damage bonus: ") + this.percent(this.progress.damageBonus(p, e))), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Loot b\u00f4nus: ", "Loot bonus: ") + this.percent(this.progress.lootBonus(p, e))), (TextColor)NamedTextColor.YELLOW))));
         int[] slots = new int[]{19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 40};
         for (int i = 0; i < slots.length && i < this.progress.maxMilestones(e); ++i) {
             int milestone = i + 1;
@@ -158,7 +164,7 @@ public final class BestiaryMenuService {
         e.drops().forEach(d -> lore.add((Component)Component.text((String)("\u2022 " + d), (TextColor)NamedTextColor.GRAY)));
         lore.add((Component)Component.empty());
         lore.add((Component)Component.text((String)l.choose("Clique para ver milestones!", "Click to view milestones!"), (TextColor)NamedTextColor.YELLOW));
-        return this.item(this.spawnEgg(e), e.displayName(), lore);
+        return this.icon(e, e.displayName(), lore);
     }
 
     private List<BestiaryEntry> entries(BestiaryCategory c) {
@@ -184,9 +190,42 @@ public final class BestiaryMenuService {
         return out;
     }
 
+    /** The menu icon for {@code e} - a custom-textured head for "dealt" (matches its actual equipped head), {@code e.icon()} as-is for every other variant entry (never auto-egg - a variant's whole point is looking distinct from the raw vanilla type it's based on), and the vanilla spawn egg (falling back to {@code e.icon()}) for genuinely canonical entries. */
+    private ItemStack icon(BestiaryEntry e, String name, List<Component> lore) {
+        if ("dealt".equals(e.id())) {
+            String texture = this.plugin.getConfig().getString("island-mobs.mobs.dealt.head-texture", "");
+            if (!texture.isBlank()) {
+                return this.customHeadIcon(texture, name, lore);
+            }
+        }
+        return this.item(this.spawnEgg(e), name, lore);
+    }
+
     private Material spawnEgg(BestiaryEntry e) {
+        boolean canonical = e.id().equals(e.type().key().value());
+        if (!canonical) {
+            return e.icon();
+        }
         Material egg = Material.matchMaterial((String)(e.type().key().value().toUpperCase(Locale.ROOT) + "_SPAWN_EGG"));
         return egg == null ? e.icon() : egg;
+    }
+
+    /** A player head wearing {@code texture} (base64 "Value"), with the same name/lore any other menu icon gets - falls back to a plain head if the texture is bad. */
+    private ItemStack customHeadIcon(String texture, String name, List<Component> lore) {
+        ItemStack i = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        m.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(m);
+        return i;
     }
 
     private String percent(double v) {

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
@@ -18,6 +19,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
@@ -73,6 +75,12 @@ public final class LegendaryWeaponService {
     private static final double KAMISH_DAMAGE_PER_STRENGTH = 1.0;
     private static final double BACKSTAB_MULTIPLIER = 2.0;
     private static final double KNIGHT_KILLER_ARMORED_MULTIPLIER = 1.25;
+    /** Undead's Sword: +100% damage against any mob in {@link #UNDEAD_TYPES}. */
+    private static final double UNDEAD_SWORD_MULTIPLIER = 2.0;
+    /** Every vanilla EntityType the game itself treats as "undead" (same set Smite and Instant Health/Harming target). */
+    private static final Set<EntityType> UNDEAD_TYPES = Set.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
+            EntityType.DROWNED, EntityType.SKELETON, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.ZOMBIFIED_PIGLIN,
+            EntityType.PHANTOM, EntityType.ZOGLIN, EntityType.WITHER);
 
     /** Kasaka's Venom Fang's Paralyze and Bleed always proc together, off one shared roll - not two independent ones. */
     private static final int PROC_CHANCE = 30;
@@ -148,7 +156,11 @@ public final class LegendaryWeaponService {
                 new AttributeModifier(SPEED_KEY, SwordDamageService.ATTACK_SPEED_DELTA, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         boolean dagger = w.type() == WeaponType.DAGGER;
         boolean rangeExempt = w == LegendaryWeapon.KAMISH_WRATH;
-        double rangeDelta = dagger ? (rangeExempt ? 0.0 : DAGGER_RANGE_PENALTY) : LONGSWORD_RANGE_BONUS;
+        double rangeDelta = switch (w.type()) {
+            case DAGGER -> rangeExempt ? 0.0 : DAGGER_RANGE_PENALTY;
+            case LONGSWORD -> LONGSWORD_RANGE_BONUS;
+            case SWORD -> 0.0;
+        };
         Attribute rangeAttribute = rangeDelta != 0.0 ? PlayerStatsService.resolveEntityInteractionRangeAttribute() : null;
         if (rangeAttribute != null) {
             meta.addAttributeModifier(rangeAttribute,
@@ -182,13 +194,16 @@ public final class LegendaryWeaponService {
             meta.getPersistentDataContainer().set(STRENGTH_LINE_KEY, PersistentDataType.INTEGER, lore.size());
         }
         lore.addAll(this.abilityLines(w, pt));
-        if (dagger) {
-            lore.add(this.line(rangeExempt
+        switch (w.type()) {
+            case DAGGER -> lore.add(this.line(rangeExempt
                             ? (pt ? "Alcance normal, dobra o dano por trás." : "Normal range, doubles damage from behind.")
                             : (pt ? "-1 alcance, dobra o dano por trás." : "-1 range, doubles damage from behind."),
                     NamedTextColor.DARK_GRAY));
-        } else {
-            lore.add(this.line(pt ? "+2 alcance de ataque." : "+2 attack range.", NamedTextColor.DARK_GRAY));
+            case LONGSWORD -> lore.add(this.line(pt ? "+2 alcance de ataque." : "+2 attack range.", NamedTextColor.DARK_GRAY));
+            case SWORD -> {
+                // No range/backstab gimmick - this weapon type's whole identity is its
+                // situational damage bonus (see abilityLines), already covered above.
+            }
         }
         meta.lore(lore);
         item.setItemMeta(meta);
@@ -204,6 +219,7 @@ public final class LegendaryWeaponService {
             case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
             case DEMON_KING_DAGGERS, KAMISH_WRATH -> lines.add(this.strengthAbilityLine(w, pt, 0));
             case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
+            case UNDEAD_SWORD -> lines.add(this.line(pt ? "+100% de dano contra mortos-vivos" : "+100% damage vs undead", NamedTextColor.LIGHT_PURPLE));
         }
         return lines;
     }
@@ -327,6 +343,14 @@ public final class LegendaryWeaponService {
             return 1.0;
         }
         return isArmored(target) ? KNIGHT_KILLER_ARMORED_MULTIPLIER : 1.0;
+    }
+
+    /** {@link #UNDEAD_SWORD_MULTIPLIER} if {@code weapon} is the Undead's Sword and {@code target} is one of {@link #UNDEAD_TYPES}, else 1.0. */
+    public double undeadMultiplier(LivingEntity target, ItemStack weapon) {
+        if (of(weapon) != LegendaryWeapon.UNDEAD_SWORD) {
+            return 1.0;
+        }
+        return UNDEAD_TYPES.contains(target.getType()) ? UNDEAD_SWORD_MULTIPLIER : 1.0;
     }
 
     /** Kasaka's Venom Fang's on-hit proc - a single {@link #PROC_CHANCE} roll that applies Paralyze and Bleed together (never just one of the two), a no-op for every other weapon. */

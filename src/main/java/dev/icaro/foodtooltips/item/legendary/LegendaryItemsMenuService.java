@@ -31,7 +31,8 @@ public final class LegendaryItemsMenuService {
             14, LegendaryWeapon.BARUKA_DAGGER,
             16, LegendaryWeapon.DEMON_KING_DAGGERS,
             29, LegendaryWeapon.DEMON_KING_LONGSWORD,
-            31, LegendaryWeapon.KAMISH_WRATH);
+            31, LegendaryWeapon.KAMISH_WRATH,
+            33, LegendaryWeapon.UNDEAD_SWORD);
 
     private final LegendaryWeaponService weapons;
     private final Set<UUID> viewing = new HashSet<>();

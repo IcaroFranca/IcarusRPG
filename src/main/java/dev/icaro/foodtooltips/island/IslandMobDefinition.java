@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.island;
 
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 
@@ -17,6 +18,8 @@ public record IslandMobDefinition(
         double damage,
         double speedMultiplier,
         Material weapon,
+        LegendaryWeapon legendaryWeapon,
+        double dropChancePercent,
         boolean armored,
         String headTexture,
         int respawnTicks,

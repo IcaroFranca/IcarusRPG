@@ -18,9 +18,9 @@ public final class BestiaryCatalog {
     /** Custom mobs with their own distinct Bestiary entry (never mixed with a raw vanilla EntityType). Ids match island-mobs.mobs.<id> in config.yml. */
     private static final List<BestiaryEntry> VARIANT_ENTRIES = List.of(
             BestiaryCatalog.variant("dealt", EntityType.ZOMBIE, Material.PLAYER_HEAD, "Dealt", 60, "5",
-                    "Nenhum item padrão — recompensa em Pontos de Sangue/XP de Bestiário"),
-            BestiaryCatalog.variant("bony_specter", EntityType.SKELETON, Material.IRON_SWORD, "Espectro Ossudo", 60, "5",
-                    "Nenhum item padrão — recompensa em Pontos de Sangue/XP de Bestiário")
+                    "Undead's Sword — 2.5%"),
+            BestiaryCatalog.variant("bony_specter", EntityType.SKELETON, Material.SKELETON_SKULL, "Espectro Ossudo", 60, "5",
+                    "Undead's Sword — 2.5%")
     );
 
     private static final List<BestiaryEntry> ENTRIES = java.util.stream.Stream.concat(VANILLA_ENTRIES.stream(), VARIANT_ENTRIES.stream()).toList();
