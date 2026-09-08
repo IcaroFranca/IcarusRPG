@@ -1456,3 +1456,40 @@ como o `attribute_modifiers` já é sobrescrito por completo de qualquer
 jeito, toda ferramenta corpo-a-corpo do plugin acaba batendo na mesma
 fórmula base de velocidade, diferenciada só pelo Dano de Ataque e pelo
 Nível de Combate de quem segura, igual às espadas já faziam.
+
+## Biome's Wand (`/biomewand`)
+
+Nova ferramenta admin-only, mesmo status de sempre (só via comando,
+sem craft nem drop) e mesmo esquema de controles do Builder's Wand:
+clique esquerdo (na verdade o swing, não o `PlayerInteractEvent` de
+clique no ar - ver o doc de `BuilderWandListener#swing` pro motivo)
+abre um menu com os biomas disponíveis pra escolher e um controle de
+raio; clique direito num bloco pinta o bioma escolhido; Shift + clique
+esquerdo desfaz a última pintura. `BiomeWandService`/`BiomeWandListener`
+(pacote `dev.icaro.foodtooltips.biome`) espelham a estrutura de
+`BuilderWandService`/`BuilderWandListener` quase 1:1.
+
+`BiomeOption` cataloga 15 biomas de Overworld com grama/folhagem
+visualmente distinta (Planície, Floresta, Floresta de Bétulas, Floresta
+Sombria, Pântano, Pântano de Mangue, Selva, Savana, Montanhas, Taiga,
+Taiga Antiga, Terras Áridas, Bosque de Cerejeiras, Prado) - uma lista
+curada, não todo bioma que tecnicamente tem grama.
+
+O raio (0 a 10 blocos, ajustável no menu, teto configurável em
+`config.yml` -> `biome-wand.max-radius`) pinta uma área **quadrada**
+em volta do bloco clicado, não circular - de propósito: bioma é
+guardado em células de 4x4x4 (`World#setBiome` aplica na célula
+inteira que contém a coordenada dada, não só naquele bloco), então um
+raio em blocos nunca bate certinho com a borda de um círculo nessa
+grade de qualquer jeito. `BiomeWandService#paint` arredonda o raio pra
+cima até a célula cheia mais próxima (garante que todo bloco pedido
+fique coberto, em vez de parar um pouco antes da borda) e sempre inclui
+a célula clicada mesmo em raio 0. A pintura cobre a altura inteira do
+mundo naquela área (conceito de bioma é 2D/horizontal, não uma esfera
+3D - mesma lógica do brush `//biome` do WorldEdit). Cada raio afetado é
+reenviado uma vez via `World#refreshChunk` no fim, pra cor da grama
+mudar na hora, sem precisar relogar.
+
+Desfazer guarda só a última pintura (mesmo "desfaz só a última ação"
+do Builder's Wand) - uma lista das células realmente alteradas e qual
+bioma cada uma tinha antes, restaurada célula por célula.
