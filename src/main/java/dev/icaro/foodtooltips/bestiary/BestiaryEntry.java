@@ -13,9 +13,12 @@ import org.bukkit.entity.EntityType;
  * e.g. a Citizens Player-type NPC) gets its own distinct {@code id} instead,
  * so its kills/milestones never mix with real kills of that raw EntityType -
  * looked up instead via {@link BestiaryCatalog#find(org.bukkit.entity.Entity)},
- * which checks the variant PDC tag first.
+ * which checks the variant PDC tag first. {@code categoryOverride} lets a variant pick
+ * its own tab instead of falling through to whatever {@link #category()} would compute
+ * from its raw {@code type} (e.g. the combat island's mobs share EntityTypes with real
+ * Overworld mobs but don't belong in that tab) - null for every canonical entry.
  */
-public record BestiaryEntry(String id, EntityType type, Material icon, int combatXp, String orbXp, List<String> drops, String customName) {
+public record BestiaryEntry(String id, EntityType type, Material icon, int combatXp, String orbXp, List<String> drops, String customName, BestiaryCategory categoryOverride) {
     public int awardedCombatXp() {
         return this.combatXp <= 0 ? 0 : Math.max(1, (int)Math.round((double)this.combatXp / 10.0));
     }
@@ -30,6 +33,9 @@ public record BestiaryEntry(String id, EntityType type, Material icon, int comba
     }
 
     public BestiaryCategory category() {
+        if (this.categoryOverride != null) {
+            return this.categoryOverride;
+        }
         return switch (this.type) {
             case EntityType.DROWNED, EntityType.GUARDIAN, EntityType.ELDER_GUARDIAN, EntityType.DOLPHIN, EntityType.TURTLE, EntityType.COD, EntityType.SALMON, EntityType.SQUID, EntityType.GLOW_SQUID, EntityType.AXOLOTL -> BestiaryCategory.AQUATIC;
             case EntityType.CAVE_SPIDER, EntityType.SLIME, EntityType.WARDEN, EntityType.BREEZE, EntityType.BAT -> BestiaryCategory.CAVES;
