@@ -1493,3 +1493,81 @@ mudar na hora, sem precisar relogar.
 Desfazer guarda só a última pintura (mesmo "desfaz só a última ação"
 do Builder's Wand) - uma lista das células realmente alteradas e qual
 bioma cada uma tinha antes, restaurada célula por célula.
+
+A Builder's Wand agora usa Blaze Rod como item (era Stick) e a Biome's
+Wand usa Stick (era Grass Block) - troca puramente cosmética, cada
+wand já se identifica por uma tag PDC própria, não pelo Material.
+
+## Mobs customizados da ilha de combate (Citizens2 + Sentinel)
+
+Citizens2 e Sentinel foram adicionados como soft-dependencies (`pom.xml`
+compila contra eles em escopo `provided`; `plugin.yml` os lista em
+`softdepend`) para permitir mobs de combate customizados com skin de
+jogador de verdade, no estilo Hypixel SkyBlock. Ambos são gratuitos e
+open-source (a listagem "Premium [Paid]" do Citizens no SpigotMC é só
+um "pague se quiser apoiar o dev" - o build oficial gratuito vem do
+próprio repositório Maven/CI do projeto, sem diferença de
+funcionalidade).
+
+Um bioma customizado de verdade (com cor de grama própria, tipo
+`hypixel:midnight_forest`) exigiria um datapack - isso ficou
+deliberadamente de fora por enquanto; a decisão foi focar primeiro em
+mobs customizados numa zona, sem mexer no bioma.
+
+**`CitizensIntegrationService`** (`dev.icaro.foodtooltips.citizens`)
+detecta a presença de cada plugin (`available()` para o Citizens,
+`sentinelAvailable()` para os dois juntos) e expõe o método estático
+`isNpc(Entity)`, que checa a metadata `"NPC"` que o Citizens marca em
+toda entidade que cria. Isso é essencial porque um NPC Citizens do
+tipo `PLAYER` (necessário pra ter skin de jogador) continua sendo
+`instanceof Player` pro Bukkit - sem esse guard, dano real contra um
+desses mobs seria tratado como PvP. `CombatListener` usa esse guard em
+todo ponto que trata `Player` de forma especial: `attacker()`, o
+cálculo de `playerTarget` (fórmula de dano/Bestiário/loot), Second
+Wind e o rastreio de `hostileHit`; e trata `instanceof Enemy ||
+CitizensIntegrationService.isNpc(...)` como "isso foi um abate
+hostil" pra conceder moedas/Valor/XP de Combate (já que um NPC
+Player-type nunca é `instanceof Enemy`).
+
+**Bestiário com entrada própria por variante**: o sistema de Bestiário
+era rigidamente indexado por `EntityType` vanilla (todo Zumbi cai na
+mesma entrada, por exemplo). `BestiaryEntry` ganhou um campo `id`
+(a chave real de progresso/PDC - pra um mob vanilla, sempre
+`type.key().value()`) e um `customName` opcional; um mob "variante"
+(nosso NPC customizado) recebe um `id` próprio e reaproveita
+`EntityType.PLAYER` só pra fins de ícone/categoria, nunca pra
+identidade. `BestiaryCatalog.VARIANT_KEY` (PDC) marca a entidade
+spawnada com esse `id`; `BestiaryCatalog.find(Entity)` checa essa tag
+primeiro e só cai pro lookup por `EntityType` puro se não achar -
+que por sua vez ignora qualquer entrada variante (`find(EntityType)`
+exige `id() == type.key().value()`), então matar um jogador de
+verdade em PvP jamais é confundido com abater o mob customizado.
+`BestiaryProgressService` e `BestiaryMenuService` foram migrados pra
+operar sobre `BestiaryEntry` inteiro (não mais `EntityType` cru) em
+toda API pública.
+
+**`IslandMobService`** (`dev.icaro.foodtooltips.island`) spawna e
+mantém a população de mobs customizados numa zona retangular X/Z (é a
+altura toda do mundo, não uma caixa 3D) configurada em
+`config.yml` -> `island-mobs`; só age se Citizens e Sentinel
+estiverem instalados. Cada NPC é criado como `EntityType.PLAYER` (via
+`CitizensAPI.getNPCRegistry().createNPC(...)`), recebe uma
+`SkinTrait` com o nick configurado (`island-mobs.sentinela.skin`),
+tem sua proteção removida (`npc.setProtected(false)` - NPCs Citizens
+nascem invulneráveis por padrão) e ganha uma `SentinelTrait`
+configurada com vida/dano/alvo ("player") - Sentinel cuida sozinho de
+perseguir, atacar e respawnar o NPC (`sentinel.respawnTime`) no seu
+próprio `spawnPoint` depois de morto, então o serviço só precisa
+posicionar a população inicial (chamado uma vez, 2s depois do
+`onEnable`, pra dar tempo de mundos tipo Multiverse terminarem de
+carregar). `IslandMobListener` cancela qualquer spawn natural (não
+marcado como NPC) dentro da zona, então só os mobs customizados
+aparecem lá. Comando `/islandmobs` (admin) reinicia a população na
+hora, sem precisar reiniciar o servidor - útil pra testar depois de
+mudar o config.
+
+Primeiro mob: **Sentinela da Ilha** (`island-mobs.sentinela` no
+config) - 200 de vida, 12 de dano corpo-a-corpo, skin do jogador
+configurado, entrada própria no Bestiário (`island_sentinel`, sem
+item de drop fixo por enquanto - recompensa vem de Pontos de
+Sangue/XP de Bestiário).

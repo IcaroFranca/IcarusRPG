@@ -1,5 +1,5 @@
 name: IcarusRPG
-version: '0.51.0'
+version: '0.52.0'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
@@ -52,6 +52,10 @@ commands:
   rpgitems:
     description: Opens the admin-only Legendary Items menu.
     usage: /rpgitems
+    permission: foodtooltips.admin
+  islandmobs:
+    description: (Re)spawns the combat island's custom mobs (admin-only, needs Citizens + Sentinel).
+    usage: /islandmobs
     permission: foodtooltips.admin
 permissions:
   foodtooltips.admin:

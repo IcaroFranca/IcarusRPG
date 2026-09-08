@@ -88,7 +88,7 @@ public final class GlobalLevelService {
         }
         int milestones = 0;
         for (BestiaryEntry entry : BestiaryCatalog.entries()) {
-            milestones += this.bestiary.maxMilestones(entry.type());
+            milestones += this.bestiary.maxMilestones(entry);
         }
         milestones += MiningCatalog.entries().size() * GeneralSkillService.maxMiningMilestonesPerBlock();
         xp = Math.addExact(xp, Math.multiplyExact((long) milestones, this.milestoneXp));
