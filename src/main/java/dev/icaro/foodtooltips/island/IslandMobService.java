@@ -8,6 +8,8 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.npc.NPCRegistry;
 import net.citizensnpcs.trait.SkinTrait;
+import net.citizensnpcs.trait.waypoint.WanderWaypointProvider;
+import net.citizensnpcs.trait.waypoint.Waypoints;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -36,6 +38,7 @@ public final class IslandMobService {
     private final double damage;
     private final int respawnTicks;
     private final int count;
+    private final int spreadRadius;
     private final List<Integer> spawnedIds = new ArrayList<>();
 
     public IslandMobService(Plugin plugin, CitizensIntegrationService citizens) {
@@ -54,6 +57,12 @@ public final class IslandMobService {
         this.damage = plugin.getConfig().getDouble("island-mobs.sentinela.damage", 12.0);
         this.respawnTicks = plugin.getConfig().getInt("island-mobs.sentinela.respawn-ticks", 200);
         this.count = Math.max(0, plugin.getConfig().getInt("island-mobs.sentinela.count", 3));
+        // 3/4 of the way from the zone's center to its nearest edge - spreads spawn points
+        // (and each mob's own wander/chase leash, see spawnPopulation) across most of the
+        // zone instead of clustering them near the middle.
+        int halfWidth = (this.zone.maxX() - this.zone.minX()) / 2;
+        int halfDepth = (this.zone.maxZ() - this.zone.minZ()) / 2;
+        this.spreadRadius = Math.max(1, (int) (Math.min(halfWidth, halfDepth) * 0.75));
     }
 
     public IslandMobZone zone() {
@@ -91,12 +100,23 @@ public final class IslandMobService {
             // the default Steve/Alex skin instead of fetching the real one.
             npc.getOrAddTrait(SkinTrait.class).setSkinName(this.skin, true);
             npc.getEntity().getPersistentDataContainer().set(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING, "island_sentinel");
+            // Wander waypoints, anchored to this NPC's own spawn point (its current location
+            // right after spawn()), give Sentinel's chaseRange leash something real to return
+            // to once combat ends - without a Waypoints trait, nearestPathPoint() always
+            // returns null and the NPC just keeps whatever target it last had, letting every
+            // mob converge onto one player instead of staying spread across the island.
+            Waypoints waypoints = npc.getOrAddTrait(Waypoints.class);
+            waypoints.setWaypointProvider("wander");
+            if (waypoints.getCurrentProvider() instanceof WanderWaypointProvider wander) {
+                wander.setXYRange(this.spreadRadius / 2, 3);
+            }
             SentinelTrait sentinel = npc.getOrAddTrait(SentinelTrait.class);
             sentinel.addTarget("player");
             sentinel.setHealth(this.health);
             sentinel.damage = this.damage;
             sentinel.respawnTime = this.respawnTicks;
             sentinel.spawnPoint = point.clone();
+            sentinel.chaseRange = this.spreadRadius;
             this.spawnedIds.add(npc.getId());
         }
         return this.spawnedIds.size();
@@ -113,16 +133,15 @@ public final class IslandMobService {
         this.spawnedIds.clear();
     }
 
-    /** One point at the zone's center plus the rest spread evenly around it, each snapped to the highest solid block. */
+    /** One point at the zone's center plus the rest spread evenly around it at {@link #spreadRadius}, each snapped to the highest solid block. */
     private List<Location> spawnPoints(World world) {
         int centerX = (this.zone.minX() + this.zone.maxX()) / 2;
         int centerZ = (this.zone.minZ() + this.zone.maxZ()) / 2;
-        int spread = Math.max(1, Math.min(this.zone.maxX() - this.zone.minX(), this.zone.maxZ() - this.zone.minZ()) / 4);
         List<Location> points = new ArrayList<>();
         for (int i = 0; i < this.count; i++) {
             double angle = 2.0 * Math.PI / Math.max(1, this.count) * i;
-            int x = i == 0 ? centerX : centerX + (int) Math.round(Math.cos(angle) * spread);
-            int z = i == 0 ? centerZ : centerZ + (int) Math.round(Math.sin(angle) * spread);
+            int x = i == 0 ? centerX : centerX + (int) Math.round(Math.cos(angle) * this.spreadRadius);
+            int z = i == 0 ? centerZ : centerZ + (int) Math.round(Math.sin(angle) * this.spreadRadius);
             int y = world.getHighestBlockYAt(x, z) + 1;
             points.add(new Location(world, x + 0.5, y, z + 0.5));
         }
