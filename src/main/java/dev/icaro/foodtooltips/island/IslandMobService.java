@@ -6,7 +6,10 @@ import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.biome.BiomeOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -17,6 +20,8 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.EntityEquipment;
@@ -30,11 +35,11 @@ import org.bukkit.scheduler.BukkitTask;
  * Spawns and maintains the combat island's custom mob population wherever the
  * ground actually has the Shadowed Graveyard biome (painted with the Biome's
  * Wand) - not a fixed area, so the population automatically follows however
- * much of the island is currently painted. Each mob is a plain vanilla Zombie
- * (full vanilla combat AI, already aggressive toward players out of the box -
- * no external plugin needed) dressed in iron armor and a custom player-head
- * texture as its helmet. Sentinela da Ilha respawns itself at its own spawn
- * point some time after dying (see {@link IslandMobListener}), so this
+ * much of the island is currently painted. Every mob kind (see
+ * {@link IslandMobDefinition}) is a plain vanilla entity - full vanilla combat
+ * AI, already aggressive toward players out of the box, no external plugin
+ * needed - dressed in gear per its config. Each one respawns itself at its own
+ * spawn point some time after dying (see {@link IslandMobListener}), so this
  * service only needs to place the initial population.
  */
 public final class IslandMobService {
@@ -49,11 +54,8 @@ public final class IslandMobService {
     private final int searchMaxX;
     private final int searchMinZ;
     private final int searchMaxZ;
-    private final String headTexture;
-    private final double health;
-    private final double damage;
-    private final int respawnTicks;
-    private final int count;
+    private final List<IslandMobDefinition> definitions;
+    private final Map<String, IslandMobDefinition> definitionsById;
     private final List<UUID> spawnedIds = new ArrayList<>();
     private final List<BukkitTask> pendingRespawns = new ArrayList<>();
 
@@ -68,11 +70,47 @@ public final class IslandMobService {
         this.searchMaxX = plugin.getConfig().getInt("island-mobs.max-x", 0);
         this.searchMinZ = plugin.getConfig().getInt("island-mobs.min-z", 0);
         this.searchMaxZ = plugin.getConfig().getInt("island-mobs.max-z", 0);
-        this.headTexture = plugin.getConfig().getString("island-mobs.sentinela.head-texture", "");
-        this.health = plugin.getConfig().getDouble("island-mobs.sentinela.health", 200.0);
-        this.damage = plugin.getConfig().getDouble("island-mobs.sentinela.damage", 12.0);
-        this.respawnTicks = plugin.getConfig().getInt("island-mobs.sentinela.respawn-ticks", 200);
-        this.count = Math.max(0, plugin.getConfig().getInt("island-mobs.sentinela.count", 3));
+        this.definitions = this.loadDefinitions(plugin);
+        Map<String, IslandMobDefinition> byId = new HashMap<>();
+        for (IslandMobDefinition def : this.definitions) {
+            byId.put(def.id(), def);
+        }
+        this.definitionsById = byId;
+    }
+
+    private List<IslandMobDefinition> loadDefinitions(Plugin plugin) {
+        List<IslandMobDefinition> result = new ArrayList<>();
+        ConfigurationSection mobs = plugin.getConfig().getConfigurationSection("island-mobs.mobs");
+        if (mobs == null) {
+            return result;
+        }
+        for (String id : mobs.getKeys(false)) {
+            ConfigurationSection m = mobs.getConfigurationSection(id);
+            if (m == null) {
+                continue;
+            }
+            EntityType type;
+            try {
+                type = EntityType.valueOf(m.getString("entity-type", "ZOMBIE").toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("island-mobs.mobs." + id + ": invalid entity-type '" + m.getString("entity-type") + "', skipping.");
+                continue;
+            }
+            Material weapon = Material.matchMaterial(m.getString("weapon", "IRON_SWORD").toUpperCase(Locale.ROOT));
+            result.add(new IslandMobDefinition(
+                    id,
+                    m.getString("display-name", id),
+                    type,
+                    m.getDouble("health", 20.0),
+                    m.getDouble("damage", 3.0),
+                    m.getDouble("speed-multiplier", 1.0),
+                    weapon == null ? Material.IRON_SWORD : weapon,
+                    m.getBoolean("armored", false),
+                    m.getString("head-texture", ""),
+                    m.getInt("respawn-ticks", 200),
+                    Math.max(0, m.getInt("count", 0))));
+        }
+        return result;
     }
 
     public IslandMobZone zone() {
@@ -84,7 +122,7 @@ public final class IslandMobService {
     }
 
     public boolean ready() {
-        return this.enabled && this.zone.biome() != null;
+        return this.enabled && this.zone.biome() != null && !this.definitions.isEmpty();
     }
 
     /** (Re)spawns the whole population - removes any of this service's own mobs still alive first, so it's safe to call again (e.g. an admin command after tweaking config). */
@@ -98,64 +136,92 @@ public final class IslandMobService {
             this.plugin.getLogger().warning("island-mobs: world '" + this.zone.world() + "' isn't loaded, skipping spawn.");
             return 0;
         }
-        for (Location point : this.spawnPoints(world)) {
-            this.spawnOne(point);
+        List<int[]> candidates = this.biomeCandidates(world);
+        if (candidates.isEmpty()) {
+            this.plugin.getLogger().warning("island-mobs: no '" + this.zone.biome().key() + "' biome found in the search area, skipping spawn.");
+            return 0;
+        }
+        Collections.shuffle(candidates);
+        int index = 0;
+        for (IslandMobDefinition def : this.definitions) {
+            for (int i = 0; i < def.count(); i++) {
+                int[] c = candidates.get(index % candidates.size());
+                index++;
+                this.spawnOne(def, this.toLocation(world, c));
+            }
         }
         return this.spawnedIds.size();
     }
 
-    /** Spawns a single Sentinela da Ilha at the given point and tracks it. */
-    public void spawnOne(Location point) {
+    /** Spawns a single mob of the given kind at the given point and tracks it. */
+    public void spawnOne(IslandMobDefinition def, Location point) {
         World world = point.getWorld();
         if (world == null) {
             return;
         }
-        Zombie zombie = world.spawn(point, Zombie.class);
-        zombie.customName(Component.text("Sentinela da Ilha", NamedTextColor.RED));
-        zombie.setCustomNameVisible(true);
-        zombie.setShouldBurnInDay(false);
-        zombie.setBaby(false);
-        zombie.getPersistentDataContainer().set(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING, "island_sentinel");
-        EntityEquipment equipment = zombie.getEquipment();
+        LivingEntity entity = (LivingEntity) world.spawnEntity(point, def.entityType());
+        entity.customName(Component.text(def.displayName(), NamedTextColor.RED));
+        entity.setCustomNameVisible(true);
+        if (entity instanceof Zombie zombie) {
+            zombie.setShouldBurnInDay(false);
+            zombie.setBaby(false);
+        }
+        entity.getPersistentDataContainer().set(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING, def.id());
+        EntityEquipment equipment = entity.getEquipment();
         if (equipment != null) {
-            equipment.setHelmet(this.customHead());
-            equipment.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
-            equipment.setLeggings(new ItemStack(Material.IRON_LEGGINGS));
-            equipment.setBoots(new ItemStack(Material.IRON_BOOTS));
+            equipment.setItemInMainHand(new ItemStack(def.weapon()));
+            equipment.setItemInMainHandDropChance(0.0f);
+            // Every undead mob here wears something on its head - a real vanilla headgear
+            // (any helmet, not just a pumpkin) is what stops it from catching fire in
+            // daylight, so even a mob with no custom head texture still gets a plain iron
+            // helmet purely for that reason, not for looks.
+            equipment.setHelmet(def.headTexture().isBlank() ? new ItemStack(Material.IRON_HELMET) : this.customHead(def.headTexture()));
             equipment.setHelmetDropChance(0.0f);
-            equipment.setChestplateDropChance(0.0f);
-            equipment.setLeggingsDropChance(0.0f);
-            equipment.setBootsDropChance(0.0f);
+            if (def.armored()) {
+                equipment.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
+                equipment.setLeggings(new ItemStack(Material.IRON_LEGGINGS));
+                equipment.setBoots(new ItemStack(Material.IRON_BOOTS));
+                equipment.setChestplateDropChance(0.0f);
+                equipment.setLeggingsDropChance(0.0f);
+                equipment.setBootsDropChance(0.0f);
+            }
         }
-        AttributeInstance maxHealth = zombie.getAttribute(Attribute.MAX_HEALTH);
+        AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
         if (maxHealth != null) {
-            maxHealth.setBaseValue(this.health);
+            maxHealth.setBaseValue(def.health());
         }
-        zombie.setHealth(this.health);
-        AttributeInstance attackDamage = zombie.getAttribute(Attribute.ATTACK_DAMAGE);
+        entity.setHealth(def.health());
+        AttributeInstance attackDamage = entity.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attackDamage != null) {
-            attackDamage.setBaseValue(this.damage);
+            attackDamage.setBaseValue(def.damage());
         }
-        this.spawnedIds.add(zombie.getUniqueId());
+        AttributeInstance speed = entity.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (speed != null && def.speedMultiplier() != 1.0) {
+            speed.setBaseValue(speed.getBaseValue() * def.speedMultiplier());
+        }
+        this.spawnedIds.add(entity.getUniqueId());
     }
 
-    /** Called by {@link IslandMobListener} when one of these mobs dies - schedules a respawn at the same point. */
-    public void scheduleRespawn(Location point) {
-        this.pendingRespawns.add(Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.spawnOne(point), Math.max(1, this.respawnTicks)));
+    /** Called by {@link IslandMobListener} when one of these mobs dies - schedules a respawn of the same kind at the same point. */
+    public void scheduleRespawn(String defId, Location point) {
+        IslandMobDefinition def = this.definitionsById.get(defId);
+        if (def == null) {
+            return;
+        }
+        this.pendingRespawns.add(Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.spawnOne(def, point), Math.max(1, def.respawnTicks())));
     }
 
-    public boolean isIslandMob(LivingEntity entity) {
-        return "island_sentinel".equals(entity.getPersistentDataContainer().get(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING));
+    /** This entity's island-mob definition id, or null if it isn't one of ours. */
+    public String islandMobId(LivingEntity entity) {
+        String id = entity.getPersistentDataContainer().get(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING);
+        return id != null && this.definitionsById.containsKey(id) ? id : null;
     }
 
     public void despawnAll() {
-        World world = Bukkit.getWorld(this.zone.world());
-        if (world != null) {
-            for (UUID id : this.spawnedIds) {
-                org.bukkit.entity.Entity entity = Bukkit.getEntity(id);
-                if (entity != null) {
-                    entity.remove();
-                }
+        for (UUID id : this.spawnedIds) {
+            org.bukkit.entity.Entity entity = Bukkit.getEntity(id);
+            if (entity != null) {
+                entity.remove();
             }
         }
         this.spawnedIds.clear();
@@ -165,16 +231,13 @@ public final class IslandMobService {
         this.pendingRespawns.clear();
     }
 
-    /** A player head wearing the configured custom texture (base64 "Value"), falling back to a plain head if it's bad or unset. */
-    private ItemStack customHead() {
+    /** A player head wearing the given custom texture (base64 "Value"), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture) {
         ItemStack item = ItemStack.of(Material.PLAYER_HEAD);
-        if (this.headTexture.isBlank()) {
-            return item;
-        }
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         try {
             PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
-            profile.setProperty(new ProfileProperty("textures", this.headTexture));
+            profile.setProperty(new ProfileProperty("textures", texture));
             meta.setPlayerProfile(profile);
             item.setItemMeta(meta);
         } catch (Exception ignored) {
@@ -183,14 +246,18 @@ public final class IslandMobService {
         return item;
     }
 
+    private Location toLocation(World world, int[] xz) {
+        int y = world.getHighestBlockYAt(xz[0], xz[1], HeightMap.MOTION_BLOCKING_NO_LEAVES) + 1;
+        return new Location(world, xz[0] + 0.5, y, xz[1] + 0.5);
+    }
+
     /**
      * Scans the configured search area (island-mobs.min-x/max-x/min-z/max-z - just a
      * "look here" hint, not a strict boundary) for columns whose ground is actually the
-     * Shadowed Graveyard biome, then picks {@link #count} of them spread across the scan
-     * order. This is what makes the population follow wherever the biome is actually
-     * painted rather than a fixed rectangle.
+     * Shadowed Graveyard biome. This is what makes the population follow wherever the
+     * biome is actually painted rather than a fixed rectangle.
      */
-    private List<Location> spawnPoints(World world) {
+    private List<int[]> biomeCandidates(World world) {
         List<int[]> candidates = new ArrayList<>();
         for (int x = this.searchMinX; x <= this.searchMaxX; x += CELL) {
             for (int z = this.searchMinZ; z <= this.searchMaxZ; z += CELL) {
@@ -200,18 +267,6 @@ public final class IslandMobService {
                 }
             }
         }
-        if (candidates.isEmpty()) {
-            this.plugin.getLogger().warning("island-mobs: no '" + this.zone.biome().key() + "' biome found in the search area, skipping spawn.");
-            return List.of();
-        }
-        Collections.shuffle(candidates);
-        List<Location> points = new ArrayList<>();
-        int step = Math.max(1, candidates.size() / Math.max(1, this.count));
-        for (int i = 0; i < this.count && i * step < candidates.size(); i++) {
-            int[] c = candidates.get(i * step);
-            int y = world.getHighestBlockYAt(c[0], c[1], HeightMap.MOTION_BLOCKING_NO_LEAVES) + 1;
-            points.add(new Location(world, c[0] + 0.5, y, c[1] + 0.5));
-        }
-        return points;
+        return candidates;
     }
 }

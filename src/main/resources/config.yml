@@ -139,11 +139,11 @@ biome-wand:
   # menu - minimum is always 1 (no "just the clicked block" mode).
   max-radius: 10
 island-mobs:
-  # Custom combat mobs (plain vanilla Zombies in gear - full vanilla combat AI,
-  # already aggressive toward players out of the box) for wherever the ground has
-  # the Shadowed Graveyard biome (painted with the Biome's Wand) in the world below -
-  # not a fixed area, so the population follows however much of the island is
-  # actually painted. Natural mob spawns are suppressed on that same biome.
+  # Custom combat mobs (see island-mobs.mobs below - full vanilla combat AI, already
+  # aggressive toward players out of the box, no external plugin needed) for wherever
+  # the ground has the Shadowed Graveyard biome (painted with the Biome's Wand) in the
+  # world below - not a fixed area, so the population follows however much of the
+  # island is actually painted. Natural mob spawns are suppressed on that same biome.
   enabled: true
   world: combat_island
   # Just a "look for the biome somewhere in here" hint for picking spawn points -
@@ -153,17 +153,38 @@ island-mobs:
   min-z: -29
   max-z: 30
   suppress-natural-spawns: true
-  sentinela:
-    # Base64 "Value" texture for the custom player-head worn as the helmet (the same
-    # kind of string used in /give ... player_head[profile={properties:[{name:"textures",
-    # value:"..."}]}] commands, e.g. from a site like minecraft-heads.com). The mob's
-    # own body/skin is a plain vanilla Zombie - only the head is a custom texture.
-    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2IwNGZhY2YyZDY2OWRhM2Y1MDAxZjdiMDdmODI5OTExNzQ5Y2Y0OWM5ODY1MWQ2ZTUwMzNiNWNmMTQ0ODhiYSJ9fX0="
-    health: 200.0
-    damage: 12.0
-    # Ticks after death before Sentinel respawns it at its original spawn point.
-    respawn-ticks: 200
-    count: 3
+  # Every kind of custom island mob - adding a new one only takes a new entry here (id
+  # becomes both its Bestiary entry and its internal tag), no code changes needed.
+  # entity-type is any vanilla EntityType name (ZOMBIE, SKELETON, ...); weapon is any
+  # Material held in its main hand; armored adds a full iron chestplate/leggings/boots;
+  # head-texture is an optional base64 "Value" custom player-head texture (same kind of
+  # string used in /give ... player_head[profile={properties:[{name:"textures",
+  # value:"..."}]}] commands, e.g. from minecraft-heads.com) - every mob wears SOME
+  # helmet regardless (a plain iron one if head-texture is blank), since headgear is
+  # what stops an undead mob from catching fire in daylight, not just looks.
+  mobs:
+    dealt:
+      display-name: "Dealt"
+      entity-type: ZOMBIE
+      health: 200.0
+      damage: 12.0
+      speed-multiplier: 1.2
+      weapon: IRON_SWORD
+      armored: true
+      head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2IwNGZhY2YyZDY2OWRhM2Y1MDAxZjdiMDdmODI5OTExNzQ5Y2Y0OWM5ODY1MWQ2ZTUwMzNiNWNmMTQ0ODhiYSJ9fX0="
+      respawn-ticks: 200
+      count: 8
+    bony_specter:
+      display-name: "Espectro Ossudo"
+      entity-type: SKELETON
+      health: 200.0
+      damage: 12.0
+      speed-multiplier: 1.2
+      weapon: IRON_SWORD
+      armored: false
+      head-texture: ""
+      respawn-ticks: 200
+      count: 8
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
   # only care about relative wear, so a bigger number just means more uses before it
