@@ -153,8 +153,12 @@ public final class LegendaryWeaponService {
                     new AttributeModifier(RANGE_KEY, rangeDelta, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         }
         if (w.agility() > 0) {
+            // HAND (not just MAINHAND) - Baruka's Dagger's speed boost is meant to apply
+            // whether it's the weapon you're swinging or tucked in the off-hand while you
+            // fight with something else, unlike Attack Damage/Speed/range which only ever
+            // make sense for whatever's actually being swung.
             meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
-                    new AttributeModifier(AGILITY_KEY, w.agility() * AGILITY_SPEED_PER_POINT, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+                    new AttributeModifier(AGILITY_KEY, w.agility() * AGILITY_SPEED_PER_POINT, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
         }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         meta.setUnbreakable(true);
@@ -204,10 +208,20 @@ public final class LegendaryWeaponService {
         return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
     }
 
-    /** Agility granted by whatever the player is currently wielding in their main hand (0 for every weapon except Baruka's Dagger) - the number {@code PlayerStatsService#effectiveAgility} shows on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. The real Movement Speed change itself comes from the item's own attribute modifier (see {@link #create}), not from this method - this is purely the display-facing number. */
+    /**
+     * Agility granted by whatever the player is currently wielding, main hand and
+     * off-hand both counted (matches the item's own {@code EquipmentSlotGroup.HAND}
+     * Movement Speed modifier applying from either slot - see {@link #create}) - 0 for
+     * every weapon except Baruka's Dagger. The number {@code
+     * PlayerStatsService#effectiveAgility} shows on the stats screen, paired with
+     * movement Speed the same way Intelligence is paired with Max Mana; the real
+     * Movement Speed change itself comes from the item's own attribute modifier, not
+     * from this method - this is purely the display-facing number.
+     */
     public int heldAgilityBonus(Player p) {
-        LegendaryWeapon w = of(p.getInventory().getItemInMainHand());
-        return w == null ? 0 : w.agility();
+        LegendaryWeapon mainHand = of(p.getInventory().getItemInMainHand());
+        LegendaryWeapon offHand = of(p.getInventory().getItemInOffHand());
+        return (mainHand == null ? 0 : mainHand.agility()) + (offHand == null ? 0 : offHand.agility());
     }
 
     // ---- Melee damage hooks (called from CombatListener#damage) -------------

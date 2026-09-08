@@ -1373,3 +1373,16 @@ Três correções pontuais nas armas lendárias:
   habilidade ativou.
 - **Adaga de Baruka: Agilidade +10 → +50** (também +50% de Velocidade
   enquanto empunhada, pela mesma proporção 1 Agilidade = +1% Velocidade).
+
+## Agilidade da Adaga de Baruka também vale na off-hand
+
+O `AttributeModifier` de Velocidade de Movimento estava escopado a
+`EquipmentSlotGroup.MAINHAND` - só valia se a adaga fosse a arma
+empunhada de verdade. Diferente de Ataque/Velocidade de Ataque/alcance
+(que só fazem sentido pra arma sendo de fato usada pra golpear), o bônus
+de Agilidade é uma velocidade de movimento passiva, então faz sentido
+valer mesmo com a adaga guardada na off-hand enquanto luta com outra
+arma na mão principal - trocado pra `EquipmentSlotGroup.HAND` (cobre as
+duas mãos). `LegendaryWeaponService#heldAgilityBonus` (o número mostrado
+na aba de Status) agora soma a Agilidade de ambas as mãos pelo mesmo
+motivo, em vez de checar só a mão principal.
