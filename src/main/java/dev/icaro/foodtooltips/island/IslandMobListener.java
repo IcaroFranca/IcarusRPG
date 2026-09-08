@@ -1,6 +1,8 @@
 package dev.icaro.foodtooltips.island;
 
+import dev.icaro.foodtooltips.i18n.Language;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -48,7 +50,8 @@ public final class IslandMobListener implements Listener {
             return;
         }
         this.island.scheduleRespawn(defId, entity.getLocation());
-        ItemStack drop = this.island.rollDrop(defId);
+        Player killer = entity.getKiller();
+        ItemStack drop = this.island.rollDrop(defId, killer != null ? Language.of(killer) : Language.PT);
         if (drop != null) {
             e.getDrops().add(drop);
         }
