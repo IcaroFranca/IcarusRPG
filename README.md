@@ -1386,3 +1386,38 @@ arma na mão principal - trocado pra `EquipmentSlotGroup.HAND` (cobre as
 duas mãos). `LegendaryWeaponService#heldAgilityBonus` (o número mostrado
 na aba de Status) agora soma a Agilidade de ambas as mãos pelo mesmo
 motivo, em vez de checar só a mão principal.
+
+## Correção: vidros empilhando também em GUIs de outros plugins (ex.: IcarusChests)
+
+A correção anterior do `FoodTooltipListener` (vidros do menu de Skills
+empilhando) checava `topInventory.getHolder() != null` pra distinguir um
+inventário real (baú) de um menu virtual do plugin - mas isso não cobre
+todo caso: um GUI de OUTRO plugin (ex.: `IcarusChests`, que abre suas
+telas de armazenamento via `Bukkit.createInventory(new
+IcarusChestHolder(...), ...)`) tem um holder não-nulo próprio, só que
+continua sendo tão virtual quanto os nossos - não está preso a bloco
+nenhum, só usa esse holder pra identificação interna dos próprios
+cliques. Resultado: os vidros decorativos daquele GUI também empilhavam,
+do mesmo jeito que os nossos empilhavam antes da primeira correção.
+
+Trocado `getHolder() != null` por `getLocation() != null`: só é
+não-nulo pra um inventário de verdade preso a um bloco físico (baú, baú
+de ender, barril...), nunca pra um `Bukkit.createInventory(...)`
+sintético, seja o holder dele `null` ou uma classe própria do plugin que
+o criou. Cobre tanto os nossos menus quanto o de qualquer outro plugin
+que use esse padrão comum de GUI.
+
+## Two as One / Fúria de Kamish mostram o bônus de Strength ao vivo
+
+Antes a lore só mostrava a taxa fixa ("Two as One: +0,5 dano/Strength"),
+igual pra qualquer jogador - não o quanto aquilo realmente vale pra quem
+tá segurando. Agora mostra os dois: `LegendaryWeaponService#create`
+grava em qual linha da lore fica esse texto (`STRENGTH_LINE_KEY`, um
+índice guardado no PDC do item) e `refreshStrengthLore(Player)` -
+chamado no mesmo laço periódico por jogador que já roda
+`SwordDamageService#applySwordDamage` - reescreve só aquela linha com o
+bônus real de quem está segurando ("Two as One: +25 (0,5/Strength)"),
+sem tocar em nenhuma outra parte da lore. Atualiza sozinho conforme o
+Strength do jogador muda (Nível Global, Coleta...), do mesmo jeito que a
+linha de Velocidade de Ataque das espadas comuns já se mantém atual com
+o nível de Combate.
