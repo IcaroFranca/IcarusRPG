@@ -27,6 +27,8 @@ import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.item.ToolDamageListener;
+import dev.icaro.foodtooltips.item.ToolDamageService;
 import dev.icaro.foodtooltips.item.legendary.DemonKingStormListener;
 import dev.icaro.foodtooltips.item.legendary.LegendaryItemsListener;
 import dev.icaro.foodtooltips.item.legendary.LegendaryItemsMenuService;
@@ -91,6 +93,7 @@ extends JavaPlugin {
         ItemTierService tiers = new ItemTierService((Plugin)this);
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
+        ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
@@ -139,6 +142,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
         pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);
         pm.registerEvents((Listener)new SwordDamageListener(swordDamage), (Plugin)this);
+        pm.registerEvents((Listener)new ToolDamageListener(toolDamage), (Plugin)this);
         pm.registerEvents((Listener)new BuilderWandListener(builderWand), (Plugin)this);
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
@@ -278,6 +282,7 @@ extends JavaPlugin {
             durability.applyDurability((Player)p);
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
+            toolDamage.applyToolDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);
@@ -306,6 +311,7 @@ extends JavaPlugin {
             durability.applyDurability((Player)p);
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
+            toolDamage.applyToolDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             general.applyBonusHealth((Player)p);

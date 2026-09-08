@@ -1,5 +1,5 @@
 name: IcarusRPG
-version: '0.48.1'
+version: '0.49.0'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
