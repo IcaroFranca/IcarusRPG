@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.combat;
 
 import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
@@ -161,7 +162,7 @@ public final class CombatListener implements Listener {
             }
             return;
         }
-        boolean playerTarget = target instanceof Player;
+        boolean playerTarget = this.isRealPlayer(target);
         if (playerTarget && !this.pvpFullDamageStack) {
             // combat.pvp-full-damage-stack: false reverts to the old PvP formula (only
             // Global Strength applies) instead of the same stack PvE gets below.
@@ -262,7 +263,7 @@ public final class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void secondWind(EntityDamageEvent e) {
-        if (!(e.getEntity() instanceof Player p) || !this.abilities.enabled(p, CombatAbility.SECOND_WIND) || e.getFinalDamage() < p.getHealth()) {
+        if (!(e.getEntity() instanceof Player p) || !this.isRealPlayer(p) || !this.abilities.enabled(p, CombatAbility.SECOND_WIND) || e.getFinalDamage() < p.getHealth()) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -281,7 +282,7 @@ public final class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerHit(EntityDamageByEntityEvent e) {
-        if (e.getEntity() instanceof Player p && this.hostile(e.getDamager())) {
+        if (e.getEntity() instanceof Player p && this.isRealPlayer(p) && this.hostile(e.getDamager())) {
             this.abilities.hostileHit(p);
         }
     }
@@ -438,12 +439,23 @@ public final class CombatListener implements Listener {
     }
 
     private Player attacker(Entity e) {
-        if (e instanceof Player p) {
+        if (e instanceof Player p && this.isRealPlayer(p)) {
             return p;
         }
-        if (e instanceof Projectile projectile && projectile.getShooter() instanceof Player p) {
+        if (e instanceof Projectile projectile && projectile.getShooter() instanceof Player p && this.isRealPlayer(p)) {
             return p;
         }
         return null;
+    }
+
+    /**
+     * A Citizens PLAYER-type NPC (used for player-skinned custom mobs) is still
+     * {@code instanceof Player} to Bukkit, so every combat branch that treats a
+     * Player specially - PvP formulas, Bestiary eligibility, Second Wind - must
+     * exclude Citizens' own tagged entities first or real damage against those
+     * mobs would get silently misclassified as PvP.
+     */
+    private boolean isRealPlayer(Entity e) {
+        return e instanceof Player && !CitizensIntegrationService.isNpc(e);
     }
 }
