@@ -116,7 +116,7 @@ extends JavaPlugin {
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
-        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers);
+        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         this.visuals = new MobVisualService((Plugin)this);
@@ -326,6 +326,7 @@ extends JavaPlugin {
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
+            legendary.refreshAttackSpeedLore((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);
         this.getServer().getScheduler().runTaskTimer((Plugin)this, this.visuals::tick, 1L, Math.max(1L, this.getConfig().getLong("mob-visuals.update-ticks", 3L)));
@@ -355,6 +356,7 @@ extends JavaPlugin {
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
+            legendary.refreshAttackSpeedLore((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             general.applyBonusHealth((Player)p);
             skillsStar.ensure((Player)p);

@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +45,9 @@ import org.bukkit.util.Vector;
  * everything static (base Attack Damage, the dagger -1/longsword +2 Swing Range delta,
  * Baruka's Agility) is instead a plain {@link EquipmentSlotGroup#MAINHAND} attribute
  * modifier on the item itself, exactly like {@code SwordDamageService} does for plain
- * swords, so it needs no per-tick refresh loop.
+ * swords - Attack Speed is the one exception, since like a plain sword's it depends on
+ * the wielder's Combat level and needs its lore line refreshed on the same periodic
+ * pass ({@link #refreshAttackSpeedLore}, alongside {@link #refreshStrengthLore}).
  */
 public final class LegendaryWeaponService {
     /** Tags an item as one specific {@link LegendaryWeapon} - see {@link #of} and {@link #isLegendary}. */
@@ -56,6 +59,8 @@ public final class LegendaryWeaponService {
     private static final NamespacedKey AGILITY_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_agility");
     /** Which lore line is the live Strength-scaling line (Two as One / Kamish's Wrath) - see {@link #refreshStrengthLore}. Absent for every other weapon. */
     private static final NamespacedKey STRENGTH_LINE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_strength_line");
+    /** Which lore line is the live Attack Speed line - see {@link #refreshAttackSpeedLore}. Every legendary weapon has one. */
+    private static final NamespacedKey SPEED_LINE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_speed_line");
 
     /** Daggers swing 1 block shorter than a normal sword - Kamish's Wrath is exempt (see its class doc). */
     private static final double DAGGER_RANGE_PENALTY = -1.0;
@@ -96,12 +101,14 @@ public final class LegendaryWeaponService {
     private final Plugin plugin;
     private final PlayerStatsService stats;
     private final ItemTierService tiers;
+    private final CombatSkillService combat;
     private final Map<UUID, Integer> bleedStacks = new HashMap<>();
 
-    public LegendaryWeaponService(Plugin plugin, PlayerStatsService stats, ItemTierService tiers) {
+    public LegendaryWeaponService(Plugin plugin, PlayerStatsService stats, ItemTierService tiers, CombatSkillService combat) {
         this.plugin = plugin;
         this.stats = stats;
         this.tiers = tiers;
+        this.combat = combat;
     }
 
     // ---- Identity ---------------------------------------------------------
@@ -183,6 +190,11 @@ public final class LegendaryWeaponService {
         List<Component> lore = new ArrayList<>();
         lore.add(this.line((pt ? "Tipo: " : "Type: ") + w.type().label(pt), NamedTextColor.GRAY));
         lore.add(this.line((pt ? "Ataque: +" : "Attack: +") + Math.round(w.baseAttackDamage()), NamedTextColor.RED));
+        // Placeholder at level 0 - the periodic refresh pass (refreshAttackSpeedLore)
+        // corrects it to whoever actually ends up holding the item almost immediately,
+        // same as STRENGTH_LINE_KEY's placeholder below.
+        meta.getPersistentDataContainer().set(SPEED_LINE_KEY, PersistentDataType.INTEGER, lore.size());
+        lore.add(this.speedLine(this.combat.attackSpeed(0) + SwordDamageService.ATTACK_SPEED_DELTA, pt));
         if (w.agility() > 0) {
             lore.add(this.line((pt ? "Agilidade: +" : "Agility: +") + w.agility(), NamedTextColor.GREEN));
         }
@@ -238,6 +250,11 @@ public final class LegendaryWeaponService {
         return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
     }
 
+    /** "Velocidade de Ataque: X.X" / "Attack Speed: X.X" - same wording/color/format {@code SwordDamageService} uses for plain swords. */
+    private Component speedLine(double real, boolean pt) {
+        return this.line((pt ? "Velocidade de Ataque: " : "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW);
+    }
+
     /**
      * Rewrites the live Strength-scaling line (Two as One / Kamish's Wrath, see {@link
      * #STRENGTH_LINE_KEY}) on every such weapon in {@code p}'s inventory (storage and
@@ -286,6 +303,62 @@ public final class LegendaryWeaponService {
         }
         double bonus = this.strengthDamageBonus(p, item);
         Component updatedLine = this.strengthAbilityLine(w, l == Language.PT, bonus);
+        if (updatedLine.equals(lore.get(index))) {
+            return null;
+        }
+        List<Component> newLore = new ArrayList<>(lore);
+        newLore.set(index, updatedLine);
+        meta.lore(newLore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Rewrites every legendary weapon's Attack Speed line (see {@link #SPEED_LINE_KEY})
+     * in {@code p}'s inventory (storage and off-hand) to the real total the wielder
+     * currently gets - same formula {@code SwordDamageService#realAttackSpeed} uses for
+     * plain swords (Combat level scaling plus the item's own fixed vanilla-penalty
+     * delta), since unlike every other line here it depends on the wielder's Combat
+     * level, not anything baked into the item at creation. Called from the same
+     * periodic per-player pass as {@link #refreshStrengthLore}.
+     */
+    public void refreshAttackSpeedLore(Player p) {
+        Language l = Language.of(p);
+        var inv = p.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        boolean changed = false;
+        for (int i = 0; i < storage.length; i++) {
+            ItemStack updated = this.rewriteAttackSpeedLine(storage[i], p, l);
+            if (updated != null) {
+                storage[i] = updated;
+                changed = true;
+            }
+        }
+        if (changed) {
+            inv.setStorageContents(storage);
+        }
+        ItemStack offhand = this.rewriteAttackSpeedLine(inv.getItemInOffHand(), p, l);
+        if (offhand != null) {
+            inv.setItemInOffHand(offhand);
+        }
+    }
+
+    /** Returns the mutated item if its Attack Speed line needed updating, or null if it's not a legendary weapon or is already showing the current value. */
+    private ItemStack rewriteAttackSpeedLine(ItemStack item, Player p, Language l) {
+        if (of(item) == null) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        Integer index = meta.getPersistentDataContainer().get(SPEED_LINE_KEY, PersistentDataType.INTEGER);
+        if (index == null || !meta.hasLore()) {
+            return null;
+        }
+        List<Component> lore = meta.lore();
+        if (index < 0 || index >= lore.size()) {
+            return null;
+        }
+        double real = this.combat.attackSpeed(this.combat.progress(p).level()) + SwordDamageService.ATTACK_SPEED_DELTA;
+        Component updatedLine = this.speedLine(real, l == Language.PT);
         if (updatedLine.equals(lore.get(index))) {
             return null;
         }
