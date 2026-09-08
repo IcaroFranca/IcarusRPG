@@ -78,6 +78,7 @@ public final class CombatListener implements Listener {
     private final double mobHealthMultiplier;
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
+    private final int islandUnlockLevel;
     private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
@@ -103,6 +104,7 @@ public final class CombatListener implements Listener {
         this.mobHealthMultiplier = Math.max(1.0, p.getConfig().getDouble("mob-visuals.health-multiplier", 5.0));
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
+        this.islandUnlockLevel = p.getConfig().getInt("travel.combat-island-min-level", 5);
     }
 
     @EventHandler
@@ -440,6 +442,9 @@ public final class CombatListener implements Listener {
         p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (bonusValor > 0L) {
             p.sendMessage(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
+        }
+        if (oldLevel < this.islandUnlockLevel && newLevel >= this.islandUnlockLevel) {
+            p.sendMessage(Component.text("🗝 " + l.choose("Ilha de Combate desbloqueada! Acesse pelo menu /skills → Locais.", "Combat Island unlocked! Access it from /skills → Locations."), NamedTextColor.LIGHT_PURPLE));
         }
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
     }

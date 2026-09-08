@@ -200,11 +200,13 @@ island-mobs:
       head-texture: ""
       respawn-ticks: 200
       count: 8
-island-access:
-  # The combat island's entry ticket (see /rpgitems) - consumable, requires this Combat
-  # Level to use, teleports to this world's spawn point on success.
-  world: combat_island
-  min-combat-level: 5
+travel:
+  # /skills' "Locais"/"Locations" button - free, unlimited teleports (no item needed).
+  # World names are shown to players as human-readable labels, never their raw config
+  # value below. default-world is the hub/spawn destination; the combat island itself
+  # reuses island-mobs.world, gated by this minimum Combat Level.
+  default-world: world
+  combat-island-min-level: 5
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
   # only care about relative wear, so a bigger number just means more uses before it
