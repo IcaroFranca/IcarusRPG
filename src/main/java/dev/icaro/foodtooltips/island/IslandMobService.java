@@ -83,9 +83,13 @@ public final class IslandMobService {
         NPCRegistry registry = CitizensAPI.getNPCRegistry();
         for (Location point : this.spawnPoints(world)) {
             NPC npc = registry.createNPC(EntityType.PLAYER, "Sentinela da Ilha");
-            npc.getOrAddTrait(SkinTrait.class).setSkinName(this.skin, true);
             npc.setProtected(false);
             npc.spawn(point);
+            // SkinTrait only has something to attach the fetched texture to once the NPC's
+            // cosmetic entity actually exists - setting it before spawn() is a silent no-op
+            // (onSkinChange short-circuits on a null cosmetic entity), so it falls back to
+            // the default Steve/Alex skin instead of fetching the real one.
+            npc.getOrAddTrait(SkinTrait.class).setSkinName(this.skin, true);
             npc.getEntity().getPersistentDataContainer().set(BestiaryCatalog.VARIANT_KEY, PersistentDataType.STRING, "island_sentinel");
             SentinelTrait sentinel = npc.getOrAddTrait(SentinelTrait.class);
             sentinel.addTarget("player");
