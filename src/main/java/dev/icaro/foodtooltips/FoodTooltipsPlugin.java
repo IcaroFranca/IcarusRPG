@@ -3,6 +3,8 @@ package dev.icaro.foodtooltips;
 import dev.icaro.foodtooltips.bestiary.BestiaryListener;
 import dev.icaro.foodtooltips.bestiary.BestiaryMenuService;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.biome.BiomeWandListener;
+import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.builder.BuilderWandListener;
 import dev.icaro.foodtooltips.builder.BuilderWandService;
 import dev.icaro.foodtooltips.combat.CombatListener;
@@ -96,6 +98,7 @@ extends JavaPlugin {
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
+        BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
         stats.abilities(abilities);
         EconomyService economy = new EconomyService((Plugin)this, abilities);
@@ -145,6 +148,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new ToolDamageListener(toolDamage), (Plugin)this);
         pm.registerEvents((Listener)new BuilderWandListener(builderWand), (Plugin)this);
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
+        pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSwordThrowListener(swordThrow), (Plugin)this);
@@ -229,6 +233,24 @@ extends JavaPlugin {
             }
             target.getInventory().addItem(destroyerHand.create(Language.of(target)));
             s.sendMessage((Component)Component.text((String)(this.text(s, "Mão do Destruidor entregue a ", "Destroyer's Hand given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
+            return true;
+        });
+        this.getCommand("biomewand").setExecutor((s, c, l, a) -> {
+            Player target;
+            if (a.length >= 1) {
+                target = Bukkit.getPlayerExact((String)a[0]);
+                if (target == null) {
+                    s.sendMessage((Component)Component.text((String)this.text(s, "Jogador não encontrado ou offline.", "Player not found or offline."), (TextColor)NamedTextColor.RED));
+                    return true;
+                }
+            } else if (s instanceof Player) {
+                target = (Player)s;
+            } else {
+                s.sendMessage((Component)Component.text((String)"Usage: /biomewand [player]"));
+                return true;
+            }
+            target.getInventory().addItem(biomeWand.create(Language.of(target)));
+            s.sendMessage((Component)Component.text((String)(this.text(s, "Varinha de Biomas entregue a ", "Biome's Wand given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
             return true;
         });
         this.getCommand("skills").setExecutor((s, c, l, a) -> {
