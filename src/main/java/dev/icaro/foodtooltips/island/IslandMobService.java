@@ -234,8 +234,15 @@ public final class IslandMobService {
         this.pendingRespawns.add(Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.spawnOne(def, point), Math.max(1, def.respawnTicks())));
     }
 
-    /** Called by {@link IslandMobListener} on death - rolls this mob kind's drop-chance-percent and returns a fresh copy of its legendary-weapon drop if it hits, else null. */
-    public ItemStack rollDrop(String defId) {
+    /**
+     * Called by {@link IslandMobListener} on death - rolls this mob kind's
+     * drop-chance-percent and returns a fresh copy of its legendary-weapon drop in
+     * {@code l} if it hits, else null. {@code l} must be the actual killer's language
+     * (not a hardcoded default) - an item's name/lore is baked in once at creation,
+     * so a drop built in the wrong language stays wrong forever once it's in someone's
+     * inventory, unlike a menu-created copy that's always built fresh per viewer.
+     */
+    public ItemStack rollDrop(String defId, Language l) {
         IslandMobDefinition def = this.definitionsById.get(defId);
         if (def == null || def.legendaryWeapon() == null || def.dropChancePercent() <= 0.0) {
             return null;
@@ -243,7 +250,7 @@ public final class IslandMobService {
         if (ThreadLocalRandom.current().nextDouble(100.0) >= def.dropChancePercent()) {
             return null;
         }
-        return this.legendary.create(def.legendaryWeapon(), Language.PT);
+        return this.legendary.create(def.legendaryWeapon(), l);
     }
 
     /** This entity's island-mob definition id, or null if it isn't one of ours. */
