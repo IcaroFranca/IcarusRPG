@@ -1577,9 +1577,11 @@ override eles cairiam automaticamente na aba "Monstros
 terrestres"/"Overworld Monsters" junto dos zumbis e esqueletos reais -
 mas não são mobs do Overworld de verdade. `BestiaryEntry.categoryOverride`
 deixa uma entrada variante escolher sua própria aba
-(`BestiaryCategory.COMBAT_ISLAND`, ícone de Wither Rose - o mesmo usado
-no bioma Cemitério Sombrio na Biome's Wand) em vez de cair no
-`switch` genérico por `EntityType` que toda entrada canônica usa.
+(`BestiaryCategory.COMBAT_ISLAND`) em vez de cair no `switch` genérico
+por `EntityType` que toda entrada canônica usa. O ícone dessa aba (e o
+da opção "Ilha de Combate" no menu Locais, veja abaixo) é uma cabeça
+customizada "Alien Grass" (`HeadTexture.ALIEN_GRASS`), representando o
+bioma Cemitério Sombrio.
 
 Mobs atuais:
 - **Dealt** (Zumbi) - 200 de vida, 12 de dano, +20% de velocidade,
@@ -1641,11 +1643,12 @@ Chance de Crítico no menu `/skills` (`SkillsMenuService#head` e
 ## Menu de Locais (`/skills` → Locais)
 
 `TravelMenuService` (`dev.icaro.foodtooltips.travel`) é um novo botão
-no menu principal do `/skills` (ícone de Ender Pearl, só aparece
-depois de injetado no `FoodTooltipsPlugin`) que abre uma lista de
-destinos de teleporte - gratuito e ilimitado, sem precisar de nenhum
-item. Nomes de mundo nunca aparecem pro jogador (`combat_island`
-sempre é mostrado como "Ilha de Combate"/"Combat Island"):
+no menu principal do `/skills` (ícone de cabeça customizada "Planet",
+`HeadTexture.PLANET` - só aparece depois de injetado no
+`FoodTooltipsPlugin`) que abre uma lista de destinos de teleporte -
+gratuito e ilimitado, sem precisar de nenhum item. Nomes de mundo
+nunca aparecem pro jogador (`combat_island` sempre é mostrado como
+"Ilha de Combate"/"Combat Island"):
 
 - **Mundo Padrão** - spawn do mundo configurado em
   `travel.default-world` (padrão `world`).
@@ -1654,8 +1657,9 @@ sempre é mostrado como "Ilha de Combate"/"Combat Island"):
   `travel.combat-island-min-level` (padrão 5, baseado em testes reais:
   com equipamento de ferro completo já dá pra lidar com uns 2 mobs da
   ilha ao mesmo tempo nesse nível). Abaixo do nível exigido, a opção
-  aparece bloqueada (tingida de cinza, com a exigência na lore) em vez
-  de simplesmente sumir.
+  aparece bloqueada (`Material.GRAY_DYE`, com a exigência na lore) em
+  vez de simplesmente sumir; desbloqueada, usa a mesma cabeça "Alien
+  Grass" (`HeadTexture.ALIEN_GRASS`) do Bestiário.
 
 Ao alcançar o Nível de Combate mínimo, a mensagem de level-up do
 Combate ganha uma linha extra avisando que a Ilha de Combate foi
