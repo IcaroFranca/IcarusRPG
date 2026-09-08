@@ -119,10 +119,10 @@ extends JavaPlugin {
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers);
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
-        IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary);
+        this.visuals = new MobVisualService((Plugin)this);
+        IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary, this.visuals);
         BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
-        this.visuals = new MobVisualService((Plugin)this);
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);
         LevelBadgeRenderer badgeRenderer = new LevelBadgeRenderer(this.getConfig().getInt("global-level.badge-animation-smoothness", 4));
         GlobalPresentationService presentation = new GlobalPresentationService((Plugin)this, global, levelColors, badgeRenderer);

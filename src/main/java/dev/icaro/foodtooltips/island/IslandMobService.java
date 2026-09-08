@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.biome.BiomeOption;
+import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
@@ -15,8 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
@@ -52,6 +51,7 @@ public final class IslandMobService {
 
     private final Plugin plugin;
     private final LegendaryWeaponService legendary;
+    private final MobVisualService visuals;
     private final IslandMobZone zone;
     private final boolean enabled;
     private final boolean suppressNaturalSpawns;
@@ -64,9 +64,10 @@ public final class IslandMobService {
     private final List<UUID> spawnedIds = new ArrayList<>();
     private final List<BukkitTask> pendingRespawns = new ArrayList<>();
 
-    public IslandMobService(Plugin plugin, LegendaryWeaponService legendary) {
+    public IslandMobService(Plugin plugin, LegendaryWeaponService legendary, MobVisualService visuals) {
         this.plugin = plugin;
         this.legendary = legendary;
+        this.visuals = visuals;
         this.enabled = plugin.getConfig().getBoolean("island-mobs.enabled", true);
         this.suppressNaturalSpawns = plugin.getConfig().getBoolean("island-mobs.suppress-natural-spawns", true);
         this.zone = new IslandMobZone(
@@ -112,9 +113,11 @@ public final class IslandMobService {
                     plugin.getLogger().warning("island-mobs.mobs." + id + ": invalid legendary-weapon '" + legendaryWeaponName + "', ignoring.");
                 }
             }
+            String displayNamePt = m.getString("display-name", id);
             result.add(new IslandMobDefinition(
                     id,
-                    m.getString("display-name", id),
+                    displayNamePt,
+                    m.getString("display-name-en", displayNamePt),
                     type,
                     m.getDouble("health", 20.0),
                     m.getDouble("damage", 3.0),
@@ -177,8 +180,9 @@ public final class IslandMobService {
             return;
         }
         LivingEntity entity = (LivingEntity) world.spawnEntity(point, def.entityType());
-        entity.customName(Component.text(def.displayName(), NamedTextColor.RED));
-        entity.setCustomNameVisible(true);
+        // No vanilla customName here (that's one fixed string for every viewer) - the
+        // in-world name is rendered per-viewer language instead, see setLocalizedName.
+        this.visuals.setLocalizedName(entity, def.displayName(), def.displayNameEn());
         if (entity instanceof Zombie zombie) {
             zombie.setShouldBurnInDay(false);
             zombie.setBaby(false);

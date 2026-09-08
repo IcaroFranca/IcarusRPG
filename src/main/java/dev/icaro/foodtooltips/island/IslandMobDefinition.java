@@ -8,11 +8,14 @@ import org.bukkit.entity.EntityType;
  * One kind of custom island mob, entirely config-driven (island-mobs.mobs.<id> in
  * config.yml) - adding a new one only takes a new config entry, no Java changes.
  * {@code id} doubles as its {@link dev.icaro.foodtooltips.bestiary.BestiaryCatalog}
- * variant id, so it also gets its own distinct Bestiary entry there.
+ * variant id, so it also gets its own distinct Bestiary entry there. {@code
+ * displayName}/{@code displayNameEn} are the mob's in-world name shown to a Portuguese
+ * or English client respectively (see {@link dev.icaro.foodtooltips.combat.MobVisualService#setLocalizedName}).
  */
 public record IslandMobDefinition(
         String id,
         String displayName,
+        String displayNameEn,
         EntityType entityType,
         double health,
         double damage,
