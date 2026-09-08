@@ -1429,3 +1429,30 @@ efeitos no mesmo golpe, ou nenhum, ou os dois. Agora é um único roll de
 30% (`PROC_CHANCE` em `LegendaryWeaponService`) que aplica os dois
 efeitos juntos sempre que acontece - nunca só um. A lore também virou
 uma linha só ("Paralisia + Sangramento: 30% de chance") em vez de duas.
+
+## Dano customizado também pra machado/picareta/pá/enxada, não só espada
+
+`SwordDamageService` só cobria espadas; ferramentas continuavam batendo
+com o dano vanilla (irrisório perto da vida na casa das centenas deste
+RPG). Novo `ToolDamageService` + `ToolDamageListener` - mesmo padrão
+exato de `SwordDamageService`/`SwordDamageListener` (attribute modifier
+de Ataque/Velocidade escopado à mão principal, lore com as duas linhas,
+reaplicado no join e a cada tick do HUD) - agora dá um dano fixo por
+família de material a machados, picaretas, pás e enxadas igualmente (um
+Machado, Picareta, Pá e Enxada de Diamante todos batem 30):
+
+```
+Madeira / Ouro -> 10
+Pedra          -> 15
+Cobre          -> 20
+Ferro          -> 25
+Diamante       -> 30
+Netherite      -> 35
+```
+
+Reaproveita `SwordDamageService#ATTACK_SPEED_DELTA` pra Velocidade de
+Ataque em vez do valor vanilla (bem inconsistente) de cada ferramenta -
+como o `attribute_modifiers` já é sobrescrito por completo de qualquer
+jeito, toda ferramenta corpo-a-corpo do plugin acaba batendo na mesma
+fórmula base de velocidade, diferenciada só pelo Dano de Ataque e pelo
+Nível de Combate de quem segura, igual às espadas já faziam.
