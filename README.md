@@ -1230,36 +1230,43 @@ sem craft nem drop de mob (a ideia é que outras fontes cheguem depois,
 sem precisar redesenhar nada disso).
 
 `LegendaryWeapon` (`dev.icaro.foodtooltips.item.legendary`) cataloga as 6
-armas, cada uma com Tipo (Adaga ou Espada Longa), Raridade, Ataque base e,
-quando aplicável, Agilidade:
+armas, cada uma com Tipo (Adaga ou Espada Longa), um `ItemTier` (o mesmo
+sistema de Tiers usado em todo o resto do jogo - ver "Tier no lugar de
+Raridade" abaixo), Ataque base e, quando aplicável, Agilidade:
 
-- **Presa de Veneno de Kasaka** (Adaga, C) - +25 Ataque. A cada acerto, 25%
-  de chance independente de Paralisia (Slowness bem alto + Jump Boost
-  negativo, ~3s - trava o alvo sem precisar de teleporte/cancelamento de
-  movimento manual) e 25% de chance de Sangramento (2% da vida máxima do
-  alvo por segundo, por 4 segundos; empilha até 3 vezes ao mesmo tempo -
-  um 4º proc enquanto já tem 3 ativos simplesmente não faz nada).
-- **Matador de Cavaleiros** (Adaga, B) - +75 Ataque. +25% de dano contra
-  qualquer alvo (jogador ou mob) usando pelo menos 1 peça de armadura.
-- **Adaga de Baruka** (Adaga, A) - +110 Ataque, +10 Agilidade (a stat é
-  nova: converte em Velocidade de Movimento enquanto a adaga está na mão,
-  +0.002 por ponto de Agilidade sobre a base vanilla de 0.1).
-- **Adagas do Rei Demônio** (Adaga, S) - +220 Ataque. Two as One: +0.5 de
-  dano adicional por ponto de Strength do usuário, somado antes do resto
-  da pilha de multiplicadores de combate (então também se beneficia de
-  crítico etc., como o resto do dano da arma).
-- **Espada Longa do Rei Demônio** (Espada Longa, S) - +350 Ataque. Storm of
-  White Flames: tecla F (mesmo gatilho de Arremesso de Espada - ignorado
-  agachado), custa 40 de Mana, 30s de recarga; crava 6 raios cosméticos
-  espalhados numa área de até 4 blocos ao redor de onde você está mirando
-  (até 20 blocos de alcance) e aplica 100 de dano a qualquer LivingEntity
-  perto de cada raio via `CombatAbilityService#dealAbilityDamage` (mesmo
-  mecanismo do Arremesso de Espada, pra não reprocessar pela pilha de
-  multiplicadores de golpe corpo a corpo).
-- **Fúria de Kamish** (Adaga, ??) - Ataque escala com Strength (1500 base +
-  1 por ponto de Strength do usuário) em vez de um número fixo. "Alterar o
-  peso como quiser" é implementado como uma isenção fixa da penalidade de
-  alcance de Adaga - o alcance dela é o de uma espada comum.
+- **Presa de Veneno de Kasaka** (Adaga, Tier C) - +25 Ataque. A cada
+  acerto, 25% de chance independente de Paralisia (Slowness bem alto +
+  Jump Boost negativo, ~3s - trava o alvo sem precisar de
+  teleporte/cancelamento de movimento manual) e 25% de chance de
+  Sangramento (2% da vida máxima do alvo por segundo, por 4 segundos;
+  empilha até 3 vezes ao mesmo tempo - um 4º proc enquanto já tem 3 ativos
+  simplesmente não faz nada).
+- **Matador de Cavaleiros** (Adaga, Tier B) - +75 Ataque. +25% de dano
+  contra qualquer alvo (jogador ou mob) usando pelo menos 1 peça de
+  armadura.
+- **Adaga de Baruka** (Adaga, Tier A) - +110 Ataque, +10 Agilidade (a stat
+  é nova: converte em Velocidade de Movimento enquanto a adaga está na
+  mão, +0.001 por ponto de Agilidade sobre a base vanilla de 0.1 - 1
+  Agilidade = +1% de Velocidade, ver a seção de Agilidade/Velocidade mais
+  abaixo).
+- **Adagas do Rei Demônio** (Adaga, Tier S) - +220 Ataque. Two as One:
+  +0.5 de dano adicional por ponto de Strength do usuário, somado antes
+  do resto da pilha de multiplicadores de combate (então também se
+  beneficia de crítico etc., como o resto do dano da arma).
+- **Espada Longa do Rei Demônio** (Espada Longa, Tier S) - +350 Ataque.
+  Storm of White Flames: tecla F (mesmo gatilho de Arremesso de Espada -
+  ignorado agachado), custa 40 de Mana, 30s de recarga; crava 6 raios
+  cosméticos espalhados numa área de até 4 blocos ao redor de onde você
+  está mirando (até 20 blocos de alcance) e aplica 100 de dano a qualquer
+  LivingEntity perto de cada raio via
+  `CombatAbilityService#dealAbilityDamage` (mesmo mecanismo do Arremesso
+  de Espada, pra não reprocessar pela pilha de multiplicadores de golpe
+  corpo a corpo).
+- **Fúria de Kamish** (Adaga, Tier S) - Ataque escala com Strength (1500
+  base + 1 por ponto de Strength do usuário) em vez de um número fixo.
+  "Alterar o peso como quiser" é implementado como uma isenção fixa da
+  penalidade de alcance de Adaga - o alcance dela é o de uma espada
+  comum.
 
 **Mecânica universal de Adaga** (`WeaponType.DAGGER`, todas exceto a
 Espada Longa do Rei Demônio e - só na parte do alcance - a Fúria de
@@ -1281,19 +1288,37 @@ diferente de `SwordDamageService`, não precisa de nenhuma passagem
 periódica de "refresh", porque nada nelas muda com o nível/skill de quem
 segura (as únicas partes dinâmicas - Two as One e Fúria de Kamish - são
 calculadas na hora do golpe, não gravadas na lore). São `Unbreakable` e
-ganham brilho de encantamento se Raridade S ou "??".
+ganham brilho de encantamento se Tier S.
 
-Como essas armas usam materiais `_SWORD` normais por baixo (só pra ter um
-modelo 3D decente sem precisar de resource pack), três sistemas genéricos
-que rodam sobre todo item do jogo precisaram de uma exceção pra não
-sobrescrever o trabalho todo: `SwordDamageService` (ia recalcular
-Ataque/Velocidade pelo material, ignorando os valores customizados),
-`ItemTierService` (ia recolorir o nome pra cor da tier do material e
-apendar uma linha "TIER X SWORD" na lore) e `SwordThrowListener` (ia
-deixar o Arremesso de Espada disparar em cima da Espada Longa do Rei
-Demônio, que já tem sua própria habilidade na tecla F). Os três agora
-checam `LegendaryWeaponService.isLegendary(item)` primeiro e saem sem
-fazer nada quando é uma arma lendária.
+## Tier no lugar de Raridade, e lore mais curta
+
+Versão inicial usava um `Rarity` próprio ("Rarity: S-Rank" etc.) e uma
+lore longa (descrição em prosa de quem usou a arma, parágrafos separados
+por linhas em branco) - destoava do resto do jogo, que usa o sistema de
+`ItemTier` (`TIER S`/`TIER A`/... colorido, igual em toda arma/ferramenta/
+armadura) e lore enxuta (só linhas de stat, sem parágrafo narrativo).
+
+`Rarity` foi removido; `LegendaryWeapon` agora carrega um `ItemTier` de
+verdade, fixado no item via `ItemTierService#forceTier` - o mesmo truque
+que `BuilderWandService` já usava pra pinar seu Stick em Tier S. A cor do
+nome e a linha "TIER X SWORD" no fim da lore vêm de
+`ItemTierService#applyTier` (extraído do antigo método privado `tooltip`,
+agora público) chamado direto em `LegendaryWeaponService#create` - não
+precisa esperar o próximo tick da varredura de inventário pra aparecer
+certo, nem no preview dentro do menu `/rpgitems`. Por isso a checagem
+`LegendaryWeaponService.isLegendary(item)` saiu do `ItemTierService`: ele
+processa armas lendárias normalmente agora, só que com o Tier fixado em
+vez de derivado do material `_SWORD` por baixo. `SwordDamageService` e
+`SwordThrowListener` continuam com a checagem (eles genuinamente
+calculariam Ataque/Velocidade errados ou disparariam Arremesso de Espada
+em cima da habilidade própria da Espada Longa do Rei Demônio).
+
+A lore em si perdeu toda a prosa: cada arma agora só lista Tipo, Ataque,
+Agilidade (se tiver) e uma única linha nomeando seu efeito especial já
+com o número - "Two as One: +0.5 dano/Strength", "+25% de dano contra
+blindados", "Storm of White Flames: F, 40 Mana, 30s" etc. - antes esse
+ganho de Strength só aparecia como texto solto ("baseado no Strength do
+usuário"), sem o valor real.
 
 ## Agilidade é pra Velocidade o que Inteligência é pra Mana
 

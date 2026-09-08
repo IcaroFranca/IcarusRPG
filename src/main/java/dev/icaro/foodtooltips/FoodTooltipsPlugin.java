@@ -103,7 +103,7 @@ extends JavaPlugin {
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
-        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats);
+        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers);
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, economy, valor);

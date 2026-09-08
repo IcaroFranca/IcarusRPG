@@ -1,7 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
-import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -195,7 +194,7 @@ public final class ItemTierService {
         ItemStack[] storage = inv.getStorageContents();
         boolean changed = false;
         for (int i = 0; i < storage.length; i++) {
-            ItemStack updated = this.tooltip(storage[i], l);
+            ItemStack updated = this.applyTier(storage[i], l);
             if (updated != null) {
                 storage[i] = updated;
                 changed = true;
@@ -215,25 +214,28 @@ public final class ItemTierService {
         }
         ItemStack[] armor = inv.getArmorContents();
         for (int i = 0; i < armor.length; i++) {
-            ItemStack updated = this.tooltip(armor[i], l);
+            ItemStack updated = this.applyTier(armor[i], l);
             if (updated != null) {
                 armor[i] = updated;
             }
         }
         inv.setArmorContents(armor);
-        ItemStack offhand = this.tooltip(inv.getItemInOffHand(), l);
+        ItemStack offhand = this.applyTier(inv.getItemInOffHand(), l);
         if (offhand != null) {
             inv.setItemInOffHand(offhand);
         }
     }
 
-    /** Returns the mutated item if it needed rewriting, or null if it's not taggable or was already done. */
-    private ItemStack tooltip(ItemStack item, Language l) {
-        if (item == null || item.isEmpty() || !item.getType().isItem() || LegendaryWeaponService.isLegendary(item)) {
-            // Legendary weapons carry their own rarity-colored name and lore (see
-            // LegendaryWeaponService#create) - the generic tier system recoloring the
-            // name to its base Material's tier and appending a "TIER X SWORD" line
-            // would clobber that.
+    /**
+     * Returns the mutated item if it needed rewriting, or null if it's not taggable or
+     * was already done. Public (not just called from {@link #applyItemTiers}) so a
+     * freshly-built one-off item - a legendary weapon pinned via {@link #forceTier}, say
+     * - can get its tier badge and name color immediately at creation time instead of
+     * waiting for the next inventory sweep; idempotent via {@link #tierKey}, so calling
+     * it early never causes {@link #applyItemTiers} to redo the work later.
+     */
+    public ItemStack applyTier(ItemStack item, Language l) {
+        if (item == null || item.isEmpty() || !item.getType().isItem()) {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
