@@ -17,7 +17,7 @@ public final class BestiaryCatalog {
 
     /** Custom mobs with their own distinct Bestiary entry (never mixed with a raw vanilla EntityType). */
     private static final List<BestiaryEntry> VARIANT_ENTRIES = List.of(
-            BestiaryCatalog.variant("island_sentinel", EntityType.PLAYER, Material.PLAYER_HEAD, "Sentinela da Ilha", 60, "5",
+            BestiaryCatalog.variant("island_sentinel", EntityType.ZOMBIE, Material.PLAYER_HEAD, "Sentinela da Ilha", 60, "5",
                     "Nenhum item padrão — recompensa em Pontos de Sangue/XP de Bestiário")
     );
 
