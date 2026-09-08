@@ -172,10 +172,12 @@ island-mobs:
   # player_head[profile={properties:[{name:"textures", value:"..."}]}] commands, e.g.
   # from minecraft-heads.com) - every mob wears SOME helmet regardless (a plain iron
   # one if head-texture is blank), since headgear is what stops an undead mob from
-  # catching fire in daylight, not just looks.
+  # catching fire in daylight, not just looks. display-name is shown to Portuguese
+  # clients, display-name-en to everyone else (falls back to display-name if omitted).
   mobs:
     dealt:
       display-name: "Dealt"
+      display-name-en: "Dealt"
       entity-type: ZOMBIE
       health: 200.0
       damage: 12.0
@@ -189,6 +191,7 @@ island-mobs:
       count: 8
     bony_specter:
       display-name: "Espectro Ossudo"
+      display-name-en: "Bony Specter"
       entity-type: SKELETON
       health: 200.0
       damage: 12.0

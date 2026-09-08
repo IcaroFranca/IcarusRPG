@@ -1668,3 +1668,27 @@ construção do cemitério contra grief/farm por jogadores em modo
 sobrevivência. OP sempre ignora a restrição (ajustes rápidos de admin
 sem precisar trocar de gamemode). Liga/desliga em
 `island-mobs.protect-blocks` (padrão `true`).
+
+## Nome dos mobs da ilha por idioma do cliente
+
+O nome flutuante dos mobs da ilha (ex: "Espectro Ossudo"/"Bony
+Specter") agora varia por jogador de acordo com o idioma do cliente
+dele, igual toda mensagem/menu do resto do plugin - dois jogadores
+olhando pro mesmo mob simultaneamente podem ver nomes diferentes.
+
+Isso não é possível com o nametag vanilla nem com o texto genérico
+que `MobVisualService` já usa pra HP (`[Lv X] 200/200❤`) - ambos são
+um único valor transmitido igual pra todo mundo; só uma chave de
+tradução real do Minecraft (`Component.translatable`, como a espécie
+do mob) é resolvida no cliente de cada um, e "Espectro Ossudo" não é
+uma dessas chaves. Por isso `IslandMobService` não seta mais
+`customName` nenhum - `MobVisualService#setLocalizedName` cria dois
+`TextDisplay` (um PT, um EN) acima do mob, e a cada mob deixa visível
+só o que bate com `Language.of(viewer)` de cada jogador ao redor,
+escondendo o outro - a mesma técnica de mostrar/esconder por jogador
+que já existia pra decidir quando a barra de vida aparece por
+distância.
+
+Cada mob configura os dois nomes em `island-mobs.mobs.<id>`:
+`display-name` (português) e `display-name-en` (inglês, cai de volta
+pro `display-name` se omitido).
