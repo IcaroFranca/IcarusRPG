@@ -136,7 +136,7 @@ destroyer-hand:
   max-length: 64
 biome-wand:
   # Max radius (in blocks) the Biome's Wand's brush can be set to via its left-click
-  # menu - 0 always means "just the clicked block" regardless of this cap.
+  # menu - minimum is always 1 (no "just the clicked block" mode).
   max-radius: 10
 island-mobs:
   # Custom combat mobs (plain vanilla Zombies in gear - full vanilla combat AI,
