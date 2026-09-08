@@ -30,7 +30,7 @@ public enum BiomeOption {
     // constant, since it doesn't exist unless that datapack is actually installed. biome()
     // is null (and this option quietly excluded from the wand's menu, see
     // BiomeWandService#availableOptions) when the datapack isn't present.
-    SHADOWED_GRAVEYARD(resolveCustomBiome("icarusrpg", "shadowed_graveyard"), Material.WITHER_ROSE, "Cemitério Sombrio", "Shadowed Graveyard");
+    SHADOWED_GRAVEYARD(resolveCustomBiome("icarusrpg", "shadowed_graveyard"), Material.AMETHYST_CLUSTER, "Cemitério Sombrio", "Shadowed Graveyard");
 
     private final Biome biome;
     private final Material icon;

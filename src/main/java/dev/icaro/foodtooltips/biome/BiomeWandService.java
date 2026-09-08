@@ -81,7 +81,7 @@ public final class BiomeWandService {
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.wandKey, PersistentDataType.BYTE, (byte) 1);
         meta.getPersistentDataContainer().set(this.biomeKey, PersistentDataType.STRING, BiomeOption.defaultOption().name());
-        meta.getPersistentDataContainer().set(this.radiusKey, PersistentDataType.INTEGER, 0);
+        meta.getPersistentDataContainer().set(this.radiusKey, PersistentDataType.INTEGER, 1);
         // A one-of-a-kind admin tool, not a plain Stick - pin it to Tier S so
         // ItemTierService's periodic pass doesn't sort it into Tier E junk with every
         // other Stick (same reasoning as BuilderWandService's Blaze Rod).
@@ -112,7 +112,7 @@ public final class BiomeWandService {
     }
 
     private String radiusLabel(int radius, Language l) {
-        return radius <= 0 ? l.choose("só o bloco", "just the block") : radius + l.choose(" blocos", " blocks");
+        return radius + l.choose(" blocos", " blocks");
     }
 
     public boolean isWand(ItemStack item) {
@@ -139,7 +139,7 @@ public final class BiomeWandService {
     public int radius(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
         Integer stored = meta == null ? null : meta.getPersistentDataContainer().get(this.radiusKey, PersistentDataType.INTEGER);
-        return stored == null ? 0 : Math.max(0, Math.min(this.maxRadius, stored));
+        return stored == null ? 1 : Math.max(1, Math.min(this.maxRadius, stored));
     }
 
     public void forget(UUID playerId) {
@@ -230,7 +230,7 @@ public final class BiomeWandService {
 
     private void cycleRadius(ItemStack item, boolean forward, Language l) {
         int current = this.radius(item);
-        int next = forward ? Math.min(this.maxRadius, current + 1) : Math.max(0, current - 1);
+        int next = forward ? Math.min(this.maxRadius, current + 1) : Math.max(1, current - 1);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.radiusKey, PersistentDataType.INTEGER, next);
         item.setItemMeta(meta);
@@ -259,7 +259,7 @@ public final class BiomeWandService {
     }
 
     private ItemStack radiusItem(int radius, Language l) {
-        ItemStack item = new ItemStack(radius <= 0 ? Material.TARGET : Material.LIGHT_BLUE_DYE);
+        ItemStack item = new ItemStack(Material.LIGHT_BLUE_DYE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(this.line(l.choose("Raio: ", "Radius: ") + this.radiusLabel(radius, l), NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true));
@@ -267,7 +267,7 @@ public final class BiomeWandService {
         lore.add(this.line(l.choose("Clique esquerdo: aumenta", "Left-click: increase"), NamedTextColor.GRAY));
         lore.add(this.line(l.choose("Clique direito: diminui", "Right-click: decrease"), NamedTextColor.GRAY));
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("0 = só o bloco clicado", "0 = just the clicked block"), NamedTextColor.DARK_GRAY));
+        lore.add(this.line(l.choose("Mínimo: 1", "Min: 1"), NamedTextColor.DARK_GRAY));
         lore.add(this.line(l.choose("Máximo: " + this.maxRadius, "Max: " + this.maxRadius), NamedTextColor.DARK_GRAY));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
