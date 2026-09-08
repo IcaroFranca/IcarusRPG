@@ -3,11 +3,12 @@ package dev.icaro.foodtooltips.item.legendary;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.FluidCollisionMode;
@@ -29,18 +30,19 @@ import org.bukkit.util.RayTraceResult;
  * Demon King's Longsword's "Storm of White Flames": same F-key trigger as {@code
  * SwordThrowListener} (ignored while sneaking, so it never collides with {@code
  * SkillsListener}'s sneak+swap shortcut), gated by its own cooldown and a flat Mana
- * cost rather than the combat tree. On activation, strikes cosmetic lightning at
- * several random points within a small radius of wherever the player is looking and
- * deals flat damage to any living entity caught near each strike - via {@link
- * CombatAbilityService#dealAbilityDamage} so {@code CombatListener} doesn't reprocess
- * it through the melee multiplier stack, same as Sword Throw.
+ * cost rather than the combat tree. On activation, finds every living entity within
+ * {@link #TARGET_SEARCH_RADIUS} of wherever the player is looking and strikes cosmetic
+ * lightning directly on each one (up to {@link #STRIKE_COUNT} of them) - not random
+ * points in the area, so every bolt actually lands on an enemy the player was aiming
+ * at. Damage is dealt via {@link CombatAbilityService#dealAbilityDamage} so {@code
+ * CombatListener} doesn't reprocess it through the melee multiplier stack, same as
+ * Sword Throw.
  */
 public final class DemonKingStormListener implements Listener {
     private static final long COOLDOWN_MILLIS = 30_000L;
     private static final int MANA_COST = 40;
     private static final int STRIKE_COUNT = 6;
-    private static final double STRIKE_SPREAD_RADIUS = 4.0;
-    private static final double STRIKE_DAMAGE_RADIUS = 2.5;
+    private static final double TARGET_SEARCH_RADIUS = 4.0;
     private static final double STRIKE_DAMAGE = 100.0;
     private static final double MAX_RANGE = 20.0;
     private static final long TICKS_BETWEEN_STRIKES = 4L;
@@ -90,31 +92,46 @@ public final class DemonKingStormListener implements Listener {
         return true;
     }
 
+    /** Every living entity (excluding {@code p} itself) within {@link #TARGET_SEARCH_RADIUS} of {@code origin}, closest first, capped at {@link #STRIKE_COUNT}. */
+    private List<LivingEntity> nearbyTargets(Player p, Location origin, World world) {
+        List<LivingEntity> targets = new ArrayList<>();
+        for (Entity nearby : world.getNearbyEntities(origin, TARGET_SEARCH_RADIUS, TARGET_SEARCH_RADIUS, TARGET_SEARCH_RADIUS)) {
+            if (nearby instanceof LivingEntity target && target != p) {
+                targets.add(target);
+            }
+        }
+        targets.sort((a, b) -> Double.compare(a.getLocation().distanceSquared(origin), b.getLocation().distanceSquared(origin)));
+        return targets.size() > STRIKE_COUNT ? targets.subList(0, STRIKE_COUNT) : targets;
+    }
+
     private void cast(Player p) {
         Location origin = this.targetPoint(p);
         World world = origin.getWorld();
         if (world == null) {
             return;
         }
+        List<LivingEntity> targets = this.nearbyTargets(p, origin, world);
+        if (targets.isEmpty()) {
+            // Nothing in the area the player was looking at - one cosmetic strike there
+            // so the ability still gives feedback instead of silently doing nothing.
+            world.strikeLightningEffect(origin);
+            return;
+        }
         new BukkitRunnable() {
-            int strikes;
+            int index;
 
             @Override
             public void run() {
-                if (this.strikes >= STRIKE_COUNT || !p.isOnline()) {
+                if (this.index >= targets.size() || !p.isOnline()) {
                     this.cancel();
                     return;
                 }
-                double dx = (ThreadLocalRandom.current().nextDouble() * 2.0 - 1.0) * STRIKE_SPREAD_RADIUS;
-                double dz = (ThreadLocalRandom.current().nextDouble() * 2.0 - 1.0) * STRIKE_SPREAD_RADIUS;
-                Location strikeLocation = origin.clone().add(dx, 0.0, dz);
-                world.strikeLightningEffect(strikeLocation);
-                for (Entity nearby : world.getNearbyEntities(strikeLocation, STRIKE_DAMAGE_RADIUS, STRIKE_DAMAGE_RADIUS, STRIKE_DAMAGE_RADIUS)) {
-                    if (nearby instanceof LivingEntity target && target != p) {
-                        DemonKingStormListener.this.abilities.dealAbilityDamage(p, target, STRIKE_DAMAGE);
-                    }
+                LivingEntity target = targets.get(this.index);
+                if (target.isValid() && !target.isDead()) {
+                    world.strikeLightningEffect(target.getLocation());
+                    DemonKingStormListener.this.abilities.dealAbilityDamage(p, target, STRIKE_DAMAGE);
                 }
-                this.strikes++;
+                this.index++;
             }
         }.runTaskTimer(this.plugin, 0L, TICKS_BETWEEN_STRIKES);
     }
