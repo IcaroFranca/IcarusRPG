@@ -70,6 +70,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -84,6 +85,7 @@ extends JavaPlugin {
 
     public void onEnable() {
         this.saveDefaultConfig();
+        this.mergeConfigDefaults();
         if (this.getConfig().getInt("combat.max-level", 50) < 200) {
             this.getConfig().set("combat.max-level", 200);
             this.saveConfig();
@@ -373,6 +375,29 @@ extends JavaPlugin {
         }
         if (this.progressBar != null) {
             this.progressBar.shutdown();
+        }
+    }
+
+    /**
+     * saveDefaultConfig() only ever writes config.yml if it doesn't exist yet on disk -
+     * a server upgrading from an older jar keeps its existing file untouched, so any
+     * section a newer version adds (like island-mobs) is simply missing there and every
+     * getInt/getString call on it silently falls back to 0/empty instead of the real
+     * bundled default. Layering the jar's own config.yml in as Bukkit "defaults" and
+     * copying only the keys genuinely absent from the live file (never touching ones
+     * already set) fixes that for this and every future config addition, not just this one.
+     */
+    private void mergeConfigDefaults() {
+        try (java.io.InputStream in = this.getResource("config.yml")) {
+            if (in == null) {
+                return;
+            }
+            YamlConfiguration defaults = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+            this.getConfig().addDefaults(defaults);
+            this.getConfig().options().copyDefaults(true);
+            this.saveConfig();
+        } catch (java.io.IOException ex) {
+            this.getLogger().warning("Could not merge new config.yml defaults: " + ex.getMessage());
         }
     }
 
