@@ -69,6 +69,10 @@ public final class BiomeWandListener implements Listener {
         if (clicked == null) {
             return;
         }
+        if (!this.wand.biomeAvailable(e.getItem())) {
+            p.sendActionBar(Component.text(l.choose("Esse bioma não está instalado neste servidor.", "That biome isn't installed on this server."), NamedTextColor.RED));
+            return;
+        }
         int painted = this.wand.paint(p, clicked, e.getItem());
         if (painted <= 0) {
             p.sendActionBar(Component.text(l.choose("Já é esse bioma por aqui.", "Already this biome around here."), NamedTextColor.RED));

@@ -1,6 +1,8 @@
 package dev.icaro.foodtooltips.biome;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.block.Biome;
 
 /**
@@ -22,7 +24,13 @@ public enum BiomeOption {
     OLD_GROWTH_PINE_TAIGA(Biome.OLD_GROWTH_PINE_TAIGA, Material.PODZOL, "Taiga Antiga", "Old Growth Pine Taiga"),
     BADLANDS(Biome.BADLANDS, Material.RED_SAND, "Terras Áridas", "Badlands"),
     CHERRY_GROVE(Biome.CHERRY_GROVE, Material.CHERRY_LEAVES, "Bosque de Cerejeiras", "Cherry Grove"),
-    MEADOW(Biome.MEADOW, Material.PINK_PETALS, "Prado", "Meadow");
+    MEADOW(Biome.MEADOW, Material.PINK_PETALS, "Prado", "Meadow"),
+    // Custom biome from the IcarusBiomes datapack (github.com/IcaroFranca/IcarusBiomes) -
+    // resolved dynamically from the server's biome registry rather than a compile-time
+    // constant, since it doesn't exist unless that datapack is actually installed. biome()
+    // is null (and this option quietly excluded from the wand's menu, see
+    // BiomeWandService#availableOptions) when the datapack isn't present.
+    SHADOWED_GRAVEYARD(resolveCustomBiome("icarusrpg", "shadowed_graveyard"), Material.WITHER_ROSE, "Cemitério Sombrio", "Shadowed Graveyard");
 
     private final Biome biome;
     private final Material icon;
@@ -36,6 +44,15 @@ public enum BiomeOption {
         this.nameEn = nameEn;
     }
 
+    private static Biome resolveCustomBiome(String namespace, String key) {
+        try {
+            return Registry.BIOME.get(new NamespacedKey(namespace, key));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /** Null if this is a datapack-provided biome and that datapack isn't installed on the server. */
     public Biome biome() {
         return this.biome;
     }

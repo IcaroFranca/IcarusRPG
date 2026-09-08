@@ -59,11 +59,11 @@ public final class BiomeWandService {
     private record Snapshot(World world, int x, int y, int z, Biome previous) {
     }
 
-    /** One slot per {@link BiomeOption}, by declaration order - two 7-wide rows plus one, avoiding the inventory's left/right border columns. */
+    /** One slot per available {@link BiomeOption} (see {@link #availableOptions}), by declaration order - two 7-wide rows plus two, avoiding the inventory's left/right border columns. */
     private static final int[] BIOME_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
-            28};
+            28, 29};
     private static final int RADIUS_SLOT = 40;
 
     public BiomeWandService(Plugin plugin, ItemTierService tiers) {
@@ -163,7 +163,7 @@ public final class BiomeWandService {
             v.setItem(i, filler);
         }
         BiomeOption selected = this.selectedBiome(item);
-        BiomeOption[] options = BiomeOption.values();
+        BiomeOption[] options = this.availableOptions();
         for (int i = 0; i < options.length && i < BIOME_SLOTS.length; i++) {
             v.setItem(BIOME_SLOTS[i], this.biomeOption(options[i], options[i] == selected, l));
         }
@@ -202,13 +202,23 @@ public final class BiomeWandService {
 
     /** Which {@link BiomeOption} (if any) sits at {@code slot} in {@link #BIOME_SLOTS} - mirrors {@link #renderMenu}'s placement exactly. */
     private BiomeOption optionAtSlot(int slot) {
-        BiomeOption[] options = BiomeOption.values();
+        BiomeOption[] options = this.availableOptions();
         for (int i = 0; i < BIOME_SLOTS.length && i < options.length; i++) {
             if (BIOME_SLOTS[i] == slot) {
                 return options[i];
             }
         }
         return null;
+    }
+
+    /** Every {@link BiomeOption} whose biome actually exists on this server - a datapack-provided one drops out silently if that datapack isn't installed, instead of showing a broken menu button. */
+    private BiomeOption[] availableOptions() {
+        return java.util.Arrays.stream(BiomeOption.values()).filter(o -> o.biome() != null).toArray(BiomeOption[]::new);
+    }
+
+    /** Whether {@code item}'s currently selected biome actually exists on this server - false means its datapack isn't installed, so {@link #paint} must not be called. */
+    public boolean biomeAvailable(ItemStack item) {
+        return this.selectedBiome(item).biome() != null;
     }
 
     private void setBiomeOption(ItemStack item, BiomeOption option, Language l) {
