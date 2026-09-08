@@ -7,7 +7,6 @@ import dev.icaro.foodtooltips.biome.BiomeWandListener;
 import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.builder.BuilderWandListener;
 import dev.icaro.foodtooltips.builder.BuilderWandService;
-import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
@@ -104,8 +103,7 @@ extends JavaPlugin {
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
-        CitizensIntegrationService citizensIntegration = new CitizensIntegrationService();
-        IslandMobService islandMobs = new IslandMobService((Plugin)this, citizensIntegration);
+        IslandMobService islandMobs = new IslandMobService((Plugin)this);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
         stats.abilities(abilities);
         EconomyService economy = new EconomyService((Plugin)this, abilities);
@@ -265,10 +263,6 @@ extends JavaPlugin {
             return true;
         });
         this.getCommand("islandmobs").setExecutor((s, c, l, a) -> {
-            if (!citizensIntegration.sentinelAvailable()) {
-                s.sendMessage((Component)Component.text((String)this.text(s, "Precisa do Citizens e do Sentinel instalados no servidor.", "Needs both Citizens and Sentinel installed on the server."), (TextColor)NamedTextColor.RED));
-                return true;
-            }
             int spawned = islandMobs.spawnPopulation();
             s.sendMessage((Component)Component.text((String)(this.text(s, "Mobs da ilha reiniciados: ", "Island mobs respawned: ") + spawned), (TextColor)NamedTextColor.GREEN));
             return true;

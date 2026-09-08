@@ -139,10 +139,10 @@ biome-wand:
   # menu - 0 always means "just the clicked block" regardless of this cap.
   max-radius: 10
 island-mobs:
-  # Custom combat mobs (Citizens NPCs with Sentinel combat AI) for the combat island's
-  # starting area. Needs both Citizens and Sentinel installed on the server - silently
-  # does nothing otherwise. The zone is a rectangular X/Z area (full world height) in
-  # one world; natural mob spawns inside it are suppressed so only these mobs appear.
+  # Custom combat mobs (plain vanilla Zombies in gear - full vanilla combat AI,
+  # already aggressive toward players out of the box) for the combat island's
+  # starting area. The zone is a rectangular X/Z area (full world height) in one
+  # world; natural mob spawns inside it are suppressed so only these mobs appear.
   enabled: true
   world: combat_island
   min-x: -29
@@ -151,8 +151,11 @@ island-mobs:
   max-z: 30
   suppress-natural-spawns: true
   sentinela:
-    # Minecraft username the NPC borrows its skin from.
-    skin: Fraagelo
+    # Base64 "Value" texture for the custom player-head worn as the helmet (the same
+    # kind of string used in /give ... player_head[profile={properties:[{name:"textures",
+    # value:"..."}]}] commands, e.g. from a site like minecraft-heads.com). The mob's
+    # own body/skin is a plain vanilla Zombie - only the head is a custom texture.
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2IwNGZhY2YyZDY2OWRhM2Y1MDAxZjdiMDdmODI5OTExNzQ5Y2Y0OWM5ODY1MWQ2ZTUwMzNiNWNmMTQ0ODhiYSJ9fX0="
     health: 200.0
     damage: 12.0
     # Ticks after death before Sentinel respawns it at its original spawn point.
