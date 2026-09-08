@@ -39,10 +39,10 @@ import org.bukkit.util.Vector;
  * Knight Killer's armored bonus, Two as One / Kamish's Wrath's Strength-scaling damage,
  * and Kasaka's Venom Fang's on-hit Paralyze/Bleed procs. {@code CombatListener#damage}
  * calls into this right alongside its own level/crit/Strength multiplier stack -
- * everything static (base Attack Damage, the -1 Swing Range penalty, Baruka's Agility)
- * is instead a plain {@link EquipmentSlotGroup#MAINHAND} attribute modifier on the item
- * itself, exactly like {@code SwordDamageService} does for plain swords, so it needs no
- * per-tick refresh loop.
+ * everything static (base Attack Damage, the dagger -1/longsword +2 Swing Range delta,
+ * Baruka's Agility) is instead a plain {@link EquipmentSlotGroup#MAINHAND} attribute
+ * modifier on the item itself, exactly like {@code SwordDamageService} does for plain
+ * swords, so it needs no per-tick refresh loop.
  */
 public final class LegendaryWeaponService {
     /** Tags an item as one specific {@link LegendaryWeapon} - see {@link #of} and {@link #isLegendary}. */
@@ -55,6 +55,8 @@ public final class LegendaryWeaponService {
 
     /** Daggers swing 1 block shorter than a normal sword - Kamish's Wrath is exempt (see its class doc). */
     private static final double DAGGER_RANGE_PENALTY = -1.0;
+    /** A longsword swings 2 blocks farther than a normal sword. */
+    private static final double LONGSWORD_RANGE_BONUS = 2.0;
     /**
      * 1 point of Agility -&gt; +1% of vanilla's base Movement Speed (0.1) while wielded -
      * the same clean one-for-one relationship Intelligence has with Max Mana, just
@@ -144,10 +146,11 @@ public final class LegendaryWeaponService {
                 new AttributeModifier(SPEED_KEY, SwordDamageService.ATTACK_SPEED_DELTA, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         boolean dagger = w.type() == WeaponType.DAGGER;
         boolean rangeExempt = w == LegendaryWeapon.KAMISH_WRATH;
-        Attribute rangeAttribute = dagger && !rangeExempt ? PlayerStatsService.resolveEntityInteractionRangeAttribute() : null;
+        double rangeDelta = dagger ? (rangeExempt ? 0.0 : DAGGER_RANGE_PENALTY) : LONGSWORD_RANGE_BONUS;
+        Attribute rangeAttribute = rangeDelta != 0.0 ? PlayerStatsService.resolveEntityInteractionRangeAttribute() : null;
         if (rangeAttribute != null) {
             meta.addAttributeModifier(rangeAttribute,
-                    new AttributeModifier(RANGE_KEY, DAGGER_RANGE_PENALTY, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+                    new AttributeModifier(RANGE_KEY, rangeDelta, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         }
         if (w.agility() > 0) {
             meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
@@ -171,6 +174,8 @@ public final class LegendaryWeaponService {
                             ? (pt ? "Alcance normal, dobra o dano por trás." : "Normal range, doubles damage from behind.")
                             : (pt ? "-1 alcance, dobra o dano por trás." : "-1 range, doubles damage from behind."),
                     NamedTextColor.DARK_GRAY));
+        } else {
+            lore.add(this.line(pt ? "+2 alcance de ataque." : "+2 attack range.", NamedTextColor.DARK_GRAY));
         }
         meta.lore(lore);
         item.setItemMeta(meta);

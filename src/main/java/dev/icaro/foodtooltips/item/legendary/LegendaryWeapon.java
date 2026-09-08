@@ -25,7 +25,7 @@ import org.bukkit.Material;
 public enum LegendaryWeapon {
     KASAKA_VENOM_FANG(WeaponType.DAGGER, ItemTier.C, Material.IRON_SWORD, 25.0, 0, "Presa de Veneno de Kasaka", "Kasaka's Venom Fang"),
     KNIGHT_KILLER(WeaponType.DAGGER, ItemTier.B, Material.DIAMOND_SWORD, 75.0, 0, "Matador de Cavaleiros", "Knight Killer"),
-    BARUKA_DAGGER(WeaponType.DAGGER, ItemTier.A, Material.DIAMOND_SWORD, 110.0, 10, "Adaga de Baruka", "Baruka's Dagger"),
+    BARUKA_DAGGER(WeaponType.DAGGER, ItemTier.A, Material.DIAMOND_SWORD, 110.0, 50, "Adaga de Baruka", "Baruka's Dagger"),
     DEMON_KING_DAGGERS(WeaponType.DAGGER, ItemTier.S, Material.NETHERITE_SWORD, 220.0, 0, "Adagas do Rei Demônio", "Demon King's Daggers"),
     DEMON_KING_LONGSWORD(WeaponType.LONGSWORD, ItemTier.S, Material.NETHERITE_SWORD, 350.0, 0, "Espada Longa do Rei Demônio", "Demon King's Longsword"),
     KAMISH_WRATH(WeaponType.DAGGER, ItemTier.S, Material.NETHERITE_SWORD, 1500.0, 0, "Fúria de Kamish", "Kamish's Wrath");
