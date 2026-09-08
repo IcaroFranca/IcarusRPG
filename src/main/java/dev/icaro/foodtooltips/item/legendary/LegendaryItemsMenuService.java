@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item.legendary;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.island.IslandAccessService;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,12 +34,15 @@ public final class LegendaryItemsMenuService {
             29, LegendaryWeapon.DEMON_KING_LONGSWORD,
             31, LegendaryWeapon.KAMISH_WRATH,
             33, LegendaryWeapon.UNDEAD_SWORD);
+    private static final int TICKET_SLOT = 35;
 
     private final LegendaryWeaponService weapons;
+    private final IslandAccessService access;
     private final Set<UUID> viewing = new HashSet<>();
 
-    public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
+    public LegendaryItemsMenuService(LegendaryWeaponService weapons, IslandAccessService access) {
         this.weapons = weapons;
+        this.access = access;
     }
 
     public void open(Player p) {
@@ -51,6 +55,7 @@ public final class LegendaryItemsMenuService {
         for (Map.Entry<Integer, LegendaryWeapon> e : SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.preview(e.getValue(), l));
         }
+        v.setItem(TICKET_SLOT, this.ticketPreview(l));
         p.openInventory(v);
         this.viewing.add(p.getUniqueId());
     }
@@ -64,11 +69,20 @@ public final class LegendaryItemsMenuService {
     }
 
     public void handleClick(Player p, int slot) {
+        Language l = Language.of(p);
+        if (slot == TICKET_SLOT) {
+            ItemStack ticket = this.access.create(l);
+            for (ItemStack overflow : p.getInventory().addItem(ticket).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+            }
+            p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ")
+                    + l.choose("Bilhete da Ilha de Combate", "Combat Island Ticket"), NamedTextColor.GREEN));
+            return;
+        }
         LegendaryWeapon w = SLOTS.get(slot);
         if (w == null) {
             return;
         }
-        Language l = Language.of(p);
         ItemStack item = this.weapons.create(w, l);
         for (ItemStack overflow : p.getInventory().addItem(item).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), overflow);
@@ -79,6 +93,18 @@ public final class LegendaryItemsMenuService {
     /** The menu tile: {@code w}'s real item plus one extra "click to receive" line. */
     private ItemStack preview(LegendaryWeapon w, Language l) {
         ItemStack item = this.weapons.create(w, l);
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+        lore.add(Component.empty());
+        lore.add(Component.text(l.choose("Clique para receber.", "Click to receive."), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** The ticket's menu tile: the real ticket item plus one extra "click to receive" line. */
+    private ItemStack ticketPreview(Language l) {
+        ItemStack item = this.access.create(l);
         ItemMeta meta = item.getItemMeta();
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
         lore.add(Component.empty());

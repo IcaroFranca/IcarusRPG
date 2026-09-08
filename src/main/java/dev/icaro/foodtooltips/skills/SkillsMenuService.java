@@ -348,7 +348,7 @@ public final class SkillsMenuService {
         int defense = this.armor.defense(p);
         long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
         double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0;
-        double critChance = this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p);
+        double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p));
         List<Component> lore = List.of(
                 this.text(l.choose("Veja seu equipamento, status e mais!", "View your equipment, stats, and more!"), NamedTextColor.GRAY),
                 Component.empty(),
@@ -425,7 +425,7 @@ public final class SkillsMenuService {
         int defense = this.armor.defense(p);
         double combatCritChance = this.combat.critChance(c.level());
         double critChanceBonus = this.abilities.critChanceBonus(p);
-        double critChance = combatCritChance + critChanceBonus;
+        double critChance = Math.min(100.0, combatCritChance + critChanceBonus);
         boolean criticalMastery = this.abilities.enabled(p, CombatAbility.CRITICAL_MASTERY);
         double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0;
         long globalStrength = g.level() / (long) this.global.levelsPerStrength() * (long) this.global.strengthPerGroup();
