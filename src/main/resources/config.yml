@@ -149,6 +149,10 @@ island-mobs:
   # island is actually painted. Natural mob spawns are suppressed on that same biome.
   enabled: true
   world: combat_island
+  # Blocks anyone not in Creative mode from placing/breaking blocks anywhere in
+  # island-mobs.world (OPs always bypass, for quick admin fixes without switching
+  # gamemode) - protects the hand-built graveyard from survival players.
+  protect-blocks: true
   # Just a "look for the biome somewhere in here" hint for picking spawn points -
   # not a strict boundary. Make it generous enough to cover the whole painted area.
   min-x: -29
