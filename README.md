@@ -1571,6 +1571,16 @@ automático (só entradas vanilla "canônicas" ganham essa conveniência) -
 (`island-mobs.mobs.dealt.head-texture`), `Espectro Ossudo` mostra uma
 cabeça de esqueleto (`Material.SKELETON_SKULL`).
 
+Também têm sua própria aba: como `Dealt`/`Espectro Ossudo` reaproveitam
+os `EntityType` ZOMBIE/SKELETON só pra herdar a IA vanilla, sem esse
+override eles cairiam automaticamente na aba "Monstros
+terrestres"/"Overworld Monsters" junto dos zumbis e esqueletos reais -
+mas não são mobs do Overworld de verdade. `BestiaryEntry.categoryOverride`
+deixa uma entrada variante escolher sua própria aba
+(`BestiaryCategory.COMBAT_ISLAND`, ícone de Wither Rose - o mesmo usado
+no bioma Cemitério Sombrio na Biome's Wand) em vez de cair no
+`switch` genérico por `EntityType` que toda entrada canônica usa.
+
 Mobs atuais:
 - **Dealt** (Zumbi) - 200 de vida, 12 de dano, +20% de velocidade,
   armadura de ferro completa, cabeça customizada, Undead's Sword na mão.

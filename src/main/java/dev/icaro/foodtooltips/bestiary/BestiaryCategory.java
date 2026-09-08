@@ -10,7 +10,9 @@ public enum BestiaryCategory {
     AQUATIC(Material.WATER_BUCKET, "Aqu\u00e1ticos", "Aquatic"),
     CAVES(Material.DEEPSLATE, "Cavernas", "Caves"),
     NETHER(Material.NETHERRACK, "Nether", "Nether"),
-    THE_END(Material.END_STONE, "The End", "The End");
+    THE_END(Material.END_STONE, "The End", "The End"),
+    /** Custom mobs from the combat island (dev.icaro.foodtooltips.island) - never mixed into TERRESTRIAL just because they share a vanilla EntityType (Zombie, Skeleton...) with real Overworld mobs. */
+    COMBAT_ISLAND(Material.WITHER_ROSE, "Ilha de Combate", "Combat Island");
 
     private final Material icon;
     private final String pt;
