@@ -40,7 +40,11 @@ public final class TravelMenuService {
         this.plugin = plugin;
         this.combat = combat;
         this.back = back;
-        this.defaultWorld = plugin.getConfig().getString("travel.default-world", "world");
+        // Blank/unset falls back to the server's actual primary world (server.properties'
+        // level-name, always Bukkit.getWorlds().get(0)) instead of a hardcoded guess like
+        // "world" - Multiverse and similar setups often name it something else entirely.
+        String configuredDefault = plugin.getConfig().getString("travel.default-world", "");
+        this.defaultWorld = configuredDefault.isBlank() ? Bukkit.getWorlds().get(0).getName() : configuredDefault;
         this.islandWorld = plugin.getConfig().getString("island-mobs.world", "combat_island");
         this.islandMinLevel = plugin.getConfig().getInt("travel.combat-island-min-level", 5);
     }
@@ -94,8 +98,16 @@ public final class TravelMenuService {
             return;
         }
         p.closeInventory();
-        p.teleportAsync(world.getSpawnLocation());
-        p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
+        // teleportAsync's future must actually be checked - it completes with false (no
+        // exception) on a failed teleport, so declaring success unconditionally right
+        // after calling it would lie to the player whenever the teleport doesn't land.
+        p.teleportAsync(world.getSpawnLocation()).thenAccept(success -> {
+            if (Boolean.TRUE.equals(success)) {
+                p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
+            } else {
+                p.sendMessage(Component.text(l.choose("Não foi possível teleportar agora. Tente de novo.", "Couldn't teleport right now. Try again."), NamedTextColor.RED));
+            }
+        });
     }
 
     private Component text(String value, NamedTextColor color) {
