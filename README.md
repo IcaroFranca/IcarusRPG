@@ -1421,3 +1421,11 @@ sem tocar em nenhuma outra parte da lore. Atualiza sozinho conforme o
 Strength do jogador muda (Nível Global, Coleta...), do mesmo jeito que a
 linha de Velocidade de Ataque das espadas comuns já se mantém atual com
 o nível de Combate.
+
+## Paralisia e Sangramento da Presa de Kasaka sempre juntos, 30% de chance
+
+Eram dois rolls independentes de 25% cada - dava pra proc só um dos dois
+efeitos no mesmo golpe, ou nenhum, ou os dois. Agora é um único roll de
+30% (`PROC_CHANCE` em `LegendaryWeaponService`) que aplica os dois
+efeitos juntos sempre que acontece - nunca só um. A lore também virou
+uma linha só ("Paralisia + Sangramento: 30% de chance") em vez de duas.
