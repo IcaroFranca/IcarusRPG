@@ -1604,3 +1604,43 @@ próprio.
 Além do menu `/rpgitems`, também dropa dos mobs da ilha de combate
 (Dealt e Espectro Ossudo, 2.5% cada) - a primeira Arma Lendária a ter
 uma segunda fonte de obtenção além do menu admin.
+
+## Chance de crítico: fim do crit por pulo, base fixa de 20%
+
+O crítico vanilla "pula e ataca no ar" (`CombatListener#damage`'s
+antigo `vanillaCritical`) foi removido por completo - crítico agora só
+acontece pela rolagem de porcentagem do próprio sistema de Combate,
+nunca automaticamente por estar caindo.
+
+`CombatSkillService#critChance(level)` ganhou uma base fixa,
+`combat.base-crit-chance` (padrão 20.0) no `config.yml`, somada ao
+scaling por nível de sempre (`combat.crit-chance-per-level`) - ou seja,
+todo jogador começa com 20% de chance de crítico mesmo no Nível de
+Combate 0, sem precisar pular.
+
+Como a base passou a somar com o scaling por nível e com o bônus da
+árvore de habilidades (`Ruthless Strikes`), o total já conseguia passar
+de 100% antes mesmo dessa mudança (Nível 200 × 0.5%/nível = 100%, mais
+até +10% do nó no rank máximo = 110%) - por isso todo lugar que soma
+esses dois números agora passa o resultado por `Math.min(100.0, ...)`:
+a rolagem de dano em `CombatListener#damage`, e as duas exibições de
+Chance de Crítico no menu `/skills` (`SkillsMenuService#head` e
+`#combatStatsItem`). Nunca vai aparecer, nem valer na prática, mais que
+100% de chance de crítico.
+
+## Bilhete da Ilha de Combate (`/rpgitems`)
+
+Primeiro passo da progressão de acesso à ilha de combate: um item
+consumível (`IslandAccessService`, Tier B, representado por um Papel
+comum) que ao ser clicado com o botão direito (`IslandAccessListener`)
+teleporta o jogador pro spawn do mundo configurado em
+`island-access.world` (padrão `combat_island`) e consome uma unidade -
+desde que o jogador já tenha o Nível de Combate mínimo configurado em
+`island-access.min-combat-level` (padrão 5, baseado em testes reais:
+com equipamento de ferro completo já dá pra lidar com uns 2 mobs da
+ilha ao mesmo tempo nesse nível). Abaixo do nível exigido, o bilhete
+não é gasto - só mostra uma mensagem dizendo o nível necessário.
+
+Por enquanto só é obtido pelo menu `/rpgitems` (mesmo padrão dos itens
+Lendários - clique pra receber uma cópia); uma forma de comprá-lo com
+Moedas fica pra uma próxima etapa.

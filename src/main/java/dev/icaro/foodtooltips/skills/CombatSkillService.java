@@ -18,6 +18,7 @@ public final class CombatSkillService {
     private final int max;
     private final double xpBase;
     private final double xpExp;
+    private final double baseCritChance;
     private final double critPer;
     private final double damagePer;
     private final double s0;
@@ -28,6 +29,7 @@ public final class CombatSkillService {
         this.max = Math.max(200, p.getConfig().getInt("combat.max-level", 200));
         this.xpBase = p.getConfig().getDouble("combat.xp-base", 100.0);
         this.xpExp = p.getConfig().getDouble("combat.xp-exponent", 1.65);
+        this.baseCritChance = p.getConfig().getDouble("combat.base-crit-chance", 20.0);
         this.critPer = p.getConfig().getDouble("combat.crit-chance-per-level", 0.5);
         this.damagePer = p.getConfig().getDouble("combat.damage-percent-per-level", 4.0);
         this.s0 = p.getConfig().getDouble("combat.attack-speed-level-0", 4.0);
@@ -70,8 +72,9 @@ public final class CombatSkillService {
         return Math.round(this.xpBase * Math.pow(Math.max(1, level), this.xpExp) + 50.0);
     }
 
+    /** Base flat chance every player starts with, plus the usual per-level scaling - not yet clamped to 100% (callers combine this with the ability-tree bonus first, see {@code CombatListener#damage}). */
     public double critChance(int level) {
-        return (double)level * this.critPer;
+        return this.baseCritChance + (double)level * this.critPer;
     }
 
     public double damageMultiplier(int level) {

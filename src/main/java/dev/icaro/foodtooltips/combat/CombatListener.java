@@ -170,10 +170,12 @@ public final class CombatListener implements Listener {
             return;
         }
         int level = this.combat.progress(p).level();
-        double critChance = this.combat.critChance(level) + this.abilities.critChanceBonus(p);
-        boolean skillCritical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
-        boolean vanillaCritical = e.getDamager() == p && p.getFallDistance() > 0.0f && !p.isOnGround() && !p.isInWater() && !p.isClimbing() && !p.isSprinting() && p.getVehicle() == null;
-        boolean critical = skillCritical || vanillaCritical;
+        // No more vanilla jump-crit - critical hits come only from the skill-based roll
+        // below (base chance + level + Ruthless Strikes), capped at 100% so nothing
+        // (base, level scaling, and the ability tree bonus all stacked) can ever push a
+        // hit past a guaranteed crit.
+        double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p));
+        boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
         // formula PvE gets, so a player's progression means the same thing in both.
