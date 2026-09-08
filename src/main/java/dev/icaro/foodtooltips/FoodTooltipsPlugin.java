@@ -23,6 +23,8 @@ import dev.icaro.foodtooltips.global.LevelColorCommand;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.global.LevelColorService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.island.IslandAccessListener;
+import dev.icaro.foodtooltips.island.IslandAccessService;
 import dev.icaro.foodtooltips.island.IslandMobListener;
 import dev.icaro.foodtooltips.island.IslandMobService;
 import dev.icaro.foodtooltips.item.DurabilityListener;
@@ -116,7 +118,8 @@ extends JavaPlugin {
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers);
         stats.legendary(legendary);
-        LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
+        IslandAccessService islandAccess = new IslandAccessService((Plugin)this, tiers, combat);
+        LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary, islandAccess);
         IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary);
         BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
@@ -156,6 +159,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
         pm.registerEvents((Listener)new IslandMobListener(islandMobs), (Plugin)this);
+        pm.registerEvents((Listener)new IslandAccessListener(islandAccess), (Plugin)this);
         // Delayed so world-management plugins (e.g. Multiverse) have a chance to finish
         // loading the island's world first if it isn't loaded at server-start time yet.
         Bukkit.getScheduler().runTaskLater((Plugin)this, () -> islandMobs.spawnPopulation(), 40L);

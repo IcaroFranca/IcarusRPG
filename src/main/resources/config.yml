@@ -35,6 +35,9 @@ hud:
   spacing: "     "
 combat:
   max-level: 200
+  # Flat crit chance every player has regardless of level - on top of this, no more
+  # vanilla jump-crit (attacking while falling no longer guarantees a crit on its own).
+  base-crit-chance: 20.0
   crit-chance-per-level: 0.5
   damage-percent-per-level: 4.0
   critical-damage-multiplier: 1.5
@@ -193,6 +196,11 @@ island-mobs:
       head-texture: ""
       respawn-ticks: 200
       count: 8
+island-access:
+  # The combat island's entry ticket (see /rpgitems) - consumable, requires this Combat
+  # Level to use, teleports to this world's spawn point on success.
+  world: combat_island
+  min-combat-level: 5
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
   # only care about relative wear, so a bigger number just means more uses before it
