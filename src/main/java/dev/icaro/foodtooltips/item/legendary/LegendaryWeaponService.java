@@ -1,6 +1,8 @@
 package dev.icaro.foodtooltips.item.legendary;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.ItemTier;
+import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
@@ -81,11 +83,13 @@ public final class LegendaryWeaponService {
 
     private final Plugin plugin;
     private final PlayerStatsService stats;
+    private final ItemTierService tiers;
     private final Map<UUID, Integer> bleedStacks = new HashMap<>();
 
-    public LegendaryWeaponService(Plugin plugin, PlayerStatsService stats) {
+    public LegendaryWeaponService(Plugin plugin, PlayerStatsService stats, ItemTierService tiers) {
         this.plugin = plugin;
         this.stats = stats;
+        this.tiers = tiers;
     }
 
     // ---- Identity ---------------------------------------------------------
@@ -116,14 +120,23 @@ public final class LegendaryWeaponService {
 
     // ---- Creation -----------------------------------------------------------
 
-    /** Builds a fresh copy of {@code w} - every attribute/lore line baked in once, nothing here ever needs a later refresh pass. */
+    /**
+     * Builds a fresh copy of {@code w} - every attribute baked in once via a plain
+     * {@link EquipmentSlotGroup#MAINHAND} modifier, nothing here ever needs a later
+     * refresh pass. Tier badge and name color come from {@link ItemTierService}, pinned
+     * via {@link ItemTierService#forceTier} (same mechanism {@code BuilderWandService}
+     * uses for its one-off Stick) and applied immediately via {@link
+     * ItemTierService#applyTier} rather than waiting for the next inventory sweep -
+     * lore stays as short as every other item's: a couple of stat lines plus, for
+     * weapons with a named effect, one line naming it and its numbers.
+     */
     public ItemStack create(LegendaryWeapon w, Language l) {
         boolean pt = l == Language.PT;
         ItemStack item = ItemStack.of(w.material());
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(ID_KEY, PersistentDataType.STRING, w.name());
-        meta.displayName(Component.text(w.name(pt), w.rarity().color())
-                .decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text(w.name(pt)).decoration(TextDecoration.ITALIC, false));
+        this.tiers.forceTier(meta, w.tier());
 
         meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
                 new AttributeModifier(DAMAGE_KEY, w.baseAttackDamage(), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
@@ -142,34 +155,48 @@ public final class LegendaryWeaponService {
         }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         meta.setUnbreakable(true);
-        if (w.rarity() == Rarity.S || w.rarity() == Rarity.MYTHIC) {
+        if (w.tier() == ItemTier.S) {
             meta.setEnchantmentGlintOverride(true);
         }
 
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(pt ? "Raridade: " : "Rarity: ", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)
-                .append(Component.text(w.rarity().label(pt), w.rarity().color())));
-        lore.add(Component.text((pt ? "Tipo: " : "Type: ") + w.type().label(pt), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text((pt ? "Ataque: +" : "Attack: +") + Math.round(w.baseAttackDamage()), NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+        lore.add(this.line((pt ? "Tipo: " : "Type: ") + w.type().label(pt), NamedTextColor.GRAY));
+        lore.add(this.line((pt ? "Ataque: +" : "Attack: +") + Math.round(w.baseAttackDamage()), NamedTextColor.RED));
         if (w.agility() > 0) {
-            lore.add(Component.text((pt ? "Agilidade: +" : "Agility: +") + w.agility(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            lore.add(this.line((pt ? "Agilidade: +" : "Agility: +") + w.agility(), NamedTextColor.GREEN));
         }
-        lore.add(Component.empty());
-        for (String line : w.description(pt)) {
-            lore.add(Component.text(line, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        }
-        lore.add(Component.empty());
+        lore.addAll(this.abilityLines(w, pt));
         if (dagger) {
-            lore.add(Component.text(rangeExempt
-                            ? (pt ? "Peso ajustável: alcance de uma espada comum." : "Adjustable weight: reach of a plain sword.")
-                            : (pt ? "-1 bloco de alcance de ataque." : "-1 block of attack range."),
-                    NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text(pt ? "Dobra o dano ao atacar pelas costas do alvo." : "Doubles damage when attacking from behind the target.",
-                    NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+            lore.add(this.line(rangeExempt
+                            ? (pt ? "Alcance normal, dobra o dano por trás." : "Normal range, doubles damage from behind.")
+                            : (pt ? "-1 alcance, dobra o dano por trás." : "-1 range, doubles damage from behind."),
+                    NamedTextColor.DARK_GRAY));
         }
         meta.lore(lore);
         item.setItemMeta(meta);
-        return item;
+        ItemStack tiered = this.tiers.applyTier(item, l);
+        return tiered != null ? tiered : item;
+    }
+
+    /** The one short line naming a weapon's special effect and its numbers - empty for Baruka's Dagger, whose only effect is the Agility stat line above. */
+    private List<Component> abilityLines(LegendaryWeapon w, boolean pt) {
+        List<Component> lines = new ArrayList<>();
+        switch (w) {
+            case KASAKA_VENOM_FANG -> {
+                lines.add(this.line(pt ? "Paralisia: 25% de chance" : "Paralyze: 25% chance", NamedTextColor.LIGHT_PURPLE));
+                lines.add(this.line(pt ? "Sangramento: 25% de chance (até 3x)" : "Bleed: 25% chance (up to 3x)", NamedTextColor.LIGHT_PURPLE));
+            }
+            case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
+            case DEMON_KING_DAGGERS -> lines.add(this.line(pt ? "Two as One: +0,5 dano/Strength" : "Two as One: +0.5 damage/Strength", NamedTextColor.LIGHT_PURPLE));
+            case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
+            case KAMISH_WRATH -> lines.add(this.line(pt ? "+1 dano/Strength" : "+1 damage/Strength", NamedTextColor.LIGHT_PURPLE));
+            default -> {}
+        }
+        return lines;
+    }
+
+    private Component line(String text, NamedTextColor color) {
+        return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
     }
 
     /** Agility granted by whatever the player is currently wielding in their main hand (0 for every weapon except Baruka's Dagger) - the number {@code PlayerStatsService#effectiveAgility} shows on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. The real Movement Speed change itself comes from the item's own attribute modifier (see {@link #create}), not from this method - this is purely the display-facing number. */
