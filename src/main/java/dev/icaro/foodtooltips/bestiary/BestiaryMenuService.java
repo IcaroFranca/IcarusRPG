@@ -54,7 +54,9 @@ public final class BestiaryMenuService {
         for (int i = 0; i < BestiaryCategory.values().length; ++i) {
             BestiaryCategory c = BestiaryCategory.values()[i];
             int slot = slots.get(i);
-            inv.setItem(slot, this.item(c.icon(), c.display(l), List.of(Component.text((String)(this.entries(c).size() + " " + l.choose("mobs catalogados", "catalogued mobs")), (TextColor)NamedTextColor.GRAY), Component.text((String)l.choose("Clique para abrir!", "Click to open!"), (TextColor)NamedTextColor.YELLOW))));
+            List<Component> lore = List.of(Component.text((String)(this.entries(c).size() + " " + l.choose("mobs catalogados", "catalogued mobs")), (TextColor)NamedTextColor.GRAY), Component.text((String)l.choose("Clique para abrir!", "Click to open!"), (TextColor)NamedTextColor.YELLOW));
+            ItemStack icon = c.headTexture() != null ? this.customHeadIcon(c.headTexture(), c.display(l), lore) : this.item(c.icon(), c.display(l), lore);
+            inv.setItem(slot, icon);
             buttons.put(slot, c);
         }
         inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar \u00e0s Skills", "Back to Skills"), List.of()));
