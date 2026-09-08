@@ -278,6 +278,7 @@ extends JavaPlugin {
             durability.applyDurability((Player)p);
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
+            legendary.refreshStrengthLore((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);
         this.getServer().getScheduler().runTaskTimer((Plugin)this, this.visuals::tick, 1L, Math.max(1L, this.getConfig().getLong("mob-visuals.update-ticks", 3L)));
@@ -305,6 +306,7 @@ extends JavaPlugin {
             durability.applyDurability((Player)p);
             swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
+            legendary.refreshStrengthLore((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             general.applyBonusHealth((Player)p);
             skillsStar.ensure((Player)p);

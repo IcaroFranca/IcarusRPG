@@ -52,6 +52,8 @@ public final class LegendaryWeaponService {
     private static final NamespacedKey SPEED_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_speed");
     private static final NamespacedKey RANGE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_range");
     private static final NamespacedKey AGILITY_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_agility");
+    /** Which lore line is the live Strength-scaling line (Two as One / Kamish's Wrath) - see {@link #refreshStrengthLore}. Absent for every other weapon. */
+    private static final NamespacedKey STRENGTH_LINE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_strength_line");
 
     /** Daggers swing 1 block shorter than a normal sword - Kamish's Wrath is exempt (see its class doc). */
     private static final double DAGGER_RANGE_PENALTY = -1.0;
@@ -172,6 +174,13 @@ public final class LegendaryWeaponService {
         if (w.agility() > 0) {
             lore.add(this.line((pt ? "Agilidade: +" : "Agility: +") + w.agility(), NamedTextColor.GREEN));
         }
+        boolean strengthScaling = w == LegendaryWeapon.DEMON_KING_DAGGERS || w == LegendaryWeapon.KAMISH_WRATH;
+        if (strengthScaling) {
+            // Recorded so refreshStrengthLore can replace just this one line later with
+            // the live number for whoever's actually holding the item - built with 0 here
+            // since the item isn't bound to any one player at creation time.
+            meta.getPersistentDataContainer().set(STRENGTH_LINE_KEY, PersistentDataType.INTEGER, lore.size());
+        }
         lore.addAll(this.abilityLines(w, pt));
         if (dagger) {
             lore.add(this.line(rangeExempt
@@ -196,16 +205,82 @@ public final class LegendaryWeaponService {
                 lines.add(this.line(pt ? "Sangramento: 25% de chance (até 3x)" : "Bleed: 25% chance (up to 3x)", NamedTextColor.LIGHT_PURPLE));
             }
             case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
-            case DEMON_KING_DAGGERS -> lines.add(this.line(pt ? "Two as One: +0,5 dano/Strength" : "Two as One: +0.5 damage/Strength", NamedTextColor.LIGHT_PURPLE));
+            case DEMON_KING_DAGGERS, KAMISH_WRATH -> lines.add(this.strengthAbilityLine(w, pt, 0));
             case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
-            case KAMISH_WRATH -> lines.add(this.line(pt ? "+1 dano/Strength" : "+1 damage/Strength", NamedTextColor.LIGHT_PURPLE));
-            default -> {}
         }
         return lines;
     }
 
+    /** "Two as One: +N (0.5/Strength)" / "+N damage (1/Strength)" - the rate plus {@code bonus}, the live number for whoever's holding it (0 when the item isn't bound to a player yet, at creation). Shared by {@link #abilityLines} (built once) and {@link #refreshStrengthLore} (recomputed per holder). */
+    private Component strengthAbilityLine(LegendaryWeapon w, boolean pt, double bonus) {
+        long rounded = Math.round(bonus);
+        return switch (w) {
+            case DEMON_KING_DAGGERS -> this.line(pt ? ("Two as One: +" + rounded + " (0,5/Strength)") : ("Two as One: +" + rounded + " (0.5/Strength)"), NamedTextColor.LIGHT_PURPLE);
+            case KAMISH_WRATH -> this.line(pt ? ("+" + rounded + " dano (1/Strength)") : ("+" + rounded + " damage (1/Strength)"), NamedTextColor.LIGHT_PURPLE);
+            default -> throw new IllegalArgumentException(w + " has no Strength-scaling line");
+        };
+    }
+
     private Component line(String text, NamedTextColor color) {
         return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
+    }
+
+    /**
+     * Rewrites the live Strength-scaling line (Two as One / Kamish's Wrath, see {@link
+     * #STRENGTH_LINE_KEY}) on every such weapon in {@code p}'s inventory (storage and
+     * off-hand) to show the bonus {@code p}'s current Strength actually grants -
+     * everything else about the item (base attributes, every other lore line) was
+     * already baked in once by {@link #create} and never needs touching again. Called
+     * from the same periodic per-player pass {@code SwordDamageService#applySwordDamage}
+     * already runs on, so the number stays current as Strength changes (Global Level,
+     * Foraging...).
+     */
+    public void refreshStrengthLore(Player p) {
+        Language l = Language.of(p);
+        var inv = p.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        boolean changed = false;
+        for (int i = 0; i < storage.length; i++) {
+            ItemStack updated = this.rewriteStrengthLine(storage[i], p, l);
+            if (updated != null) {
+                storage[i] = updated;
+                changed = true;
+            }
+        }
+        if (changed) {
+            inv.setStorageContents(storage);
+        }
+        ItemStack offhand = this.rewriteStrengthLine(inv.getItemInOffHand(), p, l);
+        if (offhand != null) {
+            inv.setItemInOffHand(offhand);
+        }
+    }
+
+    /** Returns the mutated item if its Strength line needed updating, or null if it's not a Strength-scaling weapon or is already showing the current value. */
+    private ItemStack rewriteStrengthLine(ItemStack item, Player p, Language l) {
+        LegendaryWeapon w = of(item);
+        if (w != LegendaryWeapon.DEMON_KING_DAGGERS && w != LegendaryWeapon.KAMISH_WRATH) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        Integer index = meta.getPersistentDataContainer().get(STRENGTH_LINE_KEY, PersistentDataType.INTEGER);
+        if (index == null || !meta.hasLore()) {
+            return null;
+        }
+        List<Component> lore = meta.lore();
+        if (index < 0 || index >= lore.size()) {
+            return null;
+        }
+        double bonus = this.strengthDamageBonus(p, item);
+        Component updatedLine = this.strengthAbilityLine(w, l == Language.PT, bonus);
+        if (updatedLine.equals(lore.get(index))) {
+            return null;
+        }
+        List<Component> newLore = new ArrayList<>(lore);
+        newLore.set(index, updatedLine);
+        meta.lore(newLore);
+        item.setItemMeta(meta);
+        return item;
     }
 
     /**

@@ -77,13 +77,20 @@ implements Listener {
         Language l = Language.of(p);
         boolean changed = this.update((Inventory)p.getInventory(), l, p);
         Inventory top = p.getOpenInventory().getTopInventory();
-        // A plugin GUI (Skills menu and every sub-screen) is a headless inventory built
-        // via Bukkit.createInventory(null, ...) - no holder. Running the coalesce pass
-        // on one of those merges its decorative filler tiles (every empty slot shares
-        // the SAME ItemStack reference, see SkillsMenuService#inv) into a single stack
-        // instead of leaving the background filled - only real, holder-backed
-        // inventories (chests, ender chests...) should get this pass at all.
-        if (top.getHolder() != null && (changed |= this.update(top, l, p))) {
+        // A plugin GUI (this plugin's own Skills menu and every sub-screen, but also any
+        // *other* plugin's custom inventory - e.g. a storage/chest GUI built via
+        // Bukkit.createInventory(customHolder, ...) for its own click-handling bookkeeping)
+        // is a headless inventory with no physical block behind it. getHolder() != null
+        // used to be the check here, but a plugin GUI can very much have a non-null
+        // holder of its own (its own InventoryHolder implementation, not null) while still
+        // being exactly as virtual as one of ours - getLocation() is the real
+        // discriminator: it's non-null only for an inventory actually attached to a block
+        // (a chest, barrel, ender chest...), never for a synthetic Bukkit.createInventory
+        // GUI regardless of what holder it was given. Running the coalesce pass on a
+        // virtual GUI merges its decorative filler tiles (every empty slot typically
+        // shares the SAME ItemStack reference) into a single stack instead of leaving the
+        // background filled - only real, location-backed inventories should get this pass.
+        if (top.getLocation() != null && (changed |= this.update(top, l, p))) {
             p.updateInventory();
         }
     }
