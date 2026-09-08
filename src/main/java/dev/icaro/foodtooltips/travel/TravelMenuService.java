@@ -4,9 +4,13 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem;
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
 import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -19,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -74,7 +79,10 @@ public final class TravelMenuService {
         List<Component> islandLore = unlocked
                 ? List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW))
                 : List.of(this.text(l.choose("Requer Nível de Combate ", "Requires Combat Level ") + this.islandMinLevel + ".", NamedTextColor.RED));
-        pane.addItem(new GuiItem(this.item(unlocked ? Material.NETHERITE_SWORD : Material.GRAY_DYE, l.choose("Ilha de Combate", "Combat Island"), islandLore, unlocked ? NamedTextColor.GOLD : NamedTextColor.DARK_GRAY),
+        ItemStack islandIcon = unlocked
+                ? this.customHeadItem(HeadTexture.ALIEN_GRASS, l.choose("Ilha de Combate", "Combat Island"), islandLore, NamedTextColor.GOLD)
+                : this.item(Material.GRAY_DYE, l.choose("Ilha de Combate", "Combat Island"), islandLore, NamedTextColor.DARK_GRAY);
+        pane.addItem(new GuiItem(islandIcon,
                 event -> {
                     if (!unlocked) {
                         p.sendMessage(Component.text(l.choose("Você precisa do Nível de Combate ", "You need Combat Level ") + this.islandMinLevel
@@ -117,6 +125,24 @@ public final class TravelMenuService {
     private ItemStack item(Material material, String name, List<Component> lore, NamedTextColor color) {
         ItemStack stack = ItemStack.of(material);
         ItemMeta meta = stack.getItemMeta();
+        meta.displayName(Component.text(name, (TextColor) color).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    /** A player head wearing {@code texture} (base64 "Value"), same name/lore treatment as {@link #item} - falls back to a plain head if the texture is bad. */
+    private ItemStack customHeadItem(String texture, String name, List<Component> lore, NamedTextColor color) {
+        ItemStack stack = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) stack.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            meta.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
         meta.displayName(Component.text(name, (TextColor) color).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);

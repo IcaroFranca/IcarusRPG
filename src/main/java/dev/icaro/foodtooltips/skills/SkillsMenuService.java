@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalLevelSnapshot;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
 import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
@@ -91,7 +92,7 @@ public final class SkillsMenuService {
             v.setItem(47, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
         }
         if (this.travel != null) {
-            v.setItem(51, this.item(Material.ENDER_PEARL, l.choose("Locais", "Locations"), List.of(this.click(l))));
+            v.setItem(51, this.customHead(HeadTexture.PLANET, l.choose("Locais", "Locations"), List.of(this.click(l))));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
