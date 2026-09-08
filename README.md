@@ -1644,3 +1644,13 @@ não é gasto - só mostra uma mensagem dizendo o nível necessário.
 Por enquanto só é obtido pelo menu `/rpgitems` (mesmo padrão dos itens
 Lendários - clique pra receber uma cópia); uma forma de comprá-lo com
 Moedas fica pra uma próxima etapa.
+
+## Proteção de blocos na ilha de combate
+
+`IslandProtectionListener` cancela `BlockBreakEvent`/`BlockPlaceEvent`
+pra qualquer jogador que não esteja em modo Criativo enquanto estiver
+em `island-mobs.world` (mesmo mundo do `combat_island`) - protege a
+construção do cemitério contra grief/farm por jogadores em modo
+sobrevivência. OP sempre ignora a restrição (ajustes rápidos de admin
+sem precisar trocar de gamemode). Liga/desliga em
+`island-mobs.protect-blocks` (padrão `true`).
