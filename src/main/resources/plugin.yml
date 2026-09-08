@@ -54,7 +54,7 @@ commands:
     usage: /rpgitems
     permission: foodtooltips.admin
   islandmobs:
-    description: (Re)spawns the combat island's custom mobs (admin-only, needs Citizens + Sentinel).
+    description: (Re)spawns the combat island's custom mobs (admin-only).
     usage: /islandmobs
     permission: foodtooltips.admin
 permissions:
