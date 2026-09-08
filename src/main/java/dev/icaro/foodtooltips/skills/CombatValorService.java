@@ -69,7 +69,7 @@ public final class CombatValorService {
      * mobs without a Bestiary entry fall back to a health-based estimate.
      */
     public long mobValor(LivingEntity mob) {
-        return BestiaryCatalog.find(mob.getType()).map(this::catalogValor).orElseGet(() -> this.fallbackValor(mob));
+        return BestiaryCatalog.find(mob).map(this::catalogValor).orElseGet(() -> this.fallbackValor(mob));
     }
 
     /** Blood Points a Bestiary entry awards on kill — shown in the Bestiary UI. */

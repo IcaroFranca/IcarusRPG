@@ -138,6 +138,26 @@ biome-wand:
   # Max radius (in blocks) the Biome's Wand's brush can be set to via its left-click
   # menu - 0 always means "just the clicked block" regardless of this cap.
   max-radius: 10
+island-mobs:
+  # Custom combat mobs (Citizens NPCs with Sentinel combat AI) for the combat island's
+  # starting area. Needs both Citizens and Sentinel installed on the server - silently
+  # does nothing otherwise. The zone is a rectangular X/Z area (full world height) in
+  # one world; natural mob spawns inside it are suppressed so only these mobs appear.
+  enabled: true
+  world: combat_island
+  min-x: -29
+  max-x: 30
+  min-z: -29
+  max-z: 30
+  suppress-natural-spawns: true
+  sentinela:
+    # Minecraft username the NPC borrows its skin from.
+    skin: Fraagelo
+    health: 200.0
+    damage: 12.0
+    # Ticks after death before Sentinel respawns it at its original spawn point.
+    respawn-ticks: 200
+    count: 3
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
   # only care about relative wear, so a bigger number just means more uses before it

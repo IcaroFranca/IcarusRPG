@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.combat;
 
 import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
+import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
@@ -34,7 +35,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -177,7 +177,7 @@ public final class CombatListener implements Listener {
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
         // formula PvE gets, so a player's progression means the same thing in both.
-        double mobBonus = playerTarget ? 1.0 : 1.0 + this.bestiary.damageBonus(p, target.getType());
+        double mobBonus = playerTarget ? 1.0 : 1.0 + BestiaryCatalog.find(target).map(entry -> this.bestiary.damageBonus(p, entry)).orElse(0.0);
         ItemStack weapon = p.getInventory().getItemInMainHand();
         double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
@@ -221,15 +221,18 @@ public final class CombatListener implements Listener {
         if (p == null) {
             return;
         }
-        BestiaryCatalog.find(e.getEntityType()).ifPresent(entry -> {
-            BestiaryProgressService.MilestoneUpdate update = this.bestiary.recordKill(p, e.getEntityType());
-            this.applyLootBonus(p, e);
+        BestiaryCatalog.find(e.getEntity()).ifPresent(entry -> {
+            BestiaryProgressService.MilestoneUpdate update = this.bestiary.recordKill(p, entry);
+            this.applyLootBonus(p, e, entry);
             if (update.unlocked()) {
                 long reward = this.global.creditMilestones(p, "bestiary", this.bestiary.totalMilestones(p), GlobalXpSource.BESTIARY_MILESTONE);
-                this.milestoneMessage(p, e.getEntityType(), update.after(), reward);
+                this.milestoneMessage(p, entry, update.after(), reward);
             }
         });
-        if (e.getEntity() instanceof Enemy) {
+        // A Citizens-tagged NPC (our own custom island mobs) is never instanceof Enemy -
+        // it's a Player-type entity under the hood - so it needs its own check here to
+        // still count as a hostile kill for coins/valor/XP.
+        if (e.getEntity() instanceof Enemy || CitizensIntegrationService.isNpc(e.getEntity())) {
             int coins = this.economy.mobCoins(p, e.getEntity());
             this.economy.deposit(p, coins);
             long valorEarned = this.valor.mobValor(e.getEntity());
@@ -238,7 +241,7 @@ public final class CombatListener implements Listener {
             AttributeInstance a = e.getEntity().getAttribute(Attribute.MAX_HEALTH);
             double hp = a == null ? e.getEntity().getHealth() : a.getValue();
             double fallback = Math.max(1L, Math.round(Math.max(5.0, hp * this.hpXp + this.visuals.level(e.getEntity()) * this.levelXp) / 10.0));
-            double xp = BestiaryCatalog.find(e.getEntityType()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
+            double xp = BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
             int oldLevel = this.combat.progress(p).level();
             int levels = this.combat.addXp(p, xp);
             int newLevel = this.combat.progress(p).level();
@@ -353,8 +356,8 @@ public final class CombatListener implements Listener {
         this.economy.clearBoard(e.getPlayer());
     }
 
-    private void applyLootBonus(Player p, EntityDeathEvent e) {
-        double bonus = this.bestiary.lootBonus(p, e.getEntityType());
+    private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {
+        double bonus = this.bestiary.lootBonus(p, entry);
         if (bonus <= 0.0) {
             return;
         }
@@ -412,11 +415,11 @@ public final class CombatListener implements Listener {
         return false;
     }
 
-    private void milestoneMessage(Player p, EntityType type, int milestone, long globalXp) {
+    private void milestoneMessage(Player p, BestiaryEntry entry, int milestone, long globalXp) {
         Language l = Language.of(p);
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DO BESTIÁRIO!", "BESTIARY MILESTONE!") + " ✦", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(type.key().value().replace('_', ' ') + " • Milestone " + milestone, NamedTextColor.YELLOW));
+        p.sendMessage(Component.text(entry.displayName() + " • Milestone " + milestone, NamedTextColor.YELLOW));
         p.sendMessage(Component.text(this.bestiary.reward(milestone, l == Language.PT), NamedTextColor.GREEN));
         p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (this.bestiary.totalMilestones(p) % 10 == 0) {

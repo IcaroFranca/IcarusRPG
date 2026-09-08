@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.biome.BiomeWandListener;
 import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.builder.BuilderWandListener;
 import dev.icaro.foodtooltips.builder.BuilderWandService;
+import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
@@ -23,6 +24,8 @@ import dev.icaro.foodtooltips.global.LevelColorCommand;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.global.LevelColorService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.island.IslandMobListener;
+import dev.icaro.foodtooltips.island.IslandMobService;
 import dev.icaro.foodtooltips.item.DurabilityListener;
 import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
@@ -99,6 +102,8 @@ extends JavaPlugin {
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
+        CitizensIntegrationService citizensIntegration = new CitizensIntegrationService();
+        IslandMobService islandMobs = new IslandMobService((Plugin)this, citizensIntegration);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
         stats.abilities(abilities);
         EconomyService economy = new EconomyService((Plugin)this, abilities);
@@ -149,6 +154,10 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BuilderWandListener(builderWand), (Plugin)this);
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
+        pm.registerEvents((Listener)new IslandMobListener(islandMobs), (Plugin)this);
+        // Delayed so world-management plugins (e.g. Multiverse) have a chance to finish
+        // loading the island's world first if it isn't loaded at server-start time yet.
+        Bukkit.getScheduler().runTaskLater((Plugin)this, () -> islandMobs.spawnPopulation(), 40L);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSwordThrowListener(swordThrow), (Plugin)this);
@@ -251,6 +260,15 @@ extends JavaPlugin {
             }
             target.getInventory().addItem(biomeWand.create(Language.of(target)));
             s.sendMessage((Component)Component.text((String)(this.text(s, "Varinha de Biomas entregue a ", "Biome's Wand given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
+            return true;
+        });
+        this.getCommand("islandmobs").setExecutor((s, c, l, a) -> {
+            if (!citizensIntegration.sentinelAvailable()) {
+                s.sendMessage((Component)Component.text((String)this.text(s, "Precisa do Citizens e do Sentinel instalados no servidor.", "Needs both Citizens and Sentinel installed on the server."), (TextColor)NamedTextColor.RED));
+                return true;
+            }
+            int spawned = islandMobs.spawnPopulation();
+            s.sendMessage((Component)Component.text((String)(this.text(s, "Mobs da ilha reiniciados: ", "Island mobs respawned: ") + spawned), (TextColor)NamedTextColor.GREEN));
             return true;
         });
         this.getCommand("skills").setExecutor((s, c, l, a) -> {

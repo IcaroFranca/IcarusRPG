@@ -65,7 +65,7 @@ public final class EconomyService {
     public int mobCoins(Player p, LivingEntity mob) {
         double hp = Optional.ofNullable(mob.getAttribute(Attribute.MAX_HEALTH)).map(x -> x.getValue()).orElse(10.0);
         int fallback = Math.max(1, (int)Math.round(Math.sqrt(hp) * 1.5));
-        return BestiaryCatalog.find(mob.getType()).map(e -> this.catalogCoins(e.type(), e.awardedCombatXp())).orElse(fallback);
+        return BestiaryCatalog.find(mob).map(e -> this.catalogCoins(e.type(), e.awardedCombatXp())).orElse(fallback);
     }
 
     public int catalogCoins(EntityType type, int combatXp) {
