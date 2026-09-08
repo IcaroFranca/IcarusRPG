@@ -104,7 +104,6 @@ extends JavaPlugin {
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
-        IslandMobService islandMobs = new IslandMobService((Plugin)this);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
         stats.abilities(abilities);
         EconomyService economy = new EconomyService((Plugin)this, abilities);
@@ -118,7 +117,8 @@ extends JavaPlugin {
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers);
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
-        BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, economy, valor);
+        IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary);
+        BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         this.visuals = new MobVisualService((Plugin)this);
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);

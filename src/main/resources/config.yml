@@ -155,13 +155,17 @@ island-mobs:
   suppress-natural-spawns: true
   # Every kind of custom island mob - adding a new one only takes a new entry here (id
   # becomes both its Bestiary entry and its internal tag), no code changes needed.
-  # entity-type is any vanilla EntityType name (ZOMBIE, SKELETON, ...); weapon is any
-  # Material held in its main hand; armored adds a full iron chestplate/leggings/boots;
-  # head-texture is an optional base64 "Value" custom player-head texture (same kind of
-  # string used in /give ... player_head[profile={properties:[{name:"textures",
-  # value:"..."}]}] commands, e.g. from minecraft-heads.com) - every mob wears SOME
-  # helmet regardless (a plain iron one if head-texture is blank), since headgear is
-  # what stops an undead mob from catching fire in daylight, not just looks.
+  # entity-type is any vanilla EntityType name (ZOMBIE, SKELETON, ...); weapon is the
+  # plain Material held in its main hand, used only when legendary-weapon is blank;
+  # legendary-weapon (optional) is a LegendaryWeapon enum name (see item.legendary) -
+  # when set, the mob holds a real copy of that item instead of weapon, and
+  # drop-chance-percent is its independent chance (0-100) to drop one on death;
+  # armored adds a full iron chestplate/leggings/boots; head-texture is an optional
+  # base64 "Value" custom player-head texture (same kind of string used in /give ...
+  # player_head[profile={properties:[{name:"textures", value:"..."}]}] commands, e.g.
+  # from minecraft-heads.com) - every mob wears SOME helmet regardless (a plain iron
+  # one if head-texture is blank), since headgear is what stops an undead mob from
+  # catching fire in daylight, not just looks.
   mobs:
     dealt:
       display-name: "Dealt"
@@ -170,6 +174,8 @@ island-mobs:
       damage: 12.0
       speed-multiplier: 1.2
       weapon: IRON_SWORD
+      legendary-weapon: UNDEAD_SWORD
+      drop-chance-percent: 2.5
       armored: true
       head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2IwNGZhY2YyZDY2OWRhM2Y1MDAxZjdiMDdmODI5OTExNzQ5Y2Y0OWM5ODY1MWQ2ZTUwMzNiNWNmMTQ0ODhiYSJ9fX0="
       respawn-ticks: 200
@@ -181,6 +187,8 @@ island-mobs:
       damage: 12.0
       speed-multiplier: 1.2
       weapon: IRON_SWORD
+      legendary-weapon: UNDEAD_SWORD
+      drop-chance-percent: 2.5
       armored: false
       head-texture: ""
       respawn-ticks: 200
