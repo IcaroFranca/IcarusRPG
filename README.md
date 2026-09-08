@@ -1244,24 +1244,27 @@ Raridade" abaixo), Ataque base e, quando aplicável, Agilidade:
 - **Matador de Cavaleiros** (Adaga, Tier B) - +75 Ataque. +25% de dano
   contra qualquer alvo (jogador ou mob) usando pelo menos 1 peça de
   armadura.
-- **Adaga de Baruka** (Adaga, Tier A) - +110 Ataque, +10 Agilidade (a stat
+- **Adaga de Baruka** (Adaga, Tier A) - +110 Ataque, +50 Agilidade (a stat
   é nova: converte em Velocidade de Movimento enquanto a adaga está na
   mão, +0.001 por ponto de Agilidade sobre a base vanilla de 0.1 - 1
   Agilidade = +1% de Velocidade, ver a seção de Agilidade/Velocidade mais
-  abaixo).
+  abaixo - +50 Agilidade vira +50% de Velocidade).
 - **Adagas do Rei Demônio** (Adaga, Tier S) - +220 Ataque. Two as One:
   +0.5 de dano adicional por ponto de Strength do usuário, somado antes
   do resto da pilha de multiplicadores de combate (então também se
   beneficia de crítico etc., como o resto do dano da arma).
-- **Espada Longa do Rei Demônio** (Espada Longa, Tier S) - +350 Ataque.
-  Storm of White Flames: tecla F (mesmo gatilho de Arremesso de Espada -
-  ignorado agachado), custa 40 de Mana, 30s de recarga; crava 6 raios
-  cosméticos espalhados numa área de até 4 blocos ao redor de onde você
-  está mirando (até 20 blocos de alcance) e aplica 100 de dano a qualquer
-  LivingEntity perto de cada raio via
-  `CombatAbilityService#dealAbilityDamage` (mesmo mecanismo do Arremesso
-  de Espada, pra não reprocessar pela pilha de multiplicadores de golpe
-  corpo a corpo).
+- **Espada Longa do Rei Demônio** (Espada Longa, Tier S) - +350 Ataque,
+  +2 blocos de alcance de ataque em vez da penalidade de Adaga (é uma
+  espada longa, faz sentido alcançar mais que uma espada comum, não
+  menos). Storm of White Flames: tecla F (mesmo gatilho de Arremesso de
+  Espada - ignorado agachado), custa 40 de Mana, 30s de recarga; encontra
+  todo LivingEntity num raio de 4 blocos de onde você está mirando (até
+  20 blocos de alcance) e crava um raio cosmético direto em cada um deles
+  (até 6, os mais próximos primeiro) - não em pontos aleatórios da área -
+  aplicando 100 de dano via `CombatAbilityService#dealAbilityDamage`
+  (mesmo mecanismo do Arremesso de Espada, pra não reprocessar pela pilha
+  de multiplicadores de golpe corpo a corpo). Sem nenhum alvo na área, cai
+  um raio só de efeito no ponto mirado, como feedback.
 - **Fúria de Kamish** (Adaga, Tier S) - Ataque escala com Strength (1500
   base + 1 por ponto de Strength do usuário) em vez de um número fixo.
   "Alterar o peso como quiser" é implementado como uma isenção fixa da
@@ -1279,7 +1282,8 @@ Espada etc.), sem precisar de nenhum código novo em
 `PlayerStatsService`. E dobra o dano ao acertar um golpe vindo de trás da
 direção que o alvo está olhando (jogador ou mob, checagem puramente
 horizontal via produto escalar entre a direção do alvo e o vetor
-atacante→alvo).
+atacante→alvo). A Espada Longa do Rei Demônio usa a mesma attribute pro
+lado oposto: +2 em vez de -1, já que é uma espada longa, não uma adaga.
 
 Toda arma lendária é criada uma única vez, com todo atributo (Ataque,
 Velocidade de Ataque igual à penalidade padrão de espada, Agilidade,
@@ -1346,3 +1350,26 @@ antes, só no resumo rápido) mostrando "Base 100%" + "Agilidade +X%".
 Velocidade continua lendo o atributo vanilla de verdade (não um número
 puramente calculado como Mana), então continua refletindo também
 qualquer outra fonte (poções etc.) além da Agilidade.
+
+## Ajustes na Espada Longa do Rei Demônio, Storm of White Flames e Adaga de Baruka
+
+Três correções pontuais nas armas lendárias:
+
+- **Espada Longa do Rei Demônio agora tem +2 de alcance de ataque** em vez
+  de nenhum bônus/penalidade - fazia sentido uma espada longa alcançar
+  mais que uma espada comum, não menos. `LegendaryWeaponService#create`
+  generalizou o cálculo de alcance: Adaga usa -1 (0 pra Fúria de Kamish,
+  isenta), Espada Longa usa +2, ambos no mesmo `AttributeModifier`
+  escopado à mão principal que já existia.
+- **Storm of White Flames mira em inimigos de verdade, não em pontos
+  aleatórios.** Antes, cada um dos 6 raios caía num ponto aleatório
+  dentro de um raio de 4 blocos do local mirado, e só então procurava
+  entidades perto daquele ponto aleatório - na prática, raios podiam cair
+  onde não tinha nada. Agora `DemonKingStormListener#nearbyTargets`
+  primeiro encontra todo `LivingEntity` na área (as 4 blocos de raio de
+  busca), ordena pelos mais próximos do ponto mirado, e cada raio cai
+  direto em cima de um alvo real (até 6). Sem nenhum alvo na área, cai um
+  raio só de efeito cosmético no ponto mirado, como feedback de que a
+  habilidade ativou.
+- **Adaga de Baruka: Agilidade +10 → +50** (também +50% de Velocidade
+  enquanto empunhada, pela mesma proporção 1 Agilidade = +1% Velocidade).
