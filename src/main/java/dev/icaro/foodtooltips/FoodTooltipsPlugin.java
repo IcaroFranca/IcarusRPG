@@ -27,6 +27,7 @@ import dev.icaro.foodtooltips.island.IslandAccessListener;
 import dev.icaro.foodtooltips.island.IslandAccessService;
 import dev.icaro.foodtooltips.island.IslandMobListener;
 import dev.icaro.foodtooltips.island.IslandMobService;
+import dev.icaro.foodtooltips.island.IslandProtectionListener;
 import dev.icaro.foodtooltips.item.DurabilityListener;
 import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
@@ -160,6 +161,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
         pm.registerEvents((Listener)new IslandMobListener(islandMobs), (Plugin)this);
         pm.registerEvents((Listener)new IslandAccessListener(islandAccess), (Plugin)this);
+        pm.registerEvents((Listener)new IslandProtectionListener((Plugin)this), (Plugin)this);
         // Delayed so world-management plugins (e.g. Multiverse) have a chance to finish
         // loading the island's world first if it isn't loaded at server-start time yet.
         Bukkit.getScheduler().runTaskLater((Plugin)this, () -> islandMobs.spawnPopulation(), 40L);
