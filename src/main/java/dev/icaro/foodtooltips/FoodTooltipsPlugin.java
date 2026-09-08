@@ -85,6 +85,7 @@ extends JavaPlugin {
     public void onEnable() {
         this.saveDefaultConfig();
         this.mergeConfigDefaults();
+        this.cleanupLegacyCitizensNpcs();
         if (this.getConfig().getInt("combat.max-level", 50) < 200) {
             this.getConfig().set("combat.max-level", 200);
             this.saveConfig();
@@ -392,6 +393,37 @@ extends JavaPlugin {
             this.saveConfig();
         } catch (java.io.IOException ex) {
             this.getLogger().warning("Could not merge new config.yml defaults: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * One-time cleanup for the very first Sentinela da Ilha implementation, which spawned
+     * Citizens NPCs into Citizens' own default (persistent) registry - Citizens saves those
+     * to its own data files and keeps re-spawning them on every server start forever,
+     * completely independent of this plugin, even after the feature moved to plain vanilla
+     * Zombies. Safe to leave in permanently: it only ever matches that literal legacy name,
+     * and does nothing at all once no such NPC is left (or Citizens isn't installed).
+     */
+    private void cleanupLegacyCitizensNpcs() {
+        if (this.getServer().getPluginManager().getPlugin("Citizens") == null) {
+            return;
+        }
+        try {
+            java.util.List<net.citizensnpcs.api.npc.NPC> toRemove = new java.util.ArrayList<>();
+            for (net.citizensnpcs.api.npc.NPC npc : net.citizensnpcs.api.CitizensAPI.getNPCRegistry()) {
+                if ("Sentinela da Ilha".equals(npc.getName())) {
+                    toRemove.add(npc);
+                }
+            }
+            for (net.citizensnpcs.api.npc.NPC npc : toRemove) {
+                npc.destroy();
+            }
+            int removed = toRemove.size();
+            if (removed > 0) {
+                this.getLogger().info("Removed " + removed + " leftover Citizens NPC(s) from the old Sentinela da Ilha implementation.");
+            }
+        } catch (Throwable t) {
+            this.getLogger().warning("Could not clean up legacy Citizens NPCs: " + t.getMessage());
         }
     }
 
