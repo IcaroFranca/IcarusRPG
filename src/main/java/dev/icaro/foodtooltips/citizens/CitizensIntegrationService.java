@@ -9,10 +9,16 @@ import org.bukkit.entity.Entity;
  * Citizens' own classes, so the plugin works fine with Citizens absent.
  */
 public final class CitizensIntegrationService {
-    private final boolean present = Bukkit.getPluginManager().getPlugin("Citizens") != null;
+    private final boolean citizensPresent = Bukkit.getPluginManager().getPlugin("Citizens") != null;
+    private final boolean sentinelPresent = Bukkit.getPluginManager().getPlugin("Sentinel") != null;
 
     public boolean available() {
-        return this.present;
+        return this.citizensPresent;
+    }
+
+    /** Sentinel gives an NPC its combat AI (targeting, chasing, attacking) - needed for any NPC meant to fight, not just exist. */
+    public boolean sentinelAvailable() {
+        return this.citizensPresent && this.sentinelPresent;
     }
 
     /**

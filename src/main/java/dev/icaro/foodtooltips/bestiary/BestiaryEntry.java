@@ -5,9 +5,28 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 
-public record BestiaryEntry(EntityType type, Material icon, int combatXp, String orbXp, List<String> drops) {
+/**
+ * {@code id} is the real identity used for progress-tracking (PDC kill keys)
+ * and lookup - for a vanilla entry it's always {@code type.key().value()}, so
+ * {@link BestiaryCatalog#find(EntityType)} can recognize a "canonical" entry
+ * by that equality. A variant (a custom mob sharing a vanilla EntityType,
+ * e.g. a Citizens Player-type NPC) gets its own distinct {@code id} instead,
+ * so its kills/milestones never mix with real kills of that raw EntityType -
+ * looked up instead via {@link BestiaryCatalog#find(org.bukkit.entity.Entity)},
+ * which checks the variant PDC tag first.
+ */
+public record BestiaryEntry(String id, EntityType type, Material icon, int combatXp, String orbXp, List<String> drops, String customName) {
     public int awardedCombatXp() {
         return this.combatXp <= 0 ? 0 : Math.max(1, (int)Math.round((double)this.combatXp / 10.0));
+    }
+
+    /** Display name - a variant's own name if set, otherwise humanized from its EntityType key. */
+    public String displayName() {
+        if (this.customName != null) {
+            return this.customName;
+        }
+        String v = this.type.key().value().replace('_', ' ');
+        return Character.toUpperCase(v.charAt(0)) + v.substring(1);
     }
 
     public BestiaryCategory category() {
@@ -22,4 +41,3 @@ public record BestiaryEntry(EntityType type, Material icon, int combatXp, String
         };
     }
 }
-
