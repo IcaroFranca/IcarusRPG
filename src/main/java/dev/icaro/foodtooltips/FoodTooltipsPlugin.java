@@ -23,8 +23,6 @@ import dev.icaro.foodtooltips.global.LevelColorCommand;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.global.LevelColorService;
 import dev.icaro.foodtooltips.i18n.Language;
-import dev.icaro.foodtooltips.island.IslandAccessListener;
-import dev.icaro.foodtooltips.island.IslandAccessService;
 import dev.icaro.foodtooltips.island.IslandMobListener;
 import dev.icaro.foodtooltips.island.IslandMobService;
 import dev.icaro.foodtooltips.island.IslandProtectionListener;
@@ -64,6 +62,7 @@ import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import dev.icaro.foodtooltips.stats.ResetStatsCommand;
 import dev.icaro.foodtooltips.stats.StatsHudService;
+import dev.icaro.foodtooltips.travel.TravelMenuService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -119,8 +118,7 @@ extends JavaPlugin {
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers);
         stats.legendary(legendary);
-        IslandAccessService islandAccess = new IslandAccessService((Plugin)this, tiers, combat);
-        LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary, islandAccess);
+        LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary);
         BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor);
         this.progressBar = new SkillProgressBarService((Plugin)this);
@@ -132,6 +130,8 @@ extends JavaPlugin {
         menus.levelColors(levelColorMenu);
         CombatTreeMenuService treeMenu = new CombatTreeMenuService(combat, abilities, valor, menus::openMain);
         menus.tree(treeMenu);
+        TravelMenuService travelMenu = new TravelMenuService((Plugin)this, combat, menus::openMain);
+        menus.travel(travelMenu);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();
@@ -160,7 +160,6 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
         pm.registerEvents((Listener)new IslandMobListener(islandMobs), (Plugin)this);
-        pm.registerEvents((Listener)new IslandAccessListener(islandAccess), (Plugin)this);
         pm.registerEvents((Listener)new IslandProtectionListener((Plugin)this), (Plugin)this);
         // Delayed so world-management plugins (e.g. Multiverse) have a chance to finish
         // loading the island's world first if it isn't loaded at server-start time yet.
