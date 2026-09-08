@@ -74,8 +74,8 @@ public final class LegendaryWeaponService {
     private static final double BACKSTAB_MULTIPLIER = 2.0;
     private static final double KNIGHT_KILLER_ARMORED_MULTIPLIER = 1.25;
 
-    private static final int PARALYZE_CHANCE = 25;
-    private static final int BLEED_CHANCE = 25;
+    /** Kasaka's Venom Fang's Paralyze and Bleed always proc together, off one shared roll - not two independent ones. */
+    private static final int PROC_CHANCE = 30;
     /** Slowness amplifier high enough that vanilla's own speed clamp already leaves the target barely able to move. */
     private static final int PARALYZE_SLOWNESS_AMPLIFIER = 7;
     /** Negative Jump Boost amplifier - vanilla's standard "can't jump" trick (adds 0.1*(amplifier+1) to jump strength). */
@@ -200,10 +200,7 @@ public final class LegendaryWeaponService {
     private List<Component> abilityLines(LegendaryWeapon w, boolean pt) {
         List<Component> lines = new ArrayList<>();
         switch (w) {
-            case KASAKA_VENOM_FANG -> {
-                lines.add(this.line(pt ? "Paralisia: 25% de chance" : "Paralyze: 25% chance", NamedTextColor.LIGHT_PURPLE));
-                lines.add(this.line(pt ? "Sangramento: 25% de chance (até 3x)" : "Bleed: 25% chance (up to 3x)", NamedTextColor.LIGHT_PURPLE));
-            }
+            case KASAKA_VENOM_FANG -> lines.add(this.line(pt ? ("Paralisia + Sangramento: " + PROC_CHANCE + "% de chance") : ("Paralyze + Bleed: " + PROC_CHANCE + "% chance"), NamedTextColor.LIGHT_PURPLE));
             case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
             case DEMON_KING_DAGGERS, KAMISH_WRATH -> lines.add(this.strengthAbilityLine(w, pt, 0));
             case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
@@ -332,17 +329,14 @@ public final class LegendaryWeaponService {
         return isArmored(target) ? KNIGHT_KILLER_ARMORED_MULTIPLIER : 1.0;
     }
 
-    /** Kasaka's Venom Fang's on-hit procs - independent 25% rolls for Paralyze and Bleed, both no-ops for every other weapon. */
+    /** Kasaka's Venom Fang's on-hit proc - a single {@link #PROC_CHANCE} roll that applies Paralyze and Bleed together (never just one of the two), a no-op for every other weapon. */
     public void onHit(Player attacker, LivingEntity target, ItemStack weapon) {
         if (of(weapon) != LegendaryWeapon.KASAKA_VENOM_FANG) {
             return;
         }
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        if (random.nextInt(100) < PARALYZE_CHANCE) {
+        if (ThreadLocalRandom.current().nextInt(100) < PROC_CHANCE) {
             target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, PARALYZE_DURATION_TICKS, PARALYZE_SLOWNESS_AMPLIFIER, false, true, true));
             target.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, PARALYZE_DURATION_TICKS, PARALYZE_JUMP_AMPLIFIER, false, true, true));
-        }
-        if (random.nextInt(100) < BLEED_CHANCE) {
             this.applyBleed(target);
         }
     }
