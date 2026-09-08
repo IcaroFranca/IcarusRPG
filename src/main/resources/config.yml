@@ -140,11 +140,14 @@ biome-wand:
   max-radius: 10
 island-mobs:
   # Custom combat mobs (plain vanilla Zombies in gear - full vanilla combat AI,
-  # already aggressive toward players out of the box) for the combat island's
-  # starting area. The zone is a rectangular X/Z area (full world height) in one
-  # world; natural mob spawns inside it are suppressed so only these mobs appear.
+  # already aggressive toward players out of the box) for wherever the ground has
+  # the Shadowed Graveyard biome (painted with the Biome's Wand) in the world below -
+  # not a fixed area, so the population follows however much of the island is
+  # actually painted. Natural mob spawns are suppressed on that same biome.
   enabled: true
   world: combat_island
+  # Just a "look for the biome somewhere in here" hint for picking spawn points -
+  # not a strict boundary. Make it generous enough to cover the whole painted area.
   min-x: -29
   max-x: 30
   min-z: -29

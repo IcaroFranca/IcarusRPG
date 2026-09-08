@@ -1,15 +1,16 @@
 package dev.icaro.foodtooltips.island;
 
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Biome;
 
-/** A rectangular X/Z region (full world height) inside one world where custom island mobs spawn instead of vanilla ones. */
-public record IslandMobZone(String world, int minX, int maxX, int minZ, int maxZ) {
+/** A specific biome inside one world - a location only counts as "inside" if the ground there actually has this biome (e.g. painted with the Biome's Wand), not a fixed area. {@code biome} is null when its datapack isn't installed, in which case nothing ever counts as inside. */
+public record IslandMobZone(String world, Biome biome) {
     public boolean contains(Location loc) {
-        if (loc.getWorld() == null || !loc.getWorld().getName().equals(this.world)) {
+        World w = loc.getWorld();
+        if (this.biome == null || w == null || !w.getName().equals(this.world)) {
             return false;
         }
-        int x = loc.getBlockX();
-        int z = loc.getBlockZ();
-        return x >= this.minX && x <= this.maxX && z >= this.minZ && z <= this.maxZ;
+        return w.getBiome(loc) == this.biome;
     }
 }
