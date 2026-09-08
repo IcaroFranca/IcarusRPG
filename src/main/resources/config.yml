@@ -206,9 +206,12 @@ island-mobs:
 travel:
   # /skills' "Locais"/"Locations" button - free, unlimited teleports (no item needed).
   # World names are shown to players as human-readable labels, never their raw config
-  # value below. default-world is the hub/spawn destination; the combat island itself
-  # reuses island-mobs.world, gated by this minimum Combat Level.
-  default-world: world
+  # value below. default-world is the hub/spawn destination - leave blank to
+  # auto-detect the server's actual primary world (server.properties' level-name)
+  # instead of guessing a name like "world", which Multiverse/similar setups often
+  # rename. The combat island itself reuses island-mobs.world, gated by this minimum
+  # Combat Level.
+  default-world: ""
   combat-island-min-level: 5
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
