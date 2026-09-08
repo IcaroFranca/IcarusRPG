@@ -10,6 +10,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
 import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import dev.icaro.foodtooltips.travel.TravelMenuService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +46,7 @@ public final class SkillsMenuService {
     private final BestiaryProgressService bestiaryProgress;
     private LevelColorMenuService levelColors;
     private CombatTreeMenuService tree;
+    private TravelMenuService travel;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -66,6 +68,10 @@ public final class SkillsMenuService {
         this.tree = tree;
     }
 
+    public void travel(TravelMenuService travel) {
+        this.travel = travel;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -84,6 +90,9 @@ public final class SkillsMenuService {
         if (this.levelColors != null) {
             v.setItem(47, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
         }
+        if (this.travel != null) {
+            v.setItem(51, this.item(Material.ENDER_PEARL, l.choose("Locais", "Locations"), List.of(this.click(l))));
+        }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
 
@@ -95,6 +104,9 @@ public final class SkillsMenuService {
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(this.text("+0.5% " + l.choose("Chance crítica", "Crit Chance"), NamedTextColor.AQUA), this.text("+4% " + l.choose("de dano", "Damage"), NamedTextColor.RED)));
+            if (this.travel != null && level == this.travel.combatIslandMinLevel()) {
+                lore.add(this.text("🗝 " + l.choose("Desbloqueia: Ilha de Combate", "Unlocks: Combat Island"), NamedTextColor.LIGHT_PURPLE));
+            }
             if (level == x.level() + 1) {
                 lore.add(this.xp(x.xp(), x.requiredXp()));
             }
@@ -202,6 +214,9 @@ public final class SkillsMenuService {
                 } else if (slot == 47 && this.levelColors != null) {
                     this.views.remove(p.getUniqueId());
                     this.levelColors.open(p);
+                } else if (slot == 51 && this.travel != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.travel.open(p);
                 }
             }
             case GLOBAL -> {

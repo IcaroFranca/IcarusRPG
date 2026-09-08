@@ -1628,22 +1628,36 @@ Chance de Crítico no menu `/skills` (`SkillsMenuService#head` e
 `#combatStatsItem`). Nunca vai aparecer, nem valer na prática, mais que
 100% de chance de crítico.
 
-## Bilhete da Ilha de Combate (`/rpgitems`)
+## Menu de Locais (`/skills` → Locais)
 
-Primeiro passo da progressão de acesso à ilha de combate: um item
-consumível (`IslandAccessService`, Tier B, representado por um Papel
-comum) que ao ser clicado com o botão direito (`IslandAccessListener`)
-teleporta o jogador pro spawn do mundo configurado em
-`island-access.world` (padrão `combat_island`) e consome uma unidade -
-desde que o jogador já tenha o Nível de Combate mínimo configurado em
-`island-access.min-combat-level` (padrão 5, baseado em testes reais:
-com equipamento de ferro completo já dá pra lidar com uns 2 mobs da
-ilha ao mesmo tempo nesse nível). Abaixo do nível exigido, o bilhete
-não é gasto - só mostra uma mensagem dizendo o nível necessário.
+`TravelMenuService` (`dev.icaro.foodtooltips.travel`) é um novo botão
+no menu principal do `/skills` (ícone de Ender Pearl, só aparece
+depois de injetado no `FoodTooltipsPlugin`) que abre uma lista de
+destinos de teleporte - gratuito e ilimitado, sem precisar de nenhum
+item. Nomes de mundo nunca aparecem pro jogador (`combat_island`
+sempre é mostrado como "Ilha de Combate"/"Combat Island"):
 
-Por enquanto só é obtido pelo menu `/rpgitems` (mesmo padrão dos itens
-Lendários - clique pra receber uma cópia); uma forma de comprá-lo com
-Moedas fica pra uma próxima etapa.
+- **Mundo Padrão** - spawn do mundo configurado em
+  `travel.default-world` (padrão `world`).
+- **Ilha de Combate** - spawn de `island-mobs.world` (o mesmo mundo
+  dos mobs da ilha), exige Nível de Combate mínimo configurado em
+  `travel.combat-island-min-level` (padrão 5, baseado em testes reais:
+  com equipamento de ferro completo já dá pra lidar com uns 2 mobs da
+  ilha ao mesmo tempo nesse nível). Abaixo do nível exigido, a opção
+  aparece bloqueada (tingida de cinza, com a exigência na lore) em vez
+  de simplesmente sumir.
+
+Ao alcançar o Nível de Combate mínimo, a mensagem de level-up do
+Combate ganha uma linha extra avisando que a Ilha de Combate foi
+desbloqueada, e o próprio nó daquele nível na tela de progressão de
+Combate (`/skills` → Combate) mostra "Desbloqueia: Ilha de Combate" na
+lore, do mesmo jeito que outras skills já marcam seus desbloqueios
+(ex: Vein Miner na Mineração).
+
+Substitui por completo o antigo Bilhete da Ilha de Combate
+(`IslandAccessService`/`IslandAccessListener`, removidos) - ficou
+obsoleto assim que o teleporte passou a ser de graça pelo menu, sem
+precisar carregar nem gastar um item.
 
 ## Proteção de blocos na ilha de combate
 
