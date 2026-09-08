@@ -1692,3 +1692,16 @@ distância.
 Cada mob configura os dois nomes em `island-mobs.mobs.<id>`:
 `display-name` (português) e `display-name-en` (inglês, cai de volta
 pro `display-name` se omitido).
+
+## Attack Speed na tooltip das Armas Lendárias
+
+As Armas Lendárias (`/rpgitems`) sempre aplicaram um `AttributeModifier`
+de Attack Speed igual ao de uma espada vanilla, mas a tooltip nunca
+mostrava esse número - só "Attack: +N", sem a linha "Attack Speed"
+que toda espada vanilla e as espadas comuns rebalanceadas (acima) já
+mostram. `LegendaryWeaponService#refreshAttackSpeedLore` corrige isso:
+reescreve a linha (mesma cor/formatação de `SwordDamageService`) com o
+total real que o jogador tem no momento - depende do Nível de Combate
+dele, não é um valor fixo do item, então é recalculada no mesmo passe
+periódico que já atualiza a linha de bônus de Força (Two as One /
+Kamish's Wrath).
