@@ -2,9 +2,11 @@ package dev.icaro.foodtooltips.island;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * Cancels any non-plugin spawn inside an {@link IslandMobService}'s zone, so
@@ -30,14 +32,25 @@ public final class IslandMobListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    /**
+     * MONITOR - and specifically registered after CombatListener's own MONITOR-priority
+     * death handler (Bukkit runs same-priority handlers in registration order) - so a
+     * dropped legendary weapon is added after CombatListener's Bestiary loot-bonus pass
+     * already ran on the original drops, never getting duplicated by it.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDeath(EntityDeathEvent e) {
         if (!(e.getEntity() instanceof LivingEntity entity)) {
             return;
         }
         String defId = this.island.islandMobId(entity);
-        if (defId != null) {
-            this.island.scheduleRespawn(defId, entity.getLocation());
+        if (defId == null) {
+            return;
+        }
+        this.island.scheduleRespawn(defId, entity.getLocation());
+        ItemStack drop = this.island.rollDrop(defId);
+        if (drop != null) {
+            e.getDrops().add(drop);
         }
     }
 }

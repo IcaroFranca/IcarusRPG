@@ -28,7 +28,8 @@ public enum LegendaryWeapon {
     BARUKA_DAGGER(WeaponType.DAGGER, ItemTier.A, Material.DIAMOND_SWORD, 110.0, 50, "Adaga de Baruka", "Baruka's Dagger"),
     DEMON_KING_DAGGERS(WeaponType.DAGGER, ItemTier.S, Material.NETHERITE_SWORD, 220.0, 0, "Adagas do Rei Demônio", "Demon King's Daggers"),
     DEMON_KING_LONGSWORD(WeaponType.LONGSWORD, ItemTier.S, Material.NETHERITE_SWORD, 350.0, 0, "Espada Longa do Rei Demônio", "Demon King's Longsword"),
-    KAMISH_WRATH(WeaponType.DAGGER, ItemTier.S, Material.NETHERITE_SWORD, 1500.0, 0, "Fúria de Kamish", "Kamish's Wrath");
+    KAMISH_WRATH(WeaponType.DAGGER, ItemTier.S, Material.NETHERITE_SWORD, 1500.0, 0, "Fúria de Kamish", "Kamish's Wrath"),
+    UNDEAD_SWORD(WeaponType.SWORD, ItemTier.C, Material.IRON_SWORD, 30.0, 0, "Espada dos Mortos-Vivos", "Undead's Sword");
 
     private final WeaponType type;
     private final ItemTier tier;

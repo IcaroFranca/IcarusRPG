@@ -182,9 +182,10 @@ public final class CombatListener implements Listener {
         double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
+        double undead = this.legendary.undeadMultiplier(target, weapon);
         double damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                 * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0)
-                * backstab * armored;
+                * backstab * armored * undead;
         e.setDamage(damage);
         this.legendary.onHit(p, target, weapon);
         if (!playerTarget) {
