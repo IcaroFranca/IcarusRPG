@@ -75,13 +75,13 @@ public final class BuilderWandService {
     }
 
     public ItemStack create(Language l) {
-        ItemStack item = new ItemStack(Material.STICK);
+        ItemStack item = new ItemStack(Material.BLAZE_ROD);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.wandKey, PersistentDataType.BYTE, (byte) 1);
         meta.getPersistentDataContainer().set(this.modeKey, PersistentDataType.STRING, FillMode.LINE.name());
         meta.getPersistentDataContainer().set(this.rangeKey, PersistentDataType.INTEGER, this.maxLength);
-        // A one-of-a-kind admin tool, not a stick - pin it to Tier S so ItemTierService's
-        // periodic pass doesn't sort it into Tier E with every other plain Stick.
+        // A one-of-a-kind admin tool, not a plain Blaze Rod - pin it to Tier S so
+        // ItemTierService's periodic pass doesn't sort it into Tier E with every other one.
         this.tiers.forceTier(meta, ItemTier.S);
         item.setItemMeta(meta);
         this.refreshLore(item, l);

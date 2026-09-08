@@ -77,14 +77,14 @@ public final class BiomeWandService {
     // ---- Creation -------------------------------------------------------
 
     public ItemStack create(Language l) {
-        ItemStack item = new ItemStack(Material.GRASS_BLOCK);
+        ItemStack item = new ItemStack(Material.STICK);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.wandKey, PersistentDataType.BYTE, (byte) 1);
         meta.getPersistentDataContainer().set(this.biomeKey, PersistentDataType.STRING, BiomeOption.defaultOption().name());
         meta.getPersistentDataContainer().set(this.radiusKey, PersistentDataType.INTEGER, 0);
-        // A one-of-a-kind admin tool, not a plain Grass Block - pin it to Tier S so
+        // A one-of-a-kind admin tool, not a plain Stick - pin it to Tier S so
         // ItemTierService's periodic pass doesn't sort it into Tier E junk with every
-        // other Grass Block (same reasoning as BuilderWandService's Stick).
+        // other Stick (same reasoning as BuilderWandService's Blaze Rod).
         this.tiers.forceTier(meta, ItemTier.S);
         item.setItemMeta(meta);
         this.refreshLore(item, l);
