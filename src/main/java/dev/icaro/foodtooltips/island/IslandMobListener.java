@@ -32,8 +32,12 @@ public final class IslandMobListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDeath(EntityDeathEvent e) {
-        if (e.getEntity() instanceof LivingEntity entity && this.island.isIslandMob(entity)) {
-            this.island.scheduleRespawn(entity.getLocation());
+        if (!(e.getEntity() instanceof LivingEntity entity)) {
+            return;
+        }
+        String defId = this.island.islandMobId(entity);
+        if (defId != null) {
+            this.island.scheduleRespawn(defId, entity.getLocation());
         }
     }
 }
