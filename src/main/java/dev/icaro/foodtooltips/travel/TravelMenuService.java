@@ -106,16 +106,23 @@ public final class TravelMenuService {
             return;
         }
         p.closeInventory();
-        // teleportAsync's future must actually be checked - it completes with false (no
-        // exception) on a failed teleport, so declaring success unconditionally right
-        // after calling it would lie to the player whenever the teleport doesn't land.
-        p.teleportAsync(world.getSpawnLocation()).thenAccept(success -> {
-            if (Boolean.TRUE.equals(success)) {
-                p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
-            } else {
-                p.sendMessage(Component.text(l.choose("Não foi possível teleportar agora. Tente de novo.", "Couldn't teleport right now. Try again."), NamedTextColor.RED));
-            }
-        });
+        // Deliberately the synchronous Entity#teleport, not #teleportAsync - a custom
+        // world generator (e.g. combat_island's VoidWorldGenerator) can make Paper's
+        // async chunk-load-then-teleport pipeline fail outright (resolves false, no
+        // exception, same failure Multiverse's own /mvtp hits via PaperLib) even though
+        // a plain synchronous teleport into the exact same spot works every time - this
+        // is the same call vanilla /tp (and /execute ... run tp) already uses under the
+        // hood. Trade-off: a teleport into a chunk that still needs generating from
+        // scratch blocks the main thread for that moment instead of loading in the
+        // background - a one-time cost per chunk, and both destinations here are always
+        // a world's own spawn point, so in practice it's already generated almost every
+        // time this runs.
+        boolean success = p.teleport(world.getSpawnLocation());
+        if (success) {
+            p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
+        } else {
+            p.sendMessage(Component.text(l.choose("Não foi possível teleportar agora. Tente de novo.", "Couldn't teleport right now. Try again."), NamedTextColor.RED));
+        }
     }
 
     private Component text(String value, NamedTextColor color) {
