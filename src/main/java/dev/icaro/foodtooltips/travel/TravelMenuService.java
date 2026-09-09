@@ -20,6 +20,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -106,18 +107,20 @@ public final class TravelMenuService {
             return;
         }
         p.closeInventory();
-        // Deliberately the synchronous Entity#teleport, not #teleportAsync - a custom
-        // world generator (e.g. combat_island's VoidWorldGenerator) can make Paper's
-        // async chunk-load-then-teleport pipeline fail outright (resolves false, no
-        // exception, same failure Multiverse's own /mvtp hits via PaperLib) even though
-        // a plain synchronous teleport into the exact same spot works every time - this
-        // is the same call vanilla /tp (and /execute ... run tp) already uses under the
-        // hood. Trade-off: a teleport into a chunk that still needs generating from
+        // Deliberately synchronous (Entity#teleport, not #teleportAsync) AND explicitly
+        // TeleportCause.COMMAND, not the implicit PLUGIN default a bare teleport() call
+        // gets - live testing showed /execute ... run tp (cause COMMAND) always lands,
+        // while both Multiverse's own /mvtp (via PaperLib) and a bare teleportAsync/
+        // teleport() call here (cause PLUGIN) always failed the same way (no exception,
+        // just a false result) - something on this server treats those two causes
+        // differently. Matching the cause that's proven to work sidesteps whatever that
+        // is, whatever it turns out to be, without needing to actually find it. Trade-off
+        // of going synchronous: a teleport into a chunk that still needs generating from
         // scratch blocks the main thread for that moment instead of loading in the
         // background - a one-time cost per chunk, and both destinations here are always
         // a world's own spawn point, so in practice it's already generated almost every
         // time this runs.
-        boolean success = p.teleport(world.getSpawnLocation());
+        boolean success = p.teleport(world.getSpawnLocation(), PlayerTeleportEvent.TeleportCause.COMMAND);
         if (success) {
             p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
         } else {
