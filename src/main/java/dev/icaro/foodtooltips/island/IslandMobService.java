@@ -272,11 +272,22 @@ public final class IslandMobService {
         return id != null && this.definitionsById.containsKey(id) ? id : null;
     }
 
+    /**
+     * Removes every island mob currently alive - not just the ones this exact service
+     * instance spawned (tracked in {@link #spawnedIds}, which starts empty again on
+     * every server restart and so misses anything that survived from a previous
+     * session), but every entity in the zone's world tagged with the variant PDC key
+     * (which does survive a restart, since it's saved with the entity). Without this,
+     * a restart would leave the old population alive - with whatever stale gear/state
+     * it had before - and stack a brand new one on top of it instead of replacing it.
+     */
     public void despawnAll() {
-        for (UUID id : this.spawnedIds) {
-            org.bukkit.entity.Entity entity = Bukkit.getEntity(id);
-            if (entity != null) {
-                entity.remove();
+        World world = Bukkit.getWorld(this.zone.world());
+        if (world != null) {
+            for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class)) {
+                if (this.islandMobId(entity) != null) {
+                    entity.remove();
+                }
             }
         }
         this.spawnedIds.clear();
