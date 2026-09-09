@@ -9,6 +9,7 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -20,6 +21,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemFlag;
@@ -108,50 +110,33 @@ public final class TravelMenuService {
             return;
         }
         p.closeInventory();
-        // Deliberately synchronous (Entity#teleport, not #teleportAsync) AND explicitly
-        // TeleportCause.COMMAND, not the implicit PLUGIN default a bare teleport() call
-        // gets - live testing showed /execute ... run tp (cause COMMAND) always lands,
-        // while both Multiverse's own /mvtp (via PaperLib) and a bare teleportAsync/
-        // teleport() call here (cause PLUGIN) always failed the same way (no exception,
-        // just a false result) - something on this server treats those two causes
-        // differently. Matching the cause that's proven to work sidesteps whatever that
-        // is, whatever it turns out to be, without needing to actually find it.
         Location destination = world.getSpawnLocation();
-        // Force the destination chunk to be loaded (generating it synchronously if it
-        // somehow isn't already) before ever calling teleport - live testing on
-        // combat_island showed every async teleport path (this plugin's own
-        // teleportAsync, and Multiverse's own /mvtp) failing with no PlayerTeleportEvent
-        // ever firing at all (confirmed against the server's own debug log - not even
-        // Multiverse's global HIGHEST-priority listener saw it), while a raw command
-        // teleport into the exact same spot always worked - swapping the world's
-        // generator plugin for a different, actively maintained one made no difference
-        // either, so this rules out both "wrong cause" and "broken generator" as the
-        // culprit and leaves chunk-loading timing as the remaining suspect. Doing it
-        // explicitly here removes that variable entirely regardless of what the real
-        // underlying cause turns out to be.
+        // Force the destination chunk to be loaded before teleporting (harmless even
+        // when it's already loaded, as it always is for a world's own spawn point).
         world.getChunkAt(destination);
+        // Paper has a confirmed bug (github.com/PaperMC/Paper/issues/10168): a
+        // cross-world teleport never even raises PlayerTeleportEvent - Entity#teleport
+        // just returns false - if the player has any passenger riding them. Confirmed
+        // live: another plugin on this server rides a TextDisplay on the player (not
+        // IcarusRPG's own code - the only place this plugin ever mounts a TextDisplay is
+        // MobVisualService, and only on mobs, never on a player). Dismounting right
+        // before teleporting sidesteps the bug regardless of which plugin put it there;
+        // if it's a live-updating overhead label, whatever attaches it re-mounts it on
+        // its own on the next refresh.
+        List<Entity> passengers = new ArrayList<>(p.getPassengers());
+        for (Entity passenger : passengers) {
+            p.removePassenger(passenger);
+        }
         boolean success = p.teleport(destination, PlayerTeleportEvent.TeleportCause.COMMAND);
         if (success) {
             p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
         } else {
             p.sendMessage(Component.text(l.choose("Não foi possível teleportar agora. Tente de novo.", "Couldn't teleport right now. Try again."), NamedTextColor.RED));
-            // Bukkit#teleport returning false without ever raising a PlayerTeleportEvent
-            // (confirmed live against the server's own debug log) has resisted every fix
-            // tried so far - this is a diagnostic breadcrumb for whatever's next, not a
-            // fix itself: at minimum it proves whether the chunk load above actually
-            // landed and what the entity's own state looked like at the exact moment
-            // teleport() refused it.
             this.plugin.getLogger().warning("Teleport recusado sem PlayerTeleportEvent - jogador=" + p.getName()
                     + " destino=" + destination.getWorld().getName() + " " + destination.getBlockX() + "," + destination.getBlockY() + "," + destination.getBlockZ()
                     + " chunkCarregado=" + destination.getWorld().isChunkLoaded(destination.getBlockX() >> 4, destination.getBlockZ() >> 4)
                     + " jogadorValido=" + p.isValid() + " jogadorOnline=" + p.isOnline() + " mundoAtual=" + p.getWorld().getName()
-                    // Paper has a confirmed bug (github.com/PaperMC/Paper/issues/10168)
-                    // where PlayerTeleportEvent never fires at all if the player has any
-                    // passenger riding them (e.g. a shoulder parrot) - checking both
-                    // directions here (passengers on the player, and the player being a
-                    // passenger of something else) since IcarusRPG's own code never
-                    // mounts anything on a player (only on mobs, for name/health labels).
-                    + " passageiros=" + p.getPassengers() + " veiculo=" + p.getVehicle());
+                    + " passageirosAntesDeDesmontar=" + passengers + " veiculo=" + p.getVehicle());
         }
     }
 
