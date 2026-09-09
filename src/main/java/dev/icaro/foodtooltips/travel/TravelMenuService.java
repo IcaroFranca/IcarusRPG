@@ -144,7 +144,14 @@ public final class TravelMenuService {
             this.plugin.getLogger().warning("Teleport recusado sem PlayerTeleportEvent - jogador=" + p.getName()
                     + " destino=" + destination.getWorld().getName() + " " + destination.getBlockX() + "," + destination.getBlockY() + "," + destination.getBlockZ()
                     + " chunkCarregado=" + destination.getWorld().isChunkLoaded(destination.getBlockX() >> 4, destination.getBlockZ() >> 4)
-                    + " jogadorValido=" + p.isValid() + " jogadorOnline=" + p.isOnline() + " mundoAtual=" + p.getWorld().getName());
+                    + " jogadorValido=" + p.isValid() + " jogadorOnline=" + p.isOnline() + " mundoAtual=" + p.getWorld().getName()
+                    // Paper has a confirmed bug (github.com/PaperMC/Paper/issues/10168)
+                    // where PlayerTeleportEvent never fires at all if the player has any
+                    // passenger riding them (e.g. a shoulder parrot) - checking both
+                    // directions here (passengers on the player, and the player being a
+                    // passenger of something else) since IcarusRPG's own code never
+                    // mounts anything on a player (only on mobs, for name/health labels).
+                    + " passageiros=" + p.getPassengers() + " veiculo=" + p.getVehicle());
         }
     }
 
