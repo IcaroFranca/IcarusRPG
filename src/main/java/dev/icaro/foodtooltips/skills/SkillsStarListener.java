@@ -71,14 +71,23 @@ public final class SkillsStarListener implements Listener {
         }
     }
 
-    /** Right-click (air or block) opens the menu directly; left-click-on-block only needs cancelling here - the open itself already ran off {@link #swing}. */
+    /**
+     * Right-click (air or block) opens the menu directly; left-click-on-block only
+     * needs cancelling here - the open itself already ran off {@link #swing} - except
+     * for a Bedrock player, whose left-click swing doesn't reliably reach {@link #swing}
+     * through Geyser's translation (same caveat {@link BedrockSwordThrowListener} works
+     * around), so it's opened straight from here instead for them.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void interact(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND || !this.star.isStar(e.getItem())) {
             return;
         }
-        if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
+        if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
             e.setCancelled(true);
+            if (BedrockPlayers.isBedrock(e.getPlayer())) {
+                this.menus.openMain(e.getPlayer());
+            }
             return;
         }
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {

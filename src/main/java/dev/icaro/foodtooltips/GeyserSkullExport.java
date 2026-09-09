@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips;
 
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.island.IslandMobService;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.mining.GemService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +61,11 @@ public final class GeyserSkullExport {
         if (!global.iconTexture().isBlank()) {
             textures.add(global.iconTexture());
         }
+        // The Locais/Locations "Planet" button and the Combat Island entries (Bestiary
+        // category tab + Travel menu icon) both reuse these two shared constants instead
+        // of each hardcoding their own copy - see HeadTexture's own javadoc.
+        textures.add(HeadTexture.ALIEN_GRASS);
+        textures.add(HeadTexture.PLANET);
         if (textures.isEmpty()) {
             return;
         }
