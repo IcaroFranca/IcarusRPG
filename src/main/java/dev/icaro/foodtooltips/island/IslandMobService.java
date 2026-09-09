@@ -193,6 +193,14 @@ public final class IslandMobService {
             return;
         }
         LivingEntity entity = (LivingEntity) world.spawnEntity(point, def.entityType());
+        // Without this, vanilla's natural despawn AI silently removes these mobs once
+        // no player has been near them for a while - no EntityDeathEvent fires for that,
+        // so IslandMobListener never sees it and never schedules a replacement, leaving
+        // the population slowly thinning out on its own (and making a later "killed them
+        // all, they didn't come back" look like a respawn bug when some were actually
+        // already gone beforehand). This mirrors vanilla's own "persistent" mobs (named,
+        // equipped on spawn, etc.) - these are always meant to be a fixed population.
+        entity.setRemoveWhenFarAway(false);
         // No vanilla customName here (that's one fixed string for every viewer) - the
         // in-world name is rendered per-viewer language instead, see setLocalizedName.
         this.visuals.setLocalizedName(entity, def.displayName(), def.displayNameEn());
