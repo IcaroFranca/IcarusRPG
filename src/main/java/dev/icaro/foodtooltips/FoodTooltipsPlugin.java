@@ -323,7 +323,6 @@ extends JavaPlugin {
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
             durability.applyDurability((Player)p);
-            swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
@@ -353,7 +352,6 @@ extends JavaPlugin {
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
             durability.applyDurability((Player)p);
-            swordDamage.neutralizeBaseAttackDamage((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
