@@ -72,11 +72,14 @@ public final class SkillsStarListener implements Listener {
     }
 
     /**
-     * Right-click (air or block) opens the menu directly; left-click-on-block only
-     * needs cancelling here - the open itself already ran off {@link #swing} - except
-     * for a Bedrock player, whose left-click swing doesn't reliably reach {@link #swing}
-     * through Geyser's translation (same caveat {@link BedrockSwordThrowListener} works
-     * around), so it's opened straight from here instead for them.
+     * Right-click (air or block) and left-click (air or block) both open the menu
+     * directly from here - left-click used to rely solely on {@link #swing} (Java's
+     * PlayerAnimationEvent), which turned out not fully reliable even on Java itself,
+     * on top of not reliably reaching {@link #swing} at all through Geyser's
+     * translation for a Bedrock player (same caveat {@link BedrockSwordThrowListener}
+     * works around for sword throw). Opening here too, unconditionally, is a harmless
+     * belt-and-suspenders on Java (the menu just gets shown again if {@link #swing}
+     * already opened it this tick) and the actual fix on Bedrock.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void interact(PlayerInteractEvent e) {
@@ -85,9 +88,7 @@ public final class SkillsStarListener implements Listener {
         }
         if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
             e.setCancelled(true);
-            if (BedrockPlayers.isBedrock(e.getPlayer())) {
-                this.menus.openMain(e.getPlayer());
-            }
+            this.menus.openMain(e.getPlayer());
             return;
         }
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
