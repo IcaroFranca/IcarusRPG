@@ -17,6 +17,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -114,17 +115,36 @@ public final class TravelMenuService {
         // teleport() call here (cause PLUGIN) always failed the same way (no exception,
         // just a false result) - something on this server treats those two causes
         // differently. Matching the cause that's proven to work sidesteps whatever that
-        // is, whatever it turns out to be, without needing to actually find it. Trade-off
-        // of going synchronous: a teleport into a chunk that still needs generating from
-        // scratch blocks the main thread for that moment instead of loading in the
-        // background - a one-time cost per chunk, and both destinations here are always
-        // a world's own spawn point, so in practice it's already generated almost every
-        // time this runs.
-        boolean success = p.teleport(world.getSpawnLocation(), PlayerTeleportEvent.TeleportCause.COMMAND);
+        // is, whatever it turns out to be, without needing to actually find it.
+        Location destination = world.getSpawnLocation();
+        // Force the destination chunk to be loaded (generating it synchronously if it
+        // somehow isn't already) before ever calling teleport - live testing on
+        // combat_island showed every async teleport path (this plugin's own
+        // teleportAsync, and Multiverse's own /mvtp) failing with no PlayerTeleportEvent
+        // ever firing at all (confirmed against the server's own debug log - not even
+        // Multiverse's global HIGHEST-priority listener saw it), while a raw command
+        // teleport into the exact same spot always worked - swapping the world's
+        // generator plugin for a different, actively maintained one made no difference
+        // either, so this rules out both "wrong cause" and "broken generator" as the
+        // culprit and leaves chunk-loading timing as the remaining suspect. Doing it
+        // explicitly here removes that variable entirely regardless of what the real
+        // underlying cause turns out to be.
+        world.getChunkAt(destination);
+        boolean success = p.teleport(destination, PlayerTeleportEvent.TeleportCause.COMMAND);
         if (success) {
             p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
         } else {
             p.sendMessage(Component.text(l.choose("Não foi possível teleportar agora. Tente de novo.", "Couldn't teleport right now. Try again."), NamedTextColor.RED));
+            // Bukkit#teleport returning false without ever raising a PlayerTeleportEvent
+            // (confirmed live against the server's own debug log) has resisted every fix
+            // tried so far - this is a diagnostic breadcrumb for whatever's next, not a
+            // fix itself: at minimum it proves whether the chunk load above actually
+            // landed and what the entity's own state looked like at the exact moment
+            // teleport() refused it.
+            this.plugin.getLogger().warning("Teleport recusado sem PlayerTeleportEvent - jogador=" + p.getName()
+                    + " destino=" + destination.getWorld().getName() + " " + destination.getBlockX() + "," + destination.getBlockY() + "," + destination.getBlockZ()
+                    + " chunkCarregado=" + destination.getWorld().isChunkLoaded(destination.getBlockX() >> 4, destination.getBlockZ() >> 4)
+                    + " jogadorValido=" + p.isValid() + " jogadorOnline=" + p.isOnline() + " mundoAtual=" + p.getWorld().getName());
         }
     }
 
