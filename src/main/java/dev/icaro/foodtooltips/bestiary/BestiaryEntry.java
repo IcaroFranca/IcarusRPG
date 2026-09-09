@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.bestiary;
 
 import dev.icaro.foodtooltips.bestiary.BestiaryCategory;
+import dev.icaro.foodtooltips.i18n.Language;
 import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -18,15 +19,15 @@ import org.bukkit.entity.EntityType;
  * from its raw {@code type} (e.g. the combat island's mobs share EntityTypes with real
  * Overworld mobs but don't belong in that tab) - null for every canonical entry.
  */
-public record BestiaryEntry(String id, EntityType type, Material icon, int combatXp, String orbXp, List<String> drops, String customName, BestiaryCategory categoryOverride) {
+public record BestiaryEntry(String id, EntityType type, Material icon, int combatXp, String orbXp, List<String> drops, String customName, String customNameEn, BestiaryCategory categoryOverride) {
     public int awardedCombatXp() {
         return this.combatXp <= 0 ? 0 : Math.max(1, (int)Math.round((double)this.combatXp / 10.0));
     }
 
-    /** Display name - a variant's own name if set, otherwise humanized from its EntityType key. */
-    public String displayName() {
+    /** Display name - a variant's own name if set (localized, falling back to the PT one if no EN name was given), otherwise humanized from its EntityType key. */
+    public String displayName(Language l) {
         if (this.customName != null) {
-            return this.customName;
+            return l == Language.PT || this.customNameEn == null ? this.customName : this.customNameEn;
         }
         String v = this.type.key().value().replace('_', ' ');
         return Character.toUpperCase(v.charAt(0)) + v.substring(1);

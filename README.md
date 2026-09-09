@@ -152,9 +152,9 @@ junto com a área.
 
 - **Mobs** (`island-mobs.mobs.<id>` no `config.yml`, totalmente config-driven — novo
   mob não pede código): **Dealt** (Zumbi, armadura de ferro, cabeça customizada) e
-  **Espectro Ossudo** (Esqueleto, só corpo a corpo). Os dois seguram uma Undead's
-  Sword de verdade e têm 2,5% de chance de dropá-la ao morrer. Nome exibido varia
-  por idioma do cliente de cada jogador simultaneamente.
+  **Espectro Ossudo** (Esqueleto, cabeça customizada, só corpo a corpo). Os dois
+  seguram uma Undead's Sword de verdade e têm 2,5% de chance de dropá-la ao morrer.
+  Nome exibido varia por idioma do cliente de cada jogador simultaneamente.
 - **Acesso**: menu de Locais (`/skills` → Locais), grátis, exige Nível de Combate
   mínimo (padrão 5).
 - **Proteção**: jogadores fora do modo Criativo não conseguem quebrar/colocar

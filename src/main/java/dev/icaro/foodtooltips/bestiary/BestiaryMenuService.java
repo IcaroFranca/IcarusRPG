@@ -94,13 +94,13 @@ public final class BestiaryMenuService {
 
     public void openMob(Player p, BestiaryEntry e, BestiaryCategory back, int page) {
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, (int)54, (String)(e.displayName() + " \u2022 Milestones"));
+        Inventory inv = Bukkit.createInventory(null, (int)54, (String)(e.displayName(l) + " \u2022 Milestones"));
         this.fill(inv);
         int kills = this.progress.kills(p, e);
         int done = this.progress.achieved(p, e);
         int start = this.progress.startOfStep(e, done);
         int needed = this.progress.nextStepKills(e, done);
-        inv.setItem(4, this.icon(e, e.displayName(), List.of(Component.text((String)(l.choose("Abates: ", "Kills: ") + kills), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Milestones conclu\u00eddas: ", "Milestones completed: ") + done), (TextColor)NamedTextColor.GOLD), Component.text((String)(needed == 0 ? l.choose("Progresso: M\u00c1XIMO \u2022 50 abates", "Progress: MAXIMUM \u2022 50 kills") : l.choose("Progresso atual: ", "Current progress: ") + Math.max(0, kills - start) + "/" + needed), (TextColor)NamedTextColor.GREEN), Component.text((String)(l.choose("Dano b\u00f4nus: ", "Damage bonus: ") + this.percent(this.progress.damageBonus(p, e))), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Loot b\u00f4nus: ", "Loot bonus: ") + this.percent(this.progress.lootBonus(p, e))), (TextColor)NamedTextColor.YELLOW))));
+        inv.setItem(4, this.icon(e, e.displayName(l), List.of(Component.text((String)(l.choose("Abates: ", "Kills: ") + kills), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Milestones conclu\u00eddas: ", "Milestones completed: ") + done), (TextColor)NamedTextColor.GOLD), Component.text((String)(needed == 0 ? l.choose("Progresso: M\u00c1XIMO \u2022 50 abates", "Progress: MAXIMUM \u2022 50 kills") : l.choose("Progresso atual: ", "Current progress: ") + Math.max(0, kills - start) + "/" + needed), (TextColor)NamedTextColor.GREEN), Component.text((String)(l.choose("Dano b\u00f4nus: ", "Damage bonus: ") + this.percent(this.progress.damageBonus(p, e))), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Loot b\u00f4nus: ", "Loot bonus: ") + this.percent(this.progress.lootBonus(p, e))), (TextColor)NamedTextColor.YELLOW))));
         int[] slots = new int[]{19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 40};
         for (int i = 0; i < slots.length && i < this.progress.maxMilestones(e); ++i) {
             int milestone = i + 1;
@@ -166,7 +166,7 @@ public final class BestiaryMenuService {
         e.drops().forEach(d -> lore.add((Component)Component.text((String)("\u2022 " + d), (TextColor)NamedTextColor.GRAY)));
         lore.add((Component)Component.empty());
         lore.add((Component)Component.text((String)l.choose("Clique para ver milestones!", "Click to view milestones!"), (TextColor)NamedTextColor.YELLOW));
-        return this.icon(e, e.displayName(), lore);
+        return this.icon(e, e.displayName(l), lore);
     }
 
     private List<BestiaryEntry> entries(BestiaryCategory c) {
@@ -192,13 +192,11 @@ public final class BestiaryMenuService {
         return out;
     }
 
-    /** The menu icon for {@code e} - a custom-textured head for "dealt" (matches its actual equipped head), {@code e.icon()} as-is for every other variant entry (never auto-egg - a variant's whole point is looking distinct from the raw vanilla type it's based on), and the vanilla spawn egg (falling back to {@code e.icon()}) for genuinely canonical entries. */
+    /** The menu icon for {@code e} - a custom-textured head matching its actual equipped head for any island mob configured with one (island-mobs.mobs.<id>.head-texture), {@code e.icon()} as-is for every other variant entry (never auto-egg - a variant's whole point is looking distinct from the raw vanilla type it's based on), and the vanilla spawn egg (falling back to {@code e.icon()}) for genuinely canonical entries. */
     private ItemStack icon(BestiaryEntry e, String name, List<Component> lore) {
-        if ("dealt".equals(e.id())) {
-            String texture = this.plugin.getConfig().getString("island-mobs.mobs.dealt.head-texture", "");
-            if (!texture.isBlank()) {
-                return this.customHeadIcon(texture, name, lore);
-            }
+        String texture = this.plugin.getConfig().getString("island-mobs.mobs." + e.id() + ".head-texture", "");
+        if (!texture.isBlank()) {
+            return this.customHeadIcon(texture, name, lore);
         }
         return this.item(this.spawnEgg(e), name, lore);
     }
