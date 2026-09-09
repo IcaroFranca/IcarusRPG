@@ -22,28 +22,28 @@ public final class BestiaryProgressService {
         this.healthKey = new NamespacedKey("foodtooltips", "bestiary_health");
     }
 
-    public int kills(Player player, EntityType type) {
-        return (Integer)player.getPersistentDataContainer().getOrDefault(this.killKey(type), PersistentDataType.INTEGER, 0);
+    public int kills(Player player, BestiaryEntry entry) {
+        return (Integer)player.getPersistentDataContainer().getOrDefault(this.killKey(entry), PersistentDataType.INTEGER, 0);
     }
 
-    public MilestoneUpdate recordKill(Player player, EntityType type) {
-        int beforeKills = this.kills(player, type);
-        int beforeMilestones = this.achieved(type, beforeKills);
-        int afterKills = this.isBoss(type) ? Math.min(50, beforeKills + 1) : beforeKills + 1;
-        player.getPersistentDataContainer().set(this.killKey(type), PersistentDataType.INTEGER, afterKills);
-        int afterMilestones = this.achieved(type, afterKills);
+    public MilestoneUpdate recordKill(Player player, BestiaryEntry entry) {
+        int beforeKills = this.kills(player, entry);
+        int beforeMilestones = this.achieved(entry, beforeKills);
+        int afterKills = this.isBoss(entry.type()) ? Math.min(50, beforeKills + 1) : beforeKills + 1;
+        player.getPersistentDataContainer().set(this.killKey(entry), PersistentDataType.INTEGER, afterKills);
+        int afterMilestones = this.achieved(entry, afterKills);
         this.applyBonusHealth(player);
         return new MilestoneUpdate(afterKills, beforeMilestones, afterMilestones);
     }
 
-    public int achieved(Player player, EntityType type) {
-        return this.achieved(type, this.kills(player, type));
+    public int achieved(Player player, BestiaryEntry entry) {
+        return this.achieved(entry, this.kills(player, entry));
     }
 
-    public int achieved(EntityType type, int kills) {
+    public int achieved(BestiaryEntry entry, int kills) {
         int count = 0;
         int consumed = 0;
-        for (int step : this.steps(type)) {
+        for (int step : this.steps(entry.type())) {
             if (kills < consumed + step) break;
             consumed += step;
             ++count;
@@ -52,46 +52,46 @@ public final class BestiaryProgressService {
     }
 
     public int totalMilestones(Player player) {
-        return BestiaryCatalog.entries().stream().mapToInt(entry -> this.achieved(player, entry.type())).sum();
+        return BestiaryCatalog.entries().stream().mapToInt(entry -> this.achieved(player, entry)).sum();
     }
 
     public int bonusHealth(Player player) {
         return this.totalMilestones(player) / 10 * 2;
     }
 
-    public double damageBonus(Player player, EntityType type) {
-        return (double)this.bonusPoints(this.achieved(player, type), true) / 100.0;
+    public double damageBonus(Player player, BestiaryEntry entry) {
+        return (double)this.bonusPoints(this.achieved(player, entry), true) / 100.0;
     }
 
-    public double lootBonus(Player player, EntityType type) {
-        return (double)this.bonusPoints(this.achieved(player, type), false) / 100.0;
+    public double lootBonus(Player player, BestiaryEntry entry) {
+        return (double)this.bonusPoints(this.achieved(player, entry), false) / 100.0;
     }
 
-    public int maxMilestones(EntityType type) {
-        return this.steps(type).length;
+    public int maxMilestones(BestiaryEntry entry) {
+        return this.steps(entry.type()).length;
     }
 
-    public int nextStepKills(EntityType type, int achieved) {
-        int[] steps = this.steps(type);
+    public int nextStepKills(BestiaryEntry entry, int achieved) {
+        int[] steps = this.steps(entry.type());
         if (achieved < steps.length) {
             return steps[achieved];
         }
-        if (this.isBoss(type)) {
+        if (this.isBoss(entry.type())) {
             return 0;
         }
         return STEP_KILLS[STEP_KILLS.length - 1] + (achieved - STEP_KILLS.length + 1) * 5000;
     }
 
-    public int startOfStep(EntityType type, int achieved) {
+    public int startOfStep(BestiaryEntry entry, int achieved) {
         int i;
-        int[] steps = this.steps(type);
+        int[] steps = this.steps(entry.type());
         int total = 0;
         for (i = 0; i < Math.min(achieved, steps.length); ++i) {
             total += steps[i];
         }
         if (achieved > STEP_KILLS.length) {
             for (i = STEP_KILLS.length; i < achieved; ++i) {
-                total += this.nextStepKills(type, i);
+                total += this.nextStepKills(entry, i);
             }
         }
         return total;
@@ -148,8 +148,8 @@ public final class BestiaryProgressService {
         return this.isBoss(type) ? BOSS_STEP_KILLS : STEP_KILLS;
     }
 
-    private NamespacedKey killKey(EntityType type) {
-        return new NamespacedKey("foodtooltips", "kills_" + type.key().value());
+    private NamespacedKey killKey(BestiaryEntry entry) {
+        return new NamespacedKey("foodtooltips", "kills_" + entry.id());
     }
 
     public record MilestoneUpdate(int kills, int before, int after) {
@@ -158,4 +158,3 @@ public final class BestiaryProgressService {
         }
     }
 }
-

@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.skills;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import java.util.HashMap;
@@ -57,12 +58,21 @@ implements Listener {
     public boolean attemptThrow(Player p) {
         long ready;
         ItemStack sword = p.getInventory().getItemInMainHand();
-        if (!sword.getType().name().endsWith("_SWORD") || !this.abilities.enabled(p, CombatAbility.SWORD_THROW)) {
+        if (!sword.getType().name().endsWith("_SWORD") || !this.abilities.enabled(p, CombatAbility.SWORD_THROW)
+                || LegendaryWeaponService.isLegendary(sword)) {
+            // Legendary weapons (Demon King's Longsword in particular - also a _SWORD
+            // material) have their own F-key ability; letting Sword Throw also fire on
+            // them would spend Mana and start its own cooldown on top.
             return false;
         }
         long now = System.currentTimeMillis();
         if (now < (ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L).longValue())) {
             p.sendActionBar((Component)Component.text((String)(Language.of(p).choose("Arremesso em recarga: ", "Sword Throw cooldown: ") + String.format(Locale.US, "%.1fs", (double)(ready - now) / 1000.0)), (TextColor)NamedTextColor.RED));
+            return true;
+        }
+        if (!this.abilities.spendSwordThrowMana(p)) {
+            // Not enough Mana - no cooldown wasted on a throw that never happened.
+            p.sendActionBar((Component)Component.text((String)(Language.of(p).choose("Mana insuficiente para arremessar.", "Not enough Mana to throw.")), (TextColor)NamedTextColor.RED));
             return true;
         }
         long cooldown = this.abilities.swordThrowCooldownMillis(p);
@@ -99,8 +109,9 @@ implements Listener {
                     AttributeInstance attack = p.getAttribute(Attribute.ATTACK_DAMAGE);
                     double amount = (attack == null ? 1.0 : attack.getValue()) * SwordThrowListener.this.abilities.swordThrowDamageFraction(p);
                     // Via dealAbilityDamage, not target.damage() directly: flags the hit so
-                    // CombatListener skips Cleave's splash (and Ferocity's extra hits) — a
-                    // thrown sword must only ever land on the one enemy it actually struck.
+                    // CombatListener skips reprocessing it through the melee multiplier
+                    // stack and Ferocity's extra hits — a thrown sword must only ever land
+                    // on the one enemy it actually struck.
                     SwordThrowListener.this.abilities.dealAbilityDamage(p, target, amount);
                     this.finish();
                     return;

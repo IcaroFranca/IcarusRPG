@@ -1,19 +1,23 @@
 package dev.icaro.foodtooltips.combat;
 
 import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
+import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.skills.CombatTreeMath;
 import dev.icaro.foodtooltips.skills.CombatValorService;
+import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
@@ -31,7 +35,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -43,6 +46,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -65,16 +69,22 @@ public final class CombatListener implements Listener {
     private final PlayerStatsService stats;
     private final CombatValorService valor;
     private final ArmorDefenseService armor;
+    private final GeneralSkillService general;
+    private final LegendaryWeaponService legendary;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     private final double critMultiplier;
     private final double hpXp;
     private final double levelXp;
     private final double mobHealthMultiplier;
+    private final boolean healToFullOnMapEnter;
+    private final boolean pvpFullDamageStack;
+    private final int islandUnlockLevel;
     private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, EconomyService economyService, GlobalLevelService global,
-                           PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor) {
+                           PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
+                           LegendaryWeaponService legendary) {
         this.plugin = p;
         this.combat = c;
         this.visuals = v;
@@ -86,10 +96,15 @@ public final class CombatListener implements Listener {
         this.stats = stats;
         this.valor = valor;
         this.armor = armor;
+        this.general = general;
+        this.legendary = legendary;
         this.critMultiplier = p.getConfig().getDouble("combat.critical-damage-multiplier", 1.5);
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
         this.mobHealthMultiplier = Math.max(1.0, p.getConfig().getDouble("mob-visuals.health-multiplier", 5.0));
+        this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
+        this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
+        this.islandUnlockLevel = p.getConfig().getInt("travel.combat-island-min-level", 5);
     }
 
     @EventHandler
@@ -138,38 +153,68 @@ public final class CombatListener implements Listener {
             return;
         }
         if (this.abilities.isAbilityDamageInFlight(p)) {
-            // Sword Throw's own damage bypasses melee multipliers and Ferocity's extra
-            // hits entirely — just show feedback. This is what keeps it single-target.
+            // Sword Throw's own damage (and Ferocity's own extra hits below, which also
+            // go through dealAbilityDamage now) bypass melee multipliers entirely here —
+            // already fully computed before dealAbilityDamage fired this event, so
+            // reprocessing would double-apply them or, for Ferocity specifically, let an
+            // extra hit itself roll more extra hits.
             if (!(target instanceof Player)) {
                 this.visuals.track(target);
                 this.visuals.damageNumber(target, e.getFinalDamage(), false);
             }
             return;
         }
-        if (target instanceof Player) {
+        boolean playerTarget = this.isRealPlayer(target);
+        if (playerTarget && !this.pvpFullDamageStack) {
+            // combat.pvp-full-damage-stack: false reverts to the old PvP formula (only
+            // Global Strength applies) instead of the same stack PvE gets below.
             e.setDamage(e.getDamage() * this.global.strengthMultiplier(p));
             return;
         }
         int level = this.combat.progress(p).level();
-        double critChance = this.combat.critChance(level) + this.abilities.critChanceBonus(p);
-        boolean skillCritical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
-        boolean vanillaCritical = e.getDamager() == p && p.getFallDistance() > 0.0f && !p.isOnGround() && !p.isInWater() && !p.isClimbing() && !p.isSprinting() && p.getVehicle() == null;
-        boolean critical = skillCritical || vanillaCritical;
-        double mobBonus = 1.0 + this.bestiary.damageBonus(p, target.getType());
-        double damage = e.getDamage() * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
-                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0);
+        // No more vanilla jump-crit - critical hits come only from the skill-based roll
+        // below (base chance + level + Ruthless Strikes), capped at 100% so nothing
+        // (base, level scaling, and the ability tree bonus all stacked) can ever push a
+        // hit past a guaranteed crit.
+        double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p));
+        boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
+        // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
+        // else (level, crit, ability outgoing multiplier, Global Strength) does, same
+        // formula PvE gets, so a player's progression means the same thing in both.
+        double mobBonus = playerTarget ? 1.0 : 1.0 + BestiaryCatalog.find(target).map(entry -> this.bestiary.damageBonus(p, entry)).orElse(0.0);
+        ItemStack weapon = p.getInventory().getItemInMainHand();
+        double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
+        double backstab = this.legendary.backstabMultiplier(p, target, weapon);
+        double armored = this.legendary.armoredMultiplier(target, weapon);
+        double undead = this.legendary.undeadMultiplier(target, weapon);
+        double damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
+                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0)
+                * backstab * armored * undead;
         e.setDamage(damage);
-        this.visuals.track(target);
-        this.visuals.damageNumber(target, e.getFinalDamage(), critical);
+        this.legendary.onHit(p, target, weapon);
+        if (!playerTarget) {
+            this.visuals.track(target);
+            this.visuals.damageNumber(target, e.getFinalDamage(), critical);
+        }
         int extraHits = CombatTreeMath.extraHits(this.stats.stats(p).ferocity(), ThreadLocalRandom.current().nextDouble(100.0));
         Bukkit.getScheduler().runTask(this.plugin, () -> {
-            this.visuals.update(target);
+            if (!playerTarget) {
+                this.visuals.update(target);
+            }
             if (extraHits > 0 && target.isValid() && !target.isDead()) {
                 double extraDamage = e.getFinalDamage();
                 for (int i = 0; i < extraHits && !target.isDead(); i++) {
-                    double newHealth = Math.max(0.0, target.getHealth() - extraDamage);
-                    target.setHealth(newHealth);
-                    this.visuals.damageNumber(target, extraDamage, false);
+                    // Via dealAbilityDamage (a real target.damage() call, flagged so the
+                    // check above skips reprocessing it), not a raw target.setHealth() -
+                    // that used to bypass Defense (ArmorDefenseListener only reacts to a
+                    // genuine EntityDamageEvent) and Second Wind entirely, so a tanky
+                    // target took full, unmitigated damage from every extra Ferocity hit
+                    // regardless of its actual Defense stat.
+                    this.abilities.dealAbilityDamage(p, target, extraDamage);
+                    if (!playerTarget) {
+                        this.visuals.damageNumber(target, extraDamage, false);
+                    }
+                    this.visuals.ferocityHit(p, target);
                 }
             }
         });
@@ -181,15 +226,18 @@ public final class CombatListener implements Listener {
         if (p == null) {
             return;
         }
-        BestiaryCatalog.find(e.getEntityType()).ifPresent(entry -> {
-            BestiaryProgressService.MilestoneUpdate update = this.bestiary.recordKill(p, e.getEntityType());
-            this.applyLootBonus(p, e);
+        BestiaryCatalog.find(e.getEntity()).ifPresent(entry -> {
+            BestiaryProgressService.MilestoneUpdate update = this.bestiary.recordKill(p, entry);
+            this.applyLootBonus(p, e, entry);
             if (update.unlocked()) {
                 long reward = this.global.creditMilestones(p, "bestiary", this.bestiary.totalMilestones(p), GlobalXpSource.BESTIARY_MILESTONE);
-                this.milestoneMessage(p, e.getEntityType(), update.after(), reward);
+                this.milestoneMessage(p, entry, update.after(), reward);
             }
         });
-        if (e.getEntity() instanceof Enemy) {
+        // A Citizens-tagged NPC (our own custom island mobs) is never instanceof Enemy -
+        // it's a Player-type entity under the hood - so it needs its own check here to
+        // still count as a hostile kill for coins/valor/XP.
+        if (e.getEntity() instanceof Enemy || CitizensIntegrationService.isNpc(e.getEntity())) {
             int coins = this.economy.mobCoins(p, e.getEntity());
             this.economy.deposit(p, coins);
             long valorEarned = this.valor.mobValor(e.getEntity());
@@ -198,7 +246,7 @@ public final class CombatListener implements Listener {
             AttributeInstance a = e.getEntity().getAttribute(Attribute.MAX_HEALTH);
             double hp = a == null ? e.getEntity().getHealth() : a.getValue();
             double fallback = Math.max(1L, Math.round(Math.max(5.0, hp * this.hpXp + this.visuals.level(e.getEntity()) * this.levelXp) / 10.0));
-            double xp = BestiaryCatalog.find(e.getEntityType()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
+            double xp = BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
             int oldLevel = this.combat.progress(p).level();
             int levels = this.combat.addXp(p, xp);
             int newLevel = this.combat.progress(p).level();
@@ -223,7 +271,7 @@ public final class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void secondWind(EntityDamageEvent e) {
-        if (!(e.getEntity() instanceof Player p) || !this.abilities.enabled(p, CombatAbility.SECOND_WIND) || e.getFinalDamage() < p.getHealth()) {
+        if (!(e.getEntity() instanceof Player p) || !this.isRealPlayer(p) || !this.abilities.enabled(p, CombatAbility.SECOND_WIND) || e.getFinalDamage() < p.getHealth()) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -242,19 +290,67 @@ public final class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerHit(EntityDamageByEntityEvent e) {
-        if (e.getEntity() instanceof Player p && this.hostile(e.getDamager())) {
+        if (e.getEntity() instanceof Player p && this.isRealPlayer(p) && this.hostile(e.getDamager())) {
             this.abilities.hostileHit(p);
         }
     }
 
     @EventHandler
     public void join(PlayerJoinEvent e) {
-        this.stats.applyBaseHealth(e.getPlayer());
-        this.combat.applyAttackSpeed(e.getPlayer());
-        this.stats.applySwingRange(e.getPlayer());
-        this.bestiary.applyBonusHealth(e.getPlayer());
-        this.visuals.track(e.getPlayer());
-        this.economy.updateBoard(e.getPlayer());
+        Player p = e.getPlayer();
+        this.reapplyHealthStack(p);
+        this.combat.applyAttackSpeed(p);
+        this.stats.applySwingRange(p);
+        this.visuals.track(p);
+        this.economy.updateBoard(p);
+    }
+
+    /**
+     * Multiverse-Core (and portals in general) can move a player into a different
+     * world mid-session without a full relog - if that world's own AttributeInstance
+     * ever drops the transient Max Health bonuses (Bestiary, Global Level), the same
+     * clamp-on-the-way-down bug {@link #reapplyHealthStack} guards against on join
+     * can happen here too, with no relog to trigger the join-time fix.
+     */
+    @EventHandler
+    public void changedWorld(PlayerChangedWorldEvent e) {
+        Player p = e.getPlayer();
+        this.reapplyHealthStack(p);
+        this.combat.applyAttackSpeed(p);
+        this.stats.applySwingRange(p);
+    }
+
+    /**
+     * Re-derives every source of Max Health bonus (base, Bestiary milestones, Global
+     * Level, Farming/Fishing skill levels) and sets the player's Health across the
+     * whole sequence - each individual
+     * step can momentarily drop Max Health below the player's actual current Health
+     * ({@code stats.applyBaseHealth} resets the base to the plain config value
+     * *before* the bonuses below reattach), and vanilla auto-clamps current Health
+     * down the instant that happens; that clamp is irreversible (Health doesn't
+     * bounce back up once the bonuses return), so capturing intent up front and only
+     * setting Health once at the very end - after every bonus is back in place - is
+     * what keeps a player's HP from silently eroding on every join or world change.
+     *
+     * <p>What Health to land on is a deliberate design choice ({@code
+     * stats.heal-to-full-on-map-enter}, default {@code true} - a "checkpoint" full
+     * heal every time a player appears in a map, join or world-change alike, same
+     * as a hub/lobby world would): full Max Health when enabled, otherwise whatever
+     * Health the player had right before this method touched anything (preserves it
+     * instead of healing, but still guards against the clamp-then-never-recover bug).
+     */
+    private void reapplyHealthStack(Player p) {
+        if (p.isDead()) {
+            return;
+        }
+        double before = p.getHealth();
+        this.stats.applyBaseHealth(p);
+        this.bestiary.applyBonusHealth(p);
+        this.global.applyHealth(p);
+        this.general.applyBonusHealth(p);
+        AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
+        double max = a == null ? 20.0 : a.getValue();
+        p.setHealth(this.healToFullOnMapEnter ? max : Math.min(before, max));
     }
 
     @EventHandler
@@ -265,8 +361,8 @@ public final class CombatListener implements Listener {
         this.economy.clearBoard(e.getPlayer());
     }
 
-    private void applyLootBonus(Player p, EntityDeathEvent e) {
-        double bonus = this.bestiary.lootBonus(p, e.getEntityType());
+    private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {
+        double bonus = this.bestiary.lootBonus(p, entry);
         if (bonus <= 0.0) {
             return;
         }
@@ -324,11 +420,11 @@ public final class CombatListener implements Listener {
         return false;
     }
 
-    private void milestoneMessage(Player p, EntityType type, int milestone, long globalXp) {
+    private void milestoneMessage(Player p, BestiaryEntry entry, int milestone, long globalXp) {
         Language l = Language.of(p);
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DO BESTIÁRIO!", "BESTIARY MILESTONE!") + " ✦", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(type.key().value().replace('_', ' ') + " • Milestone " + milestone, NamedTextColor.YELLOW));
+        p.sendMessage(Component.text(entry.displayName() + " • Milestone " + milestone, NamedTextColor.YELLOW));
         p.sendMessage(Component.text(this.bestiary.reward(milestone, l == Language.PT), NamedTextColor.GREEN));
         p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (this.bestiary.totalMilestones(p) % 10 == 0) {
@@ -347,16 +443,30 @@ public final class CombatListener implements Listener {
         if (bonusValor > 0L) {
             p.sendMessage(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
         }
+        if (oldLevel < this.islandUnlockLevel && newLevel >= this.islandUnlockLevel) {
+            p.sendMessage(Component.text("🗝 " + l.choose("Ilha de Combate desbloqueada! Acesse pelo menu /skills → Locais.", "Combat Island unlocked! Access it from /skills → Locations."), NamedTextColor.LIGHT_PURPLE));
+        }
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
     }
 
     private Player attacker(Entity e) {
-        if (e instanceof Player p) {
+        if (e instanceof Player p && this.isRealPlayer(p)) {
             return p;
         }
-        if (e instanceof Projectile projectile && projectile.getShooter() instanceof Player p) {
+        if (e instanceof Projectile projectile && projectile.getShooter() instanceof Player p && this.isRealPlayer(p)) {
             return p;
         }
         return null;
+    }
+
+    /**
+     * A Citizens PLAYER-type NPC (used for player-skinned custom mobs) is still
+     * {@code instanceof Player} to Bukkit, so every combat branch that treats a
+     * Player specially - PvP formulas, Bestiary eligibility, Second Wind - must
+     * exclude Citizens' own tagged entities first or real damage against those
+     * mobs would get silently misclassified as PvP.
+     */
+    private boolean isRealPlayer(Entity e) {
+        return e instanceof Player && !CitizensIntegrationService.isNpc(e);
     }
 }

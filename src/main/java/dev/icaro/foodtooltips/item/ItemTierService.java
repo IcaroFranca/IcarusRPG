@@ -110,12 +110,14 @@ public final class ItemTierService {
         }
         String name = m.name();
         String family = name.endsWith("_" + kind) ? name.substring(0, name.length() - kind.length() - 1) : name;
+        // Compressed on purpose: everything iron-and-below (wood, gold, stone, copper,
+        // iron, chainmail/leather/turtle) sits at D, diamond at C, netherite at B -
+        // leaving A and S free for the plugin's own future gear (see SwordDamageService
+        // for the matching attack-damage rework), rather than spreading vanilla
+        // materials across the whole scale like the old NETHERITE=S/DIAMOND=A mapping did.
         return switch (family) {
-            case "NETHERITE" -> ItemTier.S;
-            case "DIAMOND" -> ItemTier.A;
-            case "IRON", "GOLDEN", "GOLD", "COPPER", "CHAINMAIL" -> ItemTier.B;
-            case "STONE" -> ItemTier.C;
-            case "WOODEN", "WOOD", "LEATHER", "TURTLE" -> ItemTier.D;
+            case "NETHERITE" -> ItemTier.B;
+            case "DIAMOND" -> ItemTier.C;
             default -> ItemTier.D;
         };
     }
@@ -192,7 +194,7 @@ public final class ItemTierService {
         ItemStack[] storage = inv.getStorageContents();
         boolean changed = false;
         for (int i = 0; i < storage.length; i++) {
-            ItemStack updated = this.tooltip(storage[i], l);
+            ItemStack updated = this.applyTier(storage[i], l);
             if (updated != null) {
                 storage[i] = updated;
                 changed = true;
@@ -204,7 +206,7 @@ public final class ItemTierService {
         // the game can't merge them and they end up as two separate slots even once both
         // are tagged identically. Re-coalescing every tick, right after tagging, heals
         // that split (and any other stray fragmentation) instead of leaving it stuck.
-        if (this.coalesce(storage)) {
+        if (ItemStackUtil.coalesce(storage)) {
             changed = true;
         }
         if (changed) {
@@ -212,20 +214,27 @@ public final class ItemTierService {
         }
         ItemStack[] armor = inv.getArmorContents();
         for (int i = 0; i < armor.length; i++) {
-            ItemStack updated = this.tooltip(armor[i], l);
+            ItemStack updated = this.applyTier(armor[i], l);
             if (updated != null) {
                 armor[i] = updated;
             }
         }
         inv.setArmorContents(armor);
-        ItemStack offhand = this.tooltip(inv.getItemInOffHand(), l);
+        ItemStack offhand = this.applyTier(inv.getItemInOffHand(), l);
         if (offhand != null) {
             inv.setItemInOffHand(offhand);
         }
     }
 
-    /** Returns the mutated item if it needed rewriting, or null if it's not taggable or was already done. */
-    private ItemStack tooltip(ItemStack item, Language l) {
+    /**
+     * Returns the mutated item if it needed rewriting, or null if it's not taggable or
+     * was already done. Public (not just called from {@link #applyItemTiers}) so a
+     * freshly-built one-off item - a legendary weapon pinned via {@link #forceTier}, say
+     * - can get its tier badge and name color immediately at creation time instead of
+     * waiting for the next inventory sweep; idempotent via {@link #tierKey}, so calling
+     * it early never causes {@link #applyItemTiers} to redo the work later.
+     */
+    public ItemStack applyTier(ItemStack item, Language l) {
         if (item == null || item.isEmpty() || !item.getType().isItem()) {
             return null;
         }
@@ -254,36 +263,5 @@ public final class ItemTierService {
         meta.getPersistentDataContainer().set(this.tierKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
-    }
-
-    /** Merges any same-item stacks in {@code storage} into as few slots as possible, respecting max stack size. Returns true if anything moved. */
-    private boolean coalesce(ItemStack[] storage) {
-        boolean changed = false;
-        for (int i = 0; i < storage.length; i++) {
-            ItemStack into = storage[i];
-            if (into == null || into.isEmpty() || into.getAmount() >= into.getMaxStackSize()) {
-                continue;
-            }
-            for (int j = i + 1; j < storage.length; j++) {
-                ItemStack from = storage[j];
-                if (from == null || from.isEmpty() || !into.isSimilar(from)) {
-                    continue;
-                }
-                int move = Math.min(into.getMaxStackSize() - into.getAmount(), from.getAmount());
-                if (move <= 0) {
-                    continue;
-                }
-                into.setAmount(into.getAmount() + move);
-                from.setAmount(from.getAmount() - move);
-                if (from.getAmount() <= 0) {
-                    storage[j] = null;
-                }
-                changed = true;
-                if (into.getAmount() >= into.getMaxStackSize()) {
-                    break;
-                }
-            }
-        }
-        return changed;
     }
 }

@@ -48,9 +48,7 @@ public record CombatTreeNode(CombatAbility ability, CombatBranch branch, List<Co
         // ---- Slot layout ---- column 0 of every row is reserved for the Combat Level
         // gauge (see CombatTreeMenuService#placeLevelIndicators) plus the Back/Reset/
         // Header buttons on the root row, so every node below sits in columns 1-8. Max
-        // rank is a function of tier (10/14/18/22/26/32 for tiers 1-6) for every ability
-        // node; the 6 Backpack nodes are single-unlock milestones (maxRank 1) instead,
-        // since backpack capacity is a step function, not something to grind ranks into.
+        // rank is a function of tier (10/14/18/22/26/32 for tiers 1-6) for every node.
 
         // ---- Fury (offense) ---- RUTHLESS_STRIKES (root, flat crit chance) < BERSERKER
         // (conditional damage under 10% HP) < CRITICAL_MASTERY (unconditional crit-damage
@@ -65,23 +63,16 @@ public record CombatTreeNode(CombatAbility ability, CombatBranch branch, List<Co
         register(CombatAbility.SOUL_HARVEST, CombatBranch.SUSTAIN, 14, Kind.PASSIVE, 41, CombatAbility.BLOOD_LUST);
         register(CombatAbility.SECOND_WIND, CombatBranch.SUSTAIN, 18, Kind.PASSIVE, 32, CombatAbility.SOUL_HARVEST);
 
-        // ---- Utility (precision) ---- SWORD_THROW now sits above both Fury and Sustain's
-        // 3-tier chains, requiring the top of each: it's the tree's real pinnacle active
-        // ability, not a root gated behind a throwaway passive like it used to be.
-        register(CombatAbility.SWORD_THROW, CombatBranch.UTILITY, 22, Kind.ACTIVE_KEYBIND, 22,
+        // ---- Utility (precision) ---- SWORD_THROW converges both Fury and Sustain's
+        // 3-tier chains, requiring the top of each. Structurally that makes it tier 4
+        // (one past its tier-3 prerequisites), but its level requirement is overridden
+        // down to tier 3's (35, not 60 - see CombatAbilityService#LEVEL_REQUIREMENT_OVERRIDES),
+        // since it's meant to open up right alongside its prerequisites, not two tiers of
+        // grinding later. Slot 31 keeps the grid honest about that: it sits in tier 3's own
+        // row (the one whose Combat Level gauge reads 35), directly between Critical Mastery
+        // (col 2) and Second Wind (col 5) - the exact point where the two chains meet.
+        register(CombatAbility.SWORD_THROW, CombatBranch.UTILITY, 22, Kind.ACTIVE_KEYBIND, 31,
                 CombatAbility.CRITICAL_MASTERY, CombatAbility.SECOND_WIND);
-
-        // ---- Storage ---- the Combat Backpack's 6 capacity levels (9/18/27/36/45/54
-        // slots), moved into the tree as its own independent chain: one node per level,
-        // single-unlock (maxRank 1), gated by Blood Points + Combat level like everything
-        // else here instead of unlocking automatically from raw Combat level. See
-        // CombatAbilityService#backpackRank and BackpackService#capacity.
-        register(CombatAbility.BACKPACK_1, CombatBranch.STORAGE, 1, Kind.PASSIVE, 52);
-        register(CombatAbility.BACKPACK_2, CombatBranch.STORAGE, 1, Kind.PASSIVE, 43, CombatAbility.BACKPACK_1);
-        register(CombatAbility.BACKPACK_3, CombatBranch.STORAGE, 1, Kind.PASSIVE, 34, CombatAbility.BACKPACK_2);
-        register(CombatAbility.BACKPACK_4, CombatBranch.STORAGE, 1, Kind.PASSIVE, 25, CombatAbility.BACKPACK_3);
-        register(CombatAbility.BACKPACK_5, CombatBranch.STORAGE, 1, Kind.PASSIVE, 13, CombatAbility.BACKPACK_4);
-        register(CombatAbility.BACKPACK_6, CombatBranch.STORAGE, 1, Kind.PASSIVE, 4, CombatAbility.BACKPACK_5);
 
         if (REGISTRY.size() != CombatAbility.values().length) {
             throw new IllegalStateException("CombatTreeNode registry is missing entries for some CombatAbility values");

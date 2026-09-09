@@ -1,10 +1,10 @@
-name: NexusRPG
-version: '0.34.0'
+name: IcarusRPG
+version: '0.64.1'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
-prefix: NexusRPG
-softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention]
+prefix: IcarusRPG
+softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention, Citizens, Sentinel]
 commands:
   coins:
     description: Shows or administrates coin balances.
@@ -40,6 +40,22 @@ commands:
   destroyerhand:
     description: Gives the Destroyer's Hand (admin-only for now).
     usage: /destroyerhand [player]
+    permission: foodtooltips.admin
+  biomewand:
+    description: Gives the Biome's Wand (admin-only for now).
+    usage: /biomewand [player]
+    permission: foodtooltips.admin
+  resetstats:
+    description: Resets a player's stats (Mana, Vitality, Combat/General skills, Combat Ability tree, Valor, Coins, Global Level, Bestiary) back to their initial values.
+    usage: /resetstats <player>
+    permission: foodtooltips.admin
+  rpgitems:
+    description: Opens the admin-only Legendary Items menu.
+    usage: /rpgitems
+    permission: foodtooltips.admin
+  islandmobs:
+    description: (Re)spawns the combat island's custom mobs (admin-only).
+    usage: /islandmobs
     permission: foodtooltips.admin
 permissions:
   foodtooltips.admin:

@@ -26,11 +26,18 @@ stats:
   # NOT granted by the combat tree (unlike every other stat on the Combat Stats screen) —
   # reserved for future gear/enchant sources.
   base-true-defense: 0.0
+  # Full-heals the player every time they appear in a map (server join or world
+  # change, e.g. Multiverse-Core/portals) - a "checkpoint" heal, like returning to
+  # a hub. Set to false to instead just preserve whatever Health they already had.
+  heal-to-full-on-map-enter: true
 hud:
   update-ticks: 5
   spacing: "     "
 combat:
   max-level: 200
+  # Flat crit chance every player has regardless of level - on top of this, no more
+  # vanilla jump-crit (attacking while falling no longer guarantees a crit on its own).
+  base-crit-chance: 20.0
   crit-chance-per-level: 0.5
   damage-percent-per-level: 4.0
   critical-damage-multiplier: 1.5
@@ -41,6 +48,10 @@ combat:
   xp-exponent: 1.65
   hostile-xp-health-multiplier: 2.0
   hostile-xp-level-multiplier: 3.0
+  # Whether PvP damage gets the same multiplier stack PvE does (Combat level %,
+  # crit chance/damage, Ferocity extra hits, ability outgoing multiplier) instead of
+  # just Global Strength. false reverts to the old PvP-only formula.
+  pvp-full-damage-stack: true
 combat-tree:
   # Blood Points are the currency spent in the Combat Ability Tree to unlock and upgrade nodes.
   # Every node's rank-1 cost and per-rank cost scale with its tier (how deep it sits in the
@@ -118,9 +129,94 @@ global-level:
 builder-wand:
   # Max blocks the Builder's Wand can extend in one right-click (a safety cap, not a
   # gameplay limit - raise it if 64-block lines/columns aren't enough for your builds).
+  # Also caps the Face fill mode's flood fill (see the wand's left-click mode menu) -
+  # same number, not squared, so a huge open wall/floor stops here too.
   max-length: 64
 destroyer-hand:
   # Max blocks the Destroyer's Hand can clear in one right-click - same safety cap
-  # idea as builder-wand.max-length, just for the opposite direction.
+  # idea as builder-wand.max-length (Line and Face modes alike), just for the
+  # opposite direction.
   max-length: 64
+biome-wand:
+  # Max radius (in blocks) the Biome's Wand's brush can be set to via its left-click
+  # menu - minimum is always 1 (no "just the clicked block" mode).
+  max-radius: 10
+island-mobs:
+  # Custom combat mobs (see island-mobs.mobs below - full vanilla combat AI, already
+  # aggressive toward players out of the box, no external plugin needed) for wherever
+  # the ground has the Shadowed Graveyard biome (painted with the Biome's Wand) in the
+  # world below - not a fixed area, so the population follows however much of the
+  # island is actually painted. Natural mob spawns are suppressed on that same biome.
+  enabled: true
+  world: combat_island
+  # Blocks anyone not in Creative mode from placing/breaking blocks anywhere in
+  # island-mobs.world (OPs always bypass, for quick admin fixes without switching
+  # gamemode) - protects the hand-built graveyard from survival players.
+  protect-blocks: true
+  # Just a "look for the biome somewhere in here" hint for picking spawn points -
+  # not a strict boundary. Make it generous enough to cover the whole painted area.
+  min-x: -29
+  max-x: 30
+  min-z: -29
+  max-z: 30
+  suppress-natural-spawns: true
+  # Every kind of custom island mob - adding a new one only takes a new entry here (id
+  # becomes both its Bestiary entry and its internal tag), no code changes needed.
+  # entity-type is any vanilla EntityType name (ZOMBIE, SKELETON, ...); weapon is the
+  # plain Material held in its main hand, used only when legendary-weapon is blank;
+  # legendary-weapon (optional) is a LegendaryWeapon enum name (see item.legendary) -
+  # when set, the mob holds a real copy of that item instead of weapon, and
+  # drop-chance-percent is its independent chance (0-100) to drop one on death;
+  # armored adds a full iron chestplate/leggings/boots; head-texture is an optional
+  # base64 "Value" custom player-head texture (same kind of string used in /give ...
+  # player_head[profile={properties:[{name:"textures", value:"..."}]}] commands, e.g.
+  # from minecraft-heads.com) - every mob wears SOME helmet regardless (a plain iron
+  # one if head-texture is blank), since headgear is what stops an undead mob from
+  # catching fire in daylight, not just looks. display-name is shown to Portuguese
+  # clients, display-name-en to everyone else (falls back to display-name if omitted).
+  mobs:
+    dealt:
+      display-name: "Dealt"
+      display-name-en: "Dealt"
+      entity-type: ZOMBIE
+      health: 200.0
+      damage: 12.0
+      speed-multiplier: 1.2
+      weapon: IRON_SWORD
+      legendary-weapon: UNDEAD_SWORD
+      drop-chance-percent: 2.5
+      armored: true
+      head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2IwNGZhY2YyZDY2OWRhM2Y1MDAxZjdiMDdmODI5OTExNzQ5Y2Y0OWM5ODY1MWQ2ZTUwMzNiNWNmMTQ0ODhiYSJ9fX0="
+      respawn-ticks: 200
+      count: 8
+    bony_specter:
+      display-name: "Espectro Ossudo"
+      display-name-en: "Bony Specter"
+      entity-type: SKELETON
+      health: 200.0
+      damage: 12.0
+      speed-multiplier: 1.2
+      weapon: IRON_SWORD
+      legendary-weapon: UNDEAD_SWORD
+      drop-chance-percent: 2.5
+      armored: false
+      head-texture: ""
+      respawn-ticks: 200
+      count: 8
+travel:
+  # /skills' "Locais"/"Locations" button - free, unlimited teleports (no item needed).
+  # World names are shown to players as human-readable labels, never their raw config
+  # value below. default-world is the hub/spawn destination - leave blank to
+  # auto-detect the server's actual primary world (server.properties' level-name)
+  # instead of guessing a name like "world", which Multiverse/similar setups often
+  # rename. The combat island itself reuses island-mobs.world, gated by this minimum
+  # Combat Level.
+  default-world: ""
+  combat-island-min-level: 5
+items:
+  # Every damageable item's Max Durability is multiplied by this (vanilla materials
+  # only care about relative wear, so a bigger number just means more uses before it
+  # breaks) - applied once per item (like item-tiers below) via a PDC marker, so
+  # raising/lowering this later only affects items that haven't been touched yet.
+  durability-multiplier: 5
 item-tiers: {}

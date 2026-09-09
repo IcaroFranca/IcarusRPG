@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.food;
 
 import dev.icaro.foodtooltips.food.FoodTooltipService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.ItemStackUtil;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -75,16 +76,40 @@ implements Listener {
     public void refresh(Player p) {
         Language l = Language.of(p);
         boolean changed = this.update((Inventory)p.getInventory(), l, p);
-        if (changed |= this.update(p.getOpenInventory().getTopInventory(), l, p)) {
+        Inventory top = p.getOpenInventory().getTopInventory();
+        // A plugin GUI (this plugin's own Skills menu and every sub-screen, but also any
+        // *other* plugin's custom inventory - e.g. a storage/chest GUI built via
+        // Bukkit.createInventory(customHolder, ...) for its own click-handling bookkeeping)
+        // is a headless inventory with no physical block behind it. getHolder() != null
+        // used to be the check here, but a plugin GUI can very much have a non-null
+        // holder of its own (its own InventoryHolder implementation, not null) while still
+        // being exactly as virtual as one of ours - getLocation() is the real
+        // discriminator: it's non-null only for an inventory actually attached to a block
+        // (a chest, barrel, ender chest...), never for a synthetic Bukkit.createInventory
+        // GUI regardless of what holder it was given. Running the coalesce pass on a
+        // virtual GUI merges its decorative filler tiles (every empty slot typically
+        // shares the SAME ItemStack reference) into a single stack instead of leaving the
+        // background filled - only real, location-backed inventories should get this pass.
+        if (top.getLocation() != null && (changed |= this.update(top, l, p))) {
             p.updateInventory();
         }
     }
 
     private boolean update(Inventory inv, Language l, Player p) {
         boolean changed = false;
-        for (ItemStack i : inv.getContents()) {
+        ItemStack[] contents = inv.getContents();
+        for (ItemStack i : contents) {
             if (i == null || i.isEmpty()) continue;
             changed |= this.service.update(i, l, p);
+        }
+        // Heals same-item stacks left split by this rewrite (or ItemTierService's,
+        // running on its own schedule) landing on the two stacks in a different
+        // order - see ItemStackUtil's class doc.
+        if (ItemStackUtil.coalesce(contents)) {
+            changed = true;
+        }
+        if (changed) {
+            inv.setContents(contents);
         }
         return changed;
     }

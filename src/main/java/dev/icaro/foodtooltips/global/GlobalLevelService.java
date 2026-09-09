@@ -88,7 +88,7 @@ public final class GlobalLevelService {
         }
         int milestones = 0;
         for (BestiaryEntry entry : BestiaryCatalog.entries()) {
-            milestones += this.bestiary.maxMilestones(entry.type());
+            milestones += this.bestiary.maxMilestones(entry);
         }
         milestones += MiningCatalog.entries().size() * GeneralSkillService.maxMiningMilestonesPerBlock();
         xp = Math.addExact(xp, Math.multiplyExact((long) milestones, this.milestoneXp));
@@ -128,10 +128,18 @@ public final class GlobalLevelService {
         this.changeListener = listener == null ? p -> {} : listener;
     }
 
+    /**
+     * Strength here is Global Level's own group-based Strength plus
+     * {@link GeneralSkillService#bonusStrength} (Foraging's 1-per-level) - the single
+     * combined value everything else (damage's {@link #strengthMultiplier}, the Status
+     * HUD) reads, so Foraging's contribution shows up everywhere Strength does without
+     * either source needing its own separate consumer.
+     */
     public GlobalLevelSnapshot snapshot(Player p) {
         long total = this.totalXp(p);
         long level = GlobalLevelRules.level(total, this.xpPerLevel);
-        return new GlobalLevelSnapshot(total, level, GlobalLevelRules.progress(total, this.xpPerLevel), this.xpPerLevel, (double)level * this.hpPerLevel, level / (long)this.levelsPerStrength * (long)this.strengthPerGroup);
+        long strength = level / (long)this.levelsPerStrength * (long)this.strengthPerGroup + (long)this.general.bonusStrength(p);
+        return new GlobalLevelSnapshot(total, level, GlobalLevelRules.progress(total, this.xpPerLevel), this.xpPerLevel, (double)level * this.hpPerLevel, strength);
     }
 
     public long totalXp(Player p) {
