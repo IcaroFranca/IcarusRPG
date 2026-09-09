@@ -200,7 +200,7 @@ island-mobs:
       legendary-weapon: UNDEAD_SWORD
       drop-chance-percent: 2.5
       armored: false
-      head-texture: ""
+      head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTI1ODlhNzI1MWQ4MTA1NWRhYjQ1MThiNDA5MGQ3NzU3NGNmNDE4OGY2NmU3ZTZlN2I0MjA1MTdmNWI3ZmUzYSJ9fX0="
       respawn-ticks: 200
       count: 8
 travel:

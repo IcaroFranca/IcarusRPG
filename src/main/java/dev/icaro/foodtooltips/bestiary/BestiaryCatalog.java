@@ -17,9 +17,9 @@ public final class BestiaryCatalog {
 
     /** Custom mobs with their own distinct Bestiary entry (never mixed with a raw vanilla EntityType). Ids match island-mobs.mobs.<id> in config.yml. */
     private static final List<BestiaryEntry> VARIANT_ENTRIES = List.of(
-            BestiaryCatalog.variant("dealt", EntityType.ZOMBIE, Material.PLAYER_HEAD, "Dealt", BestiaryCategory.COMBAT_ISLAND, 60, "5",
+            BestiaryCatalog.variant("dealt", EntityType.ZOMBIE, Material.PLAYER_HEAD, "Dealt", "Dealt", BestiaryCategory.COMBAT_ISLAND, 60, "5",
                     "Undead's Sword — 2.5%"),
-            BestiaryCatalog.variant("bony_specter", EntityType.SKELETON, Material.SKELETON_SKULL, "Espectro Ossudo", BestiaryCategory.COMBAT_ISLAND, 60, "5",
+            BestiaryCatalog.variant("bony_specter", EntityType.SKELETON, Material.SKELETON_SKULL, "Espectro Ossudo", "Bony Specter", BestiaryCategory.COMBAT_ISLAND, 60, "5",
                     "Undead's Sword — 2.5%")
     );
 
@@ -29,11 +29,11 @@ public final class BestiaryCatalog {
     }
 
     private static BestiaryEntry e(EntityType type, Material icon, int combatXp, String orbXp, String ... drops) {
-        return new BestiaryEntry(type.key().value(), type, icon, combatXp, orbXp, List.of(drops), null, null);
+        return new BestiaryEntry(type.key().value(), type, icon, combatXp, orbXp, List.of(drops), null, null, null);
     }
 
-    private static BestiaryEntry variant(String id, EntityType displayType, Material icon, String customName, BestiaryCategory category, int combatXp, String orbXp, String ... drops) {
-        return new BestiaryEntry(id, displayType, icon, combatXp, orbXp, List.of(drops), customName, category);
+    private static BestiaryEntry variant(String id, EntityType displayType, Material icon, String customName, String customNameEn, BestiaryCategory category, int combatXp, String orbXp, String ... drops) {
+        return new BestiaryEntry(id, displayType, icon, combatXp, orbXp, List.of(drops), customName, customNameEn, category);
     }
 
     public static List<BestiaryEntry> entries() {

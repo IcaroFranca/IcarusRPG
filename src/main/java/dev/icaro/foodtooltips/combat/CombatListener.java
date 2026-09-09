@@ -424,7 +424,7 @@ public final class CombatListener implements Listener {
         Language l = Language.of(p);
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DO BESTIÁRIO!", "BESTIARY MILESTONE!") + " ✦", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(entry.displayName() + " • Milestone " + milestone, NamedTextColor.YELLOW));
+        p.sendMessage(Component.text(entry.displayName(l) + " • Milestone " + milestone, NamedTextColor.YELLOW));
         p.sendMessage(Component.text(this.bestiary.reward(milestone, l == Language.PT), NamedTextColor.GREEN));
         p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (this.bestiary.totalMilestones(p) % 10 == 0) {
