@@ -5,14 +5,12 @@ import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
 import java.util.List;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlotGroup;
@@ -39,11 +37,14 @@ import org.bukkit.plugin.Plugin;
  * <p><b>The number configured above is the real, final total</b> - not "total minus the
  * player's hidden vanilla base", which is what a naive {@code total - 1} modifier would
  * actually produce once the player's own innate 1.0 {@link Attribute#ATTACK_DAMAGE} adds
- * back on top while the sword is held. {@link #neutralizeBaseAttackDamage} cancels that
- * base exactly once per player (same idea as {@code ArmorDefenseService#neutralizeVanillaArmor}
- * fully replacing vanilla Defense - here only the fixed 1.0 base is cancelled, not
- * whatever a held weapon itself contributes, so the sword's own modifier is the only
- * thing left and it equals the configured number exactly).
+ * back on top while the sword is held. The sword's own {@link EquipmentSlotGroup#MAINHAND}
+ * modifiers cancel that 1.0 base itself (alongside adding {@code total}) rather than a
+ * separate permanent player-wide modifier - that used to zero out the player's base
+ * globally, which silently broke unarmed/off-tool damage (fists, or any item this plugin
+ * doesn't explicitly re-grant Attack Damage to, hit for nothing at all). Scoping the
+ * cancellation to the item itself, same as {@code total}, means it only applies while
+ * the sword is actually the one held - {@code ToolDamageService} and {@code
+ * LegendaryWeaponService} do the exact same thing for their own weapons.
  *
  * <p>Both Attack Damage and Attack Speed's vanilla tooltip lines are hidden ({@link
  * ItemFlag#HIDE_ATTRIBUTES}) and replaced with the plugin's own lore, same as {@code
@@ -73,13 +74,19 @@ public final class SwordDamageService {
      * instead of every bladed weapon in the plugin drifting apart over time.
      */
     public static final double ATTACK_SPEED_DELTA = -2.4;
-    /** Players' base {@link Attribute#ATTACK_DAMAGE} with an empty hand - cancelled by {@link #neutralizeBaseAttackDamage}. */
-    private static final double BASE_ATTACK_DAMAGE = 1.0;
+    /**
+     * Players' base {@link Attribute#ATTACK_DAMAGE} with an empty hand - cancelled by
+     * every weapon this plugin grants its own total to (see {@link #rewrite}), public so
+     * {@code ToolDamageService} and {@code LegendaryWeaponService} cancel the exact same
+     * value on their own items instead of duplicating the magic number.
+     */
+    public static final double BASE_ATTACK_DAMAGE = 1.0;
 
     private final CombatSkillService combat;
     private final NamespacedKey appliedKey;
     private final NamespacedKey damageKey;
     private final NamespacedKey speedKey;
+    /** Cancels the wielder's innate 1.0 base Attack Damage - see {@link #rewrite}. */
     private final NamespacedKey baseZeroKey;
 
     public SwordDamageService(Plugin plugin, CombatSkillService combat) {
@@ -105,23 +112,6 @@ public final class SwordDamageService {
             case "NETHERITE" -> 40.0;
             default -> null;
         };
-    }
-
-    /**
-     * Cancels the player's vanilla {@link Attribute#ATTACK_DAMAGE} base (a constant
-     * 1.0, always present, unrelated to whatever's in hand) so a sword's own modifier
-     * is the only thing contributing - added once and left in place rather than
-     * recomputed every call, since unlike {@code ArmorDefenseService#zero} this delta
-     * never changes.
-     */
-    public void neutralizeBaseAttackDamage(Player p) {
-        AttributeInstance instance = p.getAttribute(Attribute.ATTACK_DAMAGE);
-        if (instance == null) {
-            return;
-        }
-        if (instance.getModifier(Key.key(this.baseZeroKey.getNamespace(), this.baseZeroKey.getKey())) == null) {
-            instance.addTransientModifier(new AttributeModifier(this.baseZeroKey, -BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER));
-        }
     }
 
     /** The real Attack Speed total a player has while wielding a sword, factoring in their Combat level. */
@@ -178,8 +168,14 @@ public final class SwordDamageService {
         }
         Component speedLine = this.speedLine(this.realAttackSpeed(p), l);
         boolean applied = meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE);
+        // Re-checked separately from applied (not folded into it) so a sword that
+        // already went through the one-shot setup below before this modifier existed -
+        // an older item already in someone's inventory when this shipped - gets it
+        // retrofitted here without re-running (and duplicating) the one-shot lore
+        // insertion further down, which only ever runs once per item.
+        boolean needsBaseZero = !this.hasBaseZero(meta);
         List<Component> currentLore = meta.hasLore() ? meta.lore() : null;
-        if (applied && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
+        if (applied && !needsBaseZero && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
             return null;
         }
         List<Component> lore = currentLore == null ? new ArrayList<>() : new ArrayList<>(currentLore);
@@ -195,9 +191,31 @@ public final class SwordDamageService {
         } else {
             lore.set(1, speedLine);
         }
+        if (needsBaseZero) {
+            // Cancels the player's own innate 1.0 base right here, scoped to this item
+            // (MAINHAND, same as the total above) instead of a permanent player-wide
+            // modifier - that used to also zero out unarmed/off-tool damage, since it
+            // never came back off once applied. See this class's own doc for the full
+            // "why", and total's comment above for why the raw config number needs it.
+            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
+                    new AttributeModifier(this.baseZeroKey, -BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}). */
+    private boolean hasBaseZero(ItemMeta meta) {
+        if (!meta.hasAttributeModifiers()) {
+            return false;
+        }
+        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+            if (m.getKey().equals(this.baseZeroKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Component damageLine(double total, Language l) {

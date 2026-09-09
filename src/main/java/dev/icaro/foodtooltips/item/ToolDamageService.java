@@ -53,12 +53,15 @@ public final class ToolDamageService {
     private final NamespacedKey appliedKey;
     private final NamespacedKey damageKey;
     private final NamespacedKey speedKey;
+    /** Cancels the wielder's innate 1.0 base Attack Damage - see {@link #rewrite} and {@code SwordDamageService}'s class doc. */
+    private final NamespacedKey baseZeroKey;
 
     public ToolDamageService(Plugin plugin, CombatSkillService combat) {
         this.combat = combat;
         this.appliedKey = new NamespacedKey(plugin, "tool_damage_applied");
         this.damageKey = new NamespacedKey(plugin, "tool_attack_damage");
         this.speedKey = new NamespacedKey(plugin, "tool_attack_speed");
+        this.baseZeroKey = new NamespacedKey(plugin, "tool_vanilla_attack_damage_zero");
     }
 
     /** Total attack damage a tool of this Material should hit for, or null if not an axe/pickaxe/shovel/hoe. */
@@ -135,8 +138,12 @@ public final class ToolDamageService {
         }
         Component speedLine = this.speedLine(this.realAttackSpeed(p), l);
         boolean applied = meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE);
+        // Re-checked separately from applied - see SwordDamageService#rewrite's
+        // identical comment (retrofits older already-processed tools without
+        // re-running, and duplicating, the one-shot lore insertion below).
+        boolean needsBaseZero = !this.hasBaseZero(meta);
         List<Component> currentLore = meta.hasLore() ? meta.lore() : null;
-        if (applied && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
+        if (applied && !needsBaseZero && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
             return null;
         }
         List<Component> lore = currentLore == null ? new ArrayList<>() : new ArrayList<>(currentLore);
@@ -152,9 +159,28 @@ public final class ToolDamageService {
         } else {
             lore.set(1, speedLine);
         }
+        if (needsBaseZero) {
+            // Cancels the player's own innate 1.0 base right here, scoped to this tool
+            // (MAINHAND) - see SwordDamageService#rewrite's identical comment.
+            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
+                    new AttributeModifier(this.baseZeroKey, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}). */
+    private boolean hasBaseZero(ItemMeta meta) {
+        if (!meta.hasAttributeModifiers()) {
+            return false;
+        }
+        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+            if (m.getKey().equals(this.baseZeroKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Component damageLine(double total, Language l) {

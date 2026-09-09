@@ -55,6 +55,8 @@ public final class LegendaryWeaponService {
     public static final NamespacedKey ID_KEY = new NamespacedKey("foodtooltips", "legendary_weapon");
 
     private static final NamespacedKey DAMAGE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_damage");
+    /** Cancels the wielder's innate 1.0 base Attack Damage - see {@code SwordDamageService}'s class doc for why this needs to live on the item itself. */
+    private static final NamespacedKey BASE_ZERO_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_base_zero");
     private static final NamespacedKey SPEED_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_speed");
     private static final NamespacedKey RANGE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_range");
     private static final NamespacedKey AGILITY_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_agility");
@@ -168,6 +170,10 @@ public final class LegendaryWeaponService {
 
         meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
                 new AttributeModifier(DAMAGE_KEY, w.baseAttackDamage(), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        // Cancels the player's own innate 1.0 base right here, scoped to this item
+        // (MAINHAND) - see SwordDamageService#rewrite's identical comment.
+        meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
+                new AttributeModifier(BASE_ZERO_KEY, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         meta.addAttributeModifier(Attribute.ATTACK_SPEED,
                 new AttributeModifier(SPEED_KEY, SwordDamageService.ATTACK_SPEED_DELTA, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         boolean dagger = w.type() == WeaponType.DAGGER;
@@ -359,30 +365,57 @@ public final class LegendaryWeaponService {
         }
     }
 
-    /** Returns the mutated item if its Attack Speed line needed updating, or null if it's not a legendary weapon or is already showing the current value. */
+    /**
+     * Returns the mutated item if its Attack Speed line needed updating (or it needed
+     * its base-zero modifier retrofitted - see {@link #hasBaseZero}, for a legendary
+     * weapon already in someone's inventory from before that modifier existed), or null
+     * if it's not a legendary weapon or neither needed anything.
+     */
     private ItemStack rewriteAttackSpeedLine(ItemStack item, Player p, Language l) {
         if (of(item) == null) {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
+        boolean changed = false;
+        if (!this.hasBaseZero(meta)) {
+            // See SwordDamageService#rewrite's identical comment on why this needs to
+            // live on the item itself.
+            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
+                    new AttributeModifier(BASE_ZERO_KEY, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            changed = true;
+        }
         Integer index = meta.getPersistentDataContainer().get(SPEED_LINE_KEY, PersistentDataType.INTEGER);
-        if (index == null || !meta.hasLore()) {
+        if (index != null && meta.hasLore()) {
+            List<Component> lore = meta.lore();
+            if (index >= 0 && index < lore.size()) {
+                double real = this.combat.attackSpeed(this.combat.progress(p).level()) + SwordDamageService.ATTACK_SPEED_DELTA;
+                Component updatedLine = this.speedLine(real, l == Language.PT);
+                if (!updatedLine.equals(lore.get(index))) {
+                    List<Component> newLore = new ArrayList<>(lore);
+                    newLore.set(index, updatedLine);
+                    meta.lore(newLore);
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) {
             return null;
         }
-        List<Component> lore = meta.lore();
-        if (index < 0 || index >= lore.size()) {
-            return null;
-        }
-        double real = this.combat.attackSpeed(this.combat.progress(p).level()) + SwordDamageService.ATTACK_SPEED_DELTA;
-        Component updatedLine = this.speedLine(real, l == Language.PT);
-        if (updatedLine.equals(lore.get(index))) {
-            return null;
-        }
-        List<Component> newLore = new ArrayList<>(lore);
-        newLore.set(index, updatedLine);
-        meta.lore(newLore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #BASE_ZERO_KEY}). */
+    private boolean hasBaseZero(ItemMeta meta) {
+        if (!meta.hasAttributeModifiers()) {
+            return false;
+        }
+        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+            if (m.getKey().equals(BASE_ZERO_KEY)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
