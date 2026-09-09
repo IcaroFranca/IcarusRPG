@@ -11,9 +11,11 @@ import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
@@ -135,6 +137,17 @@ public final class IslandMobService {
 
     public IslandMobZone zone() {
         return this.zone;
+    }
+
+    /** Every non-blank head-texture Base64 configured across {@code island-mobs.mobs.*} - see {@code GeyserSkullExport}. */
+    public Set<String> headTextures() {
+        Set<String> textures = new HashSet<>();
+        for (IslandMobDefinition def : this.definitions) {
+            if (!def.headTexture().isBlank()) {
+                textures.add(def.headTexture());
+            }
+        }
+        return textures;
     }
 
     public boolean suppressNaturalSpawns() {

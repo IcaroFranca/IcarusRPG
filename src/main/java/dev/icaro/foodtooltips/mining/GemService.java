@@ -229,6 +229,15 @@ implements Listener {
         e.getPlayer().sendActionBar((Component)Component.text((String)Language.of(e.getPlayer()).choose("Gemas n\u00e3o podem ser posicionadas.", "Gems cannot be placed."), (TextColor)NamedTextColor.RED));
     }
 
+    /** Every Base64 head texture a gem can actually be created with (see {@link #faithfulTexture}) - for {@code GeyserSkullExport}. */
+    public Set<String> allTextures() {
+        Set<String> textures = new HashSet<>();
+        for (GemType type : GemType.values()) {
+            textures.add(this.faithfulTexture(type));
+        }
+        return textures;
+    }
+
     public void open(Player p) {
         Language l = Language.of(p);
         Inventory inv = Bukkit.createInventory(null, (int)54, (String)l.choose("Gemas", "Gems"));
