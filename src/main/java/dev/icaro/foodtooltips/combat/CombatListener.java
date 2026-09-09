@@ -47,6 +47,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -318,6 +319,24 @@ public final class CombatListener implements Listener {
         this.reapplyHealthStack(p);
         this.combat.applyAttackSpeed(p);
         this.stats.applySwingRange(p);
+    }
+
+    /**
+     * {@link PlayerStatsService#applySwingRange} computes its own delta relative to
+     * whatever the vanilla reach attribute's base value happens to be right now - and
+     * vanilla itself sets a higher base for Creative than Survival, switching it the
+     * moment a player's gamemode changes. Without this, a delta computed while in one
+     * gamemode (e.g. on join, if that's when a player happens to be in Creative) keeps
+     * sitting on the player after they switch gamemode mid-session with no relog/world
+     * change to trigger a recompute - leaving their real reach off by however much the
+     * two gamemodes' bases differ, worst felt by a dagger's own -1 stacking on top of
+     * it. Runs next tick since this event fires just before the switch actually takes
+     * effect (and before vanilla's own base-value update for it).
+     */
+    @EventHandler
+    public void gameModeChange(PlayerGameModeChangeEvent e) {
+        Player p = e.getPlayer();
+        Bukkit.getScheduler().runTask(this.plugin, () -> this.stats.applySwingRange(p));
     }
 
     /**
