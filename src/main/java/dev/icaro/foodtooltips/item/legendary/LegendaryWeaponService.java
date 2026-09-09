@@ -27,6 +27,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -82,6 +83,14 @@ public final class LegendaryWeaponService {
     private static final double KNIGHT_KILLER_ARMORED_MULTIPLIER = 1.25;
     /** Undead's Sword: +100% damage against any mob in {@link #UNDEAD_TYPES}. */
     private static final double UNDEAD_SWORD_MULTIPLIER = 2.0;
+    /**
+     * Unlike every other legendary weapon (unbreakable), the Undead's Sword has real
+     * durability - a fixed value rather than vanilla iron's * {@code
+     * items.durability-multiplier}, so it doesn't creep up if that setting changes.
+     */
+    private static final int UNDEAD_SWORD_MAX_DAMAGE = 5000;
+    /** Same idempotency marker {@link dev.icaro.foodtooltips.item.DurabilityService} uses - keeps its generic per-Material sweep from overwriting {@link #UNDEAD_SWORD_MAX_DAMAGE}'s deliberate fixed value. */
+    private static final String DURABILITY_MULTIPLIED_KEY = "durability_multiplied";
     /** Every vanilla EntityType the game itself treats as "undead" (same set Smite and Instant Health/Harming target). */
     private static final Set<EntityType> UNDEAD_TYPES = Set.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
             EntityType.DROWNED, EntityType.SKELETON, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.ZOMBIFIED_PIGLIN,
@@ -182,7 +191,14 @@ public final class LegendaryWeaponService {
                     new AttributeModifier(AGILITY_KEY, w.agility() * AGILITY_SPEED_PER_POINT, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
         }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
-        meta.setUnbreakable(true);
+        if (w == LegendaryWeapon.UNDEAD_SWORD) {
+            if (meta instanceof Damageable damageable) {
+                damageable.setMaxDamage(UNDEAD_SWORD_MAX_DAMAGE);
+            }
+            meta.getPersistentDataContainer().set(new NamespacedKey(this.plugin, DURABILITY_MULTIPLIED_KEY), PersistentDataType.BYTE, (byte) 1);
+        } else {
+            meta.setUnbreakable(true);
+        }
         if (w.tier() == ItemTier.S) {
             meta.setEnchantmentGlintOverride(true);
         }
