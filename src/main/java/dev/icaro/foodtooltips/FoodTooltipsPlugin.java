@@ -164,6 +164,7 @@ extends JavaPlugin {
         // Delayed so world-management plugins (e.g. Multiverse) have a chance to finish
         // loading the island's world first if it isn't loaded at server-start time yet.
         Bukkit.getScheduler().runTaskLater((Plugin)this, () -> islandMobs.spawnPopulation(), 40L);
+        GeyserSkullExport.export((Plugin)this, gems, islandMobs, global);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSwordThrowListener(swordThrow), (Plugin)this);
