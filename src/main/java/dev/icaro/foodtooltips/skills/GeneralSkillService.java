@@ -8,8 +8,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -17,6 +21,12 @@ import org.bukkit.persistence.PersistentDataType;
 public final class GeneralSkillService {
     private static final int MAX_LEVEL = 200;
     private static final int[] MINING_MILESTONE_THRESHOLDS = {25, 100, 250, 500, 1000};
+    private static final int FORTUNE_PER_LEVEL = 4;
+    private static final int HEALTH_PER_LEVEL = 2;
+    private static final int STRENGTH_PER_LEVEL = 1;
+    private static final int INTELLIGENCE_PER_LEVEL = 1;
+    private static final int DEFENSE_PER_LEVEL = 1;
+    private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
 
     public SkillProgress progress(Player p, SkillType type) {
         int level = (Integer)p.getPersistentDataContainer().getOrDefault(this.key(type, "level"), PersistentDataType.INTEGER, 0);
@@ -39,12 +49,18 @@ public final class GeneralSkillService {
         }
         p.getPersistentDataContainer().set(this.key(type, "level"), PersistentDataType.INTEGER, level);
         p.getPersistentDataContainer().set(this.key(type, "xp"), PersistentDataType.DOUBLE, xp);
+        if (level != before.level() && (type == SkillType.FARMING || type == SkillType.FISHING)) {
+            this.applyBonusHealth(p);
+        }
         return level - before.level();
     }
 
     public void setLevel(Player p, SkillType type, int level) {
         p.getPersistentDataContainer().set(this.key(type, "level"), PersistentDataType.INTEGER, Math.max(0, Math.min(200, level)));
         p.getPersistentDataContainer().set(this.key(type, "xp"), PersistentDataType.DOUBLE, 0.0);
+        if (type == SkillType.FARMING || type == SkillType.FISHING) {
+            this.applyBonusHealth(p);
+        }
     }
 
     public double required(int level) {
@@ -57,9 +73,75 @@ public final class GeneralSkillService {
 
     public int fortune(Player player, SkillType type) {
         return switch (type) {
-            case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * 4;
+            case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
+    }
+
+    /** Farming and Fishing each grant {@value #HEALTH_PER_LEVEL} Max Health per level, on top of Farming's Fortune. */
+    public int bonusHealth(Player player) {
+        return (this.progress(player, SkillType.FARMING).level() + this.progress(player, SkillType.FISHING).level()) * HEALTH_PER_LEVEL;
+    }
+
+    /** Foraging grants {@value #STRENGTH_PER_LEVEL} Strength per level, on top of its own Fortune. */
+    public int bonusStrength(Player player) {
+        return this.progress(player, SkillType.FORAGING).level() * STRENGTH_PER_LEVEL;
+    }
+
+    /** Alchemy and Enchanting each grant {@value #INTELLIGENCE_PER_LEVEL} Intelligence per level (which in turn raises Max Mana - see {@code PlayerStatsService#effectiveMaxMana}). */
+    public int bonusIntelligence(Player player) {
+        return (this.progress(player, SkillType.ALCHEMY).level() + this.progress(player, SkillType.ENCHANTING).level()) * INTELLIGENCE_PER_LEVEL;
+    }
+
+    /** Mining grants {@value #DEFENSE_PER_LEVEL} Defense per level, on top of its own Fortune - see {@code ArmorDefenseService#defense}. */
+    public int bonusDefense(Player player) {
+        return this.progress(player, SkillType.MINING).level() * DEFENSE_PER_LEVEL;
+    }
+
+    /** How much {@link #fortune} grows per level (Mining/Farming/Foraging). Exposed so menu/level-up messages don't hardcode the number separately. */
+    public int fortunePerLevel() {
+        return FORTUNE_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusDefense} grows per Mining level. */
+    public int defensePerLevel() {
+        return DEFENSE_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusHealth} grows per level (Farming/Fishing), per contributing skill. */
+    public int healthPerLevel() {
+        return HEALTH_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusStrength} grows per Foraging level. */
+    public int strengthPerLevel() {
+        return STRENGTH_PER_LEVEL;
+    }
+
+    /** How much {@link #bonusIntelligence} grows per level (Alchemy/Enchanting), per contributing skill. */
+    public int intelligencePerLevel() {
+        return INTELLIGENCE_PER_LEVEL;
+    }
+
+    /**
+     * Applies {@link #bonusHealth} as a Max Health attribute modifier - same pattern as
+     * {@code BestiaryProgressService#applyBonusHealth} and {@code GlobalLevelService#applyHealth}.
+     * Called alongside those two everywhere Max Health gets re-derived (join, world
+     * change, /resetstats).
+     */
+    public void applyBonusHealth(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+        if (attribute == null) {
+            return;
+        }
+        AttributeModifier old = attribute.getModifier(Key.key(this.healthKey.getNamespace(), this.healthKey.getKey()));
+        if (old != null) {
+            attribute.removeModifier(old);
+        }
+        int bonus = this.bonusHealth(player);
+        if (bonus > 0) {
+            attribute.addTransientModifier(new AttributeModifier(this.healthKey, bonus, AttributeModifier.Operation.ADD_NUMBER));
+        }
     }
 
     public int miningSpeed(Player player, Material tool) {

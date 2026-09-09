@@ -23,9 +23,7 @@ import org.bukkit.plugin.Plugin;
 /**
  * Runtime engine for the combat ability tree: rank storage/progression
  * (spending Blood Points to unlock and upgrade nodes) and every rank-scaled
- * gameplay effect. Also owns the 6 Combat Backpack capacity nodes (see
- * {@link CombatAbility#BACKPACK_1} and friends) — {@link BackpackService}
- * reads their unlock state instead of the Combat skill's level directly.
+ * gameplay effect.
  *
  * <p>Of the stats shown on the "Combat Stats" screen, Crit Chance (Ruthless
  * Strikes), Crit Damage (Critical Mastery), Swing Range (Sword Throw),
@@ -85,9 +83,30 @@ public final class CombatAbilityService {
         return Math.min(this.combat.maxLevel(), last + step * extra);
     }
 
+    /**
+     * Per-ability level requirement overrides layered on top of {@link #levelRequirement(int)}'s
+     * tier-based default, for a node whose intended power spike doesn't match its tier's usual
+     * gate. Sword Throw sits at tier 4 (it requires both branch finishers, Critical Mastery and
+     * Second Wind) but is meant to open up right alongside them, not two tiers of grinding later
+     * - so it uses tier 3's level (35) instead of tier 4's (60). Nothing else in the tree needs
+     * an override today.
+     */
+    private static final Map<CombatAbility, Integer> LEVEL_REQUIREMENT_OVERRIDES = Map.of(CombatAbility.SWORD_THROW, 35);
+
+    /** {@link #levelRequirement(int)}, but ability-aware - checks {@link #LEVEL_REQUIREMENT_OVERRIDES} first. */
+    public int levelRequirement(CombatAbility ability) {
+        Integer override = LEVEL_REQUIREMENT_OVERRIDES.get(ability);
+        return override != null ? override : this.levelRequirement(CombatTreeNode.of(ability).tier());
+    }
+
     /** Effective critical-damage multiplier (base config value, or Critical Mastery's if unlocked), as a raw multiplier (1.5 = +50%). */
     public double criticalDamageMultiplier(Player p) {
         return this.criticalMultiplier(p, this.baseCritMultiplier);
+    }
+
+    /** The plain config value {@link #criticalDamageMultiplier} falls back to when Critical Mastery isn't unlocked - for a stat-source breakdown, not used in the actual multiplier logic (see {@link #criticalMultiplier}). */
+    public double baseCriticalDamageMultiplier() {
+        return this.baseCritMultiplier;
     }
 
     // ---- Rank / unlock state -------------------------------------------------
@@ -148,7 +167,7 @@ public final class CombatAbilityService {
         if (!this.prerequisitesMet(p, a)) {
             return PurchaseResult.PREREQUISITE_MISSING;
         }
-        if (this.combat.progress(p).level() < this.levelRequirement(CombatTreeNode.of(a).tier())) {
+        if (this.combat.progress(p).level() < this.levelRequirement(a)) {
             return PurchaseResult.LEVEL_TOO_LOW;
         }
         long cost = this.nextRankCost(p, a);
@@ -257,6 +276,20 @@ public final class CombatAbilityService {
                 CombatTreeMath.swordThrowBaseCooldownMillis(this.rank(p, CombatAbility.SWORD_THROW), this.maxRank(CombatAbility.SWORD_THROW)));
     }
 
+    /** Sword Throw's Mana cost at the player's current rank (see {@link CombatTreeMath#swordThrowManaCost}). */
+    public int swordThrowManaCost(Player p) {
+        return CombatTreeMath.swordThrowManaCost(this.rank(p, CombatAbility.SWORD_THROW), this.maxRank(CombatAbility.SWORD_THROW));
+    }
+
+    /**
+     * Withdraws Sword Throw's Mana cost from {@code p} if they can afford it. Returns false
+     * (and withdraws nothing) if they can't - the caller should treat that as "the throw didn't
+     * happen" and, importantly, not start the ability's cooldown for a throw that never fired.
+     */
+    public boolean spendSwordThrowMana(Player p) {
+        return this.stats.withdrawMana(p, this.swordThrowManaCost(p));
+    }
+
     public double swordThrowDamageFraction(Player p) {
         return CombatTreeMath.swordThrowDamageFraction(this.rank(p, CombatAbility.SWORD_THROW), this.maxRank(CombatAbility.SWORD_THROW));
     }
@@ -314,45 +347,6 @@ public final class CombatAbilityService {
         return this.enabled(p, CombatAbility.SECOND_WIND) ? CombatTreeMath.secondWindMendingBonus(this.rank(p, CombatAbility.SECOND_WIND), this.maxRank(CombatAbility.SECOND_WIND)) : 0.0;
     }
 
-    // ---- Combat Backpack capacity (feed BackpackService) -------------------------
-
-    private static final CombatAbility[] BACKPACK_CHAIN = {
-            CombatAbility.BACKPACK_1, CombatAbility.BACKPACK_2, CombatAbility.BACKPACK_3,
-            CombatAbility.BACKPACK_4, CombatAbility.BACKPACK_5, CombatAbility.BACKPACK_6,
-    };
-
-    /**
-     * How many of the 6 Combat Backpack nodes are unlocked, 0-6 — the chain's
-     * prerequisites keep this contiguous from BACKPACK_1, so it's safe to stop at the
-     * first gap. Deliberately keyed on {@link #unlocked}, not {@link #enabled}: unlike
-     * every other passive, toggling a backpack node off would shrink the bag's visible
-     * size, stranding whatever the player already stored past the new smaller capacity.
-     */
-    public int backpackRank(Player p) {
-        int count = 0;
-        for (CombatAbility a : BACKPACK_CHAIN) {
-            if (!this.unlocked(p, a)) {
-                break;
-            }
-            count++;
-        }
-        return count;
-    }
-
-    /** "9 slots" / "18 slots" / ... for the tree tooltip preview - mirrors {@code BackpackService#size}'s capacity table. */
-    private static String backpackCapacityLabel(CombatAbility a) {
-        int slots = switch (a) {
-            case BACKPACK_1 -> 9;
-            case BACKPACK_2 -> 18;
-            case BACKPACK_3 -> 27;
-            case BACKPACK_4 -> 36;
-            case BACKPACK_5 -> 45;
-            case BACKPACK_6 -> 54;
-            default -> 0;
-        };
-        return slots + " slots";
-    }
-
     // ---- Numeric stat preview (tree tooltip) ------------------------------------
 
     /** One "current level → next level" numeric readout row for the tree tooltip. */
@@ -377,6 +371,7 @@ public final class CombatAbilityService {
             case SWORD_THROW -> {
                 out.add(this.pctAbs(pt ? "Dano" : "Damage", CombatTreeMath::swordThrowDamageFraction, cur, next, hasNext, max));
                 out.add(this.seconds(pt ? "Recarga" : "Cooldown", CombatTreeMath::swordThrowBaseCooldownMillis, cur, next, hasNext, max));
+                out.add(this.integer(pt ? "Custo de Mana" : "Mana cost", CombatTreeMath::swordThrowManaCost, cur, next, hasNext, max, ""));
                 out.add(this.flat(pt ? "Alcance de Ataque" : "Swing Range", CombatTreeMath::swordThrowSwingRangeBonus, cur, next, hasNext, max, ""));
             }
             case BLOOD_LUST -> {
@@ -394,8 +389,6 @@ public final class CombatAbilityService {
                 out.add(this.pctAbs(pt ? "Cura ao ativar" : "Heal on trigger", CombatTreeMath::secondWindHealFraction, cur, next, hasNext, max));
                 out.add(this.pctPlus(pt ? "Mending" : "Mending", CombatTreeMath::secondWindMendingBonus, cur, next, hasNext, max));
             }
-            case BACKPACK_1, BACKPACK_2, BACKPACK_3, BACKPACK_4, BACKPACK_5, BACKPACK_6 ->
-                    out.add(new StatPreview(pt ? "Capacidade" : "Capacity", backpackCapacityLabel(a), null));
         }
         return out;
     }
@@ -473,14 +466,12 @@ public final class CombatAbilityService {
     public String description(CombatAbility a, boolean pt) {
         return switch (a) {
             case RUTHLESS_STRIKES -> pt ? "+1% de chance crítica por nível." : "+1% crit chance per level.";
-            case SWORD_THROW -> pt ? "F arremessa a espada; dano, recarga e alcance de ataque melhoram por nível." : "F throws your sword; damage, cooldown and swing range improve per level.";
+            case SWORD_THROW -> pt ? "F arremessa a espada, consumindo Mana; dano, recarga, custo de Mana e alcance de ataque melhoram por nível." : "F throws your sword, consuming Mana; damage, cooldown, Mana cost and swing range improve per level.";
             case BLOOD_LUST -> pt ? "Após uma sequência de abates sem ser atingido: dano bônus." : "After a kill streak without being hit: bonus damage.";
             case BERSERKER -> pt ? "Dano bônus quando estiver abaixo de 10% HP, escala por nível." : "Bonus damage while below 10% HP, scales per level.";
             case SOUL_HARVEST -> pt ? "Cura adicional por abate hostil e aumenta Regen. de Vida, escala por nível." : "Additional heal per hostile kill and raises Health Regen, scales per level.";
             case CRITICAL_MASTERY -> pt ? "Aumenta o multiplicador de dano crítico, escala por nível." : "Increases the critical damage multiplier, scales per level.";
             case SECOND_WIND -> pt ? "Evita um golpe fatal e aumenta Mending; recarga e cura escalam por nível." : "Prevents a fatal hit and raises Mending; cooldown and heal scale per level.";
-            case BACKPACK_1, BACKPACK_2, BACKPACK_3, BACKPACK_4, BACKPACK_5, BACKPACK_6 ->
-                    pt ? "Aumenta a capacidade da Mochila de Combate." : "Increases the Combat Backpack's capacity.";
         };
     }
 

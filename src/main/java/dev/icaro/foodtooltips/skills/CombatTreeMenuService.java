@@ -27,16 +27,15 @@ import org.bukkit.inventory.meta.SkullMeta;
  * Renders and drives the combat ability tree: a 54-slot chest laying out
  * every {@link CombatAbility} at the slot defined by its {@link
  * CombatTreeNode}, with branches read top (Sword Throw's pinnacle) to
- * bottom (roots) — including the 6 Combat Backpack capacity nodes, which
- * live in the tree alongside the actual abilities.
+ * bottom (roots).
  *
  * <p>Left click unlocks/upgrades a node (spends Blood Points, requires a
  * minimum Combat level per tier — see {@link CombatAbilityService#levelRequirement}).
- * Shift-click toggles an unlocked passive on/off (Backpack nodes are the one
- * exception — see {@link #isBackpack}). The back button sits bottom-left, a
- * TNT reset button (click twice to confirm — refunds every Blood Point
- * spent, see {@link CombatAbilityService#resetTree}) sits right next to it,
- * and the player's head (currency/status header) sits bottom-right.
+ * Shift-click toggles an unlocked passive on/off. The back button sits
+ * bottom-left, a TNT reset button (click twice to confirm — refunds every
+ * Blood Point spent, see {@link CombatAbilityService#resetTree}) sits right
+ * next to it, and the player's head (currency/status header) sits
+ * bottom-right.
  */
 public final class CombatTreeMenuService {
     private static final int BACK_SLOT = 45;
@@ -72,8 +71,9 @@ public final class CombatTreeMenuService {
         Language l = Language.of(p);
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Árvore de Combate", "Combat Tree"));
         // Not Material.COAL: locked passive nodes already use that icon (see #stateIcon below),
-        // so a coal filler made every still-locked node vanish into the background.
-        ItemStack filler = this.item(Material.BLACK_STAINED_GLASS_PANE, " ", List.of());
+        // so a coal filler made every still-locked node vanish into the background. Gray glass,
+        // not black, to match the filler convention every other menu in the plugin already uses.
+        ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < 54; i++) {
             v.setItem(i, filler);
         }
@@ -161,12 +161,6 @@ public final class CombatTreeMenuService {
     }
 
     private void handleToggle(Player p, CombatAbility ability, Language l) {
-        if (isBackpack(ability)) {
-            // No on/off state: disabling one would shrink the bag's visible size and
-            // strand whatever's already stored past the new smaller capacity.
-            p.sendActionBar(this.text(l.choose("Mochila de Combate não pode ser desativada.", "Combat Backpack nodes can't be disabled."), NamedTextColor.GRAY));
-            return;
-        }
         if (!this.abilities.unlocked(p, ability)) {
             p.sendActionBar(this.text(l.choose("Ainda não desbloqueada.", "Not unlocked yet."), NamedTextColor.RED));
             return;
@@ -239,13 +233,6 @@ public final class CombatTreeMenuService {
         return this.item(Material.TNT, l.choose("Resetar Árvore", "Reset Tree"), lore, armed ? NamedTextColor.RED : NamedTextColor.GOLD);
     }
 
-    private static boolean isBackpack(CombatAbility a) {
-        return switch (a) {
-            case BACKPACK_1, BACKPACK_2, BACKPACK_3, BACKPACK_4, BACKPACK_5, BACKPACK_6 -> true;
-            default -> false;
-        };
-    }
-
     /** Locked → coal, unlocked → emerald, maxed → diamond; block variant = active, item variant = passive. */
     private Material stateIcon(boolean active, int rank, int max) {
         if (rank <= 0) {
@@ -264,7 +251,7 @@ public final class CombatTreeMenuService {
         boolean unlocked = rank > 0;
         boolean maxed = rank >= max;
         boolean prereqOk = this.abilities.prerequisitesMet(p, ability);
-        int levelRequired = this.abilities.levelRequirement(node.tier());
+        int levelRequired = this.abilities.levelRequirement(ability);
         boolean levelOk = this.combat.progress(p).level() >= levelRequired;
         boolean purchasable = !maxed && prereqOk && levelOk;
         boolean active = node.kind() != CombatTreeNode.Kind.PASSIVE;
@@ -298,7 +285,7 @@ public final class CombatTreeMenuService {
             long cost = this.abilities.nextRankCost(p, ability);
             lore.add(this.text(CURRENCY_SYMBOL + " " + (unlocked ? l.choose("Melhorar: ", "Upgrade: ") : l.choose("Desbloquear: ", "Unlock: ")) + this.valor.format(cost) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
         }
-        if (unlocked && node.kind() == CombatTreeNode.Kind.PASSIVE && !isBackpack(ability)) {
+        if (unlocked && node.kind() == CombatTreeNode.Kind.PASSIVE) {
             boolean enabled = this.abilities.enabled(p, ability);
             lore.add(this.text(enabled ? l.choose("ATIVADA (shift-clique desativa)", "ENABLED (shift-click disables)") : l.choose("DESATIVADA (shift-clique ativa)", "DISABLED (shift-click enables)"), enabled ? NamedTextColor.GREEN : NamedTextColor.GRAY));
         }

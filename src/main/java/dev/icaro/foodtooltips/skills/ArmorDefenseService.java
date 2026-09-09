@@ -44,14 +44,23 @@ public final class ArmorDefenseService {
     private final NamespacedKey armorKey = new NamespacedKey("foodtooltips", "vanilla_armor_zero");
     private final NamespacedKey toughnessKey = new NamespacedKey("foodtooltips", "vanilla_armor_toughness_zero");
     private final NamespacedKey tooltipKey = new NamespacedKey("foodtooltips", "defense_tooltip_applied");
+    private GeneralSkillService general;
 
-    /** Sum of the equipped helmet/chestplate/leggings/boots' Defense values — works for any player or mob. */
+    /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
+    public void general(GeneralSkillService general) {
+        this.general = general;
+    }
+
+    /**
+     * Sum of the equipped helmet/chestplate/leggings/boots' Defense values, plus
+     * {@link GeneralSkillService#bonusDefense} (Mining, 1 per level) for players -
+     * works for any player or mob, mobs just never have a skill bonus to add.
+     */
     public int defense(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
-        if (eq == null) {
-            return 0;
-        }
-        return pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
+        int armorDefense = eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
+        int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
+        return armorDefense + skillBonus;
     }
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */
@@ -60,7 +69,8 @@ public final class ArmorDefenseService {
         return (double) defense / ((double) defense + 100.0);
     }
 
-    private static int pieceDefense(ItemStack item) {
+    /** Defense contributed by a single equipped piece (0 for an empty slot) - exposed for a per-piece breakdown display. */
+    public static int pieceDefense(ItemStack item) {
         return item == null ? 0 : defenseFor(item.getType());
     }
 

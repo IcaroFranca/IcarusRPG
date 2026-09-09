@@ -65,7 +65,7 @@ public final class EconomyService {
     public int mobCoins(Player p, LivingEntity mob) {
         double hp = Optional.ofNullable(mob.getAttribute(Attribute.MAX_HEALTH)).map(x -> x.getValue()).orElse(10.0);
         int fallback = Math.max(1, (int)Math.round(Math.sqrt(hp) * 1.5));
-        return BestiaryCatalog.find(mob.getType()).map(e -> this.catalogCoins(e.type(), e.awardedCombatXp())).orElse(fallback);
+        return BestiaryCatalog.find(mob).map(e -> this.catalogCoins(e.type(), e.awardedCombatXp())).orElse(fallback);
     }
 
     public int catalogCoins(EntityType type, int combatXp) {
@@ -88,7 +88,7 @@ public final class EconomyService {
         if ((old = board.getObjective("rpg_sidebar")) != null) {
             old.unregister();
         }
-        Objective objective = board.registerNewObjective("rpg_sidebar", Criteria.DUMMY, (Component)Component.text((String)"\u2726 NexusRPG", (TextColor)NamedTextColor.GOLD));
+        Objective objective = board.registerNewObjective("rpg_sidebar", Criteria.DUMMY, (Component)Component.text((String)"\u2726 IcarusRPG", (TextColor)NamedTextColor.GOLD));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         objective.getScore(" ").setScore(3);
         objective.getScore(String.valueOf(ChatColor.GOLD) + Language.of(p).choose("Moedas", "Coins")).setScore(2);
