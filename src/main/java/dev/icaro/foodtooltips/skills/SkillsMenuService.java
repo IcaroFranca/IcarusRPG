@@ -183,6 +183,9 @@ public final class SkillsMenuService {
         if (t == SkillType.ENCHANTING) {
             lines.add(this.text("+" + this.general.xpOrbPercentPerLevel() + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA));
         }
+        if (t == SkillType.ALCHEMY) {
+            lines.add(this.text("+" + this.general.potionDurationPercentPerLevel() + "% " + l.choose("Duração de Poções", "Potion Duration"), NamedTextColor.DARK_PURPLE));
+        }
         if (lines.isEmpty()) {
             lines.add(this.text(l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), NamedTextColor.AQUA));
         }
@@ -625,6 +628,10 @@ public final class SkillsMenuService {
         if (t == SkillType.ENCHANTING) {
             this.stat(lore, "+" + (level * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA,
                     this.rate(l, level, this.general.xpOrbPercentPerLevel()));
+        }
+        if (t == SkillType.ALCHEMY) {
+            this.stat(lore, "+" + (level * this.general.potionDurationPercentPerLevel()) + "% " + l.choose("Duração de Poções", "Potion Duration"), NamedTextColor.DARK_PURPLE,
+                    this.rate(l, level, this.general.potionDurationPercentPerLevel()));
         }
         return this.item(t.icon(), t.name(l == Language.PT), lore);
     }

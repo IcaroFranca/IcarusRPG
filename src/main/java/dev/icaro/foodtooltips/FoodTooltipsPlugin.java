@@ -46,6 +46,7 @@ import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageListener;
+import dev.icaro.foodtooltips.item.PolearmDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageService;
 import dev.icaro.foodtooltips.item.legendary.DemonKingStormListener;
 import dev.icaro.foodtooltips.item.legendary.LegendaryItemsListener;
@@ -117,6 +118,7 @@ extends JavaPlugin {
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
+        PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
@@ -359,6 +361,7 @@ extends JavaPlugin {
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
+            polearmDamage.applyPolearmDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
@@ -390,6 +393,7 @@ extends JavaPlugin {
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
+            polearmDamage.applyPolearmDamage((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);

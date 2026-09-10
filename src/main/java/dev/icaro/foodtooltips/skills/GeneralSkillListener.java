@@ -43,6 +43,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerFishEvent;
@@ -62,6 +63,8 @@ implements Listener {
     private final GlobalLevelService global;
     private final Set<String> placed = new HashSet<String>();
     private final Set<UUID> veinActive = new HashSet<UUID>();
+    /** Reentrancy guard for {@link #potionDuration} - reapplying an extended effect fires this same event again, and this stops that from being treated as a new drink to extend a second time. */
+    private final Set<UUID> extendingPotion = new HashSet<UUID>();
     private final Map<String, Target> targets = new HashMap<String, Target>();
     private final Map<UUID, Combo> combos = new HashMap<UUID, Combo>();
 
@@ -214,6 +217,29 @@ implements Listener {
         }
     }
 
+    /** Alchemy's +1%-per-level bonus to potion effect duration, from drinking a potion specifically (not splash/lingering/beacon/other environmental effects). Cancel-and-reapply rather than mutating the event in place, since {@link EntityPotionEffectEvent} doesn't expose a setter for the effect itself - the reapply fires this same event again, guarded by {@link #extendingPotion} so it isn't extended a second time. */
+    @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
+    public void potionDuration(EntityPotionEffectEvent e) {
+        if (!(e.getEntity() instanceof Player p) || this.extendingPotion.contains(p.getUniqueId())
+                || e.getCause() != EntityPotionEffectEvent.Cause.POTION_DRINK
+                || e.getAction() != EntityPotionEffectEvent.Action.ADDED || e.getNewEffect() == null) {
+            return;
+        }
+        double multiplier = this.skills.potionDurationMultiplier(p);
+        if (multiplier <= 1.0) {
+            return;
+        }
+        PotionEffect original = e.getNewEffect();
+        PotionEffect extended = new PotionEffect(original.getType(), (int) Math.round(original.getDuration() * multiplier),
+                original.getAmplifier(), original.isAmbient(), original.hasParticles(), original.hasIcon());
+        this.extendingPotion.add(p.getUniqueId());
+        try {
+            p.addPotionEffect(extended);
+        } finally {
+            this.extendingPotion.remove(p.getUniqueId());
+        }
+    }
+
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void enchant(EnchantItemEvent e) {
         this.gain(e.getEnchanter(), SkillType.ENCHANTING, Math.max(5, e.getExpLevelCost() * 4));
@@ -328,6 +354,9 @@ implements Listener {
         }
         if (t == SkillType.ENCHANTING) {
             parts.add("+" + (levelsGained * this.skills.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"));
+        }
+        if (t == SkillType.ALCHEMY) {
+            parts.add("+" + (levelsGained * this.skills.potionDurationPercentPerLevel()) + "% " + l.choose("Dura\u00e7\u00e3o de Po\u00e7\u00f5es", "Potion Duration"));
         }
         return String.join(" \u2022 ", parts);
     }
