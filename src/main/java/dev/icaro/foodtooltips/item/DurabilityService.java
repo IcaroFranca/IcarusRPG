@@ -23,8 +23,17 @@ import org.bukkit.plugin.Plugin;
  * current damage is scaled up by the same multiplier as its new max, so an
  * already-half-worn tool stays half-worn (proportionally) instead of the multiplier
  * handing it free uses out of nowhere.
+ *
+ * <p>Gold tools/weapons/armor/horse armor (any {@code GOLDEN_*} material) are the one
+ * exception: instead of the usual multiplier, every one of them gets a flat {@link
+ * #GOLD_MAX_DURABILITY} - vanilla's own gold tools in particular sit at a notoriously
+ * low 32, so even ×5 (160) leaves them too fragile to matter next to gold's already
+ * class-leading Mining Speed/attack speed here; a flat, generous number fixes that
+ * without needing a per-gold-item-type table.
  */
 public final class DurabilityService {
+    /** Flat Max Durability every {@code GOLDEN_*} item gets instead of the usual multiplier - see this class's own doc. */
+    private static final int GOLD_MAX_DURABILITY = 1000;
     private final NamespacedKey appliedKey;
     private final int multiplier;
 
@@ -76,8 +85,9 @@ public final class DurabilityService {
             return false;
         }
         int currentDamage = damageable.hasDamage() ? damageable.getDamage() : 0;
-        damageable.setMaxDamage(vanillaMax * this.multiplier);
-        damageable.setDamage(currentDamage * this.multiplier);
+        int targetMax = item.getType().name().startsWith("GOLDEN_") ? GOLD_MAX_DURABILITY : vanillaMax * this.multiplier;
+        damageable.setMaxDamage(targetMax);
+        damageable.setDamage((int) Math.round(currentDamage * (targetMax / (double) vanillaMax)));
         meta.getPersistentDataContainer().set(this.appliedKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return true;
