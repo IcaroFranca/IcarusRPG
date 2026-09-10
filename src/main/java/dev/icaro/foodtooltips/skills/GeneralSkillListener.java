@@ -40,6 +40,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
@@ -103,6 +104,14 @@ implements Listener {
                 this.veinActive.remove(p.getUniqueId());
             }
         });
+    }
+
+    /** Netherite pickaxe/axe/shovel with real vanilla Efficiency V insta-mines - see {@link GeneralSkillService#instaMines}. Runs on the very first damage tick a block takes, same as creative mode's own instant break. */
+    @EventHandler(ignoreCancelled=true)
+    public void instaMine(BlockDamageEvent e) {
+        if (this.skills.instaMines(e.getPlayer().getInventory().getItemInMainHand(), e.getBlock().getType())) {
+            e.setInstaBreak(true);
+        }
     }
 
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
