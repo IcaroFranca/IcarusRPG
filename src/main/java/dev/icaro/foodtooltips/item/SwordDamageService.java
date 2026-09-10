@@ -81,6 +81,13 @@ public final class SwordDamageService {
      * value on their own items instead of duplicating the magic number.
      */
     public static final double BASE_ATTACK_DAMAGE = 1.0;
+    /**
+     * Players' base {@link Attribute#ATTACK_SPEED} with an empty hand (vanilla's own
+     * default), what {@link #ATTACK_SPEED_DELTA} is computed relative to - public so
+     * {@code PolearmDamageService} can derive its own per-material delta from a real
+     * final Attack Speed number the same way, instead of duplicating the magic number.
+     */
+    public static final double BASE_ATTACK_SPEED_REFERENCE = 4.0;
 
     private final CombatSkillService combat;
     private final NamespacedKey appliedKey;

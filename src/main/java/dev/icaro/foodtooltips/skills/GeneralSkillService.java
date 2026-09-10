@@ -28,13 +28,6 @@ public final class GeneralSkillService {
     private static final int DEFENSE_PER_LEVEL = 1;
     private static final int XP_ORB_PERCENT_PER_LEVEL = 5;
     private static final int POTION_DURATION_PERCENT_PER_LEVEL = 1;
-    /** XP required for levels 1-30, in order - see {@link #required}. */
-    private static final double[] XP_REQUIRED_TABLE = {
-            50, 125, 200, 300, 500, 750, 1_000, 1_500, 2_000, 3_500,
-            5_000, 7_500, 10_000, 15_000, 20_000, 30_000, 50_000, 75_000, 100_000, 200_000,
-            300_000, 400_000, 500_000, 600_000, 700_000, 800_000, 900_000, 1_000_000, 1_100_000, 1_200_000};
-    /** Flat XP required for every level past {@link #XP_REQUIRED_TABLE}'s own range (31-200) - see {@link #required}. */
-    private static final double XP_REQUIRED_BEYOND_TABLE = 1_000_000;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
 
     public SkillProgress progress(Player p, SkillType type) {
@@ -72,19 +65,9 @@ public final class GeneralSkillService {
         }
     }
 
-    /**
-     * Explicit per-level XP curve (not a formula) for levels 1-30 (see {@link
-     * #XP_REQUIRED_TABLE}), given directly rather than computed - every level past
-     * that is a flat {@link #XP_REQUIRED_BEYOND_TABLE}, per explicit confirmation
-     * (level 30 is genuinely more expensive than every level past it - not a
-     * mistake, the table is deliberately a one-time wall right before it flattens
-     * out).
-     */
+    /** The shared per-level XP curve every skill uses - see {@link SkillXpCurve}. */
     public double required(int level) {
-        if (level >= 1 && level <= XP_REQUIRED_TABLE.length) {
-            return XP_REQUIRED_TABLE[level - 1];
-        }
-        return XP_REQUIRED_BEYOND_TABLE;
+        return SkillXpCurve.required(level);
     }
 
     public int maxLevel() {

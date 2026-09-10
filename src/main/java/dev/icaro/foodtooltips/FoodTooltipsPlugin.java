@@ -118,7 +118,7 @@ extends JavaPlugin {
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
-        PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this);
+        PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this, combat);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
