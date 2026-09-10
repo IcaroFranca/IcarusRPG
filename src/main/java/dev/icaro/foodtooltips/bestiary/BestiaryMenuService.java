@@ -9,6 +9,7 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.skills.CombatValorService;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -86,10 +87,10 @@ public final class BestiaryMenuService {
         }
         inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar \u00e0s categorias", "Back to Categories"), List.of()));
         if (page > 0) {
-            inv.setItem(47, this.item(Material.ARROW, l.choose("P\u00e1gina anterior", "Previous Page"), List.of()));
+            inv.setItem(47, this.customHeadIcon(HeadTexture.ARROW_LEFT, l.choose("P\u00e1gina anterior", "Previous Page"), List.of()));
         }
         if (page + 1 < pages) {
-            inv.setItem(51, this.item(Material.ARROW, l.choose("Pr\u00f3xima p\u00e1gina", "Next Page"), List.of()));
+            inv.setItem(51, this.customHeadIcon(HeadTexture.ARROW_RIGHT, l.choose("Pr\u00f3xima p\u00e1gina", "Next Page"), List.of()));
         }
         p.openInventory(inv);
         this.viewers.put(p.getUniqueId(), View.category(cat, page, buttons));

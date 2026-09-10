@@ -315,10 +315,10 @@ public final class SkillsMenuService {
     private void nav(Inventory v, Language l, int page, int max) {
         v.setItem(45, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
         if (page > 0) {
-            v.setItem(48, this.item(Material.ARROW, l.choose("Página anterior", "Previous page"), List.of()));
+            v.setItem(48, this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous page"), List.of()));
         }
         if ((page + 1) * 25 < max) {
-            v.setItem(50, this.item(Material.ARROW, l.choose("Próxima página", "Next page"), List.of()));
+            v.setItem(50, this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next page"), List.of()));
         }
     }
 
