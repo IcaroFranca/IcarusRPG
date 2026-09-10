@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.skills.SkillType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
@@ -42,6 +43,17 @@ public final class GeneralSkillService {
      * ends up feeling too fast/slow in practice.
      */
     private static final double MINING_SPEED_ATTRIBUTE_DIVISOR = 15.0;
+    /** Real vanilla Netherite pickaxe/axe/shovel - see {@link #instaMines}. */
+    private static final Set<Material> INSTA_MINE_TOOLS = Set.of(Material.NETHERITE_PICKAXE, Material.NETHERITE_AXE, Material.NETHERITE_SHOVEL);
+    /**
+     * Above this real vanilla block hardness, {@link #instaMines} stays false even for
+     * a qualifying tool - keeps deliberately-slow vanilla outliers (Obsidian 50,
+     * Ancient Debris 30, Crying Obsidian 50, Respawn Anchor 50...) exactly as slow as
+     * they've always been; every ordinary stone/ore/wood/dirt-family block a pickaxe,
+     * axe or shovel normally breaks sits well under this (Deepslate is the hardest at
+     * 4.5) so none of them are excluded by it in practice.
+     */
+    private static final double INSTA_MINE_MAX_HARDNESS = 6.0;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
     private final NamespacedKey miningSpeedKey = new NamespacedKey("foodtooltips", "general_skill_mining_speed");
 
@@ -220,6 +232,22 @@ public final class GeneralSkillService {
         if (tool.getType().name().endsWith("_PICKAXE") && (amount = this.miningSpeed(player, tool) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
             attribute.addTransientModifier(new AttributeModifier(this.miningSpeedKey, amount, AttributeModifier.Operation.ADD_NUMBER));
         }
+    }
+
+    /**
+     * Whether {@code tool} insta-mines {@code block} - the real Netherite pickaxe/axe/
+     * shovel with real vanilla Efficiency V, on any block at or under {@link
+     * #INSTA_MINE_MAX_HARDNESS} (see its own doc for what that excludes). Gear-gated
+     * only, deliberately independent of Mining skill level or {@link #miningSpeed}'s
+     * own points - Gold tools stay off this list entirely (their own {@link
+     * #baseMiningSpeed} bonus is untouched, just never a guaranteed insta-mine).
+     */
+    public boolean instaMines(ItemStack tool, Material block) {
+        if (!INSTA_MINE_TOOLS.contains(tool.getType()) || tool.getEnchantmentLevel(Enchantment.EFFICIENCY) < 5) {
+            return false;
+        }
+        double hardness = block.getHardness();
+        return hardness >= 0.0 && hardness <= INSTA_MINE_MAX_HARDNESS;
     }
 
     public int baseMiningSpeed(Material tool) {
