@@ -241,7 +241,11 @@ public final class EnchantService {
      * position), otherwise appended at the end. Also hides Minecraft's own native
      * enchantment tooltip line (HIDE_ENCHANTS) whenever there's at least one entry, so
      * this block - which shows the same name/level plus a description - is the only
-     * one the player sees instead of the two duplicating each other.
+     * one the player sees instead of the two duplicating each other, and forces the
+     * enchantment glint on ({@link ItemMeta#setEnchantmentGlintOverride}) - vanilla
+     * only glints an item that carries a real {@code Enchantment}, so an item with
+     * only custom (PDC-stored) entries applied would otherwise render with no glint
+     * at all despite genuinely being enchanted.
      */
     public void rebuildLore(ItemStack item, boolean pt) {
         ItemMeta meta = item.getItemMeta();
@@ -260,8 +264,10 @@ public final class EnchantService {
                 lore.addAll(block);
             }
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            meta.setEnchantmentGlintOverride(true);
         } else {
             meta.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
+            meta.setEnchantmentGlintOverride(null);
         }
         meta.lore(lore);
         item.setItemMeta(meta);

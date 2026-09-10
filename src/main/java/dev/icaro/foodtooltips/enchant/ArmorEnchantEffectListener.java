@@ -17,17 +17,24 @@ import org.bukkit.inventory.EntityEquipment;
  * as custom entries instead of their vanilla counterparts. Complements {@link
  * CustomEnchantEffectListener}, which covers held-item (bow/rod) effects instead.
  *
- * <p>Defense/True Defense from the Protection family stack with (not into) {@code
- * ArmorDefenseService}'s own armor+skill Defense: each is its own independent
- * multiplicative reduction using the exact same diminishing-returns curve ({@code
- * defense/(defense+100)}) {@code ArmorDefenseService#damageReduction} already uses,
- * composed on top of it rather than summed into one shared total, so this class
- * never needs to touch that service directly. {@link #protection} runs at {@link
- * EventPriority#HIGHEST}, registered after {@code ArmorDefenseListener}, so it
- * reduces whatever damage that listener's own reduction already left. Fire
- * Protection's True Defense is instead a flat subtraction (not a percentage) - the
- * "True" naming here means unconditional, bypassing every percentage-based
- * mitigation - applied before the percentage reductions above.
+ * <p>Protection's own Defense is folded straight into {@code ArmorDefenseService}'s
+ * single Defense number (see {@link #protectionDefenseBonus}, wired in from {@code
+ * FoodTooltipsPlugin} as a late-bound callback) rather than applied as a separate
+ * reduction here - it's a universal, every-cause bonus exactly like armor's own
+ * Defense, so it belongs in the one number the HUD/stats screen shows and {@code
+ * ArmorDefenseListener} already reduces damage by; keeping it separate would both
+ * under-count that display and double-reduce damage. Blast/Projectile Protection's
+ * Defense and Fire Protection's True Defense, by contrast, only apply against one
+ * specific damage cause each - folding those into the same universal number would
+ * misrepresent them there, so {@link #protection} applies them itself, independent
+ * of (composed on top of) {@code ArmorDefenseService}'s own reduction, using the
+ * same diminishing-returns curve ({@code defense/(defense+100)}) for the Defense
+ * one. Runs at {@link EventPriority#HIGHEST}, registered after {@code
+ * ArmorDefenseListener}, so it reduces whatever damage that listener's own
+ * reduction (Protection's own bonus included) already left. True Defense is instead
+ * a flat subtraction (not a percentage) - the "True" naming here means
+ * unconditional, bypassing every percentage-based mitigation - applied before the
+ * percentage reduction above.
  */
 public final class ArmorEnchantEffectListener implements Listener {
     private final EnchantService enchants;
@@ -47,7 +54,12 @@ public final class ArmorEnchantEffectListener implements Listener {
                 + this.enchants.levelOf(eq.getLeggings(), entry) + this.enchants.levelOf(eq.getBoots(), entry);
     }
 
-    /** Fire Protection's flat True Defense (fire/lava only), then Protection's general Defense plus Blast/Projectile Protection's typed Defense (every cause, or the matching one) - each reduction independent of {@code ArmorDefenseService}'s own, see this class's own doc. */
+    /** Protection's own Defense contribution (+4/level, summed across every equipped piece) - see this class's own doc for why this feeds {@code ArmorDefenseService.defense(LivingEntity)} directly instead of being applied here. */
+    public int protectionDefenseBonus(LivingEntity target) {
+        return this.armorLevel(target, IcarusEnchant.PROTECTION) * 4;
+    }
+
+    /** Fire Protection's flat True Defense (fire/lava only), then Blast/Projectile Protection's typed Defense (the matching cause only) - each reduction independent of {@code ArmorDefenseService}'s own, see this class's own doc. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void protection(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof LivingEntity target)) {
@@ -60,8 +72,7 @@ public final class ArmorEnchantEffectListener implements Listener {
                 e.setDamage(Math.max(0.0, e.getDamage() - trueDefense));
             }
         }
-        int defense = this.armorLevel(target, IcarusEnchant.PROTECTION) * 4;
-        defense += switch (cause) {
+        int defense = switch (cause) {
             case BLOCK_EXPLOSION, ENTITY_EXPLOSION -> this.armorLevel(target, IcarusEnchant.BLAST_PROTECTION) * 30;
             case PROJECTILE -> this.armorLevel(target, IcarusEnchant.PROJECTILE_PROTECTION) * 7;
             default -> 0;

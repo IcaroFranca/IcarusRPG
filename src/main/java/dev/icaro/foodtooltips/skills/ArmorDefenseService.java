@@ -45,22 +45,31 @@ public final class ArmorDefenseService {
     private final NamespacedKey toughnessKey = new NamespacedKey("foodtooltips", "vanilla_armor_toughness_zero");
     private final NamespacedKey tooltipKey = new NamespacedKey("foodtooltips", "defense_tooltip_applied");
     private GeneralSkillService general;
+    /** Extra Defense from the Protection enchant (see {@code ArmorEnchantEffectListener}) - wired in the same late-bound way as {@link #general}, as a plain functional callback rather than a direct type reference so this class (in {@code skills}) never has to depend on the {@code enchant} package. Defaults to always-0 so this class works before it's wired (or if it never is). */
+    private java.util.function.ToIntFunction<LivingEntity> protectionBonus = e -> 0;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
         this.general = general;
     }
 
+    /** Wired in after construction, same pattern as {@link #general} - see {@link #protectionBonus}. */
+    public void protectionBonus(java.util.function.ToIntFunction<LivingEntity> protectionBonus) {
+        this.protectionBonus = protectionBonus;
+    }
+
     /**
      * Sum of the equipped helmet/chestplate/leggings/boots' Defense values, plus
-     * {@link GeneralSkillService#bonusDefense} (Mining, 1 per level) for players -
-     * works for any player or mob, mobs just never have a skill bonus to add.
+     * {@link GeneralSkillService#bonusDefense} (Mining, 1 per level) and the
+     * Protection enchant's own Defense (see {@link #protectionBonus}) for players -
+     * works for any player or mob, mobs just never have a skill/enchant bonus to add
+     * (the callback itself handles that - see its own default).
      */
     public int defense(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
         int armorDefense = eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
         int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
-        return armorDefense + skillBonus;
+        return armorDefense + skillBonus + this.protectionBonus.applyAsInt(e);
     }
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */

@@ -150,6 +150,7 @@ extends JavaPlugin {
         EnchantService enchants = new EnchantService((Plugin)this);
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
+        armor.protectionBonus(armorEnchants::protectionDefenseBonus);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();
