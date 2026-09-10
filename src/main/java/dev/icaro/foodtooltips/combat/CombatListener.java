@@ -28,11 +28,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -46,12 +49,15 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -85,6 +91,8 @@ public final class CombatListener implements Listener {
     private final GeneralSkillService general;
     private final LegendaryWeaponService legendary;
     private final Map<UUID, Long> secondWind = new HashMap<>();
+    /** Captured on death, consumed on respawn (see {@link #playerDeath}/{@link #respawn}) - where to point the death compass. */
+    private final Map<UUID, Location> deathLocations = new HashMap<>();
     private final double critMultiplier;
     private final double hpXp;
     private final double levelXp;
@@ -163,6 +171,19 @@ public final class CombatListener implements Listener {
     public void damage(EntityDamageByEntityEvent e) {
         Player p = this.attacker(e.getDamager());
         if (p == null || !(e.getEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        if (e.getDamager() instanceof AbstractArrow) {
+            // Arrow damage is already fully computed at shoot time (a flat 30 - see
+            // CustomEnchantEffectListener#bowShoot) - the melee multiplier stack below
+            // (Combat level, crit chance, Global Strength...) is deliberately NOT
+            // layered on top of it, so "30 damage" stays exactly that regardless of
+            // the shooter's own progression, same idea as the ability-damage branch
+            // right below this one.
+            if (!(target instanceof Player)) {
+                this.visuals.track(target);
+                this.visuals.damageNumber(target, e.getFinalDamage(), false);
+            }
             return;
         }
         if (this.isVanillaCritical(p)) {
@@ -330,6 +351,46 @@ public final class CombatListener implements Listener {
         this.stats.applySwingRange(p);
         this.visuals.track(p);
         this.economy.updateBoard(p);
+    }
+
+    /** Remembers where the player died - {@link #respawn} hands them a compass pointing back here. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void playerDeath(PlayerDeathEvent e) {
+        this.deathLocations.put(e.getEntity().getUniqueId(), e.getEntity().getLocation());
+    }
+
+    /**
+     * Gives the respawning player a compass pointing at (and named with the
+     * coordinates of) where they just died - {@link CompassMeta#setLodestone}
+     * with tracking off lets it target an arbitrary location without a real
+     * lodestone block; if the death was in a different dimension the needle just
+     * spins, same as a real lodestone compass would for an unreachable target.
+     * Scheduled a tick later since the player's inventory isn't reliably safe to
+     * add to synchronously while the respawn itself is still resolving.
+     */
+    @EventHandler
+    public void respawn(PlayerRespawnEvent e) {
+        Player p = e.getPlayer();
+        Location death = this.deathLocations.remove(p.getUniqueId());
+        if (death == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(this.plugin, () -> this.giveDeathCompass(p, death));
+    }
+
+    private void giveDeathCompass(Player p, Location death) {
+        Language l = Language.of(p);
+        ItemStack compass = ItemStack.of(Material.COMPASS);
+        CompassMeta meta = (CompassMeta) compass.getItemMeta();
+        meta.setLodestoneTracked(false);
+        meta.setLodestone(death);
+        meta.displayName(Component.text(l.choose("Local da Morte: ", "Death Location: ")
+                        + death.getBlockX() + ", " + death.getBlockY() + ", " + death.getBlockZ(), NamedTextColor.GOLD)
+                .decoration(TextDecoration.ITALIC, false));
+        compass.setItemMeta(meta);
+        for (ItemStack overflow : p.getInventory().addItem(compass).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+        }
     }
 
     /**

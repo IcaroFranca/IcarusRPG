@@ -207,7 +207,7 @@ public final class EnchantMenuService {
                 return;
             }
         }
-        int cost = enchant.costAtLevel(level);
+        int cost = this.discountedCost(enchant, current, level);
         if (p.getLevel() < cost) {
             // No chat message here on purpose - the level's own icon already shows this
             // in red lore (see #levelIcon) before the player even clicks it.
@@ -471,10 +471,9 @@ public final class EnchantMenuService {
             lore.addAll(desc);
             lore.add(Component.empty());
         }
-        int cost = e.costAtLevel(level);
-        lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
         String name = e.leveledName(pt, level);
         if (level <= current) {
+            lore.add(this.text(e.costAtLevel(level) + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
             lore.add(this.text(l.choose("JÁ APLICADO", "ALREADY APPLIED"), NamedTextColor.GREEN));
             return this.item(Material.ENCHANTED_BOOK, name, lore);
         }
@@ -483,12 +482,41 @@ public final class EnchantMenuService {
         // exactly the flat cost already shown for that level, same as picking it in
         // any order would. No slot limit either - an item can carry as many distinct
         // entries as you want.
+        int originalCost = e.costAtLevel(level);
+        int cost = this.discountedCost(e, current, level);
+        if (cost != originalCost) {
+            // Reapplication discount (see #discountedCost) - the more of this entry's
+            // own level range already applied, the bigger the cut on everything still
+            // above it, shown as the discounted price next to the original struck through.
+            lore.add(this.text(originalCost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA)
+                    .decoration(TextDecoration.STRIKETHROUGH, true));
+            lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.GREEN));
+        } else {
+            lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
+        }
         if (p.getLevel() < cost) {
             lore.add(this.text(l.choose("XP insuficiente para aplicar.", "Not enough XP to apply."), NamedTextColor.RED));
             return this.item(Material.BOOK, name, lore);
         }
         lore.add(this.text(l.choose("Clique para aplicar!", "Click to apply!"), NamedTextColor.GOLD));
         return this.item(Material.ENCHANTED_BOOK, name, lore);
+    }
+
+    /**
+     * The XP cost for {@code level}, discounted if {@code current} (the entry's
+     * already-applied level, 0 if none) is above 0 - the discount is proportional to
+     * how far into the entry's own level range the player already is ({@code
+     * current / maxLevel}), so owning a higher level already cuts more off every
+     * level still above it than owning a low one would (owning level 1 of 5 cuts
+     * 20% off levels 2-5; owning level 3 of 5 cuts 60% off levels 4-5).
+     */
+    private int discountedCost(EnchantEntry e, int current, int level) {
+        int original = e.costAtLevel(level);
+        if (current <= 0) {
+            return original;
+        }
+        double discount = (double) current / e.maxLevel();
+        return (int) Math.round(original * (1.0 - discount));
     }
 
     private ItemStack enchantedBook(String name, List<Component> lore) {
