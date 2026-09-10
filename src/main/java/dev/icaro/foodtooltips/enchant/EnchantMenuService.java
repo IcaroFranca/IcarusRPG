@@ -182,7 +182,7 @@ public final class EnchantMenuService {
         this.views.put(p.getUniqueId(), new View(Type.LEVEL, 0, enchant));
     }
 
-    /** Called by the listener when a clickable (next-applicable) level is clicked - validates, charges the XP, applies it, and returns to the main screen with the updated item. */
+    /** Called by the listener when a clickable (higher-than-current) level is clicked - validates, charges the XP for that level directly (no need to apply every level in between first), applies it, and returns to the main screen with the updated item. */
     public void applyLevel(Player p, EnchantEntry enchant, int level) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
@@ -191,7 +191,7 @@ public final class EnchantMenuService {
             return;
         }
         int current = this.enchants.levelOf(item, enchant);
-        if (level != current + 1) {
+        if (level <= current) {
             return;
         }
         if (current == 0 && !this.enchants.hasFreeSlot(item, enchant)) {
@@ -490,16 +490,16 @@ public final class EnchantMenuService {
             lore.add(this.text(l.choose("JÁ APLICADO", "ALREADY APPLIED"), NamedTextColor.GREEN));
             return this.item(Material.ENCHANTED_BOOK, name, lore);
         }
-        if (level == current + 1) {
-            if (current == 0 && !hasFreeSlot) {
-                lore.add(this.text(l.choose("SEM SLOTS LIVRES", "NO FREE SLOTS"), NamedTextColor.RED));
-                return this.item(Material.BOOK, name, lore);
-            }
-            lore.add(this.text(l.choose("Clique para aplicar!", "Click to apply!"), NamedTextColor.GOLD));
-            return this.item(Material.ENCHANTED_BOOK, name, lore);
+        // Any level above current is directly clickable - no need to apply every
+        // level in between first (e.g. straight to V without I-IV), each charged
+        // exactly the flat cost already shown for that level, same as picking it in
+        // any order would.
+        if (current == 0 && !hasFreeSlot) {
+            lore.add(this.text(l.choose("SEM SLOTS LIVRES", "NO FREE SLOTS"), NamedTextColor.RED));
+            return this.item(Material.BOOK, name, lore);
         }
-        lore.add(this.text(l.choose("Requer o nível anterior primeiro.", "Requires the previous level first."), NamedTextColor.DARK_GRAY));
-        return this.item(Material.BOOK, name, lore);
+        lore.add(this.text(l.choose("Clique para aplicar!", "Click to apply!"), NamedTextColor.GOLD));
+        return this.item(Material.ENCHANTED_BOOK, name, lore);
     }
 
     private ItemStack enchantedBook(String name, List<Component> lore) {
