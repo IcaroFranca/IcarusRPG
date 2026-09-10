@@ -56,6 +56,7 @@ import dev.icaro.foodtooltips.skills.CombatTreeMenuService;
 import dev.icaro.foodtooltips.skills.CombatValorService;
 import dev.icaro.foodtooltips.skills.GeneralSkillListener;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
+import dev.icaro.foodtooltips.skills.PlayerStatsViewListener;
 import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillsListener;
@@ -150,6 +151,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new GlobalPlayerListener(global), (Plugin)this);
         pm.registerEvents((Listener)presentation, (Plugin)this);
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);
+        pm.registerEvents((Listener)new PlayerStatsViewListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
