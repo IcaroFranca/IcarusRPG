@@ -167,11 +167,11 @@ final class VanillaEnchantEntry implements EnchantEntry {
                             EnchantText.Token.colored("☠ Wither", WITHER_COLOR), EnchantText.Token.plain("and"), EnchantText.Token.colored("🦴 Skeletal", SKELETAL_COLOR),
                             EnchantText.Token.plain("mobs by"), EnchantText.Token.value(level, "%", l -> linearCapped(l, 5, 5, 30)), EnchantText.Token.plain("."));
             case "knockback" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o recuo em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
+                    ? List.of(EnchantText.Token.plain("Aumenta o recuo em"), EnchantText.Token.value(level, " blocos", l -> l * 3), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases knockback by"), EnchantText.Token.value(level, " blocks", l -> l * 3), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "looting" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta a chance de um monstro dropar um item em"), EnchantText.Token.value(level, "%", l -> 15), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> 15), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
+                    ? List.of(EnchantText.Token.plain("Aumenta a chance de um monstro dropar um item em"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "sweeping_edge", "sweeping" -> pt
                     ? List.of(EnchantText.Token.plain("Aumenta o dano do ataque de varredura em"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases sweep attack damage by"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("."));
@@ -191,8 +191,8 @@ final class VanillaEnchantEntry implements EnchantEntry {
                     ? List.of(EnchantText.Token.plain("Aumenta o dano do arco em"), EnchantText.Token.value(level, "%", l -> l * 8), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases bow damage by"), EnchantText.Token.value(level, "%", l -> l * 8), EnchantText.Token.plain("."));
             case "punch" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o recuo das flechas em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases arrow knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
+                    ? List.of(EnchantText.Token.plain("Aumenta o recuo das flechas em"), EnchantText.Token.value(level, " blocos", l -> l * 3), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases arrow knockback by"), EnchantText.Token.value(level, " blocks", l -> l * 3), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "depth_strider" -> pt
                     ? List.of(EnchantText.Token.plain("Reduz a redução de velocidade na água em"), EnchantText.Token.value(level, "%", l -> l * 33), EnchantText.perLevel(level, true),
                             EnchantText.Token.plain(". No nível III, a velocidade de movimento é igual à da terra firme (100%)."))
