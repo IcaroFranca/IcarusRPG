@@ -17,6 +17,9 @@ import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
 import dev.icaro.foodtooltips.economy.EconomyService;
+import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
+import dev.icaro.foodtooltips.enchant.EnchantMenuService;
+import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.food.FoodTooltipListener;
 import dev.icaro.foodtooltips.food.FoodTooltipService;
 import dev.icaro.foodtooltips.global.GlobalLevelCommand;
@@ -142,6 +145,8 @@ extends JavaPlugin {
         menus.crafting(craftingMenu);
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
+        EnchantService enchants = new EnchantService((Plugin)this, tiers);
+        EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();
@@ -154,6 +159,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new PlayerStatsViewListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
+        pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
