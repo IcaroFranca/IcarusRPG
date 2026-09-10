@@ -13,6 +13,9 @@ import net.kyori.adventure.text.Component;
  * {@link VanillaEnchantEntry}).
  */
 public sealed interface EnchantEntry permits CustomEnchantEntry, VanillaEnchantEntry {
+    /** The real achievable maximum Bookshelf Power (see {@code EnchantMenuService#bookshelfPower}) - what {@link #requiredBookshelfPower} scales up to, so nothing is ever gated behind a number that can't actually be reached. */
+    int MAX_BOOKSHELF_POWER = 16;
+
     /** Stable id, unique across both kinds - not shown to players, just used for lookups. */
     String id();
 
@@ -27,16 +30,17 @@ public sealed interface EnchantEntry permits CustomEnchantEntry, VanillaEnchantE
     /**
      * Minimum Bookshelf Power (see {@code EnchantMenuService#bookshelfPower}) needed
      * to apply this entry at {@code level} - 0 for every entry's own level 1 (always
-     * free), scaling linearly up to a flat 20 at the entry's own {@link #maxLevel()},
-     * so a stronger level of anything costs more Bookshelf Power than a weaker one of
-     * the same entry. A single-level entry ({@code maxLevel() == 1}) is never gated.
+     * free), scaling linearly up to a flat {@value #MAX_BOOKSHELF_POWER} at the
+     * entry's own {@link #maxLevel()}, so a stronger level of anything costs more
+     * Bookshelf Power than a weaker one of the same entry. A single-level entry
+     * ({@code maxLevel() == 1}) is never gated.
      */
     default int requiredBookshelfPower(int level) {
         int max = this.maxLevel();
         if (max <= 1) {
             return 0;
         }
-        return (int) Math.round(20.0 * (level - 1) / (max - 1));
+        return (int) Math.round((double) MAX_BOOKSHELF_POWER * (level - 1) / (max - 1));
     }
 
     /** XP levels (vanilla, like an anvil) needed to apply exactly this one level - not cumulative from level 1. */
