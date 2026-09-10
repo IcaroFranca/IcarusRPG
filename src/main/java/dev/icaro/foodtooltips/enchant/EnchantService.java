@@ -1,7 +1,5 @@
 package dev.icaro.foodtooltips.enchant;
 
-import dev.icaro.foodtooltips.item.ItemTier;
-import dev.icaro.foodtooltips.item.ItemTierService;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.NamespacedKey;
@@ -27,11 +26,9 @@ import org.bukkit.plugin.Plugin;
 /**
  * Reads/writes which {@link EnchantEntry} levels an item carries - a custom
  * {@link IcarusEnchant} stored as one PDC integer per enchant (0/absent = not
- * applied), or a real vanilla {@code Enchantment} stored the normal vanilla way.
- * Enforces how many *distinct* entries of either kind an item can hold at once (by
- * {@link ItemTier} - see {@link #slotLimit}; leveling an already-applied one up
- * doesn't cost an extra slot, and custom and vanilla entries share the same pool),
- * and keeps the item's own "Encantamentos" lore block - custom and vanilla entries
+ * applied), or a real vanilla {@code Enchantment} stored the normal vanilla way. No
+ * limit on how many distinct entries (custom or vanilla) an item can hold at once -
+ * keeps the item's own "Encantamentos" lore block - custom and vanilla entries
  * together, each with its description - in sync with whatever's applied, hiding
  * Minecraft's own native enchantment tooltip so the two don't duplicate each other.
  *
@@ -46,13 +43,15 @@ public final class EnchantService {
     private static final String[] ROMAN = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
     /** More than this many applied custom entries and the lore drops each one's description line - keeps the tooltip from ballooning. */
     private static final int DESCRIPTION_CUTOFF = 4;
+    /** Vanilla's own enchantment-name blue, for an applied entry below its max level. */
+    private static final TextColor NAME_COLOR = TextColor.color(0x5555FF);
+    /** Reserved for an entry at its max level - previously used for every entry. */
+    private static final TextColor MAX_LEVEL_NAME_COLOR = NamedTextColor.LIGHT_PURPLE;
 
-    private final ItemTierService tiers;
     private final Map<IcarusEnchant, NamespacedKey> keys = new EnumMap<>(IcarusEnchant.class);
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
 
-    public EnchantService(Plugin plugin, ItemTierService tiers) {
-        this.tiers = tiers;
+    public EnchantService(Plugin plugin) {
         for (IcarusEnchant e : IcarusEnchant.values()) {
             this.keys.put(e, new NamespacedKey(plugin, "enchant_" + e.name().toLowerCase(Locale.ROOT)));
         }
@@ -132,30 +131,9 @@ public final class EnchantService {
         return result;
     }
 
-    /** How many distinct entries (custom or vanilla combined) {@code item} can hold at once - by its {@link ItemTier}, curated at table-creation time, not configurable in v1. */
-    public int slotLimit(ItemStack item) {
-        if (item == null || item.isEmpty()) {
-            return 0;
-        }
-        ItemTier tier = this.tiers.tierOf(item.getType());
-        return switch (tier) {
-            case S -> 4;
-            case A -> 3;
-            case B, C -> 2;
-            case D, E -> 1;
-        };
-    }
-
-    /** Whether {@code item} has a free slot for {@code entry} specifically - always true if it already has that entry (leveling up reuses its existing slot). */
-    public boolean hasFreeSlot(ItemStack item, EnchantEntry entry) {
-        Map<EnchantEntry, Integer> current = this.levelsOf(item);
-        return current.containsKey(entry) || current.size() < this.slotLimit(item);
-    }
-
     /**
      * Why {@code enchantment} can't go on {@code item} right now, or null if it's
-     * fine - vanilla-only (custom entries have no item-type/conflict concept). Checked
-     * separately from {@link #hasFreeSlot} so the player gets a specific reason.
+     * fine - vanilla-only (custom entries have no item-type/conflict concept).
      */
     public String vanillaBlockReason(ItemStack item, Enchantment enchantment, boolean pt) {
         if (!enchantment.canEnchantItem(item)) {
@@ -194,6 +172,25 @@ public final class EnchantService {
         } else {
             CustomEnchantEntry c = (CustomEnchantEntry) entry;
             meta.getPersistentDataContainer().set(this.keys.get(c.enchant()), PersistentDataType.INTEGER, level);
+        }
+        item.setItemMeta(meta);
+        this.rebuildLore(item, pt);
+    }
+
+    /** Removes {@code entry} from {@code item} entirely (not just lowering its level) and rebuilds the lore block to match - the caller (see {@code EnchantMenuService}) is responsible for confirming this with the player first. Silently no-ops on a null/empty item. */
+    public void removeLevel(ItemStack item, EnchantEntry entry, boolean pt) {
+        if (item == null || item.isEmpty()) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        if (entry instanceof VanillaEnchantEntry v) {
+            meta.removeEnchant(v.enchantment());
+        } else {
+            CustomEnchantEntry c = (CustomEnchantEntry) entry;
+            meta.getPersistentDataContainer().remove(this.keys.get(c.enchant()));
         }
         item.setItemMeta(meta);
         this.rebuildLore(item, pt);
@@ -244,11 +241,11 @@ public final class EnchantService {
         for (Map.Entry<EnchantEntry, Integer> entry : levels.entrySet()) {
             EnchantEntry e = entry.getKey();
             int level = entry.getValue();
-            block.add(this.line("✦ " + e.leveledName(pt, level), NamedTextColor.LIGHT_PURPLE));
+            TextColor nameColor = level >= e.maxLevel() ? MAX_LEVEL_NAME_COLOR : NAME_COLOR;
+            block.add(Component.text(e.leveledName(pt, level), nameColor).decoration(TextDecoration.ITALIC, false));
             if (showDescriptions) {
-                Component desc = e.resolvedDescription(pt, level);
-                if (desc != null) {
-                    block.add(Component.text("  ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false).append(desc));
+                for (Component descLine : e.resolvedDescription(pt, level)) {
+                    block.add(Component.text("  ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false).append(descLine));
                 }
             }
         }

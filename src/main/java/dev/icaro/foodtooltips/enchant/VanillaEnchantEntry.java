@@ -1,5 +1,8 @@
 package dev.icaro.foodtooltips.enchant;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.IntUnaryOperator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -18,8 +21,14 @@ import org.bukkit.enchantments.Enchantment;
  */
 final class VanillaEnchantEntry implements EnchantEntry {
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
-    /** Bright, vivid pale green for a description's numeric value (percentage/blocks/seconds) - distinct from the plainer NamedTextColor.GREEN used elsewhere in this menu. */
-    private static final TextColor VALUE_COLOR = TextColor.color(0xB6FF2E);
+    /** Bright green for a description's numeric value AND its unit (%, s, blocks...) together. */
+    private static final TextColor VALUE_COLOR = TextColor.color(0x30F04E);
+    private static final TextColor ARTHROPOD_COLOR = TextColor.color(0x940204);
+    private static final TextColor UNDEAD_COLOR = TextColor.color(0x00AA00);
+    private static final TextColor SKELETAL_COLOR = TextColor.color(0xAAAAAA);
+    private static final TextColor WITHER_COLOR = TextColor.color(0x555555);
+    /** Roughly how many characters fit one lore line before it reads too wide - not pixel-exact, just a practical wrap point. */
+    private static final int WRAP_WIDTH = 40;
     /**
      * Flat XP-level cost per level, matching {@link IcarusEnchant}'s own
      * "costPerLevel * level" shape - Bukkit's {@link Enchantment} doesn't carry a
@@ -67,12 +76,12 @@ final class VanillaEnchantEntry implements EnchantEntry {
     }
 
     @Override
-    public Component genericDescription(boolean pt) {
+    public List<Component> genericDescription(boolean pt) {
         return description(this.enchantment.getKey().getKey(), pt, null);
     }
 
     @Override
-    public Component resolvedDescription(boolean pt, int level) {
+    public List<Component> resolvedDescription(boolean pt, int level) {
         return description(this.enchantment.getKey().getKey(), pt, level);
     }
 
@@ -86,64 +95,117 @@ final class VanillaEnchantEntry implements EnchantEntry {
         return this.enchantment.hashCode();
     }
 
-    private static Component gray(String s) {
-        return Component.text(s, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false);
-    }
-
-    /** The colored numeric token: the literal "X" placeholder when {@code level} is null (generic view), or {@code value} as a real number (resolved view). */
-    private static Component value(Integer level, int value) {
-        return Component.text(level == null ? "X" : String.valueOf(value), VALUE_COLOR).decoration(TextDecoration.ITALIC, false);
+    /** Real vanilla Unbreaking odds (level / (level + 1), rounded down) - I/II/III = 50/66/75%. */
+    private static int unbreakingChance(int level) {
+        return (int) (100.0 * level / (level + 1));
     }
 
     /** Linear per-level percentage, except the last level jumps straight to {@code capValue} instead of continuing the line (e.g. Sharpness: 5/10/15/20, then 30 at V, not 25). */
-    private static int linearWithCappedFinalLevel(int level, int maxLevel, int perLevel, int capValue) {
+    private static int linearCapped(int level, int maxLevel, int perLevel, int capValue) {
         return level == maxLevel ? capValue : perLevel * level;
     }
 
-    /**
-     * Hand-written descriptions with a colored numeric value, for the handful of
-     * entries the value is worth spelling out for - unrecognized/undetailed keys fall
-     * back to {@link #plainDescription}, wrapped as plain gray text (same regardless
-     * of {@code level}, since those have no numeric value to substitute).
-     */
-    private static Component description(String key, boolean pt, Integer level) {
+    private static List<Component> description(String key, boolean pt, Integer level) {
+        List<Token> tokens = tokens(key, pt, level);
+        return tokens == null ? List.of() : wrap(tokens);
+    }
+
+    private static List<Token> tokens(String key, boolean pt, Integer level) {
         return switch (key) {
-            case "bane_of_arthropods" -> gray(pt ? "Aumenta o dano causado a mobs Ж Artrópodes em " : "Increases damage dealt to Ж Arthropod mobs by ")
-                    .append(value(level, linearWithCappedFinalLevel(level == null ? 0 : level, 5, 5, 30)))
-                    .append(gray("%."));
-            case "sharpness" -> gray(pt ? "Aumenta o dano corpo a corpo causado em " : "Increases melee damage dealt by ")
-                    .append(value(level, linearWithCappedFinalLevel(level == null ? 0 : level, 5, 5, 30)))
-                    .append(gray("%."));
-            case "smite" -> gray(pt ? "Aumenta o dano causado a mobs ༕ Mortos-vivos, ☠ Wither e 🦴 Esqueléticos em " : "Increases damage dealt to ༕ Undead, ☠ Wither and 🦴 Skeletal mobs by ")
-                    .append(value(level, linearWithCappedFinalLevel(level == null ? 0 : level, 5, 5, 30)))
-                    .append(gray("%."));
-            case "fire_aspect" -> gray(pt ? "Incendeia seus inimigos por " : "Ignites your enemies for ")
-                    .append(value(level, level == null ? 0 : level * 3))
-                    .append(gray(pt ? "s, causando " : "s, dealing "))
-                    .append(value(null, 3))
-                    .append(gray(pt ? "% do seu dano por nível por segundo." : "% of your damage per level per second."));
-            case "knockback" -> gray(pt ? "Aumenta o recuo em " : "Increases knockback by ")
-                    .append(value(null, 3))
-                    .append(gray(pt ? " blocos por nível." : " blocks per level."));
-            case "looting" -> gray(pt ? "Aumenta a chance de um monstro dropar um item em " : "Increases the chance of a monster dropping an item by ")
-                    .append(value(null, 15))
-                    .append(gray(pt ? "% por nível." : "% per level."));
-            case "sweeping_edge", "sweeping" -> gray(pt ? "Aumenta o dano do ataque de varredura em " : "Increases sweep attack damage by ")
-                    .append(value(level, (level == null ? 0 : level) * 10))
-                    .append(gray("%."));
-            case "unbreaking" -> gray(pt ? "Chance de não perder durabilidade ao usar: " : "Chance to not lose durability when used: ")
-                    .append(value(level, unbreakingChance(level == null ? 1 : level)))
-                    .append(gray("%."));
+            case "bane_of_arthropods" -> pt
+                    ? List.of(Token.plain("Aumenta o dano causado a mobs"), Token.colored("Ж Artrópodes", ARTHROPOD_COLOR),
+                            Token.plain("em"), value(level, "%", l -> linearCapped(l, 5, 5, 30)), Token.plain("."))
+                    : List.of(Token.plain("Increases damage dealt to"), Token.colored("Ж Arthropod", ARTHROPOD_COLOR),
+                            Token.plain("mobs by"), value(level, "%", l -> linearCapped(l, 5, 5, 30)), Token.plain("."));
+            case "sharpness" -> pt
+                    ? List.of(Token.plain("Aumenta o dano corpo a corpo causado em"), value(level, "%", l -> linearCapped(l, 5, 5, 30)), Token.plain("."))
+                    : List.of(Token.plain("Increases melee damage dealt by"), value(level, "%", l -> linearCapped(l, 5, 5, 30)), Token.plain("."));
+            case "smite" -> pt
+                    ? List.of(Token.plain("Aumenta o dano causado a mobs"), Token.colored("༕ Mortos-vivos,", UNDEAD_COLOR),
+                            Token.colored("☠ Wither", WITHER_COLOR), Token.plain("e"), Token.colored("🦴 Esqueléticos", SKELETAL_COLOR),
+                            Token.plain("em"), value(level, "%", l -> linearCapped(l, 5, 5, 30)), Token.plain("."))
+                    : List.of(Token.plain("Increases damage dealt to"), Token.colored("༕ Undead,", UNDEAD_COLOR),
+                            Token.colored("☠ Wither", WITHER_COLOR), Token.plain("and"), Token.colored("🦴 Skeletal", SKELETAL_COLOR),
+                            Token.plain("mobs by"), value(level, "%", l -> linearCapped(l, 5, 5, 30)), Token.plain("."));
+            case "fire_aspect" -> pt
+                    ? List.of(Token.plain("Incendeia seus inimigos por"), value(level, "s,", l -> l * 3),
+                            Token.plain("causando"), Token.colored("3%", VALUE_COLOR), Token.plain("do seu dano por nível por segundo."))
+                    : List.of(Token.plain("Ignites your enemies for"), value(level, "s,", l -> l * 3),
+                            Token.plain("dealing"), Token.colored("3%", VALUE_COLOR), Token.plain("of your damage per level per second."));
+            case "knockback" -> pt
+                    ? List.of(Token.plain("Aumenta o recuo em"), value(level, " blocos", l -> 3), Token.plain("por nível."))
+                    : List.of(Token.plain("Increases knockback by"), value(level, " blocks", l -> 3), Token.plain("per level."));
+            case "looting" -> pt
+                    ? List.of(Token.plain("Aumenta a chance de um monstro dropar um item em"), value(level, "%", l -> 15), Token.plain("por nível."))
+                    : List.of(Token.plain("Increases the chance of a monster dropping an item by"), value(level, "%", l -> 15), Token.plain("per level."));
+            case "sweeping_edge", "sweeping" -> pt
+                    ? List.of(Token.plain("Aumenta o dano do ataque de varredura em"), value(level, "%", l -> l * 10), Token.plain("."))
+                    : List.of(Token.plain("Increases sweep attack damage by"), value(level, "%", l -> l * 10), Token.plain("."));
+            case "unbreaking" -> pt
+                    ? List.of(Token.plain("Chance de não perder durabilidade ao usar:"), value(level, "%", VanillaEnchantEntry::unbreakingChance), Token.plain("."))
+                    : List.of(Token.plain("Chance to not lose durability when used:"), value(level, "%", VanillaEnchantEntry::unbreakingChance), Token.plain("."));
             default -> {
                 String plain = plainDescription(key, pt);
-                yield plain == null ? null : gray(plain);
+                yield plain == null ? null : List.of(Token.plain(plain));
             }
         };
     }
 
-    /** Real vanilla Unbreaking odds (level / (level + 1), rounded down) - I/II/III = 50/66/75%. */
-    private static int unbreakingChance(int level) {
-        return (int) (100.0 * level / (level + 1));
+    /** The colored value token: the literal "X" placeholder plus {@code unit} when {@code level} is null (generic view), or the real computed number plus {@code unit} (resolved view). */
+    private static Token value(Integer level, String unit, IntUnaryOperator formula) {
+        String number = level == null ? "X" : String.valueOf(formula.applyAsInt(level));
+        return Token.colored(number + unit, VALUE_COLOR);
+    }
+
+    /** One word/phrase with a color, either free to wrap internally at spaces ({@link Token#plain}) or kept as one unbreakable unit ({@link Token#colored}, for a value+unit or a named creature type). */
+    private record Token(String text, TextColor color, boolean atomic) {
+        static Token plain(String s) {
+            return new Token(s, NamedTextColor.GRAY, false);
+        }
+
+        static Token colored(String s, TextColor color) {
+            return new Token(s, color, true);
+        }
+    }
+
+    /** Packs {@code tokens} into lore lines no wider than {@link #WRAP_WIDTH} characters, breaking only between words (atomic tokens never split) and never leaving a leading space before punctuation-only words. */
+    private static List<Component> wrap(List<Token> tokens) {
+        List<Token> words = new ArrayList<>();
+        for (Token t : tokens) {
+            if (t.atomic()) {
+                words.add(t);
+                continue;
+            }
+            for (String part : t.text().split(" ")) {
+                if (!part.isEmpty()) {
+                    words.add(new Token(part, t.color(), false));
+                }
+            }
+        }
+        List<Component> lines = new ArrayList<>();
+        Component current = null;
+        int currentLen = 0;
+        for (Token w : words) {
+            boolean glue = current == null || isPunctuationOnly(w.text());
+            if (!glue && currentLen + 1 + w.text().length() > WRAP_WIDTH) {
+                lines.add(current);
+                current = null;
+                currentLen = 0;
+                glue = true;
+            }
+            String prefix = glue ? "" : " ";
+            Component piece = Component.text(prefix + w.text(), w.color()).decoration(TextDecoration.ITALIC, false);
+            current = current == null ? piece : current.append(piece);
+            currentLen += prefix.length() + w.text().length();
+        }
+        if (current != null) {
+            lines.add(current);
+        }
+        return lines;
+    }
+
+    private static boolean isPunctuationOnly(String s) {
+        return s.equals(".") || s.equals(",") || s.equals(":");
     }
 
     /** One-line hand-written descriptions with no numeric value, keyed by the enchantment's plain (unnamespaced) key - null (no line shown) for anything not listed here, so a future/unrecognized enchantment degrades gracefully instead of breaking. */
@@ -162,7 +224,6 @@ final class VanillaEnchantEntry implements EnchantEntry {
             case "binding_curse" -> pt ? "Impede remover o item depois de equipado." : "Prevents removing the item once equipped.";
             case "soul_speed" -> pt ? "Aumenta a velocidade ao caminhar sobre areia das almas." : "Increases movement speed on soul sand/soil.";
             case "swift_sneak" -> pt ? "Aumenta a velocidade ao andar agachado." : "Increases movement speed while sneaking.";
-            case "knockback" -> pt ? "Aumenta o recuo causado nos alvos atingidos." : "Increases the knockback dealt to hit targets.";
             case "efficiency" -> pt ? "Aumenta a velocidade de mineração." : "Increases mining speed.";
             case "silk_touch" -> pt ? "Blocos minerados caem como eles mesmos." : "Mined blocks drop themselves.";
             case "fortune" -> pt ? "Aumenta a quantidade de drops de blocos minerados." : "Increases block drop quantity when mined.";
