@@ -96,6 +96,11 @@ public final class GlobalLevelService {
     }
 
     /** Global Level required to unlock Telekinesis, the universal "drops come to you" perk. */
+    /** Flat Global XP every fresh Bestiary/Mining milestone grants (see {@link #creditMilestones}) - config {@code global-level.milestone-xp}, exposed so menus (e.g. the Bestiary's own) can show it per milestone instead of only in the unlock chat message. */
+    public long milestoneXp() {
+        return this.milestoneXp;
+    }
+
     public int telekinesisRequiredLevel() {
         return this.telekinesisLevel;
     }

@@ -8,6 +8,7 @@ import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.builder.BuilderWandListener;
 import dev.icaro.foodtooltips.builder.BuilderWandService;
 import dev.icaro.foodtooltips.combat.CombatListener;
+import dev.icaro.foodtooltips.combat.ElementalDamageListener;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuListener;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
@@ -123,7 +124,7 @@ extends JavaPlugin {
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         this.visuals = new MobVisualService((Plugin)this);
         IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary, this.visuals);
-        BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor);
+        BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor, global);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);
         LevelBadgeRenderer badgeRenderer = new LevelBadgeRenderer(this.getConfig().getInt("global-level.badge-animation-smoothness", 4));
@@ -154,6 +155,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, economy, global, stats, valor, armor, general, legendary);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
+        pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
