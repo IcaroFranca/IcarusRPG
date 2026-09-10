@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.skills;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.crafting.CraftingMenuService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalLevelSnapshot;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
@@ -48,6 +49,7 @@ public final class SkillsMenuService {
     private LevelColorMenuService levelColors;
     private CombatTreeMenuService tree;
     private TravelMenuService travel;
+    private CraftingMenuService crafting;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -73,6 +75,10 @@ public final class SkillsMenuService {
         this.travel = travel;
     }
 
+    public void crafting(CraftingMenuService crafting) {
+        this.crafting = crafting;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -93,6 +99,9 @@ public final class SkillsMenuService {
         }
         if (this.travel != null) {
             v.setItem(51, this.customHead(HeadTexture.PLANET, l.choose("Locais", "Locations"), List.of(this.click(l))));
+        }
+        if (this.crafting != null) {
+            v.setItem(49, this.item(Material.CRAFTING_TABLE, l.choose("Mesa de Trabalho", "Crafting Table"), List.of(this.click(l))));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -218,6 +227,9 @@ public final class SkillsMenuService {
                 } else if (slot == 51 && this.travel != null) {
                     this.views.remove(p.getUniqueId());
                     this.travel.open(p);
+                } else if (slot == 49 && this.crafting != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.crafting.open(p);
                 }
             }
             case GLOBAL -> {
