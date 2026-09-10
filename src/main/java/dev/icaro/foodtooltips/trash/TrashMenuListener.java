@@ -8,11 +8,13 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 
 /**
- * Wires clicks on {@link TrashMenuService}'s screen: the trash slot ({@link
- * TrashMenuService#TRASH_SLOT}) allows normal item placement/pickup (so there's
- * something real to vanish - see {@link TrashMenuService#scheduleTrashEmpty}), the
- * back button and every decorative pane are plain buttons like every other menu.
- * Dragging is always cancelled - a single slot doesn't need it.
+ * Wires clicks on {@link TrashMenuService}'s screen: the player's own inventory stays
+ * fully usable (that's how an item gets picked up to drop into the trash in the first
+ * place), the trash slot ({@link TrashMenuService#TRASH_SLOT}) allows normal item
+ * placement/pickup too (so there's something real to vanish - see {@link
+ * TrashMenuService#scheduleTrashEmpty}), and the back button/every decorative pane are
+ * plain buttons like every other menu. Dragging is always cancelled - a single slot
+ * doesn't need it.
  */
 public final class TrashMenuListener implements Listener {
     private final TrashMenuService menu;
@@ -27,6 +29,18 @@ public final class TrashMenuListener implements Listener {
             return;
         }
         int raw = e.getRawSlot();
+        boolean topInventory = raw >= 0 && raw < e.getView().getTopInventory().getSize();
+        if (!topInventory) {
+            // Player's own inventory - free to reorganize/pick items up normally
+            // (that's how an item gets onto the cursor to drop into the trash slot in
+            // the first place), except shift-clicking one straight up into the screen
+            // isn't supported (only a single slot here) - that could otherwise land it
+            // in a decorative slot instead of the trash slot.
+            if (e.isShiftClick()) {
+                e.setCancelled(true);
+            }
+            return;
+        }
         if (raw == TrashMenuService.TRASH_SLOT) {
             // Not cancelled - let the click's default pickup/place/swap happen, then
             // vanish whatever landed there one tick later.
