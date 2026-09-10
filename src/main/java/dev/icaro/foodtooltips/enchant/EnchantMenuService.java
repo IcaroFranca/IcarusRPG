@@ -72,8 +72,8 @@ public final class EnchantMenuService {
     private static final int[][] BOOKSHELF_DIRECTIONS = {
             {1, 0}, {-1, 0}, {0, 1}, {0, -1},
             {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-    /** Never exceeded by {@link #bookshelfPower}, and never required by {@link EnchantEntry#requiredBookshelfPower}. */
-    private static final int BOOKSHELF_POWER_CAP = 20;
+    /** Never exceeded by {@link #bookshelfPower} - the real achievable max given {@link #BOOKSHELF_DIRECTIONS}' 8 directions x 2 floors, matching {@link EnchantEntry#MAX_BOOKSHELF_POWER} (what {@link EnchantEntry#requiredBookshelfPower} scales up to). */
+    private static final int BOOKSHELF_POWER_CAP = EnchantEntry.MAX_BOOKSHELF_POWER;
 
     private static final int GUIDE_TITLE_SLOT = 4;
     private static final int GUIDE_PREV_PAGE_SLOT = 45;
@@ -486,8 +486,10 @@ public final class EnchantMenuService {
     /**
      * A Bookshelf 2 blocks away from {@code p}'s current table - any of the 8
      * horizontal directions (the 4 cardinal ones and the 4 diagonals) - counts for 1
-     * point, on either the table's own floor or the one directly above it (16
-     * possible positions total, comfortably under {@value #BOOKSHELF_POWER_CAP}).
+     * point, on either the table's own floor or the one directly above it - 16
+     * possible positions total, exactly {@value #BOOKSHELF_POWER_CAP}, so {@link
+     * #BOOKSHELF_POWER_CAP} is really just a safety clamp, never actually reached
+     * first by anything else.
      * Each direction/floor is independent: the block 1 step closer to the table in
      * that same direction and floor must be air, or that Bookshelf doesn't count -
      * placing anything solid (including another Bookshelf) directly next to the
