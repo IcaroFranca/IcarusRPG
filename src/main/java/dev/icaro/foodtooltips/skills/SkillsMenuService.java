@@ -180,6 +180,9 @@ public final class SkillsMenuService {
             case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.intelligencePerLevel() + " " + l.choose("Inteligência", "Intelligence"), NamedTextColor.LIGHT_PURPLE));
             default -> {}
         }
+        if (t == SkillType.ENCHANTING) {
+            lines.add(this.text("+" + this.general.xpOrbPercentPerLevel() + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA));
+        }
         if (lines.isEmpty()) {
             lines.add(this.text(l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), NamedTextColor.AQUA));
         }
@@ -618,6 +621,10 @@ public final class SkillsMenuService {
             case ALCHEMY, ENCHANTING -> this.stat(lore, "+" + (level * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence"), NamedTextColor.LIGHT_PURPLE,
                     this.rate(l, level, this.general.intelligencePerLevel()));
             default -> {}
+        }
+        if (t == SkillType.ENCHANTING) {
+            this.stat(lore, "+" + (level * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA,
+                    this.rate(l, level, this.general.xpOrbPercentPerLevel()));
         }
         return this.item(t.icon(), t.name(l == Language.PT), lore);
     }

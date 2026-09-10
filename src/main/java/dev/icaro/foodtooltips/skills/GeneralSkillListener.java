@@ -44,6 +44,7 @@ import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.BrewerInventory;
@@ -204,6 +205,15 @@ implements Listener {
         }
     }
 
+    /** Enchanting's +5%-per-level bonus to vanilla XP orbs (any source: mob kills, mining, fishing, the vanilla enchanting table...) - {@link PlayerExpChangeEvent} fires for every vanilla experience gain, not just orb pickup, so this is the one place that catches all of them without duplicating the multiplier at each individual source. */
+    @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
+    public void xpOrb(PlayerExpChangeEvent e) {
+        double multiplier = this.skills.xpOrbMultiplier(e.getPlayer());
+        if (multiplier > 1.0) {
+            e.setAmount((int) Math.round(e.getAmount() * multiplier));
+        }
+    }
+
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void enchant(EnchantItemEvent e) {
         this.gain(e.getEnchanter(), SkillType.ENCHANTING, Math.max(5, e.getExpLevelCost() * 4));
@@ -315,6 +325,9 @@ implements Listener {
             case FORAGING -> parts.add("+" + (levelsGained * this.skills.strengthPerLevel()) + " " + l.choose("For\u00e7a", "Strength"));
             case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.intelligencePerLevel()) + " " + l.choose("Intelig\u00eancia", "Intelligence"));
             default -> {}
+        }
+        if (t == SkillType.ENCHANTING) {
+            parts.add("+" + (levelsGained * this.skills.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"));
         }
         return String.join(" \u2022 ", parts);
     }

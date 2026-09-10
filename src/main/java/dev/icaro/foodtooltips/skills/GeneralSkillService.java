@@ -26,6 +26,7 @@ public final class GeneralSkillService {
     private static final int STRENGTH_PER_LEVEL = 1;
     private static final int INTELLIGENCE_PER_LEVEL = 1;
     private static final int DEFENSE_PER_LEVEL = 1;
+    private static final int XP_ORB_PERCENT_PER_LEVEL = 5;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
 
     public SkillProgress progress(Player p, SkillType type) {
@@ -98,6 +99,11 @@ public final class GeneralSkillService {
         return this.progress(player, SkillType.MINING).level() * DEFENSE_PER_LEVEL;
     }
 
+    /** Enchanting grants {@value #XP_ORB_PERCENT_PER_LEVEL}% more vanilla XP orbs (any source) per level, on top of its own Intelligence - see {@code GeneralSkillListener#xpOrb}. */
+    public double xpOrbMultiplier(Player player) {
+        return 1.0 + 0.01 * XP_ORB_PERCENT_PER_LEVEL * this.progress(player, SkillType.ENCHANTING).level();
+    }
+
     /** How much {@link #fortune} grows per level (Mining/Farming/Foraging). Exposed so menu/level-up messages don't hardcode the number separately. */
     public int fortunePerLevel() {
         return FORTUNE_PER_LEVEL;
@@ -121,6 +127,11 @@ public final class GeneralSkillService {
     /** How much {@link #bonusIntelligence} grows per level (Alchemy/Enchanting), per contributing skill. */
     public int intelligencePerLevel() {
         return INTELLIGENCE_PER_LEVEL;
+    }
+
+    /** How much {@link #xpOrbMultiplier} grows per Enchanting level. */
+    public int xpOrbPercentPerLevel() {
+        return XP_ORB_PERCENT_PER_LEVEL;
     }
 
     /**

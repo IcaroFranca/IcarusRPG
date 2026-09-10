@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.enchant;
 
 import java.util.List;
+import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -30,13 +31,47 @@ final class VanillaEnchantEntry implements EnchantEntry {
     /** Vanilla's own gold - #FFAA00 - used to label a named stat (Mining Speed, Mining Fortune, Treasure Chance) inline in a description. */
     private static final TextColor LABEL_COLOR = NamedTextColor.GOLD;
     /**
-     * Flat XP-level cost per level, matching {@link IcarusEnchant}'s own
-     * "costPerLevel * level" shape - Bukkit's {@link Enchantment} doesn't carry a
-     * per-enchant cost of its own, so every vanilla entry shares this one default.
-     * Deliberately cheap relative to the custom enchants (3-5): there are far more
-     * vanilla entries competing for the same tier-based slots.
+     * Flat XP-level cost per level - fallback for anything not in {@link #COSTS}
+     * below (a future/unrecognized enchantment), so this degrades gracefully instead
+     * of breaking, same philosophy as {@link #plainDescription}'s own null default.
      */
     private static final int COST_PER_LEVEL = 2;
+    /**
+     * Explicit per-level XP cost, keyed by the enchantment's plain (unnamespaced)
+     * key - not a formula, since the numbers given don't all fit one shape (e.g.
+     * Power/Infinity's 10/20/30/40/50 vs. Sharpness/Efficiency/Protection's own
+     * 10/15/20/25/30). {@code IcarusEnchant#costAtLevel} holds the equivalent table
+     * for the plugin's own custom entries.
+     */
+    private static final Map<String, int[]> COSTS = Map.ofEntries(
+            Map.entry("sharpness", new int[]{10, 15, 20, 25, 30}),
+            Map.entry("smite", new int[]{10, 15, 20, 25, 30}),
+            Map.entry("bane_of_arthropods", new int[]{10, 15, 20, 25, 30}),
+            Map.entry("efficiency", new int[]{10, 15, 20, 25, 30}),
+            Map.entry("impaling", new int[]{10, 15, 20, 25, 30}),
+            Map.entry("density", new int[]{10, 15, 20, 25, 30}),
+            Map.entry("power", new int[]{10, 20, 30, 40, 50}),
+            Map.entry("knockback", new int[]{15, 30}),
+            Map.entry("punch", new int[]{15, 30}),
+            Map.entry("frost_walker", new int[]{15, 30}),
+            Map.entry("looting", new int[]{15, 30, 45}),
+            Map.entry("fortune", new int[]{15, 30, 45}),
+            Map.entry("sweeping_edge", new int[]{15, 30, 45}),
+            Map.entry("sweeping", new int[]{15, 30, 45}),
+            Map.entry("wind_burst", new int[]{15, 30, 45}),
+            Map.entry("silk_touch", new int[]{10}),
+            Map.entry("aqua_affinity", new int[]{15}),
+            Map.entry("multishot", new int[]{15}),
+            Map.entry("channeling", new int[]{15}),
+            Map.entry("depth_strider", new int[]{10, 20, 30}),
+            Map.entry("swift_sneak", new int[]{10, 20, 30}),
+            Map.entry("soul_speed", new int[]{10, 20, 30}),
+            Map.entry("unbreaking", new int[]{10, 20, 30}),
+            Map.entry("loyalty", new int[]{10, 20, 30}),
+            Map.entry("riptide", new int[]{10, 20, 30}),
+            Map.entry("quick_charge", new int[]{10, 20, 30}),
+            Map.entry("piercing", new int[]{10, 15, 20, 25}),
+            Map.entry("breach", new int[]{10, 15, 20, 25}));
 
     private final Enchantment enchantment;
 
@@ -72,6 +107,10 @@ final class VanillaEnchantEntry implements EnchantEntry {
 
     @Override
     public int costAtLevel(int level) {
+        int[] costs = COSTS.get(this.enchantment.getKey().getKey());
+        if (costs != null) {
+            return costs[Math.max(1, Math.min(level, costs.length)) - 1];
+        }
         return COST_PER_LEVEL * level;
     }
 
