@@ -26,16 +26,19 @@ import org.bukkit.plugin.Plugin;
 /**
  * The reworked Enchanting Table screen - opened by right-clicking a real Enchanting
  * Table block (see {@code EnchantMenuListener}) instead of vanilla's own random-offer
- * UI. Every {@link IcarusEnchant} is always visible and picked explicitly (never
- * random); picking one opens a level-select screen ({@link #openLevelSelect}) showing
- * every level's cost/effect, and applying a level spends real vanilla XP levels (like
- * an anvil) - see {@link EnchantService}. An item can be brought back to the table and
- * enchanted again later (each distinct enchant just needs a free slot the first time -
- * see {@link EnchantService#slotLimit}).
+ * UI. Every {@link EnchantEntry} - the plugin's own {@link IcarusEnchant}s AND every
+ * real vanilla enchantment (see {@link EnchantService#allEntries}) - is always visible
+ * and picked explicitly (never random); picking one opens a level-select screen
+ * ({@link #openLevelSelect}) showing every level's cost/effect, and applying a level
+ * spends real vanilla XP levels (like an anvil) - see {@link EnchantService}. An item
+ * can be brought back to the table and enchanted again later (each distinct entry
+ * just needs a free slot the first time - see {@link EnchantService#slotLimit}, shared
+ * between custom and vanilla entries).
  *
  * <p>v1 scope: this is the interface and application/storage layer only - none of
- * these enchants (Ferocity/Crit Chance/Vampirism/Execution/Health Regen/True Defense)
- * actually change combat numbers yet, that wiring is a deliberate follow-up.
+ * the plugin's own custom enchants (currently none defined - see {@link
+ * IcarusEnchant}) actually change combat numbers yet, that wiring is a deliberate
+ * follow-up. Vanilla enchantments applied here work exactly as they always have.
  */
 public final class EnchantMenuService {
     public static final int ITEM_SLOT = 19;
@@ -47,7 +50,7 @@ public final class EnchantMenuService {
     private static final int BACK_SLOT = 49;
     /** Where enchant books sit in the 54-slot grid - 3 rows of 5, matching the requested layout. */
     private static final int[] CATALOG_SLOTS = {12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 30, 31, 32, 33, 34};
-    /** Where each of an enchant's levels sits on the level-select screen (up to {@link IcarusEnchant#maxLevel()} used). */
+    /** Where each of an enchant's levels sits on the level-select screen (up to {@link EnchantEntry#maxLevel()} used - the max across every vanilla entry is 5, so this covers them all too). */
     private static final int[] LEVEL_SLOTS = {20, 21, 22, 23, 24};
     private static final int LEVEL_PREVIEW_SLOT = 4;
 
@@ -73,7 +76,8 @@ public final class EnchantMenuService {
         boolean pt = l == Language.PT;
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Mesa de Encantamento", "Enchanting Table"));
         this.fill(v);
-        List<IcarusEnchant> all = List.of(IcarusEnchant.values());
+        v.setItem(ITEM_SLOT, null);
+        List<EnchantEntry> all = this.enchants.allEntries();
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             int index = page * CATALOG_SLOTS.length + i;
             if (index >= all.size()) {
@@ -106,15 +110,15 @@ public final class EnchantMenuService {
     }
 
     /** Called by the listener when a catalog icon is clicked with an item present - grabs the item off the (about to close) main screen and switches to the level-select screen for {@code enchant}. */
-    public void chooseEnchant(Player p, ItemStack item, IcarusEnchant enchant) {
+    public void chooseEnchant(Player p, ItemStack item, EnchantEntry enchant) {
         this.pendingItem.put(p.getUniqueId(), item);
         this.openLevelSelect(p, enchant);
     }
 
-    private void openLevelSelect(Player p, IcarusEnchant enchant) {
+    private void openLevelSelect(Player p, EnchantEntry enchant) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
-        Inventory v = Bukkit.createInventory(null, 54, enchant.displayName(pt));
+        Inventory v = Bukkit.createInventory(null, 54, enchant.catalogName(pt));
         this.fill(v);
         ItemStack item = this.pendingItem.get(p.getUniqueId());
         v.setItem(LEVEL_PREVIEW_SLOT, item == null ? this.item(Material.BARRIER, l.choose("Nenhum item", "No item"), List.of()) : item.clone());
@@ -128,8 +132,8 @@ public final class EnchantMenuService {
         this.views.put(p.getUniqueId(), new View(Type.LEVEL, 0, enchant));
     }
 
-    /** Called by the listener when a clickable (next-applicable) level is clicked - charges the XP, applies it, and returns to the main screen with the updated item. */
-    public void applyLevel(Player p, IcarusEnchant enchant, int level) {
+    /** Called by the listener when a clickable (next-applicable) level is clicked - validates, charges the XP, applies it, and returns to the main screen with the updated item. */
+    public void applyLevel(Player p, EnchantEntry enchant, int level) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
         ItemStack item = this.pendingItem.get(p.getUniqueId());
@@ -144,6 +148,13 @@ public final class EnchantMenuService {
             p.sendMessage(this.msg(l.choose("Este item já está com todos os slots de encantamento ocupados.", "This item's enchantment slots are all full."), NamedTextColor.RED));
             return;
         }
+        if (enchant instanceof VanillaEnchantEntry v) {
+            String blockReason = this.enchants.vanillaBlockReason(item, v.enchantment(), pt);
+            if (blockReason != null) {
+                p.sendMessage(this.msg(blockReason, NamedTextColor.RED));
+                return;
+            }
+        }
         int cost = enchant.costAtLevel(level);
         if (p.getLevel() < cost) {
             p.sendMessage(this.msg(l.choose("Você precisa de " + cost + " níveis de XP.", "You need " + cost + " XP levels."), NamedTextColor.RED));
@@ -151,7 +162,7 @@ public final class EnchantMenuService {
         }
         EnchantService.chargeXp(p, cost);
         this.enchants.setLevel(item, enchant, level, pt);
-        p.sendMessage(this.msg(l.choose("Aplicado: ", "Applied: ") + enchant.displayName(pt) + " " + EnchantService.roman(level), NamedTextColor.GREEN));
+        p.sendMessage(this.msg(l.choose("Aplicado: ", "Applied: ") + enchant.leveledName(pt, level), NamedTextColor.GREEN));
         this.openMain(p, 0);
     }
 
@@ -160,7 +171,7 @@ public final class EnchantMenuService {
         boolean pt = l == Language.PT;
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Guia de Encantamentos", "Enchantment Guide"));
         this.fill(v);
-        List<IcarusEnchant> all = List.of(IcarusEnchant.values());
+        List<EnchantEntry> all = this.enchants.allEntries();
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             int index = page * CATALOG_SLOTS.length + i;
             if (index >= all.size()) {
@@ -179,13 +190,13 @@ public final class EnchantMenuService {
         this.views.put(p.getUniqueId(), new View(Type.GUIDE, page, null));
     }
 
-    /** The enchant a catalog-grid click on {@code rawSlot} (main or guide screen, same layout) refers to on {@code page}, or null if that slot isn't a catalog slot or is past the end of the list. */
-    public IcarusEnchant catalogEnchantAt(int page, int rawSlot) {
+    /** The entry a catalog-grid click on {@code rawSlot} (main or guide screen, same layout) refers to on {@code page}, or null if that slot isn't a catalog slot or is past the end of the list. */
+    public EnchantEntry catalogEnchantAt(int page, int rawSlot) {
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             if (CATALOG_SLOTS[i] == rawSlot) {
                 int index = page * CATALOG_SLOTS.length + i;
-                IcarusEnchant[] all = IcarusEnchant.values();
-                return index < all.length ? all[index] : null;
+                List<EnchantEntry> all = this.enchants.allEntries();
+                return index < all.size() ? all.get(index) : null;
             }
         }
         return null;
@@ -294,33 +305,48 @@ public final class EnchantMenuService {
         return Math.min(15, count);
     }
 
-    private ItemStack catalogIcon(IcarusEnchant e, Language l, boolean pt) {
+    private ItemStack catalogIcon(EnchantEntry e, Language l, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(e.description(pt), NamedTextColor.GRAY));
-        lore.add(Component.empty());
+        String desc = e.description(pt);
+        if (desc != null) {
+            lore.add(this.text(desc, NamedTextColor.GRAY));
+            lore.add(Component.empty());
+        }
         for (int level = 1; level <= e.maxLevel(); level++) {
-            lore.add(this.text(EnchantService.roman(level) + ": " + e.formattedValue(level) + " - " + e.costAtLevel(level) + " " + l.choose("XP", "XP"), NamedTextColor.DARK_AQUA));
+            lore.add(this.text(this.levelLine(e, level) + " - " + e.costAtLevel(level) + " " + l.choose("XP", "XP"), NamedTextColor.DARK_AQUA));
         }
         lore.add(Component.empty());
         lore.add(this.text(l.choose("Clique para escolher o nível.", "Click to choose a level."), NamedTextColor.YELLOW));
-        return this.enchantedBook(e.displayName(pt), lore);
+        return this.enchantedBook(e.catalogName(pt), lore);
     }
 
-    private ItemStack guideIcon(IcarusEnchant e, boolean pt) {
+    private ItemStack guideIcon(EnchantEntry e, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(e.description(pt), NamedTextColor.GRAY));
-        lore.add(Component.empty());
-        for (int level = 1; level <= e.maxLevel(); level++) {
-            lore.add(this.text(EnchantService.roman(level) + ": " + e.formattedValue(level) + " (" + e.costAtLevel(level) + " XP)", NamedTextColor.DARK_AQUA));
+        String desc = e.description(pt);
+        if (desc != null) {
+            lore.add(this.text(desc, NamedTextColor.GRAY));
+            lore.add(Component.empty());
         }
-        return this.enchantedBook(e.displayName(pt), lore);
+        for (int level = 1; level <= e.maxLevel(); level++) {
+            lore.add(this.text(this.levelLine(e, level) + " (" + e.costAtLevel(level) + " XP)", NamedTextColor.DARK_AQUA));
+        }
+        return this.enchantedBook(e.catalogName(pt), lore);
     }
 
-    private ItemStack levelIcon(IcarusEnchant e, int level, int current, boolean hasFreeSlot, Language l, boolean pt) {
+    /** "I: +20" for a custom entry, or just "I" for vanilla (no formula-derived value to show). */
+    private String levelLine(EnchantEntry e, int level) {
+        String value = e.formattedValue(level);
+        return value.isEmpty() ? EnchantService.roman(level) : EnchantService.roman(level) + ": " + value;
+    }
+
+    private ItemStack levelIcon(EnchantEntry e, int level, int current, boolean hasFreeSlot, Language l, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(e.formattedValue(level), NamedTextColor.AQUA));
+        String value = e.formattedValue(level);
+        if (!value.isEmpty()) {
+            lore.add(this.text(value, NamedTextColor.AQUA));
+        }
         lore.add(this.text(e.costAtLevel(level) + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
-        String name = e.displayName(pt) + " " + EnchantService.roman(level);
+        String name = e.leveledName(pt, level);
         if (level <= current) {
             lore.add(this.text(l.choose("JÁ APLICADO", "ALREADY APPLIED"), NamedTextColor.GREEN));
             return this.item(Material.ENCHANTED_BOOK, name, lore);
@@ -391,7 +417,7 @@ public final class EnchantMenuService {
         return stack;
     }
 
-    public record View(Type type, int page, IcarusEnchant enchant) {
+    public record View(Type type, int page, EnchantEntry enchant) {
     }
 
     public enum Type { MAIN, LEVEL, GUIDE }
