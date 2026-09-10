@@ -143,10 +143,8 @@ final class VanillaEnchantEntry implements EnchantEntry {
                     ? List.of(EnchantText.Token.plain("Chance de não perder durabilidade ao usar:"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::unbreakingChance), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Chance to not lose durability when used:"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::unbreakingChance), EnchantText.Token.plain("."));
             case "efficiency" -> pt
-                    ? List.of(EnchantText.Token.plain("Concede"), EnchantText.Token.colored("+10", EnchantText.VALUE_COLOR), EnchantText.Token.colored("⸕ Velocidade de Mineração", LABEL_COLOR),
-                            EnchantText.Token.plain(", mais"), EnchantText.Token.colored("+20", EnchantText.VALUE_COLOR), EnchantText.Token.plain("por nível."))
-                    : List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored("+10", EnchantText.VALUE_COLOR), EnchantText.Token.colored("⸕ Mining Speed", LABEL_COLOR),
-                            EnchantText.Token.plain("and an extra"), EnchantText.Token.colored("+20", EnchantText.VALUE_COLOR), EnchantText.Token.plain("per level."));
+                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> 10 + 20 * l), EnchantText.Token.colored("⸕ Velocidade de Mineração", LABEL_COLOR), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> 10 + 20 * l), EnchantText.Token.colored("⸕ Mining Speed", LABEL_COLOR), EnchantText.Token.plain("."));
             case "fortune" -> pt
                     ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Sorte de Mineração", LABEL_COLOR), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Mining Fortune", LABEL_COLOR), EnchantText.Token.plain("."));
