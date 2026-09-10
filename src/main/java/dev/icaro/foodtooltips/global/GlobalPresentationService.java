@@ -116,10 +116,19 @@ implements Listener {
         Bukkit.getScheduler().runTask(this.plugin, this::refreshAll);
     }
 
+    /**
+     * The chat message itself defaults to white, regardless of the sender's level
+     * color theme or anything else - without this, {@code message} (appended with no
+     * color of its own) would inherit {@code badge}'s theme color instead, since
+     * they're siblings under the same parent. {@link Component#colorIfAbsent} rather
+     * than a hard override so a future per-player chat color preference (planned,
+     * not implemented yet) can still color the message explicitly upstream of this
+     * renderer and have that respected instead of being overwritten here.
+     */
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void chat(AsyncChatEvent e) {
         Component badge = this.cachedBadge(e.getPlayer().getUniqueId());
-        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), (TextColor)NamedTextColor.WHITE)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message));
+        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), (TextColor)NamedTextColor.WHITE)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
     }
 
     private record BadgeState(long level, LevelColorTheme theme) {
