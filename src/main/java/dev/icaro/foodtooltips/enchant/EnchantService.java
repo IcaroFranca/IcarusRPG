@@ -83,6 +83,30 @@ public final class EnchantService {
         return level == null ? 0 : level;
     }
 
+    /**
+     * Every entry {@code item} could actually receive right now - every custom entry
+     * (no item-type restriction concept exists for those yet) plus only the vanilla
+     * entries whose {@code Enchantment#canEnchantItem} accepts this item, matching
+     * vanilla's own Enchanting Table filtering. Empty for a null/empty item - the
+     * Enchanting Table screen shows nothing in its catalog until an item is placed.
+     */
+    public List<EnchantEntry> compatibleEntries(ItemStack item) {
+        List<EnchantEntry> result = new ArrayList<>();
+        if (item == null || item.isEmpty()) {
+            return result;
+        }
+        for (EnchantEntry e : this.allEntries()) {
+            if (e instanceof VanillaEnchantEntry v) {
+                if (v.enchantment().canEnchantItem(item)) {
+                    result.add(e);
+                }
+            } else {
+                result.add(e);
+            }
+        }
+        return result;
+    }
+
     /** Every entry (custom or vanilla) currently on {@code item} with a level &gt; 0, custom entries first in {@link IcarusEnchant} declaration order, then vanilla ones. */
     public Map<EnchantEntry, Integer> levelsOf(ItemStack item) {
         Map<EnchantEntry, Integer> result = new LinkedHashMap<>();

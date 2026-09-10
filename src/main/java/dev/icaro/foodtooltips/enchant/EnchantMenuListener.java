@@ -1,35 +1,60 @@
 package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
 /**
  * Right-clicking a real Enchanting Table block opens {@link EnchantMenuService}'s own
  * screen instead of vanilla's random-offer UI (the interact event is cancelled either
  * way, so vanilla's never gets a chance to open). Click routing per screen: the item
  * slot on the main screen accepts normal placement/pickup (there's something real to
- * enchant), catalog/level icons and navigation buttons are plain buttons, and the
- * player's own inventory stays fully usable throughout.
+ * enchant, and its change is picked up live - see {@link #click}), catalog/level icons
+ * and navigation buttons are plain buttons, and the player's own inventory stays fully
+ * usable throughout.
+ *
+ * <p>The Guide screen's search button opens a real sign-editing UI (the same trick
+ * IcarusChests uses for its own chest search: temporarily turn a nearby block into a
+ * sign, let the player type into vanilla's own sign editor, read what they typed via
+ * {@link #onSignChange}, then restore the block) rather than any custom text-input
+ * widget, since Bukkit doesn't have one.
  */
 public final class EnchantMenuListener implements Listener {
-    private final EnchantMenuService menu;
+    /** How long a fake search sign waits for input before giving up and restoring the block on its own (matches IcarusChests' own timeout) - 60 seconds. */
+    private static final long SEARCH_SIGN_TIMEOUT_TICKS = 1200L;
 
-    public EnchantMenuListener(EnchantMenuService menu) {
+    private final EnchantMenuService menu;
+    private final Plugin plugin;
+    private final Map<UUID, PendingSearch> pendingSearches = new HashMap<>();
+
+    public EnchantMenuListener(EnchantMenuService menu, Plugin plugin) {
         this.menu = menu;
+        this.plugin = plugin;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -61,15 +86,28 @@ public final class EnchantMenuListener implements Listener {
         }
         if (view.type() == EnchantMenuService.Type.MAIN && raw == EnchantMenuService.ITEM_SLOT) {
             // Not cancelled - real placement/pickup, this is the item being enchanted.
+            // The catalog depends on what's here, so refresh it once the click's own
+            // default pickup/place/swap actually resolves (next tick - this handler
+            // runs before that happens).
+            this.menu.scheduleCatalogRefresh(p);
             return;
         }
         e.setCancelled(true);
+        if (view.type() == EnchantMenuService.Type.GUIDE && raw == EnchantMenuService.GUIDE_SEARCH_SLOT) {
+            if (e.getClick().isShiftClick()) {
+                this.menu.setGuideSearch(p, null);
+                this.menu.openGuide(p, view.page());
+            } else {
+                this.openSearchSign(p);
+            }
+            return;
+        }
         if (this.menu.handleNav(p, raw)) {
             return;
         }
         switch (view.type()) {
             case MAIN -> {
-                EnchantEntry enchant = this.menu.catalogEnchantAt(view.page(), raw);
+                EnchantEntry enchant = this.menu.catalogEnchantAt(p, EnchantMenuService.Type.MAIN, view.page(), raw);
                 if (enchant == null) {
                     return;
                 }
@@ -90,7 +128,8 @@ public final class EnchantMenuListener implements Listener {
                 }
             }
             case GUIDE -> {
-                // Only navigation slots do anything here, already handled above.
+                // Every clickable slot here (nav, search) is already handled above -
+                // the catalog books and decorative title are read-only.
             }
         }
     }
@@ -104,7 +143,10 @@ public final class EnchantMenuListener implements Listener {
 
     @EventHandler
     public void close(InventoryCloseEvent e) {
-        if (!(e.getPlayer() instanceof Player p) || !this.menu.viewing(p)) {
+        if (!(e.getPlayer() instanceof Player p) || !this.menu.viewing(p) || this.menu.isTransitioning(p)) {
+            // isTransitioning means WE closed this screen ourselves (switching to
+            // another of our own screens, or opening the search sign) - not a real
+            // close, so none of the return-item/clear-state logic below should run.
             return;
         }
         EnchantMenuService.View view = this.menu.view(p);
@@ -119,5 +161,53 @@ public final class EnchantMenuListener implements Listener {
         for (ItemStack over : overflow.values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), over);
         }
+    }
+
+    @EventHandler
+    public void quit(PlayerQuitEvent e) {
+        this.pendingSearches.remove(e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * Turns the block 2 above {@code p} into a sign, opens vanilla's own sign editor
+     * on it, and remembers enough to undo that (see {@link #onSignChange}) - the menu
+     * screen was already closed by the caller before this runs.
+     */
+    private void openSearchSign(Player p) {
+        UUID id = p.getUniqueId();
+        this.menu.markTransitioning(p, true);
+        p.closeInventory();
+        this.menu.markTransitioning(p, false);
+        Block block = p.getLocation().getBlock().getRelative(BlockFace.UP, 2);
+        BlockData originalData = block.getBlockData();
+        block.setType(Material.OAK_SIGN, false);
+        Sign sign = (Sign) block.getState();
+        PendingSearch pending = new PendingSearch(block, originalData);
+        this.pendingSearches.put(id, pending);
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            if (this.pendingSearches.remove(id, pending)) {
+                block.setBlockData(originalData, false);
+            }
+        }, SEARCH_SIGN_TIMEOUT_TICKS);
+        p.openSign(sign, Side.FRONT);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onSignChange(SignChangeEvent e) {
+        Player p = e.getPlayer();
+        PendingSearch pending = this.pendingSearches.remove(p.getUniqueId());
+        if (pending == null) {
+            return;
+        }
+        e.setCancelled(true);
+        pending.block().setBlockData(pending.originalData(), false);
+        String query = PlainTextComponentSerializer.plainText().serialize(e.line(0));
+        this.menu.setGuideSearch(p, query);
+        // Next tick: the sign UI is still closing this same tick, and Bukkit won't
+        // let another inventory open while that's in progress.
+        Bukkit.getScheduler().runTask(this.plugin, () -> this.menu.openGuide(p, 0));
+    }
+
+    private record PendingSearch(Block block, BlockData originalData) {
     }
 }
