@@ -69,7 +69,7 @@ public final class EnchantMenuListener implements Listener {
         }
         switch (view.type()) {
             case MAIN -> {
-                IcarusEnchant enchant = this.menu.catalogEnchantAt(view.page(), raw);
+                EnchantEntry enchant = this.menu.catalogEnchantAt(view.page(), raw);
                 if (enchant == null) {
                     return;
                 }

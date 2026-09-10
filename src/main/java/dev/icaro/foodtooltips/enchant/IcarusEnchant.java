@@ -1,10 +1,12 @@
 package dev.icaro.foodtooltips.enchant;
 
 /**
- * The plugin's own custom enchantments - entirely separate from (and coexisting
- * with) vanilla enchantments, applied only through the reworked Enchanting Table
- * screen (see {@code EnchantMenuService}), never randomly. Each has a flat max level;
- * the bonus per level is either a flat amount or a percentage point (see {@link
+ * The plugin's own custom enchantments - entirely separate from (and, since real
+ * vanilla enchantments are also offered through the same screen via {@link
+ * VanillaEnchantEntry}, sharing the catalog and the tier-based slot limit with)
+ * vanilla enchantments. Applied only through the reworked Enchanting Table screen
+ * (see {@code EnchantMenuService}), never randomly. Each has a flat max level; the
+ * bonus per level is either a flat amount or a percentage point (see {@link
  * #percent()}) - {@code EnchantService} is what actually turns a level into a real
  * stat number, this enum only knows the numbers/text, not how to wire them into
  * combat (that wiring is a deliberate follow-up, not part of this pass).
@@ -13,8 +15,8 @@ package dev.icaro.foodtooltips.enchant;
  * six enchants (Ferocity, Precision, Vampirism, Execution, Vitality, Spirit Ward)
  * without confirming it first, which wasn't wanted. The Enchanting Table screen itself
  * (item slot, table icon, bookshelf, guide button, catalog grid) stays fully wired and
- * working - it just has nothing to show in the catalog until real enchants are added
- * here.
+ * working, and already offers every vanilla enchantment - this enum just has nothing
+ * of its own to add to the catalog until real custom enchants are defined here.
  */
 public enum IcarusEnchant {
     ;
