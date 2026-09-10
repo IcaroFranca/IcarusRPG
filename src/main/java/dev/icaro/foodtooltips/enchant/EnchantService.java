@@ -51,13 +51,13 @@ public final class EnchantService {
     /**
      * Vanilla enchantments hidden from this table entirely: Mending, the two
      * curses (never something a player wants applied on purpose), and Flame/
-     * Infinity/Lure - each replaced by a leveled custom entry (see {@link
-     * IcarusEnchant}) since their real vanilla level cap (1, 1, 3 respectively)
-     * is fixed by Mojang/Bukkit and can't be raised to fit the leveled effect
-     * wanted for them.
+     * Infinity/Lure/Luck of the Sea - each replaced by a leveled custom entry
+     * (see {@link IcarusEnchant}) since their real vanilla level cap (1, 1, 3, 3
+     * respectively) is fixed by Mojang/Bukkit and can't be raised to fit the
+     * leveled effect wanted for them.
      */
     private static final Set<String> EXCLUDED_VANILLA_KEYS = Set.of(
-            "mending", "vanishing_curse", "binding_curse", "flame", "infinity", "lure");
+            "mending", "vanishing_curse", "binding_curse", "flame", "infinity", "lure", "luck_of_the_sea");
     /** Sharpness/Smite/Bane of Arthropods conflict with each other in real vanilla (you can't combine them via an anvil) - this table deliberately allows it. */
     private static final Set<String> NON_EXCLUSIVE_DAMAGE_FAMILY = Set.of("sharpness", "smite", "bane_of_arthropods");
 

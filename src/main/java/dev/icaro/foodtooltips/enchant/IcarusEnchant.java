@@ -2,6 +2,8 @@ package dev.icaro.foodtooltips.enchant;
 
 import java.util.List;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Material;
 
 /**
@@ -11,14 +13,15 @@ import org.bukkit.Material;
  * only through the reworked Enchanting Table screen (see {@code
  * EnchantMenuService}), never randomly.
  *
- * <p>Each of these three replaces a vanilla enchantment whose real level cap
+ * <p>Each of these four replaces a vanilla enchantment whose real level cap
  * (fixed by Mojang/Bukkit, not overridable) was too low for the leveled effect
- * wanted here - Flame and Infinity are both capped at level 1 vanilla, Lure at
- * level 3 - so vanilla's own version of each is excluded from the table (see
- * {@code EnchantService#allEntries}) in favor of these. Unlike the vanilla
- * entries, these actually change gameplay - see {@link
+ * wanted here - Flame and Infinity are both capped at level 1 vanilla, Lure and
+ * Luck of the Sea at level 3 - so vanilla's own version of each is excluded from
+ * the table (see {@code EnchantService#allEntries}) in favor of these. Unlike the
+ * vanilla entries, these actually change gameplay - see {@link
  * dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener} for the real
- * effect (arrow burn-and-damage-over-time, arrow-save chance, fishing wait time).
+ * effect (arrow burn-and-damage-over-time, arrow-save chance, fishing wait time,
+ * fishing treasure re-roll).
  */
 public enum IcarusEnchant {
     /** Replaces vanilla Flame (capped at level 1) - see CustomEnchantEffectListener#arrowHit. */
@@ -26,11 +29,15 @@ public enum IcarusEnchant {
     /** Replaces vanilla Lure (capped at level 3) - see CustomEnchantEffectListener#fish. */
     LURE("Chamariz", "Lure", 5, Material.FISHING_ROD),
     /** Replaces vanilla Infinity (capped at level 1, and a plain on/off rather than a chance) - see CustomEnchantEffectListener#bowShoot. */
-    INFINITE_QUIVER("Aljava Infinita", "Infinite Quiver", 5, Material.BOW);
+    INFINITE_QUIVER("Aljava Infinita", "Infinite Quiver", 5, Material.BOW),
+    /** Replaces vanilla Luck of the Sea (capped at level 3) - see CustomEnchantEffectListener#fishCatch. */
+    LUCK_OF_THE_SEA("Sorte do Mar", "Luck of the Sea", 5, Material.FISHING_ROD);
 
     /** Level 1's (duration seconds, damage % per second) pair; level 2's. Doesn't fit a "flat rate * level" formula, so it's a direct lookup instead. */
     private static final double[] FLAME_DURATION = {0, 3.5, 4.0};
     private static final double[] FLAME_PERCENT = {0, 3, 6};
+    /** Vanilla's own gold - #FFAA00 - used to label Luck of the Sea's named stat inline, same as Fortune/Efficiency's own labels in VanillaEnchantEntry. */
+    private static final TextColor LABEL_COLOR = NamedTextColor.GOLD;
 
     private final String namePt;
     private final String nameEn;
@@ -76,6 +83,11 @@ public enum IcarusEnchant {
             case INFINITE_QUIVER -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Economiza flechas"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("por nível das vezes que você atira com o arco."))
                     : List.of(EnchantText.Token.plain("Saves arrows"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("per level of the time when you fire your bow.")));
+            case LUCK_OF_THE_SEA -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Concede"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Chance de Tesouro", LABEL_COLOR),
+                            EnchantText.Token.plain("por nível, o que aumenta a chance de pescar tesouros."))
+                    : List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Treasure Chance", LABEL_COLOR),
+                            EnchantText.Token.plain("per level, which increases the chance of fishing treasure.")));
         };
     }
 
@@ -94,5 +106,15 @@ public enum IcarusEnchant {
             return EnchantText.Token.colored("Y", EnchantText.VALUE_COLOR);
         }
         return EnchantText.Token.colored(String.valueOf((long) FLAME_PERCENT[Math.min(level, FLAME_PERCENT.length - 1)]), EnchantText.VALUE_COLOR);
+    }
+
+    /** "+X" for the generic view, or "+0.5"/"+1"/.../"+2.5" (0.5-per-level, trimmed to a whole number when it lands on one) for a resolved level - see CustomEnchantEffectListener#fishCatch for how this chance is actually rolled. */
+    private static String treasureChanceText(Integer level) {
+        if (level == null) {
+            return "+X";
+        }
+        double v = 0.5 * level;
+        String number = v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
+        return "+" + number;
     }
 }
