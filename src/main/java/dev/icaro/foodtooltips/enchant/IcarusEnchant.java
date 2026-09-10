@@ -8,20 +8,16 @@ package dev.icaro.foodtooltips.enchant;
  * #percent()}) - {@code EnchantService} is what actually turns a level into a real
  * stat number, this enum only knows the numbers/text, not how to wire them into
  * combat (that wiring is a deliberate follow-up, not part of this pass).
+ *
+ * <p>Deliberately empty for now - the previous pass shipped its own invented list of
+ * six enchants (Ferocity, Precision, Vampirism, Execution, Vitality, Spirit Ward)
+ * without confirming it first, which wasn't wanted. The Enchanting Table screen itself
+ * (item slot, table icon, bookshelf, guide button, catalog grid) stays fully wired and
+ * working - it just has nothing to show in the catalog until real enchants are added
+ * here.
  */
 public enum IcarusEnchant {
-    /** Flat Ferocity per level - more extra-hit chance from the existing Ferocity mechanic. */
-    FEROCITY("Fúria", "Ferocity", 20.0, false, 5, 3),
-    /** Crit Chance percentage points per level. */
-    PRECISION("Precisão", "Precision", 4.0, true, 5, 3),
-    /** % of damage dealt healed back per level. */
-    VAMPIRISM("Vampirismo", "Vampirism", 3.0, true, 5, 4),
-    /** Bonus damage percentage per level against a target below half health. */
-    EXECUTION("Execução", "Execution", 6.0, true, 5, 4),
-    /** Health Regen percentage points per level. */
-    VITALITY("Fôlego", "Vitality", 15.0, true, 5, 3),
-    /** Flat True Defense per level - the first source config.yml's base-true-defense comment reserves this stat for. */
-    SPIRIT_WARD("Couraça Espiritual", "Spirit Ward", 2.0, false, 5, 5);
+    ;
 
     private final String namePt;
     private final String nameEn;
@@ -64,12 +60,6 @@ public enum IcarusEnchant {
     /** One line explaining what this enchantment does, independent of any specific level - shown in the guide and as an item's lore (see EnchantService's 4-or-fewer rule). */
     public String description(boolean pt) {
         return switch (this) {
-            case FEROCITY -> pt ? "Aumenta a Ferocity, sua chance de acertar golpes extras." : "Increases Ferocity, your chance of landing extra hits.";
-            case PRECISION -> pt ? "Aumenta sua Chance Crítica." : "Increases your Crit Chance.";
-            case VAMPIRISM -> pt ? "Cura uma % do dano que você causa." : "Heals a % of the damage you deal.";
-            case EXECUTION -> pt ? "Dano bônus contra alvos com menos da metade da vida." : "Bonus damage against targets below half health.";
-            case VITALITY -> pt ? "Aumenta sua Regeneração de Vida." : "Increases your Health Regen.";
-            case SPIRIT_WARD -> pt ? "Aumenta sua Defesa Verdadeira, ignorando reduções percentuais." : "Increases your True Defense, bypassing percentage-based reductions.";
         };
     }
 
