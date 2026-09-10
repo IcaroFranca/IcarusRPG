@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -36,13 +38,17 @@ import org.bukkit.plugin.Plugin;
  * a plain block like Dirt showing only its tier).
  */
 public final class ItemTierService {
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+
     private final NamespacedKey tierKey;
     private final NamespacedKey forcedTierKey;
+    private final NamespacedKey spacingRepairedKey;
     private final Map<Material, ItemTier> overrides = new EnumMap<>(Material.class);
 
     public ItemTierService(Plugin plugin) {
         this.tierKey = new NamespacedKey(plugin, "item_tier_applied");
         this.forcedTierKey = new NamespacedKey(plugin, "item_tier_forced");
+        this.spacingRepairedKey = new NamespacedKey(plugin, "item_tier_spacing_repaired");
         var section = plugin.getConfig().getConfigurationSection("item-tiers");
         if (section != null) {
             for (String key : section.getKeys(false)) {
@@ -195,6 +201,9 @@ public final class ItemTierService {
         boolean changed = false;
         for (int i = 0; i < storage.length; i++) {
             ItemStack updated = this.applyTier(storage[i], l);
+            if (updated == null) {
+                updated = this.repairTierSpacing(storage[i]);
+            }
             if (updated != null) {
                 storage[i] = updated;
                 changed = true;
@@ -215,12 +224,18 @@ public final class ItemTierService {
         ItemStack[] armor = inv.getArmorContents();
         for (int i = 0; i < armor.length; i++) {
             ItemStack updated = this.applyTier(armor[i], l);
+            if (updated == null) {
+                updated = this.repairTierSpacing(armor[i]);
+            }
             if (updated != null) {
                 armor[i] = updated;
             }
         }
         inv.setArmorContents(armor);
         ItemStack offhand = this.applyTier(inv.getItemInOffHand(), l);
+        if (offhand == null) {
+            offhand = this.repairTierSpacing(inv.getItemInOffHand());
+        }
         if (offhand != null) {
             inv.setItemInOffHand(offhand);
         }
@@ -246,7 +261,11 @@ public final class ItemTierService {
         String kind = kindOf(item.getType());
         String text = kind == null ? tier.label() : tier.label() + " " + kind;
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-        if (!lore.isEmpty()) {
+        // Whether there's real content before the tier line decides the separating blank
+        // line - deliberately NOT just "is lore non-empty right now" (see
+        // willGainMoreLore's own doc for why that racy check is exactly what used to
+        // split otherwise-identical stacks apart for good).
+        if (!lore.isEmpty() || this.willGainMoreLore(item)) {
             lore.add(Component.empty());
         }
         lore.add(Component.text(text, tier.color())
@@ -261,6 +280,79 @@ public final class ItemTierService {
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false));
         meta.getPersistentDataContainer().set(this.tierKey, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Whether some *other* independently-scheduled system is going to add its own lore
+     * to {@code item} sooner or later - checked by Material/data instead of the item's
+     * current lore, since that other system might not have run yet (food/mining
+     * tooltips run off their own click/join/held triggers, entirely separate from this
+     * one-shot pass's own periodic one) or might run again later on its own schedule.
+     * Without this, whether the tier line got a separating blank line before it
+     * depended purely on which of two independently-triggered systems happened to
+     * reach the item first - and since this pass never runs twice, whichever way that
+     * race went stuck to the item forever, silently splitting two otherwise-identical
+     * stacks (say, two Raw Mutton picked up moments apart) apart for good.
+     */
+    private boolean willGainMoreLore(ItemStack item) {
+        Material type = item.getType();
+        return type.name().endsWith("_PICKAXE")
+                || item.getData(DataComponentTypes.FOOD) != null
+                || SwordDamageService.totalDamage(type) != null
+                || ToolDamageService.totalDamage(type) != null;
+    }
+
+    /**
+     * One-time repair for an item tiered before {@link #willGainMoreLore} existed,
+     * where the blank line before its "TIER ..." line ended up wrong purely because of
+     * the race described there. Never re-touches the tier lookup, color or name
+     * rewrite - only adds or removes that one blank line, based on whether there's
+     * real (non-blank) content already sitting before the tier line right now.
+     * Idempotent via its own PDC marker, independent of {@link #tierKey}.
+     */
+    public ItemStack repairTierSpacing(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.getPersistentDataContainer().has(this.tierKey, PersistentDataType.BYTE)
+                || meta.getPersistentDataContainer().has(this.spacingRepairedKey, PersistentDataType.BYTE)) {
+            return null;
+        }
+        // Always marks spacingRepairedKey and writes the meta back below (even when
+        // there's nothing to fix) and always returns the item non-null - so the caller
+        // always persists it, guaranteeing this scan genuinely only ever happens once
+        // per item, the same one-shot guarantee applyTier's own tierKey gives it.
+        meta.getPersistentDataContainer().set(this.spacingRepairedKey, PersistentDataType.BYTE, (byte) 1);
+        if (meta.hasLore()) {
+            List<Component> lore = new ArrayList<>(meta.lore());
+            int tierIndex = -1;
+            for (int i = 0; i < lore.size(); i++) {
+                if (PLAIN.serialize(lore.get(i)).startsWith("TIER ")) {
+                    tierIndex = i;
+                    break;
+                }
+            }
+            if (tierIndex >= 0) {
+                boolean hasRealContentBefore = false;
+                for (int i = 0; i < tierIndex; i++) {
+                    if (!PLAIN.serialize(lore.get(i)).isEmpty()) {
+                        hasRealContentBefore = true;
+                        break;
+                    }
+                }
+                boolean hasBlankImmediatelyBefore = tierIndex > 0 && PLAIN.serialize(lore.get(tierIndex - 1)).isEmpty();
+                if (hasRealContentBefore && !hasBlankImmediatelyBefore) {
+                    lore.add(tierIndex, Component.empty());
+                    meta.lore(lore);
+                } else if (!hasRealContentBefore && hasBlankImmediatelyBefore) {
+                    lore.remove(tierIndex - 1);
+                    meta.lore(lore);
+                }
+            }
+        }
         item.setItemMeta(meta);
         return item;
     }
