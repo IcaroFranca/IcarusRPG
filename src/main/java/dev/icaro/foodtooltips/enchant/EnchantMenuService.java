@@ -128,7 +128,7 @@ public final class EnchantMenuService {
     private void renderMainCatalog(Inventory v, Player p, int page) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
-        List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT));
+        List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT), pt);
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             int index = page * CATALOG_SLOTS.length + i;
             v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.catalogIcon(all.get(index), l, pt) : this.filler());
@@ -253,7 +253,7 @@ public final class EnchantMenuService {
     }
 
     private List<EnchantEntry> filteredGuideEntries(Player p, boolean pt) {
-        List<EnchantEntry> all = this.enchants.allEntries();
+        List<EnchantEntry> all = this.enchants.allEntries(pt);
         String query = this.guideSearch.get(p.getUniqueId());
         if (query == null || query.isBlank()) {
             return all;
@@ -289,10 +289,11 @@ public final class EnchantMenuService {
             }
             return null;
         }
+        boolean pt = Language.of(p) == Language.PT;
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             if (CATALOG_SLOTS[i] == rawSlot) {
                 Inventory v = p.getOpenInventory().getTopInventory();
-                List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT));
+                List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT), pt);
                 int index = page * CATALOG_SLOTS.length + i;
                 return index < all.size() ? all.get(index) : null;
             }

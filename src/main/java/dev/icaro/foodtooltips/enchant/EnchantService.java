@@ -2,7 +2,9 @@ package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,8 +56,8 @@ public final class EnchantService {
         }
     }
 
-    /** Every offerable entry, custom first then every registered vanilla enchantment - what the Enchanting Table's catalog/guide screens page through. */
-    public List<EnchantEntry> allEntries() {
+    /** Every offerable entry (custom and every registered vanilla enchantment), alphabetized by its {@code pt}-or-English catalog name - what the Enchanting Table's catalog/guide screens page through. */
+    public List<EnchantEntry> allEntries(boolean pt) {
         List<EnchantEntry> list = new ArrayList<>();
         for (IcarusEnchant e : IcarusEnchant.values()) {
             list.add(new CustomEnchantEntry(e));
@@ -63,6 +65,8 @@ public final class EnchantService {
         for (Enchantment e : Registry.ENCHANTMENT) {
             list.add(new VanillaEnchantEntry(e));
         }
+        Collator collator = Collator.getInstance(pt ? Locale.of("pt", "BR") : Locale.US);
+        list.sort(Comparator.comparing(e -> e.catalogName(pt), collator));
         return list;
     }
 
@@ -90,12 +94,12 @@ public final class EnchantService {
      * vanilla's own Enchanting Table filtering. Empty for a null/empty item - the
      * Enchanting Table screen shows nothing in its catalog until an item is placed.
      */
-    public List<EnchantEntry> compatibleEntries(ItemStack item) {
+    public List<EnchantEntry> compatibleEntries(ItemStack item, boolean pt) {
         List<EnchantEntry> result = new ArrayList<>();
         if (item == null || item.isEmpty()) {
             return result;
         }
-        for (EnchantEntry e : this.allEntries()) {
+        for (EnchantEntry e : this.allEntries(pt)) {
             if (e instanceof VanillaEnchantEntry v) {
                 if (v.enchantment().canEnchantItem(item)) {
                     result.add(e);
