@@ -24,6 +24,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -33,11 +34,17 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 
 public final class SkillsMenuService {
     private static final int[] N = new int[]{9, 18, 27, 28, 29, 20, 11, 2, 3, 4, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8, 17, 26, 35, 44, 53};
     private static final Map<Integer, SkillType> S = Map.of(22, SkillType.FARMING, 24, SkillType.FISHING, 30, SkillType.MINING, 31, SkillType.FORAGING, 32, SkillType.ENCHANTING, 33, SkillType.ALCHEMY);
+    /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
+    public static final int TRASH_SLOT = 53;
+    private static final String TRASH_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmZmYjkxMjYxMmEwNmU3ZWJmODY1YmU1MGNlOWZmNjA5MTk1ZWZkMTliYmU0OTdjNjFlMjI4YzczZWY3NzU3In19fQ==";
 
+    private final Plugin plugin;
     private final CombatSkillService combat;
     private final GeneralSkillService general;
     private final PlayerStatsService stats;
@@ -46,13 +53,15 @@ public final class SkillsMenuService {
     private final GlobalLevelService global;
     private final ArmorDefenseService armor;
     private final BestiaryProgressService bestiaryProgress;
+    private final NamespacedKey trashIconKey;
     private LevelColorMenuService levelColors;
     private CombatTreeMenuService tree;
     private TravelMenuService travel;
     private CraftingMenuService crafting;
     private final Map<UUID, View> views = new HashMap<>();
 
-    public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
+    public SkillsMenuService(Plugin plugin, CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
+        this.plugin = plugin;
         this.combat = c;
         this.general = g;
         this.stats = s;
@@ -61,6 +70,7 @@ public final class SkillsMenuService {
         this.global = global;
         this.armor = armor;
         this.bestiaryProgress = bestiaryProgress;
+        this.trashIconKey = new NamespacedKey(plugin, "skills_trash_icon");
     }
 
     public void levelColors(LevelColorMenuService levelColors) {
@@ -103,6 +113,7 @@ public final class SkillsMenuService {
         if (this.crafting != null) {
             v.setItem(49, this.item(Material.CRAFTING_TABLE, l.choose("Mesa de Trabalho", "Crafting Table"), List.of(this.click(l))));
         }
+        v.setItem(TRASH_SLOT, this.trashIcon(l));
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
 
@@ -278,6 +289,53 @@ public final class SkillsMenuService {
 
     public boolean viewing(Player p) {
         return this.views.containsKey(p.getUniqueId());
+    }
+
+    /** Whether {@code p} is currently looking at the MAIN screen specifically - the only one with a trash slot (see {@link #TRASH_SLOT}). */
+    public boolean isMain(Player p) {
+        View v = this.views.get(p.getUniqueId());
+        return v != null && v.type() == Type.MAIN;
+    }
+
+    /**
+     * Vanishes whatever ends up in the trash slot one tick after a click there - covers
+     * every possible outcome of that click (an item dropped onto the icon, the icon
+     * itself picked up, a swap between the two...) uniformly, by just resetting the
+     * slot to a fresh icon and clearing the cursor if it ended up holding the icon,
+     * rather than tracking exactly what the click did to get there.
+     */
+    public void scheduleTrashEmpty(Player p) {
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            if (!this.isMain(p)) {
+                return;
+            }
+            Inventory top = p.getOpenInventory().getTopInventory();
+            if (top.getSize() != 54) {
+                return;
+            }
+            if (this.isTrashIcon(p.getItemOnCursor())) {
+                p.setItemOnCursor(null);
+            }
+            top.setItem(TRASH_SLOT, this.trashIcon(Language.of(p)));
+        });
+    }
+
+    private boolean isTrashIcon(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(this.trashIconKey, PersistentDataType.BYTE);
+    }
+
+    /** The trash can's own custom head, tagged so it can never leave the menu with a player (see {@link #isTrashIcon}). */
+    private ItemStack trashIcon(Language l) {
+        ItemStack i = this.customHead(TRASH_TEXTURE, l.choose("Lixeira", "Trash Can"),
+                List.of(this.text(l.choose("Solte um item aqui para descartá-lo.", "Drop an item here to discard it."), NamedTextColor.GRAY)));
+        ItemMeta m = i.getItemMeta();
+        m.getPersistentDataContainer().set(this.trashIconKey, PersistentDataType.BYTE, (byte) 1);
+        i.setItemMeta(m);
+        return i;
     }
 
     public void close(Player p) {
