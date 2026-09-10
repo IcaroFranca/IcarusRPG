@@ -22,6 +22,8 @@ import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
+import dev.icaro.foodtooltips.enchant.GrindstoneMenuListener;
+import dev.icaro.foodtooltips.enchant.GrindstoneMenuService;
 import dev.icaro.foodtooltips.food.FoodTooltipListener;
 import dev.icaro.foodtooltips.food.FoodTooltipService;
 import dev.icaro.foodtooltips.global.GlobalLevelCommand;
@@ -149,6 +151,7 @@ extends JavaPlugin {
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants);
+        GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
         global.onChange(p -> {
@@ -164,6 +167,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
+        pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);

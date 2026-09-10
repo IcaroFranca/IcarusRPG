@@ -141,6 +141,11 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         arrow.setDamage(BASE_BOW_DAMAGE);
+        // A fully-drawn shot is still flagged critical by vanilla's own charge-time
+        // logic, which then adds its own random bonus on top of getDamage() at hit
+        // time - forcing this off is what actually makes the number flat regardless
+        // of how long the bow was drawn (how far away/charged the shot was).
+        arrow.setCritical(false);
         int quiverLevel = this.enchants.levelOf(e.getBow(), new CustomEnchantEntry(IcarusEnchant.INFINITE_QUIVER));
         if (quiverLevel > 0 && ThreadLocalRandom.current().nextDouble() < quiverLevel * 0.10) {
             e.setConsumeItem(false);

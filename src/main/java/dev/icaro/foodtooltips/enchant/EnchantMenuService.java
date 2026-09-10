@@ -38,10 +38,11 @@ import org.bukkit.plugin.Plugin;
  * changes. Picking one opens a level-select screen ({@link #openLevelSelect}) showing
  * every level's cost/effect, and applying a level spends real vanilla XP levels (like
  * an anvil) - see {@link EnchantService}. No limit on how many distinct entries an
- * item can carry. An item can be brought back to the table to add more, or to remove
- * one it already has (with a two-click confirm - see {@link #handleRemoveClick}). A
- * separate Guide screen ({@link #openGuide}) lists every entry regardless of any item,
- * searchable via a sign (see {@code EnchantMenuListener}).
+ * item can carry. An item can be brought back to the table to add more levels/entries
+ * - removing one it already has is the Grindstone's job now (see {@code
+ * GrindstoneMenuService}), not this screen's. A separate Guide screen ({@link
+ * #openGuide}) lists every entry regardless of any item, searchable via a sign (see
+ * {@code EnchantMenuListener}).
  *
  * <p>v1 scope: this is the interface and application/storage layer only - none of
  * the plugin's own custom enchants (currently none defined - see {@link
@@ -61,9 +62,6 @@ public final class EnchantMenuService {
     /** Where each of an enchant's levels sits on the level-select screen (up to {@link EnchantEntry#maxLevel()} used - the max across every vanilla entry is 5, so this covers them all too). */
     private static final int[] LEVEL_SLOTS = {20, 21, 22, 23, 24};
     private static final int LEVEL_PREVIEW_SLOT = 4;
-    /** Only shown once the entry is already applied (current level &gt; 0) - removes it entirely, with a two-click confirm (see {@link #handleRemoveClick}). */
-    static final int REMOVE_SLOT = 31;
-    private static final long REMOVE_CONFIRM_WINDOW_MILLIS = 10_000L;
 
     private static final int GUIDE_TITLE_SLOT = 4;
     private static final int GUIDE_PREV_PAGE_SLOT = 45;
@@ -85,8 +83,6 @@ public final class EnchantMenuService {
     private final Map<UUID, Location> tableLocation = new HashMap<>();
     /** Current search filter for the Guide screen, per player - absent/blank means unfiltered. Cleared whenever the player leaves the Guide screen. */
     private final Map<UUID, String> guideSearch = new HashMap<>();
-    /** First click of a remove confirmation, per player - scoped to a specific entry (not just the player) so leaving and picking a different applied entry never carries over an armed confirm onto the wrong one. */
-    private final Map<UUID, RemoveArm> removeConfirm = new HashMap<>();
     /**
      * Players in the middle of one of OUR OWN screen transitions (this class calling
      * {@link Player#openInventory}, which switches screens by implicitly firing an
@@ -181,54 +177,9 @@ public final class EnchantMenuService {
         for (int level = 1; level <= enchant.maxLevel() && level <= LEVEL_SLOTS.length; level++) {
             v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(p, enchant, level, current, l, pt));
         }
-        if (current > 0) {
-            v.setItem(REMOVE_SLOT, this.removeIcon(p, enchant, l, pt));
-        }
         v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar", "Back"), List.of()));
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.LEVEL, 0, enchant));
-    }
-
-    /**
-     * First click on {@link #REMOVE_SLOT} arms a confirmation (see {@link
-     * #isRemoveArmed}); a second click on the same entry within {@link
-     * #REMOVE_CONFIRM_WINDOW_MILLIS} actually removes it and returns to the main
-     * screen with the updated item.
-     */
-    public void handleRemoveClick(Player p, EnchantEntry enchant) {
-        Language l = Language.of(p);
-        boolean pt = l == Language.PT;
-        if (this.isRemoveArmed(p, enchant)) {
-            this.removeConfirm.remove(p.getUniqueId());
-            ItemStack item = this.pendingItem.get(p.getUniqueId());
-            if (item == null) {
-                return;
-            }
-            this.enchants.removeLevel(item, enchant, pt);
-            p.sendMessage(this.msg(l.choose("Removido: ", "Removed: ") + enchant.catalogName(pt), NamedTextColor.RED));
-            this.openMain(p, 0);
-            return;
-        }
-        this.removeConfirm.put(p.getUniqueId(), new RemoveArm(enchant.id(), System.currentTimeMillis()));
-        this.openLevelSelect(p, enchant);
-    }
-
-    private boolean isRemoveArmed(Player p, EnchantEntry enchant) {
-        RemoveArm arm = this.removeConfirm.get(p.getUniqueId());
-        return arm != null && arm.entryId().equals(enchant.id())
-                && System.currentTimeMillis() - arm.armedAt() < REMOVE_CONFIRM_WINDOW_MILLIS;
-    }
-
-    private ItemStack removeIcon(Player p, EnchantEntry enchant, Language l, boolean pt) {
-        if (this.isRemoveArmed(p, enchant)) {
-            return this.item(Material.TNT, l.choose("Remover " + enchant.catalogName(pt) + "?", "Remove " + enchant.catalogName(pt) + "?"),
-                    List.of(this.text(l.choose("Clique de novo para confirmar.", "Click again to confirm."), NamedTextColor.RED)));
-        }
-        return this.item(Material.BARRIER, l.choose("Remover Encantamento", "Remove Enchantment"),
-                List.of(this.text(l.choose("Clique para remover este encantamento do item.", "Click to remove this enchantment from the item."), NamedTextColor.RED)));
-    }
-
-    private record RemoveArm(String entryId, long armedAt) {
     }
 
     /** Called by the listener when a clickable (higher-than-current) level is clicked - validates, charges the XP for that level directly (no need to apply every level in between first), applies it, and returns to the main screen with the updated item. */
@@ -402,7 +353,6 @@ public final class EnchantMenuService {
         this.pendingItem.remove(p.getUniqueId());
         this.tableLocation.remove(p.getUniqueId());
         this.guideSearch.remove(p.getUniqueId());
-        this.removeConfirm.remove(p.getUniqueId());
     }
 
     /**
@@ -444,13 +394,9 @@ public final class EnchantMenuService {
             }
             case LEVEL -> {
                 if (slot == BACK_SLOT) {
-                    this.removeConfirm.remove(p.getUniqueId());
                     this.openMain(p, 0);
                     return true;
                 }
-                // REMOVE_SLOT is deliberately NOT handled here - it needs the specific
-                // enchant being viewed (see #handleRemoveClick), which the listener
-                // already has via view.enchant().
             }
             case GUIDE -> {
                 if (slot == GUIDE_BACK_SLOT) {

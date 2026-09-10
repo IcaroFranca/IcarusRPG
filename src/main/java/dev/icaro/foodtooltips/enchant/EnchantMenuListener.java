@@ -131,10 +131,6 @@ public final class EnchantMenuListener implements Listener {
                 if (view.enchant() == null) {
                     return;
                 }
-                if (raw == EnchantMenuService.REMOVE_SLOT) {
-                    this.menu.handleRemoveClick(p, view.enchant());
-                    return;
-                }
                 int level = this.menu.levelAt(raw);
                 if (level > 0) {
                     this.menu.applyLevel(p, view.enchant(), level);

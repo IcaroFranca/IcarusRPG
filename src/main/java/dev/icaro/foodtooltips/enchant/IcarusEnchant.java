@@ -113,9 +113,16 @@ public enum IcarusEnchant {
         };
     }
 
-    /** XP levels (vanilla, like an anvil) needed to apply exactly this one level - not cumulative from level 1. Matches the flat rate every vanilla entry uses (see VanillaEnchantEntry), for consistency. */
+    /** XP levels (vanilla, like an anvil) needed to apply exactly this one level - not cumulative from level 1. Explicit per-level table, not a formula - see {@code VanillaEnchantEntry#COSTS} for the same idea over vanilla entries. */
     public int costAtLevel(int level) {
-        return 2 * level;
+        int[] costs = switch (this) {
+            case FLAME -> new int[]{25, 50};
+            case LURE, INFINITE_QUIVER, LUCK_OF_THE_SEA -> new int[]{10, 20, 30, 40, 50};
+            case FIRE_ASPECT, THORNS -> new int[]{15, 30, 45};
+            case PROTECTION, FIRE_PROTECTION, BLAST_PROTECTION, PROJECTILE_PROTECTION, FEATHER_FALLING -> new int[]{10, 15, 20, 25, 30};
+            case RESPIRATION -> new int[]{10, 20, 30};
+        };
+        return costs[Math.max(1, Math.min(level, costs.length)) - 1];
     }
 
     /** Word-wrapped description, colored the same way vanilla entries are - see {@link EnchantText}. {@code level} null shows the generic "X"/"Y" placeholder view; a real level resolves the real numbers. */
