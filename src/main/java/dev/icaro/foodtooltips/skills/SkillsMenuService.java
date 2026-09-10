@@ -313,7 +313,7 @@ public final class SkillsMenuService {
     }
 
     private void nav(Inventory v, Language l, int page, int max) {
-        v.setItem(45, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(45, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         if (page > 0) {
             v.setItem(48, this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous page"), List.of()));
         }
@@ -435,7 +435,7 @@ public final class SkillsMenuService {
         v.setItem(42, this.skillBonusItem(target, SkillType.FORAGING, l));
         v.setItem(43, this.skillBonusItem(target, SkillType.ALCHEMY, l));
         v.setItem(44, this.skillBonusItem(target, SkillType.ENCHANTING, l));
-        v.setItem(45, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(45, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         this.open(viewer, v, new View(Type.STATS, 0, null));
     }
 

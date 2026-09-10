@@ -55,7 +55,7 @@ public final class TrashMenuService {
             v.setItem(i, filler);
         }
         v.setItem(TRASH_SLOT, this.trashIcon(l));
-        v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         p.openInventory(v);
         this.viewing.add(p.getUniqueId());
     }
