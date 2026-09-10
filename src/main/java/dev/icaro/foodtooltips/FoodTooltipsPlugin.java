@@ -159,7 +159,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new PlayerStatsViewListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
-        pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu), (Plugin)this);
+        pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);

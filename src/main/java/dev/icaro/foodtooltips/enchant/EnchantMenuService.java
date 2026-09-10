@@ -3,10 +3,14 @@ package dev.icaro.foodtooltips.enchant;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -27,13 +31,17 @@ import org.bukkit.plugin.Plugin;
  * The reworked Enchanting Table screen - opened by right-clicking a real Enchanting
  * Table block (see {@code EnchantMenuListener}) instead of vanilla's own random-offer
  * UI. Every {@link EnchantEntry} - the plugin's own {@link IcarusEnchant}s AND every
- * real vanilla enchantment (see {@link EnchantService#allEntries}) - is always visible
- * and picked explicitly (never random); picking one opens a level-select screen
- * ({@link #openLevelSelect}) showing every level's cost/effect, and applying a level
- * spends real vanilla XP levels (like an anvil) - see {@link EnchantService}. An item
- * can be brought back to the table and enchanted again later (each distinct entry
- * just needs a free slot the first time - see {@link EnchantService#slotLimit}, shared
- * between custom and vanilla entries).
+ * real vanilla enchantment (see {@link EnchantService#allEntries}) - is picked
+ * explicitly (never random). The main screen's catalog is empty until an item is
+ * placed in {@link #ITEM_SLOT}, then shows only entries that item can actually take
+ * (see {@link EnchantService#compatibleEntries}) and live-refreshes whenever the item
+ * changes. Picking one opens a level-select screen ({@link #openLevelSelect}) showing
+ * every level's cost/effect, and applying a level spends real vanilla XP levels (like
+ * an anvil) - see {@link EnchantService}. An item can be brought back to the table and
+ * enchanted again later (each distinct entry just needs a free slot the first time -
+ * see {@link EnchantService#slotLimit}, shared between custom and vanilla entries). A
+ * separate Guide screen ({@link #openGuide}) lists every entry regardless of any item,
+ * searchable via a sign (see {@code EnchantMenuListener}).
  *
  * <p>v1 scope: this is the interface and application/storage layer only - none of
  * the plugin's own custom enchants (currently none defined - see {@link
@@ -48,17 +56,41 @@ public final class EnchantMenuService {
     private static final int SCROLL_UP_SLOT = 17;
     private static final int SCROLL_DOWN_SLOT = 35;
     private static final int BACK_SLOT = 49;
-    /** Where enchant books sit in the 54-slot grid - 3 rows of 5, matching the requested layout. */
+    /** Where enchant books sit in the main screen's catalog grid - 3 rows of 5, matching the requested layout. */
     private static final int[] CATALOG_SLOTS = {12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 30, 31, 32, 33, 34};
     /** Where each of an enchant's levels sits on the level-select screen (up to {@link EnchantEntry#maxLevel()} used - the max across every vanilla entry is 5, so this covers them all too). */
     private static final int[] LEVEL_SLOTS = {20, 21, 22, 23, 24};
     private static final int LEVEL_PREVIEW_SLOT = 4;
+
+    private static final int GUIDE_TITLE_SLOT = 4;
+    private static final int GUIDE_PREV_PAGE_SLOT = 45;
+    private static final int GUIDE_BACK_SLOT = 48;
+    private static final int GUIDE_CLOSE_SLOT = 49;
+    static final int GUIDE_SEARCH_SLOT = 50;
+    private static final int GUIDE_NEXT_PAGE_SLOT = 53;
+    /** Where enchant books sit in the Guide screen's catalog grid - 4 rows of 7. */
+    private static final int[] GUIDE_CATALOG_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34,
+            37, 38, 39, 40, 41, 42, 43};
 
     private final Plugin plugin;
     private final EnchantService enchants;
     private final Map<UUID, View> views = new HashMap<>();
     private final Map<UUID, ItemStack> pendingItem = new HashMap<>();
     private final Map<UUID, Location> tableLocation = new HashMap<>();
+    /** Current search filter for the Guide screen, per player - absent/blank means unfiltered. Cleared whenever the player leaves the Guide screen. */
+    private final Map<UUID, String> guideSearch = new HashMap<>();
+    /**
+     * Players in the middle of one of OUR OWN screen transitions (this class calling
+     * {@link Player#openInventory}, which switches screens by implicitly firing an
+     * {@link org.bukkit.event.inventory.InventoryCloseEvent} for the old one before the
+     * new one opens) - {@code EnchantMenuListener}'s close handler checks this to tell
+     * a deliberate transition apart from the player actually closing the menu, so it
+     * doesn't return/drop the in-progress item or clear state mid-transition.
+     */
+    private final Set<UUID> transitioning = new HashSet<>();
 
     public EnchantMenuService(Plugin plugin, EnchantService enchants) {
         this.plugin = plugin;
@@ -73,24 +105,10 @@ public final class EnchantMenuService {
 
     private void openMain(Player p, int page) {
         Language l = Language.of(p);
-        boolean pt = l == Language.PT;
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Mesa de Encantamento", "Enchanting Table"));
         this.fill(v);
-        v.setItem(ITEM_SLOT, null);
-        List<EnchantEntry> all = this.enchants.allEntries();
-        for (int i = 0; i < CATALOG_SLOTS.length; i++) {
-            int index = page * CATALOG_SLOTS.length + i;
-            if (index >= all.size()) {
-                break;
-            }
-            v.setItem(CATALOG_SLOTS[i], this.catalogIcon(all.get(index), l, pt));
-        }
-        if (page > 0) {
-            v.setItem(SCROLL_UP_SLOT, this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")));
-        }
-        if ((page + 1) * CATALOG_SLOTS.length < all.size()) {
-            v.setItem(SCROLL_DOWN_SLOT, this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")));
-        }
+        ItemStack pending = this.pendingItem.remove(p.getUniqueId());
+        v.setItem(ITEM_SLOT, pending);
         v.setItem(TABLE_ICON_SLOT, this.item(Material.ENCHANTING_TABLE,
                 l.choose("Mesa de Encantamento", "Enchanting Table"),
                 List.of(this.text(l.choose("Apenas representação.", "Just a representation."), NamedTextColor.GRAY))));
@@ -101,12 +119,44 @@ public final class EnchantMenuService {
         v.setItem(GUIDE_SLOT, this.item(Material.BOOK,
                 l.choose("Guia de Encantamentos", "Enchantment Guide"),
                 List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW))));
-        ItemStack pending = this.pendingItem.remove(p.getUniqueId());
-        if (pending != null) {
-            v.setItem(ITEM_SLOT, pending);
-        }
-        p.openInventory(v);
+        this.renderMainCatalog(v, p, page);
+        this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.MAIN, page, null));
+    }
+
+    /** Rebuilds just the catalog grid + scroll arrows, from whatever item is currently sitting in {@link #ITEM_SLOT} - shared by a fresh {@link #openMain} and {@link #refreshCatalog} (called live, without reopening the screen, when the item changes). */
+    private void renderMainCatalog(Inventory v, Player p, int page) {
+        Language l = Language.of(p);
+        boolean pt = l == Language.PT;
+        List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT));
+        for (int i = 0; i < CATALOG_SLOTS.length; i++) {
+            int index = page * CATALOG_SLOTS.length + i;
+            v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.catalogIcon(all.get(index), l, pt) : this.filler());
+        }
+        v.setItem(SCROLL_UP_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
+        v.setItem(SCROLL_DOWN_SLOT, (page + 1) * CATALOG_SLOTS.length < all.size() ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
+    }
+
+    /**
+     * Called (next tick, after the click that changed it actually lands - see {@code
+     * EnchantMenuListener}) whenever {@link #ITEM_SLOT} changes on the main screen:
+     * re-renders the catalog from the new item without closing/reopening the
+     * inventory, resetting to page 0 since the previous page might not exist for the
+     * new item's (possibly much shorter) compatible list.
+     */
+    public void scheduleCatalogRefresh(Player p) {
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            View view = this.views.get(p.getUniqueId());
+            if (view == null || view.type() != Type.MAIN) {
+                return;
+            }
+            Inventory v = p.getOpenInventory().getTopInventory();
+            if (v.getSize() != 54) {
+                return;
+            }
+            this.renderMainCatalog(v, p, 0);
+            this.views.put(p.getUniqueId(), new View(Type.MAIN, 0, null));
+        });
     }
 
     /** Called by the listener when a catalog icon is clicked with an item present - grabs the item off the (about to close) main screen and switches to the level-select screen for {@code enchant}. */
@@ -128,7 +178,7 @@ public final class EnchantMenuService {
             v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(enchant, level, current, hasFreeSlot, l, pt));
         }
         v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar", "Back"), List.of()));
-        p.openInventory(v);
+        this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.LEVEL, 0, enchant));
     }
 
@@ -166,36 +216,84 @@ public final class EnchantMenuService {
         this.openMain(p, 0);
     }
 
-    private void openGuide(Player p, int page) {
+    /**
+     * Opens the read-only Guide screen at {@code page} - lists every {@link
+     * EnchantEntry}, filtered by {@link #guideSearch} if the player has an active
+     * search (see {@code EnchantMenuListener}'s sign-based search flow). Public so the
+     * listener can reopen it directly after a search is submitted.
+     */
+    public void openGuide(Player p, int page) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Guia de Encantamentos", "Enchantment Guide"));
+        List<EnchantEntry> all = this.filteredGuideEntries(p, pt);
+        int pages = Math.max(1, (all.size() + GUIDE_CATALOG_SLOTS.length - 1) / GUIDE_CATALOG_SLOTS.length);
+        page = Math.max(0, Math.min(pages - 1, page));
+        String title = "(" + (page + 1) + "/" + pages + ") " + l.choose("Guia de Encantamentos", "Enchantment Guide");
+        Inventory v = Bukkit.createInventory(null, 54, title);
         this.fill(v);
-        List<EnchantEntry> all = this.enchants.allEntries();
-        for (int i = 0; i < CATALOG_SLOTS.length; i++) {
-            int index = page * CATALOG_SLOTS.length + i;
-            if (index >= all.size()) {
-                break;
-            }
-            v.setItem(CATALOG_SLOTS[i], this.guideIcon(all.get(index), pt));
+        for (int i = 0; i < GUIDE_CATALOG_SLOTS.length; i++) {
+            int index = page * GUIDE_CATALOG_SLOTS.length + i;
+            v.setItem(GUIDE_CATALOG_SLOTS[i], index < all.size() ? this.guideIcon(all.get(index), pt) : this.filler());
         }
-        if (page > 0) {
-            v.setItem(SCROLL_UP_SLOT, this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")));
-        }
-        if ((page + 1) * CATALOG_SLOTS.length < all.size()) {
-            v.setItem(SCROLL_DOWN_SLOT, this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")));
-        }
-        v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar", "Back"), List.of()));
-        p.openInventory(v);
+        // KNOWLEDGE_BOOK is the green-covered book material - matches the reference image, purely decorative here.
+        v.setItem(GUIDE_TITLE_SLOT, this.item(Material.KNOWLEDGE_BOOK, title, List.of()));
+        v.setItem(GUIDE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
+        v.setItem(GUIDE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
+        v.setItem(GUIDE_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar ao menu", "Back to menu"), List.of()));
+        v.setItem(GUIDE_CLOSE_SLOT, this.item(Material.BARRIER, l.choose("Fechar", "Close"), List.of()));
+        String search = this.guideSearch.get(p.getUniqueId());
+        List<Component> searchLore = search == null || search.isBlank()
+                ? List.of(this.text(l.choose("Clique para pesquisar.", "Click to search."), NamedTextColor.YELLOW))
+                : List.of(this.text(l.choose("Pesquisando: ", "Searching: ") + search, NamedTextColor.AQUA),
+                        this.text(l.choose("Clique para pesquisar de novo.", "Click to search again."), NamedTextColor.YELLOW),
+                        this.text(l.choose("Shift+clique para limpar.", "Shift+click to clear."), NamedTextColor.GRAY));
+        v.setItem(GUIDE_SEARCH_SLOT, this.item(Material.OAK_SIGN, l.choose("Pesquisar", "Search"), searchLore));
+        this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.GUIDE, page, null));
     }
 
-    /** The entry a catalog-grid click on {@code rawSlot} (main or guide screen, same layout) refers to on {@code page}, or null if that slot isn't a catalog slot or is past the end of the list. */
-    public EnchantEntry catalogEnchantAt(int page, int rawSlot) {
+    private List<EnchantEntry> filteredGuideEntries(Player p, boolean pt) {
+        List<EnchantEntry> all = this.enchants.allEntries();
+        String query = this.guideSearch.get(p.getUniqueId());
+        if (query == null || query.isBlank()) {
+            return all;
+        }
+        String q = query.toLowerCase(Locale.ROOT);
+        List<EnchantEntry> filtered = new ArrayList<>();
+        for (EnchantEntry e : all) {
+            if (e.catalogName(pt).toLowerCase(Locale.ROOT).contains(q)) {
+                filtered.add(e);
+            }
+        }
+        return filtered;
+    }
+
+    /** Sets (or, if {@code query} is null/blank, clears) the Guide screen's active search for {@code p} - called by {@code EnchantMenuListener} once the sign-based search input is submitted. Doesn't reopen the screen itself. */
+    public void setGuideSearch(Player p, String query) {
+        if (query == null || query.isBlank()) {
+            this.guideSearch.remove(p.getUniqueId());
+        } else {
+            this.guideSearch.put(p.getUniqueId(), query.trim());
+        }
+    }
+
+    /** The catalog/level/guide slot a click on {@code rawSlot} refers to - used by {@code EnchantMenuListener} for both the main screen's and the Guide's identically-shaped-per-type grids. */
+    public EnchantEntry catalogEnchantAt(Player p, Type screen, int page, int rawSlot) {
+        if (screen == Type.GUIDE) {
+            for (int i = 0; i < GUIDE_CATALOG_SLOTS.length; i++) {
+                if (GUIDE_CATALOG_SLOTS[i] == rawSlot) {
+                    List<EnchantEntry> all = this.filteredGuideEntries(p, Language.of(p) == Language.PT);
+                    int index = page * GUIDE_CATALOG_SLOTS.length + i;
+                    return index < all.size() ? all.get(index) : null;
+                }
+            }
+            return null;
+        }
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             if (CATALOG_SLOTS[i] == rawSlot) {
+                Inventory v = p.getOpenInventory().getTopInventory();
+                List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT));
                 int index = page * CATALOG_SLOTS.length + i;
-                List<EnchantEntry> all = this.enchants.allEntries();
                 return index < all.size() ? all.get(index) : null;
             }
         }
@@ -220,10 +318,37 @@ public final class EnchantMenuService {
         return this.views.get(p.getUniqueId());
     }
 
+    /** Whether {@code p} is mid-transition between two of this menu's own screens - see {@link #transitioning}'s own doc. Checked by {@code EnchantMenuListener}'s close handler. */
+    public boolean isTransitioning(Player p) {
+        return this.transitioning.contains(p.getUniqueId());
+    }
+
+    /** Opens {@code v} for {@code p} while marking the implicit close of whatever screen of ours is currently open as an internal transition, not a real close - see {@link #transitioning}. */
+    private void openScreen(Player p, Inventory v) {
+        this.transitioning.add(p.getUniqueId());
+        p.openInventory(v);
+        this.transitioning.remove(p.getUniqueId());
+    }
+
+    /**
+     * Same idea as {@link #openScreen}'s internal marking, exposed for {@code
+     * EnchantMenuListener}'s sign-based search flow: it closes our Guide screen
+     * itself (to open a real sign-editing UI, not one of our own inventories) and
+     * needs that specific close treated as a transition too, not a real close.
+     */
+    public void markTransitioning(Player p, boolean value) {
+        if (value) {
+            this.transitioning.add(p.getUniqueId());
+        } else {
+            this.transitioning.remove(p.getUniqueId());
+        }
+    }
+
     public void close(Player p) {
         this.views.remove(p.getUniqueId());
         this.pendingItem.remove(p.getUniqueId());
         this.tableLocation.remove(p.getUniqueId());
+        this.guideSearch.remove(p.getUniqueId());
     }
 
     /**
@@ -246,6 +371,13 @@ public final class EnchantMenuService {
         switch (v.type()) {
             case MAIN -> {
                 if (slot == GUIDE_SLOT) {
+                    // Stash whatever's in the item slot - the Guide's own screen has no
+                    // real item slot, and this MAIN inventory is about to implicitly
+                    // close (see #openScreen) as openGuide opens its own.
+                    ItemStack current = p.getOpenInventory().getTopInventory().getItem(ITEM_SLOT);
+                    if (current != null && !current.isEmpty()) {
+                        this.pendingItem.put(p.getUniqueId(), current);
+                    }
                     this.openGuide(p, 0);
                     return true;
                 } else if (slot == SCROLL_UP_SLOT && v.page() > 0) {
@@ -263,17 +395,24 @@ public final class EnchantMenuService {
                 }
             }
             case GUIDE -> {
-                if (slot == BACK_SLOT) {
-                    this.pendingItem.remove(p.getUniqueId());
+                if (slot == GUIDE_BACK_SLOT) {
+                    // Don't touch pendingItem here - openMain below restores it into the
+                    // item slot itself (removing it from the map exactly once).
+                    this.guideSearch.remove(p.getUniqueId());
                     this.openMain(p, 0);
                     return true;
-                } else if (slot == SCROLL_UP_SLOT && v.page() > 0) {
+                } else if (slot == GUIDE_CLOSE_SLOT) {
+                    p.closeInventory();
+                    return true;
+                } else if (slot == GUIDE_PREV_PAGE_SLOT && v.page() > 0) {
                     this.openGuide(p, v.page() - 1);
                     return true;
-                } else if (slot == SCROLL_DOWN_SLOT) {
+                } else if (slot == GUIDE_NEXT_PAGE_SLOT) {
                     this.openGuide(p, v.page() + 1);
                     return true;
                 }
+                // GUIDE_SEARCH_SLOT is deliberately NOT handled here - it needs to close
+                // the inventory and open a sign, which EnchantMenuListener owns.
             }
         }
         return false;
@@ -371,8 +510,12 @@ public final class EnchantMenuService {
         return item;
     }
 
+    private ItemStack filler() {
+        return this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
+    }
+
     private void fill(Inventory v) {
-        ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
+        ItemStack filler = this.filler();
         for (int i = 0; i < v.getSize(); i++) {
             v.setItem(i, filler);
         }
@@ -380,10 +523,16 @@ public final class EnchantMenuService {
 
     private enum HeadKind { SCROLL_UP, SCROLL_DOWN }
 
+    /** The Enchanting Table's own pagination heads (Netherite Arrow Up/Down) - distinct from {@link HeadTexture#ARROW_LEFT}/{@link HeadTexture#ARROW_RIGHT} used elsewhere in the plugin, per this screen's original spec. */
     private ItemStack head(HeadKind kind, String name) {
         String texture = kind == HeadKind.SCROLL_UP
                 ? "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGMzMGM0YWI3ZDAwZmI1NWUzOWIxY2RkM2NiYzkzNDJiMTYyYzc2MTY2ZDIyNDk3MmRlZmJiZjllYzdmZmZhOCJ9fX0="
                 : "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmNmMTBiYzEwNDg3YmVhZDY2NGY2N2I0N2U4YjVhMTcwNTQyZGNjNTc5YTRjZjdjOTFjYjc1NWYwY2FiMWU3MyJ9fX0=";
+        return this.customHead(texture, name, List.of());
+    }
+
+    /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
         ItemStack item = ItemStack.of(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         try {
@@ -394,6 +543,7 @@ public final class EnchantMenuService {
             // Bad texture value: fall back to a plain player head rather than failing the menu.
         }
         meta.displayName(this.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;
