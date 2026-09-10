@@ -225,7 +225,7 @@ public final class SkillsMenuService {
         switch (v.type()) {
             case MAIN -> {
                 if (slot == 4) {
-                    this.openStats(p);
+                    this.openStats(p, p);
                 } else if (slot == 13) {
                     this.openGlobal(p, 0);
                 } else if (slot == 20) {
@@ -411,24 +411,32 @@ public final class SkillsMenuService {
         return i;
     }
 
-    /** Full breakdown (grouped by icon) plus the player's equipped armor. Opened by clicking {@link #head}. */
-    public void openStats(Player p) {
-        Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Status & Equipamento", "Stats & Equipment"));
-        v.setItem(4, this.statsOverviewHead(p, l));
-        v.setItem(20, this.armorSlot(p.getInventory().getHelmet(), l.choose("Capacete", "Helmet"), l));
-        v.setItem(29, this.armorSlot(p.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
-        v.setItem(38, this.armorSlot(p.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
-        v.setItem(47, this.armorSlot(p.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
-        v.setItem(24, this.combatStatsItem(p, l));
-        v.setItem(39, this.skillBonusItem(p, SkillType.MINING, l));
-        v.setItem(40, this.skillBonusItem(p, SkillType.FARMING, l));
-        v.setItem(41, this.skillBonusItem(p, SkillType.FISHING, l));
-        v.setItem(42, this.skillBonusItem(p, SkillType.FORAGING, l));
-        v.setItem(43, this.skillBonusItem(p, SkillType.ALCHEMY, l));
-        v.setItem(44, this.skillBonusItem(p, SkillType.ENCHANTING, l));
+    /**
+     * Full breakdown (grouped by icon) plus equipped armor - {@code target}'s (whose
+     * stats/gear every line reads), shown to {@code viewer} (whose language it's built
+     * in, and who the screen actually opens for). Same screen either way: your own
+     * (opened by clicking {@link #head} in the main menu, {@code viewer == target}) or
+     * another online player's (opened by right-clicking them - see {@code
+     * PlayerStatsViewListener} - read-only, there's no way to reach it for an offline
+     * player since every stat here is read live off their actual Player object).
+     */
+    public void openStats(Player viewer, Player target) {
+        Language l = Language.of(viewer);
+        Inventory v = this.inv(target.getName() + " - " + l.choose("Status & Equipamento", "Stats & Equipment"));
+        v.setItem(4, this.statsOverviewHead(target, l));
+        v.setItem(20, this.armorSlot(target.getInventory().getHelmet(), l.choose("Capacete", "Helmet"), l));
+        v.setItem(29, this.armorSlot(target.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
+        v.setItem(38, this.armorSlot(target.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
+        v.setItem(47, this.armorSlot(target.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
+        v.setItem(24, this.combatStatsItem(target, l));
+        v.setItem(39, this.skillBonusItem(target, SkillType.MINING, l));
+        v.setItem(40, this.skillBonusItem(target, SkillType.FARMING, l));
+        v.setItem(41, this.skillBonusItem(target, SkillType.FISHING, l));
+        v.setItem(42, this.skillBonusItem(target, SkillType.FORAGING, l));
+        v.setItem(43, this.skillBonusItem(target, SkillType.ALCHEMY, l));
+        v.setItem(44, this.skillBonusItem(target, SkillType.ENCHANTING, l));
         v.setItem(45, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
-        this.open(p, v, new View(Type.STATS, 0, null));
+        this.open(viewer, v, new View(Type.STATS, 0, null));
     }
 
     private ItemStack statsOverviewHead(Player p, Language l) {
