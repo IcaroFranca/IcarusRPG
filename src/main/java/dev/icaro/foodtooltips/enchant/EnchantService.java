@@ -18,6 +18,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -26,12 +27,13 @@ import org.bukkit.plugin.Plugin;
 /**
  * Reads/writes which {@link EnchantEntry} levels an item carries - a custom
  * {@link IcarusEnchant} stored as one PDC integer per enchant (0/absent = not
- * applied), or a real vanilla {@code Enchantment} stored the normal vanilla way (so
- * it renders via Minecraft's own native tooltip, not our lore). Enforces how many
- * *distinct* entries of either kind an item can hold at once (by {@link ItemTier} -
- * see {@link #slotLimit}; leveling an already-applied one up doesn't cost an extra
- * slot, and custom and vanilla entries share the same pool), and keeps the item's own
- * "Encantamentos" lore block (custom entries only) in sync with whatever's applied.
+ * applied), or a real vanilla {@code Enchantment} stored the normal vanilla way.
+ * Enforces how many *distinct* entries of either kind an item can hold at once (by
+ * {@link ItemTier} - see {@link #slotLimit}; leveling an already-applied one up
+ * doesn't cost an extra slot, and custom and vanilla entries share the same pool),
+ * and keeps the item's own "Encantamentos" lore block - custom and vanilla entries
+ * together, each with its description - in sync with whatever's applied, hiding
+ * Minecraft's own native enchantment tooltip so the two don't duplicate each other.
  *
  * <p>Deliberately doesn't touch combat math itself (Ferocity/Crit Chance/Vampirism/
  * Execution/Health Regen/True Defense) - that wiring is a separate follow-up; this
@@ -114,25 +116,18 @@ public final class EnchantService {
     /** Every entry (custom or vanilla) currently on {@code item} with a level &gt; 0, custom entries first in {@link IcarusEnchant} declaration order, then vanilla ones. */
     public Map<EnchantEntry, Integer> levelsOf(ItemStack item) {
         Map<EnchantEntry, Integer> result = new LinkedHashMap<>();
-        for (Map.Entry<IcarusEnchant, Integer> e : this.customLevelsOf(item).entrySet()) {
-            result.put(new CustomEnchantEntry(e.getKey()), e.getValue());
+        if (item == null || item.isEmpty()) {
+            return result;
         }
-        if (item != null && !item.isEmpty()) {
-            for (Map.Entry<Enchantment, Integer> e : item.getEnchantments().entrySet()) {
-                result.put(new VanillaEnchantEntry(e.getKey()), e.getValue());
-            }
-        }
-        return result;
-    }
-
-    /** Just the custom ({@link IcarusEnchant}) entries currently on {@code item} - what {@link #loreBlock} draws from, since vanilla entries render via their own native tooltip instead. */
-    private Map<IcarusEnchant, Integer> customLevelsOf(ItemStack item) {
-        Map<IcarusEnchant, Integer> result = new LinkedHashMap<>();
         for (IcarusEnchant e : IcarusEnchant.values()) {
-            int level = this.levelOf(item, new CustomEnchantEntry(e));
+            CustomEnchantEntry entry = new CustomEnchantEntry(e);
+            int level = this.levelOf(item, entry);
             if (level > 0) {
-                result.put(e, level);
+                result.put(entry, level);
             }
+        }
+        for (Map.Entry<Enchantment, Integer> e : item.getEnchantments().entrySet()) {
+            result.put(new VanillaEnchantEntry(e.getKey()), e.getValue());
         }
         return result;
     }
@@ -181,10 +176,10 @@ public final class EnchantService {
     /**
      * Sets {@code item}'s level of {@code entry} (the caller is responsible for
      * charging the player and checking {@link #vanillaBlockReason} for a vanilla
-     * entry - see {@code EnchantMenuService}). Custom entries rebuild the item's
-     * "Encantamentos" lore block to match; vanilla entries apply the normal vanilla
-     * way and render via Minecraft's own tooltip, untouched by our lore. Silently
-     * no-ops on a null/empty item.
+     * entry - see {@code EnchantMenuService}), then rebuilds the item's own
+     * "Encantamentos" lore block to match - both kinds now go through the same block
+     * (see {@link #rebuildLore}), so their descriptions show up on the item itself,
+     * not just in the catalog. Silently no-ops on a null/empty item.
      */
     public void setLevel(ItemStack item, EnchantEntry entry, int level, boolean pt) {
         if (item == null || item.isEmpty()) {
@@ -196,24 +191,25 @@ public final class EnchantService {
         }
         if (entry instanceof VanillaEnchantEntry v) {
             meta.addEnchant(v.enchantment(), level, true);
-            item.setItemMeta(meta);
-            return;
+        } else {
+            CustomEnchantEntry c = (CustomEnchantEntry) entry;
+            meta.getPersistentDataContainer().set(this.keys.get(c.enchant()), PersistentDataType.INTEGER, level);
         }
-        CustomEnchantEntry c = (CustomEnchantEntry) entry;
-        meta.getPersistentDataContainer().set(this.keys.get(c.enchant()), PersistentDataType.INTEGER, level);
         item.setItemMeta(meta);
         this.rebuildLore(item, pt);
     }
 
     /**
      * Strips any existing "Encantamentos"/"Enchantments" block from {@code item}'s
-     * lore and rebuilds it fresh from whatever custom entries are actually applied
-     * right now - self-healing the same way {@code FoodTooltipService} does for its
-     * own block, so this never drifts out of sync with the PDC data it's derived
-     * from. Inserted right before the item's "TIER ..." badge line if present
-     * (keeping that as the very last line, its own documented position), otherwise
-     * appended at the end. Vanilla entries are deliberately left out - they already
-     * show up in the item's own native enchantment tooltip.
+     * lore and rebuilds it fresh from whatever's actually applied right now (custom
+     * AND vanilla entries together) - self-healing the same way {@code
+     * FoodTooltipService} does for its own block, so this never drifts out of sync
+     * with the data it's derived from. Inserted right before the item's "TIER ..."
+     * badge line if present (keeping that as the very last line, its own documented
+     * position), otherwise appended at the end. Also hides Minecraft's own native
+     * enchantment tooltip line (HIDE_ENCHANTS) whenever there's at least one entry, so
+     * this block - which shows the same name/level plus a description - is the only
+     * one the player sees instead of the two duplicating each other.
      */
     public void rebuildLore(ItemStack item, boolean pt) {
         ItemMeta meta = item.getItemMeta();
@@ -222,7 +218,7 @@ public final class EnchantService {
         }
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         this.stripLoreBlock(lore);
-        Map<IcarusEnchant, Integer> levels = this.customLevelsOf(item);
+        Map<EnchantEntry, Integer> levels = this.levelsOf(item);
         if (!levels.isEmpty()) {
             List<Component> block = this.loreBlock(levels, pt);
             int tierIndex = this.findTierIndex(lore);
@@ -231,23 +227,29 @@ public final class EnchantService {
             } else {
                 lore.addAll(block);
             }
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        } else {
+            meta.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
         meta.lore(lore);
         item.setItemMeta(meta);
     }
 
     /** The "Encantamentos:"/list block only - a blank separator line first if there's other lore before it. */
-    private List<Component> loreBlock(Map<IcarusEnchant, Integer> levels, boolean pt) {
+    private List<Component> loreBlock(Map<EnchantEntry, Integer> levels, boolean pt) {
         List<Component> block = new ArrayList<>();
         block.add(Component.empty());
         block.add(this.line(pt ? LORE_HEADER_PT : LORE_HEADER_EN, NamedTextColor.GOLD));
         boolean showDescriptions = levels.size() <= DESCRIPTION_CUTOFF;
-        for (Map.Entry<IcarusEnchant, Integer> entry : levels.entrySet()) {
-            IcarusEnchant e = entry.getKey();
+        for (Map.Entry<EnchantEntry, Integer> entry : levels.entrySet()) {
+            EnchantEntry e = entry.getKey();
             int level = entry.getValue();
-            block.add(this.line("✦ " + e.displayName(pt) + " " + roman(level), NamedTextColor.LIGHT_PURPLE));
+            block.add(this.line("✦ " + e.leveledName(pt, level), NamedTextColor.LIGHT_PURPLE));
             if (showDescriptions) {
-                block.add(this.line("  " + e.description(pt), NamedTextColor.GRAY));
+                Component desc = e.resolvedDescription(pt, level);
+                if (desc != null) {
+                    block.add(Component.text("  ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false).append(desc));
+                }
             }
         }
         return block;
