@@ -68,6 +68,12 @@ public final class EnchantMenuService {
     /** Where each of an enchant's levels sits on the level-select screen (up to {@link EnchantEntry#maxLevel()} used - the max across every vanilla entry is 5, so this covers them all too). */
     private static final int[] LEVEL_SLOTS = {20, 21, 22, 23, 24};
     private static final int LEVEL_PREVIEW_SLOT = 4;
+    /** The 8 horizontal directions a Bookshelf can grant power from - see {@link #bookshelfPower}. */
+    private static final int[][] BOOKSHELF_DIRECTIONS = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1},
+            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+    /** Never exceeded by {@link #bookshelfPower}, and never required by {@link EnchantEntry#requiredBookshelfPower}. */
+    private static final int BOOKSHELF_POWER_CAP = 20;
 
     private static final int GUIDE_TITLE_SLOT = 4;
     private static final int GUIDE_PREV_PAGE_SLOT = 45;
@@ -120,7 +126,7 @@ public final class EnchantMenuService {
         this.global = global;
     }
 
-    /** Opens the table for {@code p} - {@code table} is the physical block right-clicked, only used to show a flavor "Enchanting Power" (see {@link #bookshelfPower}), nothing is gated by it in v1. */
+    /** Opens the table for {@code p} - {@code table} is the physical block right-clicked, used to compute Bookshelf Power (see {@link #bookshelfPower}), which some enchantments/levels require a minimum amount of (see {@link EnchantEntry#requiredBookshelfPower}). */
     public void open(Player p, Location table) {
         this.tableLocation.put(p.getUniqueId(), table);
         this.openMain(p, 0);
@@ -136,9 +142,9 @@ public final class EnchantMenuService {
                 l.choose("Mesa de Encantamento", "Enchanting Table"),
                 List.of(this.text(l.choose("Apenas representação.", "Just a representation."), NamedTextColor.GRAY))));
         v.setItem(BOOKSHELF_SLOT, this.item(Material.BOOKSHELF,
-                l.choose("Poder de Encantamento", "Enchanting Power"),
-                List.of(this.text(l.choose("Estantes ao redor: ", "Bookshelves around: ") + this.bookshelfPower(p), NamedTextColor.AQUA),
-                        this.text(l.choose("(sem efeito por enquanto)", "(no effect yet)"), NamedTextColor.DARK_GRAY))));
+                l.choose("Poder das Estantes", "Bookshelf Power"),
+                List.of(this.text(this.bookshelfPower(p) + " / " + BOOKSHELF_POWER_CAP, NamedTextColor.AQUA),
+                        this.text(l.choose("Necessário para desbloquear alguns encantamentos e níveis.", "Needed to unlock some enchantments and levels."), NamedTextColor.DARK_GRAY))));
         v.setItem(GUIDE_SLOT, this.item(Material.BOOK,
                 l.choose("Guia de Encantamentos", "Enchantment Guide"),
                 List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW))));
@@ -228,6 +234,12 @@ public final class EnchantMenuService {
                 p.sendMessage(this.msg(blockReason, NamedTextColor.RED));
                 return;
             }
+        }
+        int requiredPower = enchant.requiredBookshelfPower(level);
+        if (requiredPower > 0 && this.bookshelfPower(p) < requiredPower) {
+            // No chat message here on purpose either - same reasoning as the XP check
+            // right below: the level's own icon already shows this in red lore.
+            return;
         }
         int cost = this.discountedCost(enchant, current, level);
         if (p.getLevel() < cost) {
@@ -471,7 +483,16 @@ public final class EnchantMenuService {
         return false;
     }
 
-    /** Simplified vanilla-style bookshelf count - every Bookshelf block in a 5x5 area (both the table's floor and the layer above, skipping the inner 3x3) around {@code p}'s current table, no line-of-sight check (this is purely a flavor number in v1 - see this class's own doc), capped at 15 same as vanilla's real cap. */
+    /**
+     * A Bookshelf 2 blocks away from {@code p}'s current table - any of the 8
+     * horizontal directions (the 4 cardinal ones and the 4 diagonals) - counts for 1
+     * point, on either the table's own floor or the one directly above it (16
+     * possible positions total, comfortably under {@value #BOOKSHELF_POWER_CAP}).
+     * Each direction/floor is independent: the block 1 step closer to the table in
+     * that same direction and floor must be air, or that Bookshelf doesn't count -
+     * placing anything solid (including another Bookshelf) directly next to the
+     * table can block a Bookshelf 2 away from ever counting.
+     */
     private int bookshelfPower(Player p) {
         Location table = this.tableLocation.get(p.getUniqueId());
         if (table == null || table.getWorld() == null) {
@@ -482,19 +503,19 @@ public final class EnchantMenuService {
         int by = table.getBlockY();
         int bz = table.getBlockZ();
         int count = 0;
-        for (int dy = 0; dy <= 1 && count < 15; dy++) {
-            for (int dx = -2; dx <= 2 && count < 15; dx++) {
-                for (int dz = -2; dz <= 2 && count < 15; dz++) {
-                    if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                        continue;
-                    }
-                    if (world.getBlockAt(bx + dx, by + dy, bz + dz).getType() == Material.BOOKSHELF) {
-                        count++;
-                    }
+        for (int dy = 0; dy <= 1; dy++) {
+            for (int[] dir : BOOKSHELF_DIRECTIONS) {
+                int dx = dir[0];
+                int dz = dir[1];
+                if (!world.getBlockAt(bx + dx, by + dy, bz + dz).getType().isAir()) {
+                    continue;
+                }
+                if (world.getBlockAt(bx + dx * 2, by + dy, bz + dz * 2).getType() == Material.BOOKSHELF) {
+                    count++;
                 }
             }
         }
-        return Math.min(15, count);
+        return Math.min(BOOKSHELF_POWER_CAP, count);
     }
 
     private ItemStack catalogIcon(EnchantEntry e, Language l, boolean pt) {
@@ -542,6 +563,11 @@ public final class EnchantMenuService {
             lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.GREEN));
         } else {
             lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
+        }
+        int requiredPower = e.requiredBookshelfPower(level);
+        if (requiredPower > 0 && this.bookshelfPower(p) < requiredPower) {
+            lore.add(this.text(l.choose("Requer " + requiredPower + " de Bookshelf Power.", "Requires " + requiredPower + " Bookshelf Power."), NamedTextColor.RED));
+            return this.item(Material.BOOK, name, lore);
         }
         if (p.getLevel() < cost) {
             lore.add(this.text(l.choose("XP insuficiente para aplicar.", "Not enough XP to apply."), NamedTextColor.RED));
