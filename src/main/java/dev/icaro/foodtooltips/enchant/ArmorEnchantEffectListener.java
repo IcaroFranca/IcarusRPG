@@ -60,7 +60,7 @@ public final class ArmorEnchantEffectListener implements Listener {
                 e.setDamage(Math.max(0.0, e.getDamage() - trueDefense));
             }
         }
-        int defense = this.armorLevel(target, IcarusEnchant.PROTECTION) * 5;
+        int defense = this.armorLevel(target, IcarusEnchant.PROTECTION) * 4;
         defense += switch (cause) {
             case BLOCK_EXPLOSION, ENTITY_EXPLOSION -> this.armorLevel(target, IcarusEnchant.BLAST_PROTECTION) * 30;
             case PROJECTILE -> this.armorLevel(target, IcarusEnchant.PROJECTILE_PROTECTION) * 7;

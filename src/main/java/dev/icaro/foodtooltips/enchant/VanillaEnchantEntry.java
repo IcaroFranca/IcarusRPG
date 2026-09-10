@@ -128,11 +128,11 @@ final class VanillaEnchantEntry implements EnchantEntry {
                             EnchantText.Token.colored("☠ Wither", WITHER_COLOR), EnchantText.Token.plain("and"), EnchantText.Token.colored("🦴 Skeletal", SKELETAL_COLOR),
                             EnchantText.Token.plain("mobs by"), EnchantText.Token.value(level, "%", l -> linearCapped(l, 5, 5, 30)), EnchantText.Token.plain("."));
             case "knockback" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o recuo em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.Token.plain("por nível."))
-                    : List.of(EnchantText.Token.plain("Increases knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.Token.plain("per level."));
+                    ? List.of(EnchantText.Token.plain("Aumenta o recuo em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "looting" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta a chance de um monstro dropar um item em"), EnchantText.Token.value(level, "%", l -> 15), EnchantText.Token.plain("por nível."))
-                    : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> 15), EnchantText.Token.plain("per level."));
+                    ? List.of(EnchantText.Token.plain("Aumenta a chance de um monstro dropar um item em"), EnchantText.Token.value(level, "%", l -> 15), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> 15), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "sweeping_edge", "sweeping" -> pt
                     ? List.of(EnchantText.Token.plain("Aumenta o dano do ataque de varredura em"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases sweep attack damage by"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("."));
@@ -152,21 +152,21 @@ final class VanillaEnchantEntry implements EnchantEntry {
                     ? List.of(EnchantText.Token.plain("Aumenta o dano do arco em"), EnchantText.Token.value(level, "%", l -> l * 8), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases bow damage by"), EnchantText.Token.value(level, "%", l -> l * 8), EnchantText.Token.plain("."));
             case "punch" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o recuo das flechas em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.Token.plain("por nível."))
-                    : List.of(EnchantText.Token.plain("Increases arrow knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.Token.plain("per level."));
+                    ? List.of(EnchantText.Token.plain("Aumenta o recuo das flechas em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases arrow knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "depth_strider" -> pt
-                    ? List.of(EnchantText.Token.plain("Reduz a redução de velocidade na água em"), EnchantText.Token.value(level, "%", l -> l * 33),
-                            EnchantText.Token.plain("por nível. No nível III, a velocidade de movimento é igual à da terra firme (100%)."))
-                    : List.of(EnchantText.Token.plain("Reduces how much you are slowed in the water by"), EnchantText.Token.value(level, "%", l -> l * 33),
-                            EnchantText.Token.plain("per level. At level III, your movement speed is the same as on land (100%)."));
+                    ? List.of(EnchantText.Token.plain("Reduz a redução de velocidade na água em"), EnchantText.Token.value(level, "%", l -> l * 33), EnchantText.perLevel(level, true),
+                            EnchantText.Token.plain(". No nível III, a velocidade de movimento é igual à da terra firme (100%)."))
+                    : List.of(EnchantText.Token.plain("Reduces how much you are slowed in the water by"), EnchantText.Token.value(level, "%", l -> l * 33), EnchantText.perLevel(level, false),
+                            EnchantText.Token.plain(". At level III, your movement speed is the same as on land (100%)."));
             case "swift_sneak" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade ao andar agachado em"), EnchantText.Token.value(level, "%", l -> l * 15),
-                            EnchantText.Token.plain("por nível (a velocidade normal agachado é 30% da velocidade andando)."))
-                    : List.of(EnchantText.Token.plain("Increases sneaking movement speed by"), EnchantText.Token.value(level, "%", l -> l * 15),
-                            EnchantText.Token.plain("per level (normal sneaking speed is 30% of your walking speed)."));
+                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade ao andar agachado em"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, true),
+                            EnchantText.Token.plain("(a velocidade normal agachado é 30% da velocidade andando)."))
+                    : List.of(EnchantText.Token.plain("Increases sneaking movement speed by"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, false),
+                            EnchantText.Token.plain("(normal sneaking speed is 30% of your walking speed)."));
             case "soul_speed" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade de movimento em areia/solo das almas em"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.Token.plain("por nível."))
-                    : List.of(EnchantText.Token.plain("Increases movement speed on soul sand/soil by"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.Token.plain("per level."));
+                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade de movimento em areia/solo das almas em"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases movement speed on soul sand/soil by"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "frost_walker" -> pt
                     ? List.of(EnchantText.Token.plain("Congela a água em gelo num raio de"), EnchantText.Token.value(level, " blocos", l -> l * 2 + 1), EnchantText.Token.plain("ao caminhar sobre ela."))
                     : List.of(EnchantText.Token.plain("Freezes water into ice in a radius of"), EnchantText.Token.value(level, " blocks", l -> l * 2 + 1), EnchantText.Token.plain("as you walk over it."));
