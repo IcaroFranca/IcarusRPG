@@ -175,7 +175,7 @@ public final class EnchantMenuService {
         int current = item == null ? 0 : this.enchants.levelOf(item, enchant);
         boolean hasFreeSlot = item != null && this.enchants.hasFreeSlot(item, enchant);
         for (int level = 1; level <= enchant.maxLevel() && level <= LEVEL_SLOTS.length; level++) {
-            v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(enchant, level, current, hasFreeSlot, l, pt));
+            v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(p, enchant, level, current, hasFreeSlot, l, pt));
         }
         v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar", "Back"), List.of()));
         this.openScreen(p, v);
@@ -207,7 +207,8 @@ public final class EnchantMenuService {
         }
         int cost = enchant.costAtLevel(level);
         if (p.getLevel() < cost) {
-            p.sendMessage(this.msg(l.choose("Você precisa de " + cost + " níveis de XP.", "You need " + cost + " XP levels."), NamedTextColor.RED));
+            // No chat message here on purpose - the level's own icon already shows this
+            // in red lore (see #levelIcon) before the player even clicks it.
             return;
         }
         EnchantService.chargeXp(p, cost);
@@ -447,45 +448,33 @@ public final class EnchantMenuService {
 
     private ItemStack catalogIcon(EnchantEntry e, Language l, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        String desc = e.description(pt);
+        Component desc = e.genericDescription(pt);
         if (desc != null) {
-            lore.add(this.text(desc, NamedTextColor.GRAY));
+            lore.add(desc);
             lore.add(Component.empty());
         }
-        for (int level = 1; level <= e.maxLevel(); level++) {
-            lore.add(this.text(this.levelLine(e, level) + " - " + e.costAtLevel(level) + " " + l.choose("XP", "XP"), NamedTextColor.DARK_AQUA));
-        }
-        lore.add(Component.empty());
         lore.add(this.text(l.choose("Clique para escolher o nível.", "Click to choose a level."), NamedTextColor.YELLOW));
         return this.enchantedBook(e.catalogName(pt), lore);
     }
 
     private ItemStack guideIcon(EnchantEntry e, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        String desc = e.description(pt);
+        Component desc = e.genericDescription(pt);
         if (desc != null) {
-            lore.add(this.text(desc, NamedTextColor.GRAY));
-            lore.add(Component.empty());
-        }
-        for (int level = 1; level <= e.maxLevel(); level++) {
-            lore.add(this.text(this.levelLine(e, level) + " (" + e.costAtLevel(level) + " XP)", NamedTextColor.DARK_AQUA));
+            lore.add(desc);
         }
         return this.enchantedBook(e.catalogName(pt), lore);
     }
 
-    /** "I: +20" for a custom entry, or just "I" for vanilla (no formula-derived value to show). */
-    private String levelLine(EnchantEntry e, int level) {
-        String value = e.formattedValue(level);
-        return value.isEmpty() ? EnchantService.roman(level) : EnchantService.roman(level) + ": " + value;
-    }
-
-    private ItemStack levelIcon(EnchantEntry e, int level, int current, boolean hasFreeSlot, Language l, boolean pt) {
+    private ItemStack levelIcon(Player p, EnchantEntry e, int level, int current, boolean hasFreeSlot, Language l, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        String value = e.formattedValue(level);
-        if (!value.isEmpty()) {
-            lore.add(this.text(value, NamedTextColor.AQUA));
+        Component desc = e.resolvedDescription(pt, level);
+        if (desc != null) {
+            lore.add(desc);
+            lore.add(Component.empty());
         }
-        lore.add(this.text(e.costAtLevel(level) + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
+        int cost = e.costAtLevel(level);
+        lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
         String name = e.leveledName(pt, level);
         if (level <= current) {
             lore.add(this.text(l.choose("JÁ APLICADO", "ALREADY APPLIED"), NamedTextColor.GREEN));
@@ -497,6 +486,10 @@ public final class EnchantMenuService {
         // any order would.
         if (current == 0 && !hasFreeSlot) {
             lore.add(this.text(l.choose("SEM SLOTS LIVRES", "NO FREE SLOTS"), NamedTextColor.RED));
+            return this.item(Material.BOOK, name, lore);
+        }
+        if (p.getLevel() < cost) {
+            lore.add(this.text(l.choose("XP insuficiente para aplicar.", "Not enough XP to apply."), NamedTextColor.RED));
             return this.item(Material.BOOK, name, lore);
         }
         lore.add(this.text(l.choose("Clique para aplicar!", "Click to apply!"), NamedTextColor.GOLD));
