@@ -59,6 +59,18 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 
 public final class CombatListener implements Listener {
+    /**
+     * Vanilla's own, fixed "jump critical" bonus (falling, not sprinting, not on the
+     * ground, no vehicle, not blind) - baked directly into the raw damage this event
+     * receives, before this listener ever sees it. Stripped back out in {@link
+     * #damage} so every hit starts from the same clean base regardless of the
+     * attacker's fall state - critical hits are meant to come *only* from the
+     * skill-based roll further down (base chance + level + Ruthless Strikes), not an
+     * incidental jump timing. Distinct from {@link #critMultiplier}, which is this
+     * plugin's own configurable multiplier for that roll.
+     */
+    private static final float VANILLA_CRITICAL_MULTIPLIER = 1.5F;
+
     private final Plugin plugin;
     private final CombatSkillService combat;
     private final MobVisualService visuals;
@@ -153,6 +165,9 @@ public final class CombatListener implements Listener {
         if (p == null || !(e.getEntity() instanceof LivingEntity target)) {
             return;
         }
+        if (this.isVanillaCritical(p)) {
+            e.setDamage(e.getDamage() / VANILLA_CRITICAL_MULTIPLIER);
+        }
         if (this.abilities.isAbilityDamageInFlight(p)) {
             // Sword Throw's own damage (and Ferocity's own extra hits below, which also
             // go through dealAbilityDamage now) bypass melee multipliers entirely here —
@@ -219,6 +234,17 @@ public final class CombatListener implements Listener {
                 }
             }
         });
+    }
+
+    /** Mirrors vanilla's own condition for baking its "jump critical" bonus into an attack - see {@link #VANILLA_CRITICAL_MULTIPLIER}. */
+    private boolean isVanillaCritical(Player p) {
+        return p.getFallDistance() > 0.0F
+                && !p.isOnGround()
+                && !p.isSprinting()
+                && !p.isClimbing()
+                && !p.isInWater()
+                && p.getVehicle() == null
+                && !p.hasPotionEffect(PotionEffectType.BLINDNESS);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
