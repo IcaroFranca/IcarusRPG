@@ -1,11 +1,18 @@
 package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.combat.MobVisualService;
+import dev.icaro.foodtooltips.i18n.Language;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Item;
@@ -18,9 +25,12 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.loot.LootContext;
 import org.bukkit.loot.LootTable;
 import org.bukkit.loot.LootTables;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -30,8 +40,13 @@ import org.bukkit.plugin.Plugin;
  * custom entries instead of their vanilla counterparts. Also sets a flat base bow
  * damage (30), unrelated to any enchant, replacing vanilla's own draw-force-based
  * number the same way {@code SwordDamageService}/{@code ToolDamageService} give
- * melee weapons a flat total. Complements {@link ArmorEnchantEffectListener}, which
- * covers armor-slot (helmet/chest/legs/boots) effects instead.
+ * melee weapons a flat total - {@link #applyBowDamageTooltip} shows that same
+ * number on every bow's own tooltip (a static one-shot lore line, same idea as
+ * {@code SwordDamageService}'s "Attack Damage" line), called from {@code
+ * FoodTooltipsPlugin}'s periodic re-derivation loop, since {@link #bowShoot} alone
+ * only sets the number at shoot time - it never touches the item's own tooltip.
+ * Complements {@link ArmorEnchantEffectListener}, which covers armor-slot
+ * (helmet/chest/legs/boots) effects instead.
  *
  * <p>The bow-shoot hook (damage + Infinite Quiver's arrow-save roll) mirrors
  * vanilla's own Infinity implementation, which uses this exact same {@code
@@ -69,11 +84,54 @@ public final class CustomEnchantEffectListener implements Listener {
     private final Plugin plugin;
     private final EnchantService enchants;
     private final MobVisualService visuals;
+    /** Marks a bow whose tooltip already shows {@link #BASE_BOW_DAMAGE} - see {@link #applyBowDamageTooltip}. */
+    private final NamespacedKey bowDamageTooltipKey;
 
     public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals) {
         this.plugin = plugin;
         this.enchants = enchants;
         this.visuals = visuals;
+        this.bowDamageTooltipKey = new NamespacedKey(plugin, "bow_damage_tooltip_applied");
+    }
+
+    /** Rewrites every bow in {@code p}'s inventory (storage and offhand) to show {@link #BASE_BOW_DAMAGE} as an "Arrow Damage" lore line, the same one-shot idea as {@code SwordDamageService}'s own "Attack Damage" line - called every tick from {@code FoodTooltipsPlugin}'s existing periodic re-derivation loop. */
+    public void applyBowDamageTooltip(Player p) {
+        Language l = Language.of(p);
+        PlayerInventory inv = p.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        boolean changed = false;
+        for (int i = 0; i < storage.length; i++) {
+            ItemStack updated = this.bowTooltip(storage[i], l);
+            if (updated != null) {
+                storage[i] = updated;
+                changed = true;
+            }
+        }
+        if (changed) {
+            inv.setStorageContents(storage);
+        }
+        ItemStack offhand = this.bowTooltip(inv.getItemInOffHand(), l);
+        if (offhand != null) {
+            inv.setItemInOffHand(offhand);
+        }
+    }
+
+    /** Returns the mutated item if it needed the lore line, or null if it's not a bow or already has it. */
+    private ItemStack bowTooltip(ItemStack item, Language l) {
+        if (item == null || item.getType() != Material.BOW) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || meta.getPersistentDataContainer().has(this.bowDamageTooltipKey, PersistentDataType.BYTE)) {
+            return null;
+        }
+        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        lore.add(0, Component.text(l.choose("Dano da Flecha: ", "Arrow Damage: ") + Math.round(BASE_BOW_DAMAGE), NamedTextColor.RED)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        meta.getPersistentDataContainer().set(this.bowDamageTooltipKey, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+        return item;
     }
 
     /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. */
