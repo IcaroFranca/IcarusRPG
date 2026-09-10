@@ -35,7 +35,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -171,19 +170,6 @@ public final class CombatListener implements Listener {
     public void damage(EntityDamageByEntityEvent e) {
         Player p = this.attacker(e.getDamager());
         if (p == null || !(e.getEntity() instanceof LivingEntity target)) {
-            return;
-        }
-        if (e.getDamager() instanceof AbstractArrow) {
-            // Arrow damage is already fully computed at shoot time (a flat 30 - see
-            // CustomEnchantEffectListener#bowShoot) - the melee multiplier stack below
-            // (Combat level, crit chance, Global Strength...) is deliberately NOT
-            // layered on top of it, so "30 damage" stays exactly that regardless of
-            // the shooter's own progression, same idea as the ability-damage branch
-            // right below this one.
-            if (!(target instanceof Player)) {
-                this.visuals.track(target);
-                this.visuals.damageNumber(target, e.getFinalDamage(), false);
-            }
             return;
         }
         if (this.isVanillaCritical(p)) {
