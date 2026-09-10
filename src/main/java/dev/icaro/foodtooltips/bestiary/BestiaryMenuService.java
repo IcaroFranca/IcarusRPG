@@ -63,7 +63,7 @@ public final class BestiaryMenuService {
             inv.setItem(slot, icon);
             buttons.put(slot, c);
         }
-        inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar \u00e0s Skills", "Back to Skills"), List.of()));
+        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar \u00e0s Skills", "Back to Skills"), List.of()));
         p.openInventory(inv);
         this.viewers.put(p.getUniqueId(), View.categories(buttons));
     }
@@ -85,7 +85,7 @@ public final class BestiaryMenuService {
             inv.setItem(slot, this.entryItem(p, entry, l));
             buttons.put(slot, entry);
         }
-        inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar \u00e0s categorias", "Back to Categories"), List.of()));
+        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar \u00e0s categorias", "Back to Categories"), List.of()));
         if (page > 0) {
             inv.setItem(47, this.customHeadIcon(HeadTexture.ARROW_LEFT, l.choose("P\u00e1gina anterior", "Previous Page"), List.of()));
         }
@@ -112,7 +112,7 @@ public final class BestiaryMenuService {
             List<Component> lore = List.of(Component.text((String)(l.choose("Mate mais ", "Kill ") + this.progress.nextStepKills(e, i) + l.choose(" deste mob", " more of this mob")), (TextColor)NamedTextColor.GRAY), Component.text((String)this.progress.reward(milestone, l == Language.PT), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW)), Component.text((String)("+" + this.global.milestoneXp() + " " + l.choose("XP de N\u00edvel Global", "Global Level XP")), (TextColor)NamedTextColor.AQUA), Component.text((String)(unlocked ? l.choose("CONCLU\u00cdDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED")), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.RED)));
             inv.setItem(slots[i], this.item(unlocked ? Material.LIME_DYE : Material.GRAY_DYE, "Milestone " + milestone, lore));
         }
-        inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar", "Back"), List.of()));
+        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         p.openInventory(inv);
         this.viewers.put(p.getUniqueId(), View.detail(back, page, e));
     }
