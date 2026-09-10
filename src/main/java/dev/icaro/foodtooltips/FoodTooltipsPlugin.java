@@ -163,7 +163,8 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
-        pm.registerEvents((Listener)new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals), (Plugin)this);
+        CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
+        pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
@@ -347,6 +348,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             armorEnchants.applyRespiration((Player)p);
+            customEnchants.applyBowDamageTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
