@@ -41,7 +41,7 @@ public final class FoodTooltipService {
         if (pickaxe) {
             lore.add((Component)Component.empty());
             lore.add(this.line(l.choose("Atributos de minera\u00e7\u00e3o:", "Mining attributes:"), NamedTextColor.GOLD));
-            lore.add(this.line("\u26cf Mining Speed: " + this.skills.miningSpeed(p, item), NamedTextColor.AQUA));
+            lore.add(this.line("\u26cf Mining Speed: " + this.skills.miningSpeed(item), NamedTextColor.AQUA));
         }
         if (lore.equals(original)) {
             return false;
