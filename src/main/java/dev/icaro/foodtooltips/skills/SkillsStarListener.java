@@ -80,8 +80,19 @@ public final class SkillsStarListener implements Listener {
      * works around for sword throw). Opening here too, unconditionally, is a harmless
      * belt-and-suspenders on Java (the menu just gets shown again if {@link #swing}
      * already opened it this tick) and the actual fix on Bedrock.
+     *
+     * <p>Runs at {@link EventPriority#HIGHEST} with no {@code ignoreCancelled}, unlike
+     * every other handler in this class - this plugin has a lot of its own items
+     * (wands, tools...) with HIGH-priority right-click handlers of their own, any one
+     * of which cancelling the event first (even while correctly gated to its own item -
+     * a HIGH-priority handler firing before this one still marks the event cancelled)
+     * used to make this handler skip entirely on right-click specifically, since
+     * {@code ignoreCancelled = true} means "don't even call me if it's already
+     * cancelled" - left-click never hit that because {@link #swing} already opens the
+     * menu independently of this event. Running last and unconditionally means opening
+     * this menu always wins, regardless of what else touched the event first.
      */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void interact(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND || !this.star.isStar(e.getItem())) {
             return;
