@@ -10,11 +10,12 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 /**
  * Wires clicks on {@link TrashMenuService}'s screen: the player's own inventory stays
  * fully usable (that's how an item gets picked up to drop into the trash in the first
- * place), the trash slot ({@link TrashMenuService#TRASH_SLOT}) allows normal item
- * placement/pickup too (so there's something real to vanish - see {@link
- * TrashMenuService#scheduleTrashEmpty}), and the back button/every decorative pane are
- * plain buttons like every other menu. Dragging is always cancelled - a single slot
- * doesn't need it.
+ * place, or shift-clicked to vanish an entire stack at once without needing to drag it
+ * over one at a time - see the shift-click handling below), the trash slot ({@link
+ * TrashMenuService#TRASH_SLOT}) allows normal item placement/pickup too (so there's
+ * something real to vanish - see {@link TrashMenuService#scheduleTrashEmpty}), and the
+ * back button/every decorative pane are plain buttons like every other menu. Dragging
+ * is always cancelled - a single slot doesn't need it.
  */
 public final class TrashMenuListener implements Listener {
     private final TrashMenuService menu;
@@ -33,11 +34,14 @@ public final class TrashMenuListener implements Listener {
         if (!topInventory) {
             // Player's own inventory - free to reorganize/pick items up normally
             // (that's how an item gets onto the cursor to drop into the trash slot in
-            // the first place), except shift-clicking one straight up into the screen
-            // isn't supported (only a single slot here) - that could otherwise land it
-            // in a decorative slot instead of the trash slot.
-            if (e.isShiftClick()) {
+            // the first place). Shift-click vanishes the whole clicked stack directly
+            // instead of the default "move it to the other inventory" (which would try
+            // to land it on a decorative pane, since there's no real space for it up
+            // there) - lets a player empty several stacks at once without dragging each
+            // one over individually.
+            if (e.isShiftClick() && e.getClickedInventory() != null) {
                 e.setCancelled(true);
+                e.getClickedInventory().setItem(e.getSlot(), null);
             }
             return;
         }
