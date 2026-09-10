@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLocaleChangeEvent;
@@ -75,7 +76,7 @@ implements Listener {
 
     public void refresh(Player p) {
         Language l = Language.of(p);
-        boolean changed = this.update((Inventory)p.getInventory(), l, p);
+        boolean changed = this.update((Inventory)p.getInventory(), l, p, true);
         Inventory top = p.getOpenInventory().getTopInventory();
         // A plugin GUI (this plugin's own Skills menu and every sub-screen, but also any
         // *other* plugin's custom inventory - e.g. a storage/chest GUI built via
@@ -86,16 +87,33 @@ implements Listener {
         // being exactly as virtual as one of ours - getLocation() is the real
         // discriminator: it's non-null only for an inventory actually attached to a block
         // (a chest, barrel, ender chest...), never for a synthetic Bukkit.createInventory
-        // GUI regardless of what holder it was given. Running the coalesce pass on a
-        // virtual GUI merges its decorative filler tiles (every empty slot typically
-        // shares the SAME ItemStack reference) into a single stack instead of leaving the
-        // background filled - only real, location-backed inventories should get this pass.
-        if (top.getLocation() != null && (changed |= this.update(top, l, p))) {
+        // GUI regardless of what holder it was given - a virtual GUI's decorative filler
+        // tiles (every empty slot typically shares the SAME ItemStack reference) would
+        // otherwise get coalesced into a single stack instead of staying filled.
+        // isSimpleStorage further narrows the *coalesce* half specifically - see its doc.
+        if (top.getLocation() != null && (changed |= this.update(top, l, p, isSimpleStorage(top.getType())))) {
             p.updateInventory();
         }
     }
 
-    private boolean update(Inventory inv, Language l, Player p) {
+    /**
+     * Whether {@code type} is a plain storage container, where every slot is
+     * interchangeable and merging same-item stacks (see {@link ItemStackUtil#coalesce})
+     * is always safe - unlike a crafting table, furnace, brewing stand, anvil,
+     * enchanting table... where specific slots hold a deliberate, position-meaningful
+     * arrangement (a recipe in progress, fuel, an input) that coalescing would wrongly
+     * collapse, silently destroying whatever the player was mid-arranging the moment
+     * they clicked anywhere else in their own inventory.
+     */
+    private static boolean isSimpleStorage(InventoryType type) {
+        return switch (type) {
+            case CHEST, BARREL, SHULKER_BOX, ENDER_CHEST, DISPENSER, DROPPER, HOPPER -> true;
+            default -> false;
+        };
+    }
+
+    /** {@code coalesce} gates only the same-item-stack-merging pass (see {@link #isSimpleStorage}) - the tooltip rewrite above it always runs regardless of slot layout. */
+    private boolean update(Inventory inv, Language l, Player p, boolean coalesce) {
         boolean changed = false;
         ItemStack[] contents = inv.getContents();
         for (ItemStack i : contents) {
@@ -104,8 +122,10 @@ implements Listener {
         }
         // Heals same-item stacks left split by this rewrite (or ItemTierService's,
         // running on its own schedule) landing on the two stacks in a different
-        // order - see ItemStackUtil's class doc.
-        if (ItemStackUtil.coalesce(contents)) {
+        // order - see ItemStackUtil's class doc. Only where every slot is
+        // interchangeable storage (see isSimpleStorage) - never on a crafting/process
+        // block, where slot position is meaningful and this would corrupt it instead.
+        if (coalesce && ItemStackUtil.coalesce(contents)) {
             changed = true;
         }
         if (changed) {
