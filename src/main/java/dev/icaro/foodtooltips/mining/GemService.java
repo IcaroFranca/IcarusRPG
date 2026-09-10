@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.mining;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.mining.GemType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -251,9 +252,24 @@ implements Listener {
             GemType g = values[i];
             inv.setItem(slots[i], this.create(g, l, List.of(this.line(l.choose("Bloco natural: ", "Natural block: "), NamedTextColor.GRAY).append((Component)Component.translatable((String)g.block().translationKey())), this.line(l.choose("Camadas: Y -60 a -8", "Layers: Y -60 to -8"), NamedTextColor.AQUA), this.line(l.choose("Atributo de encaixe: ", "Socket attribute: ") + g.attribute(l == Language.PT), NamedTextColor.GREEN))));
         }
-        inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), List.of()));
         p.openInventory(inv);
         this.menus.put(p.getUniqueId(), inv);
+    }
+
+    /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
+        ItemStack i = this.item(Material.PLAYER_HEAD, name, lore);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        i.setItemMeta((ItemMeta) m);
+        return i;
     }
 
     public boolean viewing(Player p) {

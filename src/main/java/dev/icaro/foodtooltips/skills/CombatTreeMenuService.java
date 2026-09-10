@@ -1,6 +1,9 @@
 package dev.icaro.foodtooltips.skills;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,7 +81,7 @@ public final class CombatTreeMenuService {
             v.setItem(i, filler);
         }
         v.setItem(HEADER_SLOT, this.headerItem(p, l));
-        v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         v.setItem(RESET_SLOT, this.resetItem(p, l));
         for (Map.Entry<Integer, CombatAbility> entry : SLOT_TO_ABILITY.entrySet()) {
             v.setItem(entry.getKey(), this.nodeItem(p, entry.getValue(), l));
@@ -196,6 +199,24 @@ public final class CombatTreeMenuService {
             case LEVEL_TOO_LOW -> p.sendActionBar(this.text(l.choose("Nível de Combate insuficiente.", "Combat level too low."), NamedTextColor.RED));
             case INSUFFICIENT_VALOR -> p.sendActionBar(this.text(l.choose("Pontos de Sangue insuficientes.", "Not enough Blood Points."), NamedTextColor.RED));
         }
+    }
+
+    /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
+        ItemStack i = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        m.displayName(this.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta((ItemMeta) m);
+        return i;
     }
 
     private ItemStack headerItem(Player p, Language l) {

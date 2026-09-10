@@ -1,18 +1,23 @@
 package dev.icaro.foodtooltips.global;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import com.github.stefvanschie.inventoryframework.gui.GuiItem;
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
 import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -73,7 +78,7 @@ public final class LevelColorMenuService {
             pane.addItem(new GuiItem(icon, event -> this.select(p, theme)), slot % 9, slot / 9);
         }
 
-        pane.addItem(new GuiItem(this.item(Material.ARROW, l.choose("Voltar", "Back"), List.of(), false), event -> this.back.accept(p)), 4, 5);
+        pane.addItem(new GuiItem(this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()), event -> this.back.accept(p)), 4, 5);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
@@ -99,6 +104,24 @@ public final class LevelColorMenuService {
 
     private Component text(String value, NamedTextColor color) {
         return Component.text(value, (TextColor) color);
+    }
+
+    /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
+        ItemStack i = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        m.displayName(Component.text(name, (TextColor) NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta((ItemMeta) m);
+        return i;
     }
 
     private ItemStack item(Material material, String name, List<Component> lore, boolean glint) {

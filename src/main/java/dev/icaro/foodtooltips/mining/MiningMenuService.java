@@ -1,6 +1,9 @@
 package dev.icaro.foodtooltips.mining;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.mining.BuriedTreasureService;
 import dev.icaro.foodtooltips.mining.GemService;
 import dev.icaro.foodtooltips.mining.MiningCatalog;
@@ -23,6 +26,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 public final class MiningMenuService {
     private static final int[] MILESTONE_TARGETS = new int[]{25, 100, 250, 500, 1000};
@@ -57,7 +61,7 @@ public final class MiningMenuService {
         inv.setItem(45, this.item(Material.WRITABLE_BOOK, (Component)Component.text((String)l.choose("Comiss\u00e3o di\u00e1ria", "Daily Commission"), (TextColor)NamedTextColor.GOLD), List.of(Component.translatable((String)target.translationKey()).color((TextColor)NamedTextColor.YELLOW), this.line(this.skills.commissionProgress(p) + "/" + this.skills.commissionGoal(p), NamedTextColor.GREEN), this.line(l.choose("Recompensa: 500 XP e 250 P\u00f3 Mineral", "Reward: 500 XP and 250 Mineral Dust"), NamedTextColor.AQUA))));
         inv.setItem(46, this.treasureItem(p, l));
         inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text((String)l.choose("P\u00f3 Mineral", "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE), List.of(this.line(Long.toString(this.skills.mineralDust(p)), NamedTextColor.AQUA), this.line(l.choose("Usado em futuras melhorias de Minera\u00e7\u00e3o.", "Used for future Mining upgrades."), NamedTextColor.GRAY))));
-        inv.setItem(49, this.item(Material.ARROW, (Component)Component.text((String)l.choose("Voltar", "Back"), (TextColor)NamedTextColor.GOLD), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar", "Back"), (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
         this.viewers.add(p.getUniqueId());
         this.details.remove(p.getUniqueId());
@@ -77,7 +81,7 @@ public final class MiningMenuService {
             List<Component> lore = List.of(this.line(l.choose("Meta: minerar ", "Goal: mine ") + target, NamedTextColor.GRAY), this.line(l.choose("Progresso: ", "Progress: ") + current + "/" + (target - previous), NamedTextColor.YELLOW), this.line(l.choose("Recompensa: +0,5% Minerador Cuidadoso", "Reward: +0.5% Careful Miner"), NamedTextColor.AQUA), this.line(complete ? l.choose("CONCLU\u00cdDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), complete ? NamedTextColor.GREEN : NamedTextColor.RED));
             inv.setItem(MILESTONE_SLOTS[i], this.item(complete ? Material.LIME_DYE : Material.GRAY_DYE, l.choose("Milestone ", "Milestone ") + (i + 1), lore));
         }
-        inv.setItem(49, this.item(Material.ARROW, (Component)Component.text((String)l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), (TextColor)NamedTextColor.GOLD), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
         this.viewers.add(p.getUniqueId());
         this.details.add(p.getUniqueId());
@@ -162,6 +166,21 @@ public final class MiningMenuService {
         m.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
         m.addItemFlags(new ItemFlag[]{ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP});
         i.setItemMeta(m);
+        return i;
+    }
+
+    /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture, Component name, List<Component> lore) {
+        ItemStack i = this.item(Material.PLAYER_HEAD, name, lore);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        i.setItemMeta((ItemMeta) m);
         return i;
     }
 

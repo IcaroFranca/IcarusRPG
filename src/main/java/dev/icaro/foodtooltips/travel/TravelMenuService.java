@@ -96,7 +96,7 @@ public final class TravelMenuService {
                     this.travel(p, this.islandWorld);
                 }), 5, 1);
 
-        pane.addItem(new GuiItem(this.item(Material.ARROW, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
+        pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
