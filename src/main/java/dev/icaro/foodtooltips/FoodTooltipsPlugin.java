@@ -145,7 +145,7 @@ extends JavaPlugin {
         menus.crafting(craftingMenu);
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
-        EnchantService enchants = new EnchantService((Plugin)this, tiers);
+        EnchantService enchants = new EnchantService((Plugin)this);
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants);
         global.onChange(p -> {
             presentation.refresh((Player)p);

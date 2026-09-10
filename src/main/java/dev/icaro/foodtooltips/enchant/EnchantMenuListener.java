@@ -77,10 +77,16 @@ public final class EnchantMenuListener implements Listener {
         int raw = e.getRawSlot();
         boolean topInventory = raw >= 0 && raw < e.getView().getTopInventory().getSize();
         if (!topInventory) {
-            // Player's own inventory - always free to reorganize, except shift-click
-            // (not supported here - could otherwise land an item on a decorative slot).
-            if (e.isShiftClick()) {
+            // Player's own inventory - always free to reorganize. Shift-click is only
+            // meaningful on the main screen (shift-clicking a held item moves it into
+            // the item slot, the only slot #fill leaves genuinely empty there - every
+            // other slot on every screen is always either an icon or a filler pane, so
+            // Bukkit's own default shift-click-into-top behavior can't land anywhere
+            // else); block it everywhere else the way any other slot there would be.
+            if (e.isShiftClick() && view.type() != EnchantMenuService.Type.MAIN) {
                 e.setCancelled(true);
+            } else if (e.isShiftClick()) {
+                this.menu.scheduleCatalogRefresh(p);
             }
             return;
         }
@@ -122,8 +128,15 @@ public final class EnchantMenuListener implements Listener {
                 this.menu.chooseEnchant(p, item, enchant);
             }
             case LEVEL -> {
+                if (view.enchant() == null) {
+                    return;
+                }
+                if (raw == EnchantMenuService.REMOVE_SLOT) {
+                    this.menu.handleRemoveClick(p, view.enchant());
+                    return;
+                }
                 int level = this.menu.levelAt(raw);
-                if (level > 0 && view.enchant() != null) {
+                if (level > 0) {
                     this.menu.applyLevel(p, view.enchant(), level);
                 }
             }

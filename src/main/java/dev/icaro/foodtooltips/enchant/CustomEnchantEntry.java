@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.enchant;
 
+import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -42,14 +43,14 @@ final class CustomEnchantEntry implements EnchantEntry {
     }
 
     @Override
-    public Component genericDescription(boolean pt) {
+    public List<Component> genericDescription(boolean pt) {
         // No numeric-placeholder concept for custom entries yet (IcarusEnchant is
-        // currently empty) - plain gray text, same as resolvedDescription below.
-        return Component.text(this.enchant.description(pt), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false);
+        // currently empty) - a single plain gray line, same as resolvedDescription.
+        return List.of(Component.text(this.enchant.description(pt), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
     }
 
     @Override
-    public Component resolvedDescription(boolean pt, int level) {
+    public List<Component> resolvedDescription(boolean pt, int level) {
         return this.genericDescription(pt);
     }
 
