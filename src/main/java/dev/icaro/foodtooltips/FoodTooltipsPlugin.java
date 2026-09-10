@@ -12,6 +12,8 @@ import dev.icaro.foodtooltips.combat.ElementalDamageListener;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuListener;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
+import dev.icaro.foodtooltips.trash.TrashMenuListener;
+import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
 import dev.icaro.foodtooltips.economy.EconomyService;
@@ -117,7 +119,7 @@ extends JavaPlugin {
         MiningMenuService mining = new MiningMenuService(gems);
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
-        SkillsMenuService menus = new SkillsMenuService((Plugin)this, combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
+        SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
         stats.legendary(legendary);
@@ -137,6 +139,8 @@ extends JavaPlugin {
         menus.travel(travelMenu);
         CraftingMenuService craftingMenu = new CraftingMenuService(menus::openMain);
         menus.crafting(craftingMenu);
+        TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
+        menus.trash(trashMenu);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();
@@ -147,6 +151,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)presentation, (Plugin)this);
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
+        pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
