@@ -362,6 +362,7 @@ extends JavaPlugin {
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             polearmDamage.applyPolearmDamage((Player)p);
+            general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
@@ -394,6 +395,7 @@ extends JavaPlugin {
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             polearmDamage.applyPolearmDamage((Player)p);
+            general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);

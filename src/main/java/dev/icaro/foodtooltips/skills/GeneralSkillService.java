@@ -14,7 +14,9 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -28,7 +30,20 @@ public final class GeneralSkillService {
     private static final int DEFENSE_PER_LEVEL = 1;
     private static final int XP_ORB_PERCENT_PER_LEVEL = 5;
     private static final int POTION_DURATION_PERCENT_PER_LEVEL = 1;
+    /** Efficiency enchant's own "Mining Speed" points, matching its catalog description (10 + 20/level) - see {@link #efficiencyBonus}. */
+    private static final int EFFICIENCY_BASE = 10;
+    private static final int EFFICIENCY_PER_LEVEL = 20;
+    /**
+     * Converts the plugin's own "Mining Speed" points (a much bigger scale - base tool
+     * speed 70-250, up to +200 from Mining level, up to +110 from Efficiency) down to
+     * {@link Attribute#PLAYER_MINING_EFFICIENCY}'s real, comparatively small additive
+     * scale (vanilla's own Efficiency V is worth +26 there) - see {@link
+     * #applyMiningSpeedAttribute}. An initial calibration, easy to retune if mining
+     * ends up feeling too fast/slow in practice.
+     */
+    private static final double MINING_SPEED_ATTRIBUTE_DIVISOR = 15.0;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
+    private final NamespacedKey miningSpeedKey = new NamespacedKey("foodtooltips", "general_skill_mining_speed");
 
     public SkillProgress progress(Player p, SkillType type) {
         int level = (Integer)p.getPersistentDataContainer().getOrDefault(this.key(type, "level"), PersistentDataType.INTEGER, 0);
@@ -167,8 +182,44 @@ public final class GeneralSkillService {
         }
     }
 
-    public int miningSpeed(Player player, Material tool) {
-        return this.baseMiningSpeed(tool) + this.progress(player, SkillType.MINING).level();
+    /** Total "Mining Speed" points shown on a pickaxe's tooltip - base tool speed, Mining level, and the pickaxe's own real Efficiency enchant level (see {@link #efficiencyBonus}) all folded in, then actually applied in-game by {@link #applyMiningSpeedAttribute}. */
+    public int miningSpeed(Player player, ItemStack tool) {
+        return this.baseMiningSpeed(tool.getType()) + this.progress(player, SkillType.MINING).level() + this.efficiencyBonus(tool);
+    }
+
+    /** The real Efficiency enchant's own contribution to {@link #miningSpeed} - matches the enchant's own catalog description ({@value #EFFICIENCY_BASE} + {@value #EFFICIENCY_PER_LEVEL}/level). 0 if unenchanted. */
+    public int efficiencyBonus(ItemStack tool) {
+        int level = tool.getEnchantmentLevel(Enchantment.EFFICIENCY);
+        return level <= 0 ? 0 : EFFICIENCY_BASE + EFFICIENCY_PER_LEVEL * level;
+    }
+
+    /**
+     * Actually applies "Mining Speed" as a real, in-game mining-speed boost - until now
+     * the number shown on a pickaxe's tooltip (base tool speed + Mining level +
+     * Efficiency) had no gameplay effect behind it at all, real vanilla Efficiency's own
+     * small native bonus aside. Sets (or clears, while not holding a pickaxe) a transient
+     * {@link Attribute#PLAYER_MINING_EFFICIENCY} modifier on the player - same real
+     * attribute vanilla's own Efficiency enchant feeds into internally, only additive and
+     * gated on holding the "correct" tool the exact same way, so this stacks with (rather
+     * than replaces) Efficiency's own small vanilla-native bonus instead of fighting it.
+     * Called every refresh, same as {@code SwordDamageService}/{@code ToolDamageService}'s
+     * own per-tick reapplication - it depends on the currently-held item, which can change
+     * at any time.
+     */
+    public void applyMiningSpeedAttribute(Player player) {
+        double amount;
+        AttributeInstance attribute = player.getAttribute(Attribute.PLAYER_MINING_EFFICIENCY);
+        if (attribute == null) {
+            return;
+        }
+        AttributeModifier old = attribute.getModifier(Key.key(this.miningSpeedKey.getNamespace(), this.miningSpeedKey.getKey()));
+        if (old != null) {
+            attribute.removeModifier(old);
+        }
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        if (tool.getType().name().endsWith("_PICKAXE") && (amount = this.miningSpeed(player, tool) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
+            attribute.addTransientModifier(new AttributeModifier(this.miningSpeedKey, amount, AttributeModifier.Operation.ADD_NUMBER));
+        }
     }
 
     public int baseMiningSpeed(Material tool) {
