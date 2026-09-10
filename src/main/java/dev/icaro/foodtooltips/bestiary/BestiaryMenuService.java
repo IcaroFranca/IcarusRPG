@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.economy.EconomyService;
+import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.CombatValorService;
 import java.util.ArrayList;
@@ -36,13 +37,15 @@ public final class BestiaryMenuService {
     private final BestiaryProgressService progress;
     private final EconomyService economy;
     private final CombatValorService valor;
+    private final GlobalLevelService global;
     private final Map<UUID, View> viewers = new HashMap<UUID, View>();
 
-    public BestiaryMenuService(Plugin plugin, BestiaryProgressService p, EconomyService e, CombatValorService valor) {
+    public BestiaryMenuService(Plugin plugin, BestiaryProgressService p, EconomyService e, CombatValorService valor, GlobalLevelService global) {
         this.plugin = plugin;
         this.progress = p;
         this.economy = e;
         this.valor = valor;
+        this.global = global;
     }
 
     public void openCategories(Player p) {
@@ -105,7 +108,7 @@ public final class BestiaryMenuService {
         for (int i = 0; i < slots.length && i < this.progress.maxMilestones(e); ++i) {
             int milestone = i + 1;
             boolean unlocked = milestone <= done;
-            List<Component> lore = List.of(Component.text((String)(l.choose("Mate mais ", "Kill ") + this.progress.nextStepKills(e, i) + l.choose(" deste mob", " more of this mob")), (TextColor)NamedTextColor.GRAY), Component.text((String)this.progress.reward(milestone, l == Language.PT), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW)), Component.text((String)(unlocked ? l.choose("CONCLU\u00cdDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED")), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.RED)));
+            List<Component> lore = List.of(Component.text((String)(l.choose("Mate mais ", "Kill ") + this.progress.nextStepKills(e, i) + l.choose(" deste mob", " more of this mob")), (TextColor)NamedTextColor.GRAY), Component.text((String)this.progress.reward(milestone, l == Language.PT), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW)), Component.text((String)("+" + this.global.milestoneXp() + " " + l.choose("XP de N\u00edvel Global", "Global Level XP")), (TextColor)NamedTextColor.AQUA), Component.text((String)(unlocked ? l.choose("CONCLU\u00cdDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED")), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.RED)));
             inv.setItem(slots[i], this.item(unlocked ? Material.LIME_DYE : Material.GRAY_DYE, "Milestone " + milestone, lore));
         }
         inv.setItem(49, this.item(Material.ARROW, l.choose("Voltar", "Back"), List.of()));

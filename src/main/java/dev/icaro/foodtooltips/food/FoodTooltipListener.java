@@ -120,12 +120,16 @@ implements Listener {
             if (i == null || i.isEmpty()) continue;
             changed |= this.service.update(i, l, p);
         }
-        // Heals same-item stacks left split by this rewrite (or ItemTierService's,
-        // running on its own schedule) landing on the two stacks in a different
-        // order - see ItemStackUtil's class doc. Only where every slot is
-        // interchangeable storage (see isSimpleStorage) - never on a crafting/process
-        // block, where slot position is meaningful and this would corrupt it instead.
-        if (coalesce && ItemStackUtil.coalesce(contents)) {
+        // Heals same-item stacks left split by this very rewrite pass (or
+        // ItemTierService's, running on its own schedule) landing on the two stacks in
+        // a different order - see ItemStackUtil's class doc. Gated on changed (a
+        // rewrite actually just touched something in this pass) - without that, this
+        // ran on *every* click regardless, silently re-merging stacks the player just
+        // split on purpose (a plain, everyday inventory action) the instant they
+        // clicked anywhere else. Only where every slot is interchangeable storage (see
+        // isSimpleStorage) - never on a crafting/process block, where slot position is
+        // meaningful and this would corrupt it instead.
+        if (coalesce && changed && ItemStackUtil.coalesce(contents)) {
             changed = true;
         }
         if (changed) {

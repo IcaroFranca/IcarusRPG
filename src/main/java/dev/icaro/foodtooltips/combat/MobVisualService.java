@@ -224,9 +224,17 @@ public final class MobVisualService {
     }
 
     public void damageNumber(LivingEntity e, double damage, boolean critical) {
+        Component text = critical ? this.criticalNumber(this.number(damage)) : Component.text((String)this.number(damage), (TextColor)NamedTextColor.RED);
+        this.spawnDamageNumber(e, text);
+    }
+
+    /** Same floating number as {@link #damageNumber(LivingEntity, double, boolean)}, but in a fixed {@code color} instead of the melee red/rainbow-crit styling - see {@code ElementalDamageListener}. */
+    public void damageNumber(LivingEntity e, double damage, TextColor color) {
+        this.spawnDamageNumber(e, Component.text((String)this.number(damage), color));
+    }
+
+    private void spawnDamageNumber(LivingEntity e, Component text) {
         Location at = e.getLocation().add((this.random.nextDouble() - 0.5) * 0.8, e.getHeight() * 0.7 + 0.4, (this.random.nextDouble() - 0.5) * 0.8);
-        String value = this.number(damage);
-        Component text = critical ? this.criticalNumber(value) : Component.text((String)value, (TextColor)NamedTextColor.RED);
         TextDisplay d = (TextDisplay)e.getWorld().spawn(at, TextDisplay.class, x -> {
             x.text(text);
             x.setPersistent(false);
