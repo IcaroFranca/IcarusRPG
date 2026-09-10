@@ -35,12 +35,11 @@ public final class GeneralSkillService {
     private static final int EFFICIENCY_BASE = 10;
     private static final int EFFICIENCY_PER_LEVEL = 20;
     /**
-     * Converts the plugin's own "Mining Speed" points (a much bigger scale - base tool
-     * speed 70-250, up to +200 from Mining level, up to +110 from Efficiency) down to
-     * {@link Attribute#MINING_EFFICIENCY}'s real, comparatively small additive
-     * scale (vanilla's own Efficiency V is worth +26 there) - see {@link
-     * #applyMiningSpeedAttribute}. An initial calibration, easy to retune if mining
-     * ends up feeling too fast/slow in practice.
+     * Converts the plugin's own "Mining Speed" points (a bigger scale - base tool speed
+     * 70-250, up to +110 from Efficiency) down to {@link Attribute#MINING_EFFICIENCY}'s
+     * real, comparatively small additive scale (vanilla's own Efficiency V is worth +26
+     * there) - see {@link #applyMiningSpeedAttribute}. An initial calibration, easy to
+     * retune if mining ends up feeling too fast/slow in practice.
      */
     private static final double MINING_SPEED_ATTRIBUTE_DIVISOR = 15.0;
     /** Real vanilla Netherite pickaxe/axe/shovel - see {@link #instaMines}. */
@@ -194,9 +193,16 @@ public final class GeneralSkillService {
         }
     }
 
-    /** Total "Mining Speed" points shown on a pickaxe's tooltip - base tool speed, Mining level, and the pickaxe's own real Efficiency enchant level (see {@link #efficiencyBonus}) all folded in, then actually applied in-game by {@link #applyMiningSpeedAttribute}. */
-    public int miningSpeed(Player player, ItemStack tool) {
-        return this.baseMiningSpeed(tool.getType()) + this.progress(player, SkillType.MINING).level() + this.efficiencyBonus(tool);
+    /**
+     * Total "Mining Speed" points shown on a pickaxe's tooltip - base tool speed and
+     * the pickaxe's own real Efficiency enchant level (see {@link #efficiencyBonus})
+     * folded in, then actually applied in-game by {@link #applyMiningSpeedAttribute}.
+     * Deliberately NOT influenced by Mining skill level - purely a gear stat, per
+     * explicit correction (leveling Mining used to add +1/level here, which read as
+     * Mining Speed increasing just from leveling up rather than from gear).
+     */
+    public int miningSpeed(ItemStack tool) {
+        return this.baseMiningSpeed(tool.getType()) + this.efficiencyBonus(tool);
     }
 
     /** The real Efficiency enchant's own contribution to {@link #miningSpeed} - matches the enchant's own catalog description ({@value #EFFICIENCY_BASE} + {@value #EFFICIENCY_PER_LEVEL}/level). 0 if unenchanted. */
@@ -207,12 +213,12 @@ public final class GeneralSkillService {
 
     /**
      * Actually applies "Mining Speed" as a real, in-game mining-speed boost - until now
-     * the number shown on a pickaxe's tooltip (base tool speed + Mining level +
-     * Efficiency) had no gameplay effect behind it at all, real vanilla Efficiency's own
-     * small native bonus aside. Sets (or clears, while not holding a pickaxe) a transient
-     * {@link Attribute#MINING_EFFICIENCY} modifier on the player - same real
-     * attribute vanilla's own Efficiency enchant feeds into internally, only additive and
-     * gated on holding the "correct" tool the exact same way, so this stacks with (rather
+     * the number shown on a pickaxe's tooltip (base tool speed + Efficiency) had no
+     * gameplay effect behind it at all, real vanilla Efficiency's own small native
+     * bonus aside. Sets (or clears, while not holding a pickaxe) a transient {@link
+     * Attribute#MINING_EFFICIENCY} modifier on the player - same real attribute
+     * vanilla's own Efficiency enchant feeds into internally, only additive and gated
+     * on holding the "correct" tool the exact same way, so this stacks with (rather
      * than replaces) Efficiency's own small vanilla-native bonus instead of fighting it.
      * Called every refresh, same as {@code SwordDamageService}/{@code ToolDamageService}'s
      * own per-tick reapplication - it depends on the currently-held item, which can change
@@ -229,7 +235,7 @@ public final class GeneralSkillService {
             attribute.removeModifier(old);
         }
         ItemStack tool = player.getInventory().getItemInMainHand();
-        if (tool.getType().name().endsWith("_PICKAXE") && (amount = this.miningSpeed(player, tool) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
+        if (tool.getType().name().endsWith("_PICKAXE") && (amount = this.miningSpeed(tool) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
             attribute.addTransientModifier(new AttributeModifier(this.miningSpeedKey, amount, AttributeModifier.Operation.ADD_NUMBER));
         }
     }
