@@ -157,11 +157,6 @@ final class VanillaEnchantEntry implements EnchantEntry {
             case "punch" -> pt
                     ? List.of(EnchantText.Token.plain("Aumenta o recuo das flechas em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.Token.plain("por nível."))
                     : List.of(EnchantText.Token.plain("Increases arrow knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.Token.plain("per level."));
-            case "luck_of_the_sea" -> pt
-                    ? List.of(EnchantText.Token.plain("Concede"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Chance de Tesouro", LABEL_COLOR),
-                            EnchantText.Token.plain("por nível, o que aumenta a chance de pescar tesouros."))
-                    : List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Treasure Chance", LABEL_COLOR),
-                            EnchantText.Token.plain("per level, which increases the chance of fishing treasure."));
             default -> {
                 String plain = plainDescription(key, pt);
                 yield plain == null ? null : List.of(EnchantText.Token.plain(plain));
@@ -172,16 +167,6 @@ final class VanillaEnchantEntry implements EnchantEntry {
     /** "+X" for the generic view, or "+" + the resolved number for a specific level. */
     private static EnchantText.Token plusValue(Integer level, java.util.function.IntUnaryOperator formula) {
         return EnchantText.Token.colored(level == null ? "+X" : "+" + formula.applyAsInt(level), EnchantText.VALUE_COLOR);
-    }
-
-    /** "+X" for the generic view, or "+0.5"/"+1"/"+1.5" (Luck of the Sea's 0.5-per-level, trimmed to a whole number when it lands on one) for a resolved level. */
-    private static String treasureChanceText(Integer level) {
-        if (level == null) {
-            return "+X";
-        }
-        double v = 0.5 * level;
-        String number = v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
-        return "+" + number;
     }
 
     /** One-line hand-written descriptions with no numeric value, keyed by the enchantment's plain (unnamespaced) key - null (no line shown) for anything not listed here, so a future/unrecognized enchantment degrades gracefully instead of breaking. */

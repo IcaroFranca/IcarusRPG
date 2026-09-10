@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.enchant;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -7,6 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,15 +19,19 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.loot.LootContext;
+import org.bukkit.loot.LootTable;
+import org.bukkit.loot.LootTables;
 import org.bukkit.plugin.Plugin;
 
 /**
  * Wires up the actual gameplay effect for the plugin's custom enchants that need
  * one beyond a menu/lore entry - see {@link IcarusEnchant}'s own class doc for why
- * these three (Flame, Lure, Infinite Quiver) exist as custom entries instead of
- * their vanilla counterparts. Also sets a flat base bow damage (30), unrelated to
- * any enchant, replacing vanilla's own draw-force-based number the same way {@code
- * SwordDamageService}/{@code ToolDamageService} give melee weapons a flat total.
+ * these four (Flame, Lure, Infinite Quiver, Luck of the Sea) exist as custom
+ * entries instead of their vanilla counterparts. Also sets a flat base bow damage
+ * (30), unrelated to any enchant, replacing vanilla's own draw-force-based number
+ * the same way {@code SwordDamageService}/{@code ToolDamageService} give melee
+ * weapons a flat total.
  *
  * <p>The bow-shoot hook (damage + Infinite Quiver's arrow-save roll) mirrors
  * vanilla's own Infinity implementation, which uses this exact same {@code
@@ -38,6 +44,14 @@ import org.bukkit.plugin.Plugin;
  * which {@code ElementalDamageListener} would also multiply by 5x), {@link
  * #fireTickDamage} cancels {@code EntityDamageEvent}s with cause {@code FIRE_TICK}
  * for exactly the entities and time window this class itself set on fire.
+ *
+ * <p>Luck of the Sea's extra treasure chance beyond vanilla's own level-3 cap is
+ * re-implemented from scratch rather than faked by overleveling the vanilla
+ * enchantment (which wouldn't scale further - see {@link IcarusEnchant}'s class
+ * doc): {@link #fishCatch} rolls its own chance and, on a hit, replaces whatever
+ * was caught with a fresh roll from vanilla's own {@code FISHING_TREASURE} loot
+ * table, so the treasure items themselves (enchanted books, nautilus shells...)
+ * still come straight from vanilla, only the odds of getting one are custom.
  */
 public final class CustomEnchantEffectListener implements Listener {
     private static final double BASE_BOW_DAMAGE = 30.0;
@@ -138,5 +152,31 @@ public final class CustomEnchantEffectListener implements Listener {
         double factor = 1.0 - Math.min(1.0, 0.05 * level);
         e.getHook().setMinWaitTime((int) (e.getHook().getMinWaitTime() * factor));
         e.getHook().setMaxWaitTime((int) (e.getHook().getMaxWaitTime() * factor));
+    }
+
+    /** Luck of the Sea: on a successful catch, rolls a 0.5%-per-level chance to replace whatever was caught with a fresh roll from vanilla's own fishing-treasure loot table (see this class's own doc for why this is reimplemented rather than overleveling the vanilla enchantment). */
+    @EventHandler
+    public void fishCatch(PlayerFishEvent e) {
+        if (e.getState() != PlayerFishEvent.State.CAUGHT_FISH || !(e.getCaught() instanceof Item caughtItem)) {
+            return;
+        }
+        Player p = e.getPlayer();
+        ItemStack rod = p.getInventory().getItemInMainHand();
+        if (rod.getType() != Material.FISHING_ROD) {
+            rod = p.getInventory().getItemInOffHand();
+        }
+        if (rod.getType() != Material.FISHING_ROD) {
+            return;
+        }
+        int level = this.enchants.levelOf(rod, new CustomEnchantEntry(IcarusEnchant.LUCK_OF_THE_SEA));
+        if (level <= 0 || ThreadLocalRandom.current().nextDouble() >= level * 0.005) {
+            return;
+        }
+        LootTable treasure = LootTables.FISHING_TREASURE.getLootTable();
+        LootContext context = new LootContext.Builder(caughtItem.getLocation()).lootedEntity(p).killer(p).build();
+        Collection<ItemStack> loot = treasure.populateLoot(ThreadLocalRandom.current(), context);
+        if (!loot.isEmpty()) {
+            caughtItem.setItemStack(loot.iterator().next());
+        }
     }
 }
