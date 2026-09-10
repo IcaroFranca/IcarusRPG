@@ -178,10 +178,10 @@ final class VanillaEnchantEntry implements EnchantEntry {
                     ? List.of(EnchantText.Token.plain("Aumenta a chance de um monstro dropar um item em"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "sweeping_edge", "sweeping" -> pt
-                    ? List.of(EnchantText.Token.plain("O ataque de varredura passa a causar 1 +"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::sweepingPercent),
-                            EnchantText.Token.plain("do dano do golpe principal (já com Sharpness/Smite/Bane of Arthropods) em cada alvo atingido - a fórmula real do vanilla."))
-                    : List.of(EnchantText.Token.plain("The sweep attack now deals 1 +"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::sweepingPercent),
-                            EnchantText.Token.plain("of the main hit's damage (already including Sharpness/Smite/Bane of Arthropods) to every target it hits - vanilla's own real formula."));
+                    ? List.of(EnchantText.Token.plain("O ataque de varredura causa 1 +"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::sweepingPercent),
+                            EnchantText.Token.plain("do dano do golpe principal."))
+                    : List.of(EnchantText.Token.plain("The sweep attack deals 1 +"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::sweepingPercent),
+                            EnchantText.Token.plain("of the main hit's damage."));
             case "unbreaking" -> pt
                     ? List.of(EnchantText.Token.plain("Chance de não perder durabilidade ao usar:"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::unbreakingChance), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Chance to not lose durability when used:"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::unbreakingChance), EnchantText.Token.plain("."));
