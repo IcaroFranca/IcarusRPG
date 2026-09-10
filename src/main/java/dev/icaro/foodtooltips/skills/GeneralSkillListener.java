@@ -145,7 +145,13 @@ implements Listener {
             // (anything below the still-growing top one) are essentially never caught at
             // max age. Every placed-and-grown cane segment is already the finished product
             // (no immature visual/functional state the way wheat has), so it always counts.
-            this.gain(p, SkillType.FARMING, this.cropXp(m));
+            //
+            // Breaking a cane segment also knocks off every segment stacked on top of it
+            // (cane can't float unsupported) - vanilla just drops those as a physics side
+            // effect with no BlockBreakEvent of their own, so without this they'd give no
+            // XP at all. Counted here (while they're still real blocks, right before this
+            // break resolves) and folded into one gain call.
+            this.gain(p, SkillType.FARMING, this.cropXp(m) * (1 + this.caneSegmentsAbove(e.getBlock())));
             this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
         } else {
             Ageable a;
@@ -389,6 +395,17 @@ implements Listener {
             case Material.SWEET_BERRY_BUSH -> Material.SWEET_BERRIES;
             default -> m;
         };
+    }
+
+    /** How many more SUGAR_CANE blocks sit directly stacked on top of {@code base} (itself not counted) - see the {@link #broken} SUGAR_CANE branch. */
+    private int caneSegmentsAbove(Block base) {
+        int count = 0;
+        Block above = base.getRelative(0, 1, 0);
+        while (above.getType() == Material.SUGAR_CANE) {
+            count++;
+            above = above.getRelative(0, 1, 0);
+        }
+        return count;
     }
 
     private String key(Location l) {
