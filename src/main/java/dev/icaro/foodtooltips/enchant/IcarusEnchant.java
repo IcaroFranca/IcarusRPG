@@ -59,8 +59,10 @@ public enum IcarusEnchant {
 
     /** One line explaining what this enchantment does, independent of any specific level - shown in the guide and as an item's lore (see EnchantService's 4-or-fewer rule). */
     public String description(boolean pt) {
-        return switch (this) {
-        };
+        // Unreachable while the enum has zero constants - javac won't allow an empty
+        // switch expression, so this just documents the intent for whenever real
+        // enchants are added back (each constant gets its own case here).
+        throw new IllegalStateException("no enchants defined yet");
     }
 
     /** "+N%" / "+N" for a single level's value, matching {@link #percent()}. */
