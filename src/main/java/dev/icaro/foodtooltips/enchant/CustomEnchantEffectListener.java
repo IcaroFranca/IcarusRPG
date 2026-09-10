@@ -1,12 +1,12 @@
 package dev.icaro.foodtooltips.enchant;
 
+import dev.icaro.foodtooltips.combat.MobVisualService;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
@@ -15,7 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
@@ -27,23 +26,26 @@ import org.bukkit.plugin.Plugin;
 /**
  * Wires up the actual gameplay effect for the plugin's custom enchants that need
  * one beyond a menu/lore entry - see {@link IcarusEnchant}'s own class doc for why
- * these four (Flame, Lure, Infinite Quiver, Luck of the Sea) exist as custom
- * entries instead of their vanilla counterparts. Also sets a flat base bow damage
- * (30), unrelated to any enchant, replacing vanilla's own draw-force-based number
- * the same way {@code SwordDamageService}/{@code ToolDamageService} give melee
- * weapons a flat total.
+ * these five (Flame, Lure, Infinite Quiver, Luck of the Sea, Fire Aspect) exist as
+ * custom entries instead of their vanilla counterparts. Also sets a flat base bow
+ * damage (30), unrelated to any enchant, replacing vanilla's own draw-force-based
+ * number the same way {@code SwordDamageService}/{@code ToolDamageService} give
+ * melee weapons a flat total. Complements {@link ArmorEnchantEffectListener}, which
+ * covers armor-slot (helmet/chest/legs/boots) effects instead.
  *
  * <p>The bow-shoot hook (damage + Infinite Quiver's arrow-save roll) mirrors
  * vanilla's own Infinity implementation, which uses this exact same {@code
- * EntityShootBowEvent#setConsumeItem} flag. Flame's burn damage is dealt directly
- * ({@code LivingEntity#damage(double)}, no source) rather than through vanilla's own
- * fire-tick damage, which is a fixed 1 HP/second regardless of level and can't
- * express "Y% of your damage" - but the target IS set visually on fire ({@code
- * LivingEntity#setFireTicks}) for the same duration, so it still looks right. To
- * keep that purely visual (no double-dipping with vanilla's own fire-tick damage,
- * which {@code ElementalDamageListener} would also multiply by 5x), {@link
- * #fireTickDamage} cancels {@code EntityDamageEvent}s with cause {@code FIRE_TICK}
- * for exactly the entities and time window this class itself set on fire.
+ * EntityShootBowEvent#setConsumeItem} flag.
+ *
+ * <p>Flame's and Fire Aspect's burn ({@link #burn}) is purely cosmetic fire
+ * particles plus its own damage-over-time - no {@code setFireTicks}, so there's no
+ * risk of double-dipping with vanilla's own fire-tick damage (or {@code
+ * ElementalDamageListener}'s 5x multiplier on it) the way an actual ignite would.
+ * The first tick lands immediately, in the same instant as the hit itself, rather
+ * than a second later; damage is dealt directly ({@code LivingEntity#damage(double)},
+ * no source) so it doesn't re-enter {@code CombatListener}'s own multiplier
+ * pipeline a second time, and its floating number uses the same fire-orange color
+ * {@code ElementalDamageListener} uses for real fire damage.
  *
  * <p>Luck of the Sea's extra treasure chance beyond vanilla's own level-3 cap is
  * re-implemented from scratch rather than faked by overleveling the vanilla
@@ -55,18 +57,23 @@ import org.bukkit.plugin.Plugin;
  */
 public final class CustomEnchantEffectListener implements Listener {
     private static final double BASE_BOW_DAMAGE = 30.0;
+    /** Same "fire orange" {@code ElementalDamageListener} uses for real fire/lava damage numbers - duplicated here rather than shared, same as that class's own comment on duplicating small constants. */
+    private static final TextColor FIRE_ORANGE = TextColor.color(0xFF8C00);
     /** Flame's level 1/2 (duration seconds, damage % of the hit per second) - see IcarusEnchant's own doc for why this is a lookup, not a formula. */
     private static final double[] FLAME_DURATION = {0, 3.5, 4.0};
     private static final double[] FLAME_PERCENT = {0, 3, 6};
+    /** Fire Aspect's own level 1/2/3 lookup - see {@link #FLAME_DURATION}. */
+    private static final double[] FIRE_ASPECT_DURATION = {0, 3, 4, 4};
+    private static final double[] FIRE_ASPECT_PERCENT = {0, 3, 6, 9};
 
     private final Plugin plugin;
     private final EnchantService enchants;
-    /** Entities currently on fire because of this class's own Flame effect, mapped to the real-time deadline (ms) their vanilla FIRE_TICK damage should stay suppressed until - see {@link #fireTickDamage}. */
-    private final Map<UUID, Long> flameVisualUntil = new HashMap<>();
+    private final MobVisualService visuals;
 
-    public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants) {
+    public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals) {
         this.plugin = plugin;
         this.enchants = enchants;
+        this.visuals = visuals;
     }
 
     /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. */
@@ -82,7 +89,7 @@ public final class CustomEnchantEffectListener implements Listener {
         }
     }
 
-    /** Flame: schedules {@code duration} seconds of {@code percent}%-of-this-hit damage, read from whichever hand is holding the bow at hit time, and sets the target visually on fire for that same duration (see this class's own doc for how its damage stays vanilla-fire-tick-free). Runs at MONITOR so the damage read is CombatListener's final number, not the raw arrow damage. */
+    /** Flame: burns the target for {@code duration} seconds of {@code percent}%-of-this-hit damage per second, read from whichever hand is holding the bow at hit time. Runs at MONITOR so the damage read is CombatListener's final number, not the raw arrow damage. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void arrowHit(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof AbstractArrow arrow) || !(arrow.getShooter() instanceof Player shooter)
@@ -101,34 +108,44 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         int lvl = Math.min(level, FLAME_DURATION.length - 1);
-        double finalDamage = e.getFinalDamage();
-        double perTick = finalDamage * (FLAME_PERCENT[lvl] / 100.0);
-        int ticks = (int) Math.floor(FLAME_DURATION[lvl]);
-        int fireTicks = ticks * 20;
-        target.setFireTicks(Math.max(target.getFireTicks(), fireTicks));
-        long deadline = System.currentTimeMillis() + (long) (FLAME_DURATION[lvl] * 1000);
-        UUID targetId = target.getUniqueId();
-        this.flameVisualUntil.merge(targetId, deadline, Math::max);
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.flameVisualUntil.remove(targetId, deadline), fireTicks + 5L);
-        for (int i = 1; i <= ticks; i++) {
-            Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-                if (target.isValid() && !target.isDead()) {
-                    target.damage(perTick);
-                }
-            }, i * 20L);
+        this.burn(target, e.getFinalDamage(), FLAME_DURATION[lvl], FLAME_PERCENT[lvl]);
+    }
+
+    /** Fire Aspect: same burn as Flame (see this class's own doc), read from the attacker's main-hand sword on a melee hit. Runs at MONITOR for the same reason as {@link #arrowHit}. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void fireAspectHit(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player attacker) || !(e.getEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        ItemStack weapon = attacker.getInventory().getItemInMainHand();
+        int level = this.enchants.levelOf(weapon, new CustomEnchantEntry(IcarusEnchant.FIRE_ASPECT));
+        if (level <= 0) {
+            return;
+        }
+        int lvl = Math.min(level, FIRE_ASPECT_DURATION.length - 1);
+        this.burn(target, e.getFinalDamage(), FIRE_ASPECT_DURATION[lvl], FIRE_ASPECT_PERCENT[lvl]);
+    }
+
+    /** Shared by Flame/Fire Aspect - see this class's own doc for why this is cosmetic-particles-only rather than a real ignite, and why the first tick is immediate. */
+    private void burn(LivingEntity target, double finalDamage, double durationSeconds, double percentPerSecond) {
+        int ticks = (int) Math.floor(durationSeconds);
+        if (ticks <= 0) {
+            return;
+        }
+        double perTick = finalDamage * (percentPerSecond / 100.0);
+        this.burnTick(target, perTick);
+        for (int i = 1; i < ticks; i++) {
+            Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.burnTick(target, perTick), i * 20L);
         }
     }
 
-    /** Suppresses vanilla's own FIRE_TICK damage (and ElementalDamageListener's 5x multiplier on it) for exactly the entities/time window {@link #arrowHit} itself set on fire, so the burn stays purely visual and {@code arrowHit}'s own scheduled damage is the only damage dealt. Runs at LOWEST, before ElementalDamageListener's LOW, so the cancellation is already in place by the time it checks. */
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void fireTickDamage(EntityDamageEvent e) {
-        if (e.getCause() != EntityDamageEvent.DamageCause.FIRE_TICK) {
+    private void burnTick(LivingEntity target, double perTick) {
+        if (!target.isValid() || target.isDead()) {
             return;
         }
-        Long until = this.flameVisualUntil.get(e.getEntity().getUniqueId());
-        if (until != null && System.currentTimeMillis() < until) {
-            e.setCancelled(true);
-        }
+        target.getWorld().spawnParticle(Particle.FLAME, target.getLocation().add(0.0, 1.0, 0.0), 8, 0.3, 0.5, 0.3, 0.01);
+        target.damage(perTick);
+        this.visuals.damageNumber(target, perTick, FIRE_ORANGE);
     }
 
     /** Lure: shortens the fishing bobber's wait time by a percentage instead of vanilla's own flat-tick-per-level reduction. */

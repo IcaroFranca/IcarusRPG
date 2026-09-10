@@ -17,6 +17,7 @@ import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
 import dev.icaro.foodtooltips.economy.EconomyService;
+import dev.icaro.foodtooltips.enchant.ArmorEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
@@ -148,6 +149,7 @@ extends JavaPlugin {
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants);
+        ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();
@@ -161,7 +163,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
-        pm.registerEvents((Listener)new CustomEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
+        pm.registerEvents((Listener)new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
@@ -174,6 +176,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
+        pm.registerEvents((Listener)armorEnchants, (Plugin)this);
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
         pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);
         pm.registerEvents((Listener)new SwordDamageListener(swordDamage), (Plugin)this);
@@ -343,6 +346,7 @@ extends JavaPlugin {
             stats.regenHealth((Player)p, naturalHealthRegenPerSecond * healthRegenMultiplier * (double)ticks / 20.0);
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
+            armorEnchants.applyRespiration((Player)p);
             tiers.applyItemTiers((Player)p);
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);

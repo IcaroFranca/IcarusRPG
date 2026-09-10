@@ -49,15 +49,20 @@ public final class EnchantService {
     /** Reserved for an entry at its max level - previously used for every entry. */
     private static final TextColor MAX_LEVEL_NAME_COLOR = NamedTextColor.LIGHT_PURPLE;
     /**
-     * Vanilla enchantments hidden from this table entirely: Mending, the two
-     * curses (never something a player wants applied on purpose), and Flame/
-     * Infinity/Lure/Luck of the Sea - each replaced by a leveled custom entry
-     * (see {@link IcarusEnchant}) since their real vanilla level cap (1, 1, 3, 3
-     * respectively) is fixed by Mojang/Bukkit and can't be raised to fit the
-     * leveled effect wanted for them.
+     * Vanilla enchantments hidden from this table entirely: Mending and the two
+     * curses (never something a player wants applied on purpose), Flame/Infinity/
+     * Lure/Luck of the Sea/Fire Aspect/Feather Falling - each replaced by a leveled
+     * custom entry (see {@link IcarusEnchant}) since their real vanilla level cap
+     * (1, 1, 3, 3, 2, 4 respectively) is fixed by Mojang/Bukkit and can't be raised
+     * to fit the leveled effect wanted for them - and Protection/Fire Protection/
+     * Blast Protection/Projectile Protection/Respiration/Thorns, replaced the same
+     * way even though their level cap isn't changing for Respiration/Thorns, since
+     * the effect wanted for them doesn't match real vanilla's own mechanic either.
      */
     private static final Set<String> EXCLUDED_VANILLA_KEYS = Set.of(
-            "mending", "vanishing_curse", "binding_curse", "flame", "infinity", "lure", "luck_of_the_sea");
+            "mending", "vanishing_curse", "binding_curse", "flame", "infinity", "lure", "luck_of_the_sea",
+            "fire_aspect", "protection", "fire_protection", "blast_protection", "projectile_protection",
+            "feather_falling", "respiration", "thorns");
     /** Sharpness/Smite/Bane of Arthropods conflict with each other in real vanilla (you can't combine them via an anvil) - this table deliberately allows it. */
     private static final Set<String> NON_EXCLUSIVE_DAMAGE_FAMILY = Set.of("sharpness", "smite", "bane_of_arthropods");
 

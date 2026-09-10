@@ -11,9 +11,11 @@ import org.bukkit.enchantments.Enchantment;
  * Wraps a real vanilla {@link Enchantment} as an {@link EnchantEntry}, so the
  * reworked Enchanting Table screen can offer every vanilla enchantment
  * (Sharpness, Protection, Unbreaking, ...) explicitly alongside the plugin's own -
- * see {@code EnchantService#allEntries} (which also excludes a handful: Mending,
- * Infinity, and both curses are hidden from the table entirely, and Flame/Lure are
- * replaced by the plugin's own leveled versions - see {@link IcarusEnchant}). Names
+ * see {@code EnchantService#allEntries} (which also excludes a handful: Mending and
+ * both curses are hidden from the table entirely, and Flame/Lure/Infinity/Luck of
+ * the Sea/Fire Aspect/Protection/Fire Protection/Blast Protection/Projectile
+ * Protection/Feather Falling/Respiration/Thorns are replaced by the plugin's own
+ * leveled or reimplemented versions - see {@link IcarusEnchant}). Names
  * come straight from Minecraft's own translations (Paper resolves {@link
  * Enchantment#displayName} server-side, so this works the same regardless of client
  * locale) rather than a hand-maintained PT/EN list; descriptions below are
@@ -125,11 +127,6 @@ final class VanillaEnchantEntry implements EnchantEntry {
                     : List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("༕ Undead,", UNDEAD_COLOR),
                             EnchantText.Token.colored("☠ Wither", WITHER_COLOR), EnchantText.Token.plain("and"), EnchantText.Token.colored("🦴 Skeletal", SKELETAL_COLOR),
                             EnchantText.Token.plain("mobs by"), EnchantText.Token.value(level, "%", l -> linearCapped(l, 5, 5, 30)), EnchantText.Token.plain("."));
-            case "fire_aspect" -> pt
-                    ? List.of(EnchantText.Token.plain("Incendeia seus inimigos por"), EnchantText.Token.value(level, "s,", l -> l * 3),
-                            EnchantText.Token.plain("causando"), EnchantText.Token.colored("3%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("do seu dano por nível por segundo."))
-                    : List.of(EnchantText.Token.plain("Ignites your enemies for"), EnchantText.Token.value(level, "s,", l -> l * 3),
-                            EnchantText.Token.plain("dealing"), EnchantText.Token.colored("3%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("of your damage per level per second."));
             case "knockback" -> pt
                     ? List.of(EnchantText.Token.plain("Aumenta o recuo em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.Token.plain("por nível."))
                     : List.of(EnchantText.Token.plain("Increases knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.Token.plain("per level."));
@@ -157,6 +154,22 @@ final class VanillaEnchantEntry implements EnchantEntry {
             case "punch" -> pt
                     ? List.of(EnchantText.Token.plain("Aumenta o recuo das flechas em"), EnchantText.Token.value(level, " blocos", l -> 3), EnchantText.Token.plain("por nível."))
                     : List.of(EnchantText.Token.plain("Increases arrow knockback by"), EnchantText.Token.value(level, " blocks", l -> 3), EnchantText.Token.plain("per level."));
+            case "depth_strider" -> pt
+                    ? List.of(EnchantText.Token.plain("Reduz a redução de velocidade na água em"), EnchantText.Token.value(level, "%", l -> l * 33),
+                            EnchantText.Token.plain("por nível. No nível III, a velocidade de movimento é igual à da terra firme (100%)."))
+                    : List.of(EnchantText.Token.plain("Reduces how much you are slowed in the water by"), EnchantText.Token.value(level, "%", l -> l * 33),
+                            EnchantText.Token.plain("per level. At level III, your movement speed is the same as on land (100%)."));
+            case "swift_sneak" -> pt
+                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade ao andar agachado em"), EnchantText.Token.value(level, "%", l -> l * 15),
+                            EnchantText.Token.plain("por nível (a velocidade normal agachado é 30% da velocidade andando)."))
+                    : List.of(EnchantText.Token.plain("Increases sneaking movement speed by"), EnchantText.Token.value(level, "%", l -> l * 15),
+                            EnchantText.Token.plain("per level (normal sneaking speed is 30% of your walking speed)."));
+            case "soul_speed" -> pt
+                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade de movimento em areia/solo das almas em"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.Token.plain("por nível."))
+                    : List.of(EnchantText.Token.plain("Increases movement speed on soul sand/soil by"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.Token.plain("per level."));
+            case "frost_walker" -> pt
+                    ? List.of(EnchantText.Token.plain("Congela a água em gelo num raio de"), EnchantText.Token.value(level, " blocos", l -> l * 2 + 1), EnchantText.Token.plain("ao caminhar sobre ela."))
+                    : List.of(EnchantText.Token.plain("Freezes water into ice in a radius of"), EnchantText.Token.value(level, " blocks", l -> l * 2 + 1), EnchantText.Token.plain("as you walk over it."));
             default -> {
                 String plain = plainDescription(key, pt);
                 yield plain == null ? null : List.of(EnchantText.Token.plain(plain));
@@ -172,18 +185,9 @@ final class VanillaEnchantEntry implements EnchantEntry {
     /** One-line hand-written descriptions with no numeric value, keyed by the enchantment's plain (unnamespaced) key - null (no line shown) for anything not listed here, so a future/unrecognized enchantment degrades gracefully instead of breaking. */
     private static String plainDescription(String key, boolean pt) {
         return switch (key) {
-            case "protection" -> pt ? "Reduz o dano da maioria das fontes." : "Reduces damage from most sources.";
-            case "fire_protection" -> pt ? "Reduz dano de fogo e diminui o tempo em chamas." : "Reduces fire damage and burn duration.";
-            case "feather_falling" -> pt ? "Reduz o dano de queda." : "Reduces fall damage.";
-            case "blast_protection" -> pt ? "Reduz dano e recuo de explosões." : "Reduces explosion damage and knockback.";
-            case "projectile_protection" -> pt ? "Reduz dano de projéteis." : "Reduces projectile damage.";
-            case "respiration" -> pt ? "Aumenta o tempo de respiração debaixo d'água e a visão." : "Extends underwater breathing time and improves underwater visibility.";
-            case "aqua_affinity" -> pt ? "Aumenta a velocidade de mineração debaixo d'água." : "Increases underwater mining speed.";
-            case "thorns" -> pt ? "Chance de refletir parte do dano recebido no atacante." : "Chance to reflect some damage back at the attacker.";
-            case "depth_strider" -> pt ? "Aumenta a velocidade de movimento na água." : "Increases underwater movement speed.";
-            case "frost_walker" -> pt ? "Congela a água em gelo ao caminhar sobre ela." : "Freezes water into ice as you walk over it.";
-            case "soul_speed" -> pt ? "Aumenta a velocidade ao caminhar sobre areia das almas." : "Increases movement speed on soul sand/soil.";
-            case "swift_sneak" -> pt ? "Aumenta a velocidade ao andar agachado." : "Increases movement speed while sneaking.";
+            case "aqua_affinity" -> pt
+                    ? "Aumenta a velocidade de mineração debaixo d'água para o nível normal (minerar na água é normalmente cinco vezes mais lenta)."
+                    : "Increases underwater mining rate to normal level mining rate (mining in water is normally five times slower).";
             case "riptide" -> pt ? "Arremessa você junto com o tridente, na água ou na chuva." : "Launches you along with the trident when in water or rain.";
             case "loyalty" -> pt ? "O tridente retorna à sua mão após ser arremessado." : "The trident returns to your hand after being thrown.";
             case "impaling" -> pt ? "Dano bônus contra criaturas aquáticas." : "Bonus damage against aquatic mobs.";
