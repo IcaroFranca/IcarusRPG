@@ -22,10 +22,17 @@ implements Listener {
     public void click(InventoryClickEvent e) {
         Player p;
         HumanEntity humanEntity = e.getWhoClicked();
-        if (humanEntity instanceof Player && this.menus.viewing(p = (Player)humanEntity)) {
-            e.setCancelled(true);
-            this.menus.handleClick(p, e.getRawSlot());
+        if (!(humanEntity instanceof Player) || !this.menus.viewing(p = (Player)humanEntity)) {
+            return;
         }
+        if (e.getRawSlot() == SkillsMenuService.TRASH_SLOT && this.menus.isMain(p)) {
+            // Not cancelled - let the click's default pickup/place/swap happen, then
+            // vanish whatever landed there one tick later (see scheduleTrashEmpty).
+            this.menus.scheduleTrashEmpty(p);
+            return;
+        }
+        e.setCancelled(true);
+        this.menus.handleClick(p, e.getRawSlot());
     }
 
     @EventHandler(ignoreCancelled=true)

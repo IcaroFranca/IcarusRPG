@@ -117,7 +117,7 @@ extends JavaPlugin {
         MiningMenuService mining = new MiningMenuService(gems);
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
-        SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
+        SkillsMenuService menus = new SkillsMenuService((Plugin)this, combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
         stats.legendary(legendary);
