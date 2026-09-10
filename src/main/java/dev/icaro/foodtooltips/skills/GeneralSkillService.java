@@ -36,7 +36,7 @@ public final class GeneralSkillService {
     /**
      * Converts the plugin's own "Mining Speed" points (a much bigger scale - base tool
      * speed 70-250, up to +200 from Mining level, up to +110 from Efficiency) down to
-     * {@link Attribute#PLAYER_MINING_EFFICIENCY}'s real, comparatively small additive
+     * {@link Attribute#MINING_EFFICIENCY}'s real, comparatively small additive
      * scale (vanilla's own Efficiency V is worth +26 there) - see {@link
      * #applyMiningSpeedAttribute}. An initial calibration, easy to retune if mining
      * ends up feeling too fast/slow in practice.
@@ -198,7 +198,7 @@ public final class GeneralSkillService {
      * the number shown on a pickaxe's tooltip (base tool speed + Mining level +
      * Efficiency) had no gameplay effect behind it at all, real vanilla Efficiency's own
      * small native bonus aside. Sets (or clears, while not holding a pickaxe) a transient
-     * {@link Attribute#PLAYER_MINING_EFFICIENCY} modifier on the player - same real
+     * {@link Attribute#MINING_EFFICIENCY} modifier on the player - same real
      * attribute vanilla's own Efficiency enchant feeds into internally, only additive and
      * gated on holding the "correct" tool the exact same way, so this stacks with (rather
      * than replaces) Efficiency's own small vanilla-native bonus instead of fighting it.
@@ -208,7 +208,7 @@ public final class GeneralSkillService {
      */
     public void applyMiningSpeedAttribute(Player player) {
         double amount;
-        AttributeInstance attribute = player.getAttribute(Attribute.PLAYER_MINING_EFFICIENCY);
+        AttributeInstance attribute = player.getAttribute(Attribute.MINING_EFFICIENCY);
         if (attribute == null) {
             return;
         }
