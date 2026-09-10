@@ -1,6 +1,9 @@
 package dev.icaro.foodtooltips.crafting;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.HeadTexture;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +20,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 /**
  * A crafting table embedded directly in the Skills menu - no physical block needed.
@@ -61,7 +65,7 @@ public final class CraftingMenuService {
         }
         v.setItem(ARROW_SLOT, this.item(Material.ARROW, l.choose("Resultado", "Result"), List.of()));
         v.setItem(OUTPUT_SLOT, null);
-        v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         p.openInventory(v);
         this.viewing.add(p.getUniqueId());
     }
@@ -122,6 +126,24 @@ public final class CraftingMenuService {
             v.setItem(slot, item.getAmount() <= 0 ? null : item);
         }
         this.recompute(p);
+    }
+
+    /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
+        ItemStack i = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        m.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta((ItemMeta) m);
+        return i;
     }
 
     private ItemStack item(Material material, String name, List<Component> lore) {
