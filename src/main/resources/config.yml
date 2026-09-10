@@ -44,8 +44,8 @@ combat:
   attack-speed-level-0: 4.0
   attack-speed-level-25: 8.0
   attack-speed-level-50: 20.0
-  xp-base: 100.0
-  xp-exponent: 1.65
+  # XP required per Combat level now follows the same shared curve every other skill
+  # uses (see SkillXpCurve) - no longer configurable here.
   hostile-xp-health-multiplier: 2.0
   hostile-xp-level-multiplier: 3.0
   # Whether PvP damage gets the same multiplier stack PvE does (Combat level %,
