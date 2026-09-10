@@ -252,9 +252,10 @@ implements Listener {
         }
     }
 
+    /** Real vanilla's own Enchanting XP curve (Enchantment Table/Anvil): XP = 3.5 * X^1.5 for X levels spent - same formula {@code EnchantMenuService#gainEnchantingXp} uses for the reworked table's own applications. */
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void enchant(EnchantItemEvent e) {
-        this.gain(e.getEnchanter(), SkillType.ENCHANTING, Math.max(5, e.getExpLevelCost() * 4));
+        this.gain(e.getEnchanter(), SkillType.ENCHANTING, 3.5 * Math.pow(e.getExpLevelCost(), 1.5));
     }
 
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)

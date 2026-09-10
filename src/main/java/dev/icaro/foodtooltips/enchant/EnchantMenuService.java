@@ -2,8 +2,14 @@ package dev.icaro.foodtooltips.enchant;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.global.GlobalLevelService;
+import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.skills.GeneralSkillService;
+import dev.icaro.foodtooltips.skills.SkillProgress;
+import dev.icaro.foodtooltips.skills.SkillProgressBarService;
+import dev.icaro.foodtooltips.skills.SkillType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,8 +82,21 @@ public final class EnchantMenuService {
             28, 29, 30, 31, 32, 33, 34,
             37, 38, 39, 40, 41, 42, 43};
 
+    /**
+     * Real vanilla's own Enchanting XP curve (Enchantment Table/Anvil, per the wiki:
+     * {@code XP = 3.5 * X^1.5} for X levels spent) - reused here as the Enchanting
+     * skill's own XP gain per application, X being {@link #discountedCost}'s result
+     * (the real levels actually charged, discount already applied). See {@link
+     * #gainEnchantingXp}.
+     */
+    private static final double ENCHANTING_XP_COEFFICIENT = 3.5;
+    private static final double ENCHANTING_XP_EXPONENT = 1.5;
+
     private final Plugin plugin;
     private final EnchantService enchants;
+    private final GeneralSkillService general;
+    private final SkillProgressBarService bars;
+    private final GlobalLevelService global;
     private final Map<UUID, View> views = new HashMap<>();
     private final Map<UUID, ItemStack> pendingItem = new HashMap<>();
     private final Map<UUID, Location> tableLocation = new HashMap<>();
@@ -93,9 +112,12 @@ public final class EnchantMenuService {
      */
     private final Set<UUID> transitioning = new HashSet<>();
 
-    public EnchantMenuService(Plugin plugin, EnchantService enchants) {
+    public EnchantMenuService(Plugin plugin, EnchantService enchants, GeneralSkillService general, SkillProgressBarService bars, GlobalLevelService global) {
         this.plugin = plugin;
         this.enchants = enchants;
+        this.general = general;
+        this.bars = bars;
+        this.global = global;
     }
 
     /** Opens the table for {@code p} - {@code table} is the physical block right-clicked, only used to show a flavor "Enchanting Power" (see {@link #bookshelfPower}), nothing is gated by it in v1. */
@@ -214,9 +236,36 @@ public final class EnchantMenuService {
             return;
         }
         EnchantService.chargeXp(p, cost);
+        this.gainEnchantingXp(p, cost);
         this.enchants.setLevel(item, enchant, level, pt);
         p.sendMessage(this.msg(l.choose("Aplicado: ", "Applied: ") + enchant.leveledName(pt, level), NamedTextColor.GREEN));
         this.openMain(p, 0);
+    }
+
+    /** Grants Enchanting skill XP for spending {@code levelsSpent} real XP levels here, using real vanilla's own curve (see {@link #ENCHANTING_XP_COEFFICIENT}) - same progress-bar/level-up/global-credit treatment {@code GeneralSkillListener#gain} gives every other skill. */
+    private void gainEnchantingXp(Player p, int levelsSpent) {
+        double xp = ENCHANTING_XP_COEFFICIENT * Math.pow(levelsSpent, ENCHANTING_XP_EXPONENT);
+        SkillProgress before = this.general.progress(p, SkillType.ENCHANTING);
+        int levelsGained = this.general.addXp(p, SkillType.ENCHANTING, xp);
+        SkillProgress after = this.general.progress(p, SkillType.ENCHANTING);
+        this.bars.show(p, SkillType.ENCHANTING, xp, after, this.general.maxLevel());
+        if (levelsGained > 0) {
+            long reward = this.global.creditSkillLevels(p, GlobalSkill.of(SkillType.ENCHANTING), before.level(), after.level());
+            this.enchantingLevelUpMessage(p, before.level(), after.level(), reward);
+        }
+    }
+
+    /** Same boxed multi-line style as {@code GeneralSkillListener#levelUpMessage}/{@code CombatListener#levelUpMessage}, just scoped to Enchanting's own two rewards (Intelligence, XP Orb %) since this is the only skill this class ever grants XP for. */
+    private void enchantingLevelUpMessage(Player p, int before, int after, long globalXp) {
+        Language l = Language.of(p);
+        int gained = after - before;
+        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        p.sendMessage(Component.text("✦ " + SkillType.ENCHANTING.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE NÍVEL!", "LEVEL UP!") + " ✦", NamedTextColor.GOLD));
+        p.sendMessage(Component.text(before + " → " + after, NamedTextColor.GREEN));
+        p.sendMessage(Component.text("+" + (gained * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence")
+                + ", +" + (gained * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA));
+        p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
     }
 
     /**
