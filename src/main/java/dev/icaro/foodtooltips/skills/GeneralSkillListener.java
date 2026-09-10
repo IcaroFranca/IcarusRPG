@@ -169,7 +169,13 @@ implements Listener {
         if (t == null) {
             return;
         }
-        int fortune = this.skills.fortune(e.getPlayer(), t.skill);
+        // The real vanilla Fortune enchant now feeds directly into the same "Mining
+        // Fortune" points pool the skill itself grants, matching its own catalog
+        // description (+10/level) - vanilla's own separate, unquantified ore-multiplier
+        // effect still applies underneath this on top (untouched), same relationship
+        // Sharpness/Smite/Bane of Arthropods have with their own real vanilla bonus.
+        int enchantFortune = e.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.FORTUNE) * 10;
+        int fortune = this.skills.fortune(e.getPlayer(), t.skill) + enchantFortune;
         int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
         for (Item entity : new ArrayList<>(e.getItems())) {
             ItemStack base = entity.getItemStack();

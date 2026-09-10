@@ -139,6 +139,11 @@ final class VanillaEnchantEntry implements EnchantEntry {
         return (int) (100.0 * level / (level + 1));
     }
 
+    /** Vanilla's own real sweep-attack ratio (unchanged, untouched real vanilla mechanic) - level/(level+1) of the main hit's damage, rounded: 50%/67%/75% for I/II/III. See the "sweeping_edge" description. */
+    private static int sweepingPercent(int level) {
+        return (int) Math.round(100.0 * level / (level + 1));
+    }
+
     /** Linear per-level percentage, except the last level jumps straight to {@code capValue} instead of continuing the line (e.g. Sharpness: 5/10/15/20, then 30 at V, not 25). */
     private static int linearCapped(int level, int maxLevel, int perLevel, int capValue) {
         return level == maxLevel ? capValue : perLevel * level;
@@ -173,8 +178,10 @@ final class VanillaEnchantEntry implements EnchantEntry {
                     ? List.of(EnchantText.Token.plain("Aumenta a chance de um monstro dropar um item em"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
             case "sweeping_edge", "sweeping" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o dano do ataque de varredura em"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases sweep attack damage by"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.Token.plain("."));
+                    ? List.of(EnchantText.Token.plain("O ataque de varredura passa a causar 1 +"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::sweepingPercent),
+                            EnchantText.Token.plain("do dano do golpe principal (já com Sharpness/Smite/Bane of Arthropods) em cada alvo atingido - a fórmula real do vanilla."))
+                    : List.of(EnchantText.Token.plain("The sweep attack now deals 1 +"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::sweepingPercent),
+                            EnchantText.Token.plain("of the main hit's damage (already including Sharpness/Smite/Bane of Arthropods) to every target it hits - vanilla's own real formula."));
             case "unbreaking" -> pt
                     ? List.of(EnchantText.Token.plain("Chance de não perder durabilidade ao usar:"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::unbreakingChance), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Chance to not lose durability when used:"), EnchantText.Token.value(level, "%", VanillaEnchantEntry::unbreakingChance), EnchantText.Token.plain("."));
