@@ -1,5 +1,8 @@
 package dev.icaro.foodtooltips.enchant;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -10,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
@@ -26,12 +30,14 @@ import org.bukkit.plugin.Plugin;
  * <p>The bow-shoot hook (damage + Infinite Quiver's arrow-save roll) mirrors
  * vanilla's own Infinity implementation, which uses this exact same {@code
  * EntityShootBowEvent#setConsumeItem} flag. Flame's burn damage is dealt directly
- * ({@code LivingEntity#damage(double)}, no source) rather than via {@code
- * setFireTicks} - vanilla's own fire-tick damage is a fixed 1 HP/second regardless
- * of level, which can't express "Y% of your damage", and layering our own damage on
- * top of vanilla's fire ticks would double up (and get multiplied a second time by
- * ElementalDamageListener's fire-tick handling) - so hit mobs don't visibly catch
- * fire here, only take the scheduled damage.
+ * ({@code LivingEntity#damage(double)}, no source) rather than through vanilla's own
+ * fire-tick damage, which is a fixed 1 HP/second regardless of level and can't
+ * express "Y% of your damage" - but the target IS set visually on fire ({@code
+ * LivingEntity#setFireTicks}) for the same duration, so it still looks right. To
+ * keep that purely visual (no double-dipping with vanilla's own fire-tick damage,
+ * which {@code ElementalDamageListener} would also multiply by 5x), {@link
+ * #fireTickDamage} cancels {@code EntityDamageEvent}s with cause {@code FIRE_TICK}
+ * for exactly the entities and time window this class itself set on fire.
  */
 public final class CustomEnchantEffectListener implements Listener {
     private static final double BASE_BOW_DAMAGE = 30.0;
@@ -41,6 +47,8 @@ public final class CustomEnchantEffectListener implements Listener {
 
     private final Plugin plugin;
     private final EnchantService enchants;
+    /** Entities currently on fire because of this class's own Flame effect, mapped to the real-time deadline (ms) their vanilla FIRE_TICK damage should stay suppressed until - see {@link #fireTickDamage}. */
+    private final Map<UUID, Long> flameVisualUntil = new HashMap<>();
 
     public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants) {
         this.plugin = plugin;
@@ -60,7 +68,7 @@ public final class CustomEnchantEffectListener implements Listener {
         }
     }
 
-    /** Flame: schedules {@code duration} seconds of {@code percent}%-of-this-hit damage, read from whichever hand is holding the bow at hit time (see this class's own doc for why there's no fire-tick visual). Runs at MONITOR so the damage read is CombatListener's final number, not the raw arrow damage. */
+    /** Flame: schedules {@code duration} seconds of {@code percent}%-of-this-hit damage, read from whichever hand is holding the bow at hit time, and sets the target visually on fire for that same duration (see this class's own doc for how its damage stays vanilla-fire-tick-free). Runs at MONITOR so the damage read is CombatListener's final number, not the raw arrow damage. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void arrowHit(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof AbstractArrow arrow) || !(arrow.getShooter() instanceof Player shooter)
@@ -82,12 +90,30 @@ public final class CustomEnchantEffectListener implements Listener {
         double finalDamage = e.getFinalDamage();
         double perTick = finalDamage * (FLAME_PERCENT[lvl] / 100.0);
         int ticks = (int) Math.floor(FLAME_DURATION[lvl]);
+        int fireTicks = ticks * 20;
+        target.setFireTicks(Math.max(target.getFireTicks(), fireTicks));
+        long deadline = System.currentTimeMillis() + (long) (FLAME_DURATION[lvl] * 1000);
+        UUID targetId = target.getUniqueId();
+        this.flameVisualUntil.merge(targetId, deadline, Math::max);
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.flameVisualUntil.remove(targetId, deadline), fireTicks + 5L);
         for (int i = 1; i <= ticks; i++) {
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 if (target.isValid() && !target.isDead()) {
                     target.damage(perTick);
                 }
             }, i * 20L);
+        }
+    }
+
+    /** Suppresses vanilla's own FIRE_TICK damage (and ElementalDamageListener's 5x multiplier on it) for exactly the entities/time window {@link #arrowHit} itself set on fire, so the burn stays purely visual and {@code arrowHit}'s own scheduled damage is the only damage dealt. Runs at LOWEST, before ElementalDamageListener's LOW, so the cancellation is already in place by the time it checks. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void fireTickDamage(EntityDamageEvent e) {
+        if (e.getCause() != EntityDamageEvent.DamageCause.FIRE_TICK) {
+            return;
+        }
+        Long until = this.flameVisualUntil.get(e.getEntity().getUniqueId());
+        if (until != null && System.currentTimeMillis() < until) {
+            e.setCancelled(true);
         }
     }
 
