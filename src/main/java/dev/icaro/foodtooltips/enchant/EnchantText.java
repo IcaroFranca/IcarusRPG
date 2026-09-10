@@ -40,6 +40,17 @@ final class EnchantText {
         }
     }
 
+    /**
+     * "per level"/"por nível" for the generic ("X") view, or an empty (contributes
+     * nothing to the wrapped text - see {@link #wrap}) token once resolved to a
+     * specific level - a resolved number already reflects that level's total, so
+     * restating "per level" next to it would be redundant/misleading (e.g. "Grants
+     * +45 Respiration per level" for a single applied level of Respiration III).
+     */
+    static Token perLevel(Integer level, boolean pt) {
+        return Token.plain(level == null ? (pt ? "por nível" : "per level") : "");
+    }
+
     /** Packs {@code tokens} into lore lines no wider than {@link #WRAP_WIDTH} characters, breaking only between words (atomic tokens never split) and never leaving a leading space before punctuation-only words. */
     static List<Component> wrap(List<Token> tokens) {
         List<Token> words = new ArrayList<>();
