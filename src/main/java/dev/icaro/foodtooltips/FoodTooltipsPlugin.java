@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.biome.BiomeWandListener;
 import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.builder.BuilderWandListener;
 import dev.icaro.foodtooltips.builder.BuilderWandService;
+import dev.icaro.foodtooltips.combat.AnimalSeparationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.ElementalDamageListener;
 import dev.icaro.foodtooltips.combat.MobVisualService;
@@ -344,6 +345,8 @@ extends JavaPlugin {
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);
         this.getServer().getScheduler().runTaskTimer((Plugin)this, this.visuals::tick, 1L, Math.max(1L, this.getConfig().getLong("mob-visuals.update-ticks", 3L)));
+        AnimalSeparationService animalSeparation = new AnimalSeparationService();
+        this.getServer().getScheduler().runTaskTimer((Plugin)this, animalSeparation::separateAll, 1L, 20L);
         for (World w : this.getServer().getWorlds()) {
             for (LivingEntity e : w.getLivingEntities()) {
                 combatListener.scaleMobHealth(e);
