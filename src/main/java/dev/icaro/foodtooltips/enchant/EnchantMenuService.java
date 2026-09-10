@@ -249,6 +249,12 @@ public final class EnchantMenuService {
                 p.sendMessage(this.msg(blockReason, NamedTextColor.RED));
                 return;
             }
+        } else if (enchant instanceof CustomEnchantEntry c) {
+            String blockReason = this.enchants.customBlockReason(item, c.enchant(), pt);
+            if (blockReason != null) {
+                p.sendMessage(this.msg(blockReason, NamedTextColor.RED));
+                return;
+            }
         }
         int cost = enchant.costAtLevel(level);
         if (p.getLevel() < cost) {

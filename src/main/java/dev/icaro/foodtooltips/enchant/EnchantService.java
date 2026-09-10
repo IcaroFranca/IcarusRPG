@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -47,6 +48,18 @@ public final class EnchantService {
     private static final TextColor NAME_COLOR = TextColor.color(0x5555FF);
     /** Reserved for an entry at its max level - previously used for every entry. */
     private static final TextColor MAX_LEVEL_NAME_COLOR = NamedTextColor.LIGHT_PURPLE;
+    /**
+     * Vanilla enchantments hidden from this table entirely: Mending, the two
+     * curses (never something a player wants applied on purpose), and Flame/
+     * Infinity/Lure - each replaced by a leveled custom entry (see {@link
+     * IcarusEnchant}) since their real vanilla level cap (1, 1, 3 respectively)
+     * is fixed by Mojang/Bukkit and can't be raised to fit the leveled effect
+     * wanted for them.
+     */
+    private static final Set<String> EXCLUDED_VANILLA_KEYS = Set.of(
+            "mending", "vanishing_curse", "binding_curse", "flame", "infinity", "lure");
+    /** Sharpness/Smite/Bane of Arthropods conflict with each other in real vanilla (you can't combine them via an anvil) - this table deliberately allows it. */
+    private static final Set<String> NON_EXCLUSIVE_DAMAGE_FAMILY = Set.of("sharpness", "smite", "bane_of_arthropods");
 
     private final Map<IcarusEnchant, NamespacedKey> keys = new EnumMap<>(IcarusEnchant.class);
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
@@ -64,6 +77,9 @@ public final class EnchantService {
             list.add(new CustomEnchantEntry(e));
         }
         for (Enchantment e : Registry.ENCHANTMENT) {
+            if (EXCLUDED_VANILLA_KEYS.contains(e.getKey().getKey())) {
+                continue;
+            }
             list.add(new VanillaEnchantEntry(e));
         }
         Collator collator = Collator.getInstance(pt ? Locale.of("pt", "BR") : Locale.US);
@@ -89,11 +105,12 @@ public final class EnchantService {
     }
 
     /**
-     * Every entry {@code item} could actually receive right now - every custom entry
-     * (no item-type restriction concept exists for those yet) plus only the vanilla
-     * entries whose {@code Enchantment#canEnchantItem} accepts this item, matching
-     * vanilla's own Enchanting Table filtering. Empty for a null/empty item - the
-     * Enchanting Table screen shows nothing in its catalog until an item is placed.
+     * Every entry {@code item} could actually receive right now - vanilla entries
+     * whose {@code Enchantment#canEnchantItem} accepts this item (matching vanilla's
+     * own Enchanting Table filtering), and custom entries whose {@link
+     * IcarusEnchant#canApplyTo} accepts this item's material. Empty for a null/empty
+     * item - the Enchanting Table screen shows nothing in its catalog until an item
+     * is placed.
      */
     public List<EnchantEntry> compatibleEntries(ItemStack item, boolean pt) {
         List<EnchantEntry> result = new ArrayList<>();
@@ -105,8 +122,10 @@ public final class EnchantService {
                 if (v.enchantment().canEnchantItem(item)) {
                     result.add(e);
                 }
-            } else {
-                result.add(e);
+            } else if (e instanceof CustomEnchantEntry c) {
+                if (c.enchant().canApplyTo(item.getType())) {
+                    result.add(e);
+                }
             }
         }
         return result;
@@ -133,20 +152,31 @@ public final class EnchantService {
 
     /**
      * Why {@code enchantment} can't go on {@code item} right now, or null if it's
-     * fine - vanilla-only (custom entries have no item-type/conflict concept).
+     * fine. Sharpness/Smite/Bane of Arthropods are deliberately exempted from real
+     * vanilla's mutual-exclusion rule (see {@link #NON_EXCLUSIVE_DAMAGE_FAMILY}) -
+     * every other real vanilla conflict still applies.
      */
     public String vanillaBlockReason(ItemStack item, Enchantment enchantment, boolean pt) {
         if (!enchantment.canEnchantItem(item)) {
             return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
         }
+        boolean exempt = NON_EXCLUSIVE_DAMAGE_FAMILY.contains(enchantment.getKey().getKey());
         for (Enchantment existing : item.getEnchantments().keySet()) {
-            if (existing.equals(enchantment)) {
+            if (existing.equals(enchantment) || (exempt && NON_EXCLUSIVE_DAMAGE_FAMILY.contains(existing.getKey().getKey()))) {
                 continue;
             }
             if (enchantment.conflictsWith(existing)) {
                 String name = PLAIN.serialize(existing.displayName(1));
                 return pt ? "Conflita com " + name + ", já aplicado." : "Conflicts with " + name + ", already applied.";
             }
+        }
+        return null;
+    }
+
+    /** Why {@code enchant} can't go on {@code item} right now, or null if it's fine - the custom-entry counterpart to {@link #vanillaBlockReason}. */
+    public String customBlockReason(ItemStack item, IcarusEnchant enchant, boolean pt) {
+        if (!enchant.canApplyTo(item.getType())) {
+            return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
         }
         return null;
     }
