@@ -14,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
@@ -134,13 +135,19 @@ public final class CustomEnchantEffectListener implements Listener {
         return item;
     }
 
-    /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. */
+    /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} plus real Power (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. */
     @EventHandler
     public void bowShoot(EntityShootBowEvent e) {
         if (e.getBow() == null || e.getBow().getType() != Material.BOW || !(e.getProjectile() instanceof AbstractArrow arrow)) {
             return;
         }
-        arrow.setDamage(BASE_BOW_DAMAGE);
+        // Power's own real vanilla damage bonus would otherwise apply to the arrow's
+        // draw-force-based damage before this even runs - overwriting the number
+        // wholesale (below) also throws that away, so it's added back here as the
+        // described +8%/level instead, same idea as CombatListener#applyMeleeEnchantBonus
+        // does for Sharpness/Smite/Bane of Arthropods.
+        int powerLevel = e.getBow().getEnchantmentLevel(Enchantment.POWER);
+        arrow.setDamage(BASE_BOW_DAMAGE * (1.0 + powerLevel * 0.08));
         // A fully-drawn shot is still flagged critical by vanilla's own charge-time
         // logic, which then adds its own random bonus on top of getDamage() at hit
         // time - forcing this off is what actually makes the number flat regardless

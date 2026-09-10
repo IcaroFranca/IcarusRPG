@@ -10,6 +10,8 @@ import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.item.ToolDamageService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
@@ -21,8 +23,10 @@ import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
@@ -35,8 +39,10 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -75,6 +81,13 @@ public final class CombatListener implements Listener {
      * plugin's own configurable multiplier for that roll.
      */
     private static final float VANILLA_CRITICAL_MULTIPLIER = 1.5F;
+    /** Real vanilla's own "undead" category - who Smite targets - see {@link #applyMeleeEnchantBonus}. */
+    private static final Set<EntityType> UNDEAD_TYPES = EnumSet.of(EntityType.ZOMBIE, EntityType.SKELETON,
+            EntityType.WITHER_SKELETON, EntityType.STRAY, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
+            EntityType.DROWNED, EntityType.PHANTOM, EntityType.WITHER, EntityType.ZOGLIN, EntityType.ZOMBIFIED_PIGLIN);
+    /** Real vanilla's own "arthropod" category - who Bane of Arthropods targets - see {@link #applyMeleeEnchantBonus}. */
+    private static final Set<EntityType> ARTHROPOD_TYPES = EnumSet.of(EntityType.SPIDER, EntityType.CAVE_SPIDER,
+            EntityType.SILVERFISH, EntityType.ENDERMITE);
 
     private final Plugin plugin;
     private final CombatSkillService combat;
@@ -187,6 +200,8 @@ public final class CombatListener implements Listener {
             }
             return;
         }
+        ItemStack weapon = p.getInventory().getItemInMainHand();
+        this.applyMeleeEnchantBonus(e, weapon, target);
         boolean playerTarget = this.isRealPlayer(target);
         if (playerTarget && !this.pvpFullDamageStack) {
             // combat.pvp-full-damage-stack: false reverts to the old PvP formula (only
@@ -205,7 +220,6 @@ public final class CombatListener implements Listener {
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
         // formula PvE gets, so a player's progression means the same thing in both.
         double mobBonus = playerTarget ? 1.0 : 1.0 + BestiaryCatalog.find(target).map(entry -> this.bestiary.damageBonus(p, entry)).orElse(0.0);
-        ItemStack weapon = p.getInventory().getItemInMainHand();
         double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
@@ -241,6 +255,50 @@ public final class CombatListener implements Listener {
                 }
             }
         });
+    }
+
+    /**
+     * Replaces {@code e}'s damage with {@code weapon}'s own known flat total (see
+     * {@code SwordDamageService}/{@code ToolDamageService}) times {@code 1 +} the real
+     * Sharpness/Smite/Bane of Arthropods percentage described on the enchant's own
+     * catalog entry ({@code linearCapped(level, 5, 5, 30)}, same shape {@code
+     * VanillaEnchantEntry} uses) - vanilla's own native bonus for these three (a small
+     * flat number baked into {@code e.getDamage()} before this event even fires,
+     * nowhere close to the described percentage) is thrown away entirely rather than
+     * measured and subtracted, since recomputing from the weapon's own known clean
+     * base sidesteps ever having to reverse-engineer vanilla's internal formula
+     * precisely. No-ops (leaves vanilla's own small native bonus as-is) for a weapon
+     * neither damage service recognizes - bare hands, or anything Sharpness/Smite/
+     * Bane can't even be applied to in the first place.
+     */
+    private void applyMeleeEnchantBonus(EntityDamageByEntityEvent e, ItemStack weapon, LivingEntity target) {
+        Double base = SwordDamageService.totalDamage(weapon.getType());
+        if (base == null) {
+            base = ToolDamageService.totalDamage(weapon.getType());
+        }
+        if (base == null) {
+            return;
+        }
+        int sharpness = weapon.getEnchantmentLevel(Enchantment.SHARPNESS);
+        int percent = 0;
+        if (sharpness > 0) {
+            percent = linearCapped(sharpness);
+        } else if (UNDEAD_TYPES.contains(target.getType())) {
+            percent = linearCapped(weapon.getEnchantmentLevel(Enchantment.SMITE));
+        } else if (ARTHROPOD_TYPES.contains(target.getType())) {
+            percent = linearCapped(weapon.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS));
+        }
+        if (percent > 0) {
+            e.setDamage(base * (1.0 + percent / 100.0));
+        }
+    }
+
+    /** 5%/level, except level 5 jumps straight to 30% instead of continuing the line - same shape {@code VanillaEnchantEntry#linearCapped} describes on the catalog entry itself. 0 for level 0 (no enchant). */
+    private static int linearCapped(int level) {
+        if (level <= 0) {
+            return 0;
+        }
+        return level == 5 ? 30 : level * 5;
     }
 
     /** Mirrors vanilla's own condition for baking its "jump critical" bonus into an attack - see {@link #VANILLA_CRITICAL_MULTIPLIER}. */
