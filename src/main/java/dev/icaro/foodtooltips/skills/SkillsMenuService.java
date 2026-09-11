@@ -15,6 +15,7 @@ import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import dev.icaro.foodtooltips.travel.TravelMenuService;
 import dev.icaro.foodtooltips.trash.TrashMenuService;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -597,10 +598,17 @@ public final class SkillsMenuService {
         return this.item(Material.IRON_SWORD, l.choose("Status de Combate", "Combat Stats"), lore);
     }
 
-    /** Adds a stat line plus its gray "where this comes from" sub-line right under it. */
+    /**
+     * Adds a stat line plus its gray "where this comes from" sub-line(s) right under it.
+     * source often comes from {@link #join} joining several active bonus sources (Helmet +
+     * Chestplate + Leggings + Boots + Mining, say) into one string that can run past a
+     * comfortable line width, so it's wrapped the same way as every other menu's lore.
+     */
     private void stat(List<Component> lore, String line, NamedTextColor color, String source) {
         lore.add(this.text(line, color));
-        lore.add(this.text("  " + source, NamedTextColor.DARK_GRAY));
+        for (String part : LoreWrap.wrapText(source, LoreWrap.DEFAULT_WIDTH - 2)) {
+            lore.add(this.text("  " + part, NamedTextColor.DARK_GRAY));
+        }
     }
 
     /** Joins non-null parts with " + " - null entries (a bonus that's currently zero) are simply skipped. */
