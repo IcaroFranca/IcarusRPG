@@ -37,6 +37,8 @@ import org.bukkit.inventory.EntityEquipment;
  * percentage reduction above.
  */
 public final class ArmorEnchantEffectListener implements Listener {
+    /** Every fall damage instance is this many times vanilla's own - player and mob alike, see {@link #fall}. */
+    private static final double FALL_DAMAGE_MULTIPLIER = 5.0;
     private final EnchantService enchants;
 
     public ArmorEnchantEffectListener(EnchantService enchants) {
@@ -82,18 +84,26 @@ public final class ArmorEnchantEffectListener implements Listener {
         }
     }
 
-    /** Feather Falling: extra safe fall height (1 block/level, flat subtraction) plus a 5%-per-level reduction on top, read from the boots - vanilla computed {@code e.getDamage()} here as if unenchanted, since the item can no longer carry the real vanilla enchantment. */
+    /**
+     * Multiplies vanilla's own fall damage by {@value #FALL_DAMAGE_MULTIPLIER} - every
+     * {@link LivingEntity}, player or mob, since neither the cause nor the target is
+     * gated on anything else - then, on top of that scaled-up baseline, Feather
+     * Falling: extra safe fall height (1 block/level, flat subtraction) plus a
+     * 5%-per-level reduction, read from the boots - vanilla computed {@code
+     * e.getDamage()} here as if unenchanted, since the item can no longer carry the
+     * real vanilla enchantment.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void fall(EntityDamageEvent e) {
         if (e.getCause() != EntityDamageEvent.DamageCause.FALL || !(e.getEntity() instanceof LivingEntity target)) {
             return;
         }
+        double damage = e.getDamage() * FALL_DAMAGE_MULTIPLIER;
         int level = this.armorLevel(target, IcarusEnchant.FEATHER_FALLING);
-        if (level <= 0) {
-            return;
+        if (level > 0) {
+            damage = Math.max(0.0, damage - level) * (1.0 - 0.05 * level);
         }
-        double reduced = Math.max(0.0, e.getDamage() - level);
-        e.setDamage(reduced * (1.0 - 0.05 * level));
+        e.setDamage(damage);
     }
 
     /** Thorns: a flat 50% chance (not level-scaled) to reflect 3%-per-level of the incoming hit back at the attacker - unrelated to real vanilla Thorns' own chance/amount formula, so this entry is fully custom rather than an overleveled vanilla one. Reflected damage has no source (same reasoning as Flame's burn - see {@code CustomEnchantEffectListener}), so it doesn't re-enter CombatListener's own multiplier pipeline. */
