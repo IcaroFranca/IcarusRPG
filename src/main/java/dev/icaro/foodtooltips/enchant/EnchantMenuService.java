@@ -507,9 +507,66 @@ public final class EnchantMenuService {
         }
         lore.add(Component.empty());
         List<ItemType> applicable = this.applicableItemTypes(e);
-        String names = applicable.isEmpty() ? "-" : applicable.stream().map(t -> pt ? t.pt() : t.en()).collect(java.util.stream.Collectors.joining(", "));
-        lore.add(this.text((pt ? "Aplicável em: " : "Applies to: ") + names, NamedTextColor.GRAY));
+        List<String> names = applicable.stream().map(t -> pt ? t.pt() : t.en()).collect(java.util.stream.Collectors.toList());
+        lore.addAll(this.wrapList(pt ? "Aplicável em: " : "Applies to: ", names, NamedTextColor.GRAY));
         return this.enchantedBook(e.catalogName(pt), lore);
+    }
+
+    /** Max characters per lore line before wrapping - past this, a line reads fine as text but stretches the tooltip uncomfortably wide. */
+    private static final int LORE_WRAP_WIDTH = 40;
+
+    /**
+     * Greedily word-wraps a plain sentence into lore lines no wider than
+     * {@link #LORE_WRAP_WIDTH}, breaking only on spaces (never mid-word).
+     * Generic helper for any long freeform lore text (descriptions etc.).
+     */
+    private List<Component> wrapText(String text, NamedTextColor color) {
+        List<Component> lines = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        for (String word : text.split(" ")) {
+            if (line.length() > 0 && line.length() + 1 + word.length() > LORE_WRAP_WIDTH) {
+                lines.add(this.text(line.toString(), color));
+                line.setLength(0);
+            }
+            if (line.length() > 0) {
+                line.append(' ');
+            }
+            line.append(word);
+        }
+        if (line.length() > 0) {
+            lines.add(this.text(line.toString(), color));
+        }
+        return lines;
+    }
+
+    /**
+     * Greedily packs a comma-separated item list into lore lines no wider than
+     * {@link #LORE_WRAP_WIDTH}, never splitting a single item across two lines
+     * (unlike {@link #wrapText}, which wraps on any word). The first line carries
+     * {@code prefix} (e.g. "Applies to: "); wrapped continuation lines are indented
+     * to line up under it.
+     */
+    private List<Component> wrapList(String prefix, List<String> items, NamedTextColor color) {
+        List<Component> lines = new ArrayList<>();
+        if (items.isEmpty()) {
+            lines.add(this.text(prefix + "-", color));
+            return lines;
+        }
+        String indent = " ".repeat(prefix.length());
+        StringBuilder line = new StringBuilder(prefix);
+        boolean lineHasItem = false;
+        for (String item : items) {
+            String candidate = lineHasItem ? line + ", " + item : line.toString() + item;
+            if (lineHasItem && candidate.length() > LORE_WRAP_WIDTH) {
+                lines.add(this.text(line.toString(), color));
+                line = new StringBuilder(indent).append(item);
+            } else {
+                line = new StringBuilder(candidate);
+            }
+            lineHasItem = true;
+        }
+        lines.add(this.text(line.toString(), color));
+        return lines;
     }
 
     private List<EnchantEntry> filteredGuideEntries(Player p, boolean pt) {
