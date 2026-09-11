@@ -135,10 +135,10 @@ public final class CustomEnchantEffectListener implements Listener {
         return item;
     }
 
-    /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} plus real Power (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. */
+    /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} plus real Power (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. Player shots only - {@link EntityShootBowEvent} also fires for any mob shooting a real BOW item (skeletons in particular), which this used to silently overwrite with the player's own flat total, well above vanilla's own (much lower, difficulty-scaled) skeleton arrow damage. */
     @EventHandler
     public void bowShoot(EntityShootBowEvent e) {
-        if (e.getBow() == null || e.getBow().getType() != Material.BOW || !(e.getProjectile() instanceof AbstractArrow arrow)) {
+        if (!(e.getEntity() instanceof Player) || e.getBow() == null || e.getBow().getType() != Material.BOW || !(e.getProjectile() instanceof AbstractArrow arrow)) {
             return;
         }
         // Power's own real vanilla damage bonus would otherwise apply to the arrow's
