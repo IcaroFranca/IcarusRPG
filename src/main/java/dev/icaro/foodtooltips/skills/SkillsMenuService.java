@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
+import dev.icaro.foodtooltips.enchant.EnchantMenuService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalLevelSnapshot;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
@@ -54,6 +55,7 @@ public final class SkillsMenuService {
     private TravelMenuService travel;
     private CraftingMenuService crafting;
     private TrashMenuService trash;
+    private EnchantMenuService enchantMenu;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -85,6 +87,10 @@ public final class SkillsMenuService {
 
     public void trash(TrashMenuService trash) {
         this.trash = trash;
+    }
+
+    public void enchantMenu(EnchantMenuService enchantMenu) {
+        this.enchantMenu = enchantMenu;
     }
 
     /**
@@ -162,6 +168,8 @@ public final class SkillsMenuService {
         v.setItem(0, this.item(t.icon(), l.choose("Progressão de ", "Progression: ") + t.name(l == Language.PT), List.of(this.skillLine(p, t, l))));
         if (t == SkillType.MINING) {
             v.setItem(40, this.item(Material.BOOK, l.choose("Compêndio de Mineração", "Mining Compendium"), List.of(this.text(l.choose("Contadores, milestones, XP, drops e camadas.", "Counters, milestones, XP, drops and layers."), NamedTextColor.YELLOW))));
+        } else if (t == SkillType.ENCHANTING && this.enchantMenu != null) {
+            v.setItem(40, this.item(Material.BOOK, l.choose("Guia de Encantamentos", "Enchantment Guide"), List.of(this.text(l.choose("Veja todos os encantamentos disponíveis.", "See every enchantment available."), NamedTextColor.YELLOW))));
         }
         this.nav(v, l, page, this.general.maxLevel());
         this.open(p, v, new View(Type.GENERAL, page, t));
@@ -286,6 +294,9 @@ public final class SkillsMenuService {
                 } else if (slot == 40 && v.skill() == SkillType.MINING) {
                     this.views.remove(p.getUniqueId());
                     this.mining.open(p);
+                } else if (slot == 40 && v.skill() == SkillType.ENCHANTING && this.enchantMenu != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.enchantMenu.openGuide(p, 0);
                 } else if (slot == 48 && v.page() > 0) {
                     this.openGeneral(p, v.skill(), v.page() - 1);
                 } else if (slot == 50) {
