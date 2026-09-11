@@ -375,7 +375,7 @@ extends JavaPlugin {
         }), 1L, ticks);
         this.getServer().getScheduler().runTaskTimer((Plugin)this, this.visuals::tick, 1L, Math.max(1L, this.getConfig().getLong("mob-visuals.update-ticks", 3L)));
         AnimalSeparationService animalSeparation = new AnimalSeparationService();
-        this.getServer().getScheduler().runTaskTimer((Plugin)this, animalSeparation::separateAll, 1L, 20L);
+        this.getServer().getScheduler().runTaskTimer((Plugin)this, animalSeparation::separateAll, 1L, 10L);
         for (World w : this.getServer().getWorlds()) {
             for (LivingEntity e : w.getLivingEntities()) {
                 combatListener.scaleMobHealth(e);
