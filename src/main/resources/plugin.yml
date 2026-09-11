@@ -1,10 +1,10 @@
 name: IcarusRPG
-version: '0.70.32'
+version: '0.70.33'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
 prefix: IcarusRPG
-softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention, Citizens, Sentinel]
+softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention, Citizens, Sentinel, PlaceholderAPI]
 commands:
   coins:
     description: Shows or administrates coin balances.

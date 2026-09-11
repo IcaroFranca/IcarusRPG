@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.70.32</version>
+  <version>0.70.33</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>
@@ -35,6 +35,10 @@
     <repository>
       <id>citizens-repo</id>
       <url>https://maven.citizensnpcs.co/repo</url>
+    </repository>
+    <repository>
+      <id>extendedclip-repo</id>
+      <url>https://repo.extendedclip.com/releases/</url>
     </repository>
   </repositories>
 
@@ -108,6 +112,17 @@
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <!-- Optional soft-depend, same story as WorldGuard/Citizens above:
+         IcarusPlaceholders talks to PlaceholderAPI's own expansion API directly at
+         compile time, so it needs this even though the plugin only registers that
+         expansion when PlaceholderAPI is actually installed. Free/open-source
+         (github.com/PlaceholderAPI/PlaceholderAPI). -->
+    <dependency>
+      <groupId>me.clip</groupId>
+      <artifactId>placeholderapi</artifactId>
+      <version>2.11.6</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 

@@ -55,6 +55,7 @@ import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.mining.GemService;
 import dev.icaro.foodtooltips.mining.MiningMenuListener;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
+import dev.icaro.foodtooltips.placeholder.IcarusPlaceholders;
 import dev.icaro.foodtooltips.skills.ArmorDefenseListener;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.BedrockSwordThrowListener;
@@ -410,6 +411,9 @@ extends JavaPlugin {
             economy.updateBoard((Player)p);
         });
         Bukkit.getScheduler().runTask((Plugin)this, presentation::refreshAll);
+        if (this.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new IcarusPlaceholders(global).register();
+        }
     }
 
     public void onDisable() {
