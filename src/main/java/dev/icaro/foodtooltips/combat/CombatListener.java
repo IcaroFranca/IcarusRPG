@@ -201,7 +201,16 @@ public final class CombatListener implements Listener {
             return;
         }
         ItemStack weapon = p.getInventory().getItemInMainHand();
-        this.applyMeleeEnchantBonus(e, weapon, target);
+        if (!(e.getDamager() instanceof Projectile)) {
+            // Sharpness/Smite/Bane of Arthropods only ever apply to a genuine melee
+            // hit - an arrow's own damage is already set (Power included) back in
+            // CustomEnchantEffectListener#bowShoot. Without this check, a projectile
+            // hit would read whatever's in the player's main hand AT THE MOMENT THE
+            // ARROW LANDS (which could easily be an unrelated Sharpness sword, not
+            // the bow that actually fired it) and wrongly replace the arrow's damage
+            // with that sword's own flat total.
+            this.applyMeleeEnchantBonus(e, weapon, target);
+        }
         boolean playerTarget = this.isRealPlayer(target);
         if (playerTarget && !this.pvpFullDamageStack) {
             // combat.pvp-full-damage-stack: false reverts to the old PvP formula (only
