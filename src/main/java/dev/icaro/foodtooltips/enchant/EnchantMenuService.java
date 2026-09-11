@@ -60,8 +60,6 @@ public final class EnchantMenuService {
     private static final int TABLE_ICON_SLOT = 28;
     private static final int BOOKSHELF_SLOT = 48;
     private static final int GUIDE_SLOT = 50;
-    /** A second, more central button that also opens the Guide - same destination as {@link #GUIDE_SLOT}, just easier to spot. */
-    private static final int GUIDE_SHORTCUT_SLOT = 40;
     private static final int SCROLL_UP_SLOT = 17;
     private static final int SCROLL_DOWN_SLOT = 35;
     private static final int BACK_SLOT = 49;
@@ -147,11 +145,9 @@ public final class EnchantMenuService {
                 l.choose("Poder das Estantes", "Bookshelf Power"),
                 List.of(this.text(this.bookshelfPower(p) + " / " + BOOKSHELF_POWER_CAP, NamedTextColor.AQUA),
                         this.text(l.choose("Necessário para desbloquear alguns encantamentos e níveis.", "Needed to unlock some enchantments and levels."), NamedTextColor.DARK_GRAY))));
-        ItemStack guideBook = this.item(Material.BOOK,
+        v.setItem(GUIDE_SLOT, this.item(Material.BOOK,
                 l.choose("Guia de Encantamentos", "Enchantment Guide"),
-                List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW)));
-        v.setItem(GUIDE_SLOT, guideBook);
-        v.setItem(GUIDE_SHORTCUT_SLOT, guideBook.clone());
+                List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW))));
         this.renderMainCatalog(v, p, page);
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.MAIN, page, null));
@@ -439,7 +435,7 @@ public final class EnchantMenuService {
         }
         switch (v.type()) {
             case MAIN -> {
-                if (slot == GUIDE_SLOT || slot == GUIDE_SHORTCUT_SLOT) {
+                if (slot == GUIDE_SLOT) {
                     // Stash whatever's in the item slot - the Guide's own screen has no
                     // real item slot, and this MAIN inventory is about to implicitly
                     // close (see #openScreen) as openGuide opens its own.
