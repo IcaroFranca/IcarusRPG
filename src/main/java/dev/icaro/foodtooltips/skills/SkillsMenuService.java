@@ -169,7 +169,7 @@ public final class SkillsMenuService {
         if (t == SkillType.MINING) {
             v.setItem(40, this.item(Material.BOOK, l.choose("Compêndio de Mineração", "Mining Compendium"), List.of(this.text(l.choose("Contadores, milestones, XP, drops e camadas.", "Counters, milestones, XP, drops and layers."), NamedTextColor.YELLOW))));
         } else if (t == SkillType.ENCHANTING && this.enchantMenu != null) {
-            v.setItem(40, this.item(Material.BOOK, l.choose("Guia de Encantamentos", "Enchantment Guide"), List.of(this.text(l.choose("Veja todos os encantamentos disponíveis.", "See every enchantment available."), NamedTextColor.YELLOW))));
+            v.setItem(51, this.item(Material.BOOK, l.choose("Guia de Encantamentos", "Enchantment Guide"), List.of(this.text(l.choose("Veja todos os encantamentos disponíveis.", "See every enchantment available."), NamedTextColor.YELLOW))));
         }
         this.nav(v, l, page, this.general.maxLevel());
         this.open(p, v, new View(Type.GENERAL, page, t));
@@ -294,7 +294,7 @@ public final class SkillsMenuService {
                 } else if (slot == 40 && v.skill() == SkillType.MINING) {
                     this.views.remove(p.getUniqueId());
                     this.mining.open(p);
-                } else if (slot == 40 && v.skill() == SkillType.ENCHANTING && this.enchantMenu != null) {
+                } else if (slot == 51 && v.skill() == SkillType.ENCHANTING && this.enchantMenu != null) {
                     this.views.remove(p.getUniqueId());
                     this.enchantMenu.openGuide(p, 0);
                 } else if (slot == 48 && v.page() > 0) {
