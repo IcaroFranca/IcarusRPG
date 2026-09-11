@@ -72,6 +72,7 @@ import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillsListener;
 import dev.icaro.foodtooltips.skills.SkillsMenuService;
+import dev.icaro.foodtooltips.skills.SkillType;
 import dev.icaro.foodtooltips.skills.SkillsStarListener;
 import dev.icaro.foodtooltips.skills.SkillsStarService;
 import dev.icaro.foodtooltips.skills.SwordThrowListener;
@@ -156,7 +157,8 @@ extends JavaPlugin {
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
-        EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones);
+        EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
+                (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
         menus.enchantMenu(enchantMenu);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
