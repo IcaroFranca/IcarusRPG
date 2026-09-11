@@ -155,6 +155,8 @@ public final class EnchantMenuService {
     private final SkillProgressBarService bars;
     private final GlobalLevelService global;
     private final EnchantMilestoneService milestones;
+    /** Where GUIDE_BACK_SLOT/CATEGORY_BACK_SLOT go when there's no real table to return to (see {@link #hasRealTable}) - reopens the Enchanting skill screen in /skills, since that's the only other entry point into the Guide/Milestones screens. */
+    private final java.util.function.Consumer<Player> skillsBack;
     private final Map<UUID, View> views = new HashMap<>();
     private final Map<UUID, ItemStack> pendingItem = new HashMap<>();
     private final Map<UUID, Location> tableLocation = new HashMap<>();
@@ -172,13 +174,36 @@ public final class EnchantMenuService {
      */
     private final Set<UUID> transitioning = new HashSet<>();
 
-    public EnchantMenuService(Plugin plugin, EnchantService enchants, GeneralSkillService general, SkillProgressBarService bars, GlobalLevelService global, EnchantMilestoneService milestones) {
+    public EnchantMenuService(Plugin plugin, EnchantService enchants, GeneralSkillService general, SkillProgressBarService bars, GlobalLevelService global, EnchantMilestoneService milestones, java.util.function.Consumer<Player> skillsBack) {
         this.plugin = plugin;
         this.enchants = enchants;
         this.general = general;
         this.bars = bars;
         this.global = global;
         this.milestones = milestones;
+        this.skillsBack = skillsBack;
+    }
+
+    /** Whether {@code p} has a real table backing the current menu session - see {@link #open}/{@link #close} - vs. having entered the Guide or Milestones screens straight from the Enchanting skill screen in /skills, with no table involved at all. */
+    private boolean hasRealTable(Player p) {
+        return this.tableLocation.containsKey(p.getUniqueId());
+    }
+
+    /** Routes a "back to menu" click to the physical table's own main screen if there is one, or back to the Enchanting skill screen in /skills otherwise (see {@link #hasRealTable}) - shared by the Guide's and the Milestones categories screen's own back buttons. */
+    private void backFromStandaloneScreen(Player p) {
+        if (this.hasRealTable(p)) {
+            this.openMain(p, 0);
+        } else if (this.skillsBack != null) {
+            // Leaving this menu system entirely for SkillsMenuService's own - clear our
+            // own state proactively first, same as every other cross-service handoff in
+            // this plugin does (e.g. SkillsMenuService#handleClick removing its own view
+            // before calling into mining/crafting/trash), rather than relying on the
+            // implicit InventoryCloseEvent this triggers to clean it up after the fact.
+            this.close(p);
+            this.skillsBack.accept(p);
+        } else {
+            p.closeInventory();
+        }
     }
 
     /** Opens the table for {@code p} - {@code table} is the physical block right-clicked, used to compute Bookshelf Power (see {@link #bookshelfPower}), which some enchantments/levels require a minimum amount of (see {@link EnchantEntry#requiredBookshelfPower}). */
@@ -633,10 +658,11 @@ public final class EnchantMenuService {
             }
             case GUIDE -> {
                 if (slot == GUIDE_BACK_SLOT) {
-                    // Don't touch pendingItem here - openMain below restores it into the
-                    // item slot itself (removing it from the map exactly once).
+                    // Don't touch pendingItem here - openMain (when there's a real table -
+                    // see #backFromStandaloneScreen) restores it into the item slot itself
+                    // (removing it from the map exactly once).
                     this.guideSearch.remove(p.getUniqueId());
-                    this.openMain(p, 0);
+                    this.backFromStandaloneScreen(p);
                     return true;
                 } else if (slot == GUIDE_CLOSE_SLOT) {
                     p.closeInventory();
@@ -662,11 +688,7 @@ public final class EnchantMenuService {
                     this.openMilestoneList(p, EnchantCategory.ARMOR, 0);
                     return true;
                 } else if (slot == CATEGORY_BACK_SLOT) {
-                    // Same as GUIDE_BACK_SLOT above - always the physical table's own main
-                    // screen, even entering from the Enchanting skill screen in /skills
-                    // (no real table backing it there, same accepted quirk the Guide's own
-                    // back button already has).
-                    this.openMain(p, 0);
+                    this.backFromStandaloneScreen(p);
                     return true;
                 }
             }
