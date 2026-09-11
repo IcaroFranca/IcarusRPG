@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
+import dev.icaro.foodtooltips.global.GlobalXpSource;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
@@ -97,15 +98,68 @@ public final class EnchantMenuService {
      */
     private static final double ENCHANTING_XP_COEFFICIENT = 3.5;
     private static final double ENCHANTING_XP_EXPONENT = 1.5;
+    /** Global XP for achieving a milestone (an entry/level applied through this table for the first time) - {@link #MILESTONE_MAX_LEVEL_XP} instead if that level is the entry's own max. See {@link #applyLevel}. */
+    private static final long MILESTONE_XP = 1;
+    private static final long MILESTONE_MAX_LEVEL_XP = 2;
+
+    private static final int CATEGORY_WEAPONS_SLOT = 20;
+    private static final int CATEGORY_TOOLS_SLOT = 22;
+    private static final int CATEGORY_ARMOR_SLOT = 24;
+    private static final int CATEGORY_BACK_SLOT = 49;
+    private static final int MILESTONE_TITLE_SLOT = 4;
+    private static final int MILESTONE_BACK_SLOT = 48;
+    private static final int MILESTONE_PREV_PAGE_SLOT = 45;
+    private static final int MILESTONE_NEXT_PAGE_SLOT = 53;
+    /** Where enchant books sit in the Milestones list screen's catalog grid - same 4x7 shape as the Guide's own {@link #GUIDE_CATALOG_SLOTS}. */
+    private static final int[] MILESTONE_CATALOG_SLOTS = GUIDE_CATALOG_SLOTS;
+
+    /** Broad item-type groupings the Milestones screen filters by - see {@link #ITEM_TYPES}. */
+    private enum EnchantCategory { WEAPONS, TOOLS, ARMOR }
+
+    /** One representative Material used purely to test {@link EnchantEntry} compatibility against (real vanilla {@code canEnchantItem}/custom {@code canApplyTo}) - material TIER doesn't affect compatibility, only its base type does, so a Netherite/top-tier example stands in for its whole family. */
+    private record ItemType(Material material, String pt, String en, EnchantCategory category) {
+    }
+
+    private static final List<ItemType> ITEM_TYPES = buildItemTypes();
+
+    private static List<ItemType> buildItemTypes() {
+        List<ItemType> types = new ArrayList<>(List.of(
+                new ItemType(Material.NETHERITE_SWORD, "Espada", "Sword", EnchantCategory.WEAPONS),
+                new ItemType(Material.TRIDENT, "Tridente", "Trident", EnchantCategory.WEAPONS),
+                new ItemType(Material.MACE, "Maça", "Mace", EnchantCategory.WEAPONS),
+                new ItemType(Material.BOW, "Arco", "Bow", EnchantCategory.WEAPONS),
+                new ItemType(Material.CROSSBOW, "Besta", "Crossbow", EnchantCategory.WEAPONS),
+                new ItemType(Material.NETHERITE_PICKAXE, "Picareta", "Pickaxe", EnchantCategory.TOOLS),
+                new ItemType(Material.NETHERITE_AXE, "Machado", "Axe", EnchantCategory.TOOLS),
+                new ItemType(Material.NETHERITE_SHOVEL, "Pá", "Shovel", EnchantCategory.TOOLS),
+                new ItemType(Material.NETHERITE_HOE, "Enxada", "Hoe", EnchantCategory.TOOLS),
+                new ItemType(Material.NETHERITE_HELMET, "Capacete", "Helmet", EnchantCategory.ARMOR),
+                new ItemType(Material.NETHERITE_CHESTPLATE, "Peitoral", "Chestplate", EnchantCategory.ARMOR),
+                new ItemType(Material.NETHERITE_LEGGINGS, "Calça", "Leggings", EnchantCategory.ARMOR),
+                new ItemType(Material.NETHERITE_BOOTS, "Bota", "Boots", EnchantCategory.ARMOR),
+                new ItemType(Material.ELYTRA, "Elytra", "Elytra", EnchantCategory.ARMOR)));
+        // Spear (Wood/Stone/Copper/Iron/Gold/Diamond/Netherite - Mounts of Mayhem)
+        // looked up by name rather than referencing Material.NETHERITE_SPEAR directly,
+        // same reasoning PolearmDamageService's own _SPEAR-suffix check uses - avoids
+        // ever needing to know the exact enum constant spelling at compile time.
+        Material spear = Material.matchMaterial("NETHERITE_SPEAR");
+        if (spear != null) {
+            types.add(new ItemType(spear, "Lança", "Spear", EnchantCategory.WEAPONS));
+        }
+        return List.copyOf(types);
+    }
 
     private final Plugin plugin;
     private final EnchantService enchants;
     private final GeneralSkillService general;
     private final SkillProgressBarService bars;
     private final GlobalLevelService global;
+    private final EnchantMilestoneService milestones;
     private final Map<UUID, View> views = new HashMap<>();
     private final Map<UUID, ItemStack> pendingItem = new HashMap<>();
     private final Map<UUID, Location> tableLocation = new HashMap<>();
+    /** Which {@link EnchantCategory} a player is currently browsing on the Milestones screen - see {@link #openMilestoneList}. */
+    private final Map<UUID, EnchantCategory> milestoneCategory = new HashMap<>();
     /** Current search filter for the Guide screen, per player - absent/blank means unfiltered. Cleared whenever the player leaves the Guide screen. */
     private final Map<UUID, String> guideSearch = new HashMap<>();
     /**
@@ -118,12 +172,13 @@ public final class EnchantMenuService {
      */
     private final Set<UUID> transitioning = new HashSet<>();
 
-    public EnchantMenuService(Plugin plugin, EnchantService enchants, GeneralSkillService general, SkillProgressBarService bars, GlobalLevelService global) {
+    public EnchantMenuService(Plugin plugin, EnchantService enchants, GeneralSkillService general, SkillProgressBarService bars, GlobalLevelService global, EnchantMilestoneService milestones) {
         this.plugin = plugin;
         this.enchants = enchants;
         this.general = general;
         this.bars = bars;
         this.global = global;
+        this.milestones = milestones;
     }
 
     /** Opens the table for {@code p} - {@code table} is the physical block right-clicked, used to compute Bookshelf Power (see {@link #bookshelfPower}), which some enchantments/levels require a minimum amount of (see {@link EnchantEntry#requiredBookshelfPower}). */
@@ -250,7 +305,17 @@ public final class EnchantMenuService {
         EnchantService.chargeXp(p, cost);
         this.gainEnchantingXp(p, cost);
         this.enchants.setLevel(item, enchant, level, pt);
-        p.sendMessage(this.msg(l.choose("Aplicado: ", "Applied: ") + enchant.leveledName(pt, level), NamedTextColor.GREEN));
+        String appliedMsg = l.choose("Aplicado: ", "Applied: ") + enchant.leveledName(pt, level);
+        // Milestone XP - only for a level actually purchased through this table (never
+        // a level skipped over buying straight to a higher one, and never an item
+        // that arrived enchanted some other way, since #achieve only ever runs from
+        // here) - see EnchantMilestoneService's own doc.
+        if (this.milestones.achieve(p, enchant, level)) {
+            long milestoneXp = level == enchant.maxLevel() ? MILESTONE_MAX_LEVEL_XP : MILESTONE_XP;
+            this.global.addGlobalXp(p, milestoneXp, GlobalXpSource.ENCHANT_MILESTONE);
+            appliedMsg += " " + l.choose("(+" + milestoneXp + " XP Global - Milestone!)", "(+" + milestoneXp + " Global XP - Milestone!)");
+        }
+        p.sendMessage(this.msg(appliedMsg, NamedTextColor.GREEN));
         this.openMain(p, 0);
     }
 
@@ -304,7 +369,7 @@ public final class EnchantMenuService {
         v.setItem(GUIDE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
         v.setItem(GUIDE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
         v.setItem(GUIDE_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar ao menu", "Back to menu"), List.of()));
-        v.setItem(GUIDE_CLOSE_SLOT, this.item(Material.BARRIER, l.choose("Fechar", "Close"), List.of()));
+        v.setItem(GUIDE_CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, l.choose("Fechar", "Close"), List.of()));
         String search = this.guideSearch.get(p.getUniqueId());
         List<Component> searchLore = search == null || search.isBlank()
                 ? List.of(this.text(l.choose("Clique para pesquisar.", "Click to search."), NamedTextColor.YELLOW))
@@ -314,6 +379,112 @@ public final class EnchantMenuService {
         v.setItem(GUIDE_SEARCH_SLOT, this.item(Material.OAK_SIGN, l.choose("Pesquisar", "Search"), searchLore));
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.GUIDE, page, null));
+    }
+
+    /**
+     * Top-level filter screen for the Milestones list ({@link #openMilestoneList}) -
+     * reached from the Enchanting skill screen in {@code /skills} ({@code
+     * SkillsMenuService}), entirely independent of any real table/item (same as the
+     * Guide).
+     */
+    public void openMilestoneCategories(Player p) {
+        Language l = Language.of(p);
+        Inventory v = Bukkit.createInventory(null, 54, l.choose("Milestones de Encantamento", "Enchantment Milestones"));
+        this.fill(v);
+        v.setItem(CATEGORY_WEAPONS_SLOT, this.item(Material.NETHERITE_SWORD, l.choose("Armas", "Weapons"),
+                List.of(this.text(l.choose("Espada, Tridente, Maça, Arco, Besta, Lança.", "Sword, Trident, Mace, Bow, Crossbow, Spear."), NamedTextColor.GRAY))));
+        v.setItem(CATEGORY_TOOLS_SLOT, this.item(Material.NETHERITE_PICKAXE, l.choose("Ferramentas", "Tools"),
+                List.of(this.text(l.choose("Picareta, Machado, Pá, Enxada.", "Pickaxe, Axe, Shovel, Hoe."), NamedTextColor.GRAY))));
+        v.setItem(CATEGORY_ARMOR_SLOT, this.item(Material.NETHERITE_CHESTPLATE, l.choose("Armadura", "Armor"),
+                List.of(this.text(l.choose("Capacete, Peitoral, Calça, Bota, Elytra.", "Helmet, Chestplate, Leggings, Boots, Elytra."), NamedTextColor.GRAY))));
+        v.setItem(CATEGORY_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        this.openScreen(p, v);
+        this.views.put(p.getUniqueId(), new View(Type.CATEGORIES, 0, null));
+    }
+
+    /**
+     * Every {@link EnchantEntry} applicable to at least one item type in {@code
+     * category} (see {@link #ITEM_TYPES}) - an entry can be cross-listed under more
+     * than one category (Sharpness applies to both a Sword - Weapons - and an Axe -
+     * Tools). Each icon's lore shows every level colored green (achieved - see {@link
+     * EnchantMilestoneService}) or red (not yet), plus which real item types it can
+     * go on.
+     */
+    public void openMilestoneList(Player p, EnchantCategory category, int page) {
+        Language l = Language.of(p);
+        boolean pt = l == Language.PT;
+        List<EnchantEntry> all = this.entriesForCategory(category, pt);
+        int pages = Math.max(1, (all.size() + MILESTONE_CATALOG_SLOTS.length - 1) / MILESTONE_CATALOG_SLOTS.length);
+        page = Math.max(0, Math.min(pages - 1, page));
+        String categoryName = this.categoryName(category, pt);
+        String title = "(" + (page + 1) + "/" + pages + ") " + categoryName;
+        Inventory v = Bukkit.createInventory(null, 54, title);
+        this.fill(v);
+        for (int i = 0; i < MILESTONE_CATALOG_SLOTS.length; i++) {
+            int index = page * MILESTONE_CATALOG_SLOTS.length + i;
+            v.setItem(MILESTONE_CATALOG_SLOTS[i], index < all.size() ? this.milestoneIcon(p, all.get(index), pt) : this.filler());
+        }
+        v.setItem(MILESTONE_TITLE_SLOT, this.item(Material.KNOWLEDGE_BOOK, categoryName, List.of()));
+        v.setItem(MILESTONE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
+        v.setItem(MILESTONE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
+        v.setItem(MILESTONE_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às categorias", "Back to categories"), List.of()));
+        this.milestoneCategory.put(p.getUniqueId(), category);
+        this.openScreen(p, v);
+        this.views.put(p.getUniqueId(), new View(Type.MILESTONES, page, null));
+    }
+
+    private List<EnchantEntry> entriesForCategory(EnchantCategory category, boolean pt) {
+        List<EnchantEntry> result = new ArrayList<>();
+        for (EnchantEntry e : this.enchants.allEntries(pt)) {
+            for (ItemType t : ITEM_TYPES) {
+                if (t.category() == category && this.appliesTo(e, t.material())) {
+                    result.add(e);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    /** Every real item type (any category) {@code e} can actually be enchanted onto - same compatibility check {@code EnchantService#compatibleEntries} uses, just run against one representative Material per type instead of a real held item. */
+    private List<ItemType> applicableItemTypes(EnchantEntry e) {
+        List<ItemType> result = new ArrayList<>();
+        for (ItemType t : ITEM_TYPES) {
+            if (this.appliesTo(e, t.material())) {
+                result.add(t);
+            }
+        }
+        return result;
+    }
+
+    private boolean appliesTo(EnchantEntry e, Material material) {
+        if (e instanceof VanillaEnchantEntry v) {
+            return v.enchantment().canEnchantItem(ItemStack.of(material));
+        }
+        return e instanceof CustomEnchantEntry c && c.enchant().canApplyTo(material);
+    }
+
+    private String categoryName(EnchantCategory category, boolean pt) {
+        return switch (category) {
+            case WEAPONS -> pt ? "Armas" : "Weapons";
+            case TOOLS -> pt ? "Ferramentas" : "Tools";
+            case ARMOR -> pt ? "Armadura" : "Armor";
+        };
+    }
+
+    private ItemStack milestoneIcon(Player p, EnchantEntry e, boolean pt) {
+        List<Component> lore = new ArrayList<>();
+        int max = e.maxLevel();
+        for (int level = 1; level <= max; level++) {
+            boolean achieved = this.milestones.hasAchieved(p, e, level);
+            String label = (pt ? "Nível " : "Level ") + EnchantService.roman(level);
+            lore.add(this.text((achieved ? "✔ " : "✘ ") + label, achieved ? NamedTextColor.GREEN : NamedTextColor.RED));
+        }
+        lore.add(Component.empty());
+        List<ItemType> applicable = this.applicableItemTypes(e);
+        String names = applicable.isEmpty() ? "-" : applicable.stream().map(t -> pt ? t.pt() : t.en()).collect(java.util.stream.Collectors.joining(", "));
+        lore.add(this.text((pt ? "Aplicável em: " : "Applies to: ") + names, NamedTextColor.GRAY));
+        return this.enchantedBook(e.catalogName(pt), lore);
     }
 
     private List<EnchantEntry> filteredGuideEntries(Player p, boolean pt) {
@@ -414,6 +585,7 @@ public final class EnchantMenuService {
         this.pendingItem.remove(p.getUniqueId());
         this.tableLocation.remove(p.getUniqueId());
         this.guideSearch.remove(p.getUniqueId());
+        this.milestoneCategory.remove(p.getUniqueId());
     }
 
     /**
@@ -478,6 +650,38 @@ public final class EnchantMenuService {
                 }
                 // GUIDE_SEARCH_SLOT is deliberately NOT handled here - it needs to close
                 // the inventory and open a sign, which EnchantMenuListener owns.
+            }
+            case CATEGORIES -> {
+                if (slot == CATEGORY_WEAPONS_SLOT) {
+                    this.openMilestoneList(p, EnchantCategory.WEAPONS, 0);
+                    return true;
+                } else if (slot == CATEGORY_TOOLS_SLOT) {
+                    this.openMilestoneList(p, EnchantCategory.TOOLS, 0);
+                    return true;
+                } else if (slot == CATEGORY_ARMOR_SLOT) {
+                    this.openMilestoneList(p, EnchantCategory.ARMOR, 0);
+                    return true;
+                } else if (slot == CATEGORY_BACK_SLOT) {
+                    // Same as GUIDE_BACK_SLOT above - always the physical table's own main
+                    // screen, even entering from the Enchanting skill screen in /skills
+                    // (no real table backing it there, same accepted quirk the Guide's own
+                    // back button already has).
+                    this.openMain(p, 0);
+                    return true;
+                }
+            }
+            case MILESTONES -> {
+                EnchantCategory category = this.milestoneCategory.get(p.getUniqueId());
+                if (slot == MILESTONE_BACK_SLOT) {
+                    this.openMilestoneCategories(p);
+                    return true;
+                } else if (slot == MILESTONE_PREV_PAGE_SLOT && v.page() > 0 && category != null) {
+                    this.openMilestoneList(p, category, v.page() - 1);
+                    return true;
+                } else if (slot == MILESTONE_NEXT_PAGE_SLOT && category != null) {
+                    this.openMilestoneList(p, category, v.page() + 1);
+                    return true;
+                }
             }
         }
         return false;
@@ -664,5 +868,5 @@ public final class EnchantMenuService {
     public record View(Type type, int page, EnchantEntry enchant) {
     }
 
-    public enum Type { MAIN, LEVEL, GUIDE }
+    public enum Type { MAIN, LEVEL, GUIDE, CATEGORIES, MILESTONES }
 }

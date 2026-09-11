@@ -22,6 +22,7 @@ import dev.icaro.foodtooltips.enchant.ArmorEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
+import dev.icaro.foodtooltips.enchant.EnchantMilestoneService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuListener;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuService;
@@ -154,7 +155,8 @@ extends JavaPlugin {
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
-        EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global);
+        EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
+        EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones);
         menus.enchantMenu(enchantMenu);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
