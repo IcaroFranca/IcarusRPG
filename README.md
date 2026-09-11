@@ -38,12 +38,14 @@ nova ou mudança de sistema.
 | `combat` | Listener de combate, visuais de mob (HP/nome acima da cabeça) |
 | `destroyer` | Destroyer's Hand |
 | `economy` | Moedas dos jogadores |
+| `enchant` | Mesa de Encantamento reformulada (catálogo próprio, Bookshelf Power, Amolador) |
 | `food` | Tooltips de comida |
 | `global` | Nível Global, XP, cores de badge/tema |
 | `i18n` | Idioma por jogador (PT/EN, a partir do locale do cliente) |
 | `island` | Ilha de combate: mobs customizados, zona por bioma, proteção de blocos |
 | `item` | Tiers de raridade, dano de espada/ferramenta, durabilidade, Armas Lendárias |
 | `mining` | Baú do tesouro, gemas, menu de mineração |
+| `placeholder` | Expansão de PlaceholderAPI (opcional) expondo stats do plugin pra outros plugins |
 | `protect` | Hooks de proteção (WorldGuard/GriefPrevention) |
 | `skills` | Skills de combate/gerais, árvore de habilidades, Estrela do Menu |
 | `stats` | Status do jogador e HUD |
@@ -69,6 +71,11 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
 - **Skills gerais** (Mineração, Agricultura, Pesca, Coleta, Encantamento, Alquimia):
   cada uma dá Fortune e/ou um bônus de atributo por nível (Vida, Strength,
   Inteligência ou Defesa, dependendo da skill) — ver `/skills` → skill individual.
+  Todas as skills (Combate incluído) compartilham a mesma curva de XP por nível
+  (`SkillXpCurve`): tabela explícita para os níveis 1-30, fixa em 1.000.000 de XP a
+  partir do 31. A barra de progresso (boss bar) de cada skill tem uma cor própria:
+  Agricultura verde, Pesca azul, Mineração branca, Coleta amarela, Encantamento rosa,
+  Alquimia roxa (Combate mantém a vermelha).
 - **Menu de Locais** (`/skills` → Locais): teleporte grátis e ilimitado — Mundo Padrão
   e Ilha de Combate (esta exige Nível de Combate mínimo, padrão 5).
 
@@ -92,6 +99,9 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
 | Diamante | 15 | 40 | 30 | 15 | 100 |
 | Netherite | 18 | 46 | 35 | 18 | 117 |
 
+O encantamento Protection soma +4 de Defesa por nível (até nível V), por peça,
+empilhando em cima da tabela acima.
+
 **Dano corpo a corpo por material** (espada, machado, picareta, pá e enxada batem
 igual dentro do mesmo material):
 
@@ -103,8 +113,27 @@ igual dentro do mesmo material):
 | Diamante | 35 (ferramentas: 30) |
 | Netherite | 40 (ferramentas: 35) |
 
+**Lança (todos os tiers), Tridente e Maça** multiplicam o dano vanilla por 5:
+
+| Item | Dano |
+|---|---|
+| Lança Madeira/Ouro | 25 |
+| Lança Pedra/Cobre | 30 |
+| Lança Ferro | 35 |
+| Lança Diamante | 40 |
+| Lança Netherite | 45 |
+| Tridente | 45 |
+| Maça | 30 |
+
+Sharpness/Smite/Bane of Arthropods aplicam a % descrita de verdade (5%/nível, 30% no
+nível V) sobre o dano-base limpo da arma, em vez do bônus nativo (pequeno, fixo) do
+vanilla — só em golpe corpo a corpo, nunca em flecha.
+
 A tooltip do item mostra Dano de Ataque e **Velocidade de Ataque real** (recalculada
 com o Nível de Combate do jogador, não o valor cru do modificador).
+
+**Dano de queda** é multiplicado por 5, pra qualquer entidade (jogador ou mob) —
+Feather Falling continua reduzindo por cima desse valor já multiplicado.
 
 ## Itens & Raridade
 
@@ -116,7 +145,9 @@ ferramentas/armas únicas do plugin). Mostrado como `TIER {letra}` no nome/lore 
 item, aplicado no join e reaplicado a cada tick do HUD.
 
 Durabilidade Máxima de todo item danificável é multiplicada por
-`items.durability-multiplier` (padrão 5).
+`items.durability-multiplier` (padrão 5) — exceto itens de ouro (`GOLDEN_*`:
+ferramentas, armas, armadura, horse armor), que ganham 1.000 de Durabilidade Máxima
+fixa em vez do multiplicador padrão.
 
 ### Armas Lendárias (`/rpgitems`, admin-only)
 
@@ -135,6 +166,40 @@ não têm gimmick de posicionamento. Todas são `Unbreakable`, ganham brilho se 
 e mostram Ataque/Velocidade de Ataque real na tooltip (a de Velocidade se atualiza
 com o Nível de Combate de quem segura).
 
+## Encantamentos
+
+Clicar com o botão direito numa Mesa de Encantamento de verdade abre a tela própria do
+plugin (`EnchantMenuService`) em vez da UI aleatória do vanilla — todo encantamento é
+escolhido explicitamente (nunca sorteado), tanto os próprios do plugin
+(`IcarusEnchant`) quanto os vanilla de verdade, todos misturados num catálogo único.
+Escolher uma entrada abre a tela de níveis, mostrando custo/efeito de cada um; aplicar
+gasta níveis de XP reais (como uma bigorna), com desconto proporcional ao nível já
+aplicado daquela mesma entrada (ex.: já ter o nível 1 de 5 dá 20% de desconto nos
+níveis 2-5; ter o nível 3 de 5 dá 60% de desconto nos níveis 4-5). Remover um
+encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`).
+
+- **Bookshelf Power**: uma Estante a 2 blocos de distância (qualquer uma das 8
+  direções horizontais, cardeais + diagonais), no mesmo andar da mesa ou 1 acima,
+  conta 1 ponto (16 posições possíveis, teto real). Um bloco sólido — incluindo outra
+  Estante — bem do lado da mesa bloqueia a Estante 2 blocos adiante naquela
+  direção/andar de contar (regra de obstrução igual à do vanilla de verdade). Alguns
+  encantamentos/níveis exigem um Bookshelf Power mínimo pra aplicar — nível 1 de
+  qualquer encantamento é sempre livre, escalando linear até o teto no nível máximo
+  daquele encantamento; o nível aparece no menu mesmo bloqueado, só com o custo em
+  vermelho.
+- **XP da skill de Encantamento** usa a fórmula real do vanilla (Mesa de
+  Encantamento/Bigorna): `XP = 3,5 × X^1,5`, onde X é a quantidade de níveis de XP
+  gastos na aplicação.
+- Vários encantamentos vanilla foram convertidos em entradas próprias do plugin com
+  efeito e descrição reais (não mais o efeito nativo do vanilla): Flame, Lure,
+  Infinite Quiver, Luck of the Sea, Fire Aspect, toda a família Protection
+  (Protection/Fire/Blast/Projectile), Respiration, Thorns, Feather Falling. Os que
+  continuam sendo encantamentos vanilla reais (Sharpness, Smite, Bane of Arthropods,
+  Power, Knockback, Punch, Looting, Sweeping Edge, Efficiency, Fortune...) tiveram a
+  descrição corrigida pra bater com o efeito de verdade, e ganharam efeito real quando
+  a descrição prometia algo que não existia (ex.: Efficiency agora aplica um bônus
+  real de velocidade de mineração; Fortune agora soma na Mining Fortune de verdade).
+
 ## Bestiário (`/bestiary`)
 
 Catálogo de mobs organizado em abas por categoria (Animais, Monstros Terrestres,
@@ -143,6 +208,20 @@ Combate, moedas, Pontos de Sangue, orbes de XP e drops; matar um mob concede
 milestones que dão bônus de dano/loot contra aquele tipo específico. Mobs
 "variantes" (ex.: os da Ilha de Combate) têm progresso e ícone próprios, nunca
 misturados com o mob vanilla que compartilham.
+
+## Mineração
+
+**Mining Speed** é um stat puramente de equipamento (não sobe com a skill de
+Mineração): velocidade base da picareta + nível real de Efficiency encantado
+(`10 + 20/nível`), mostrado na tooltip da picareta e aplicado de verdade em jogo via
+`Attribute.MINING_EFFICIENCY`.
+
+**Insta-mine**: picareta, machado ou pá de Netherite com Efficiency V (vanilla, de
+verdade) quebra instantaneamente qualquer bloco com dureza ≤ 6.0 — cobre pedra,
+minério, madeira, terra etc. (Deepslate, o mais duro do grupo normal, é 4.5).
+Obsidiana, Ancient Debris, Crying Obsidian e Respawn Anchor continuam lentos como
+sempre. Depende só do item + encantamento, sem exigir nível de skill; ferramentas de
+ouro ficam de fora dessa garantia.
 
 ## Ilha de Combate (`dev.icaro.foodtooltips.island`)
 
@@ -210,3 +289,6 @@ presentes nunca são sobrescritas).
 - **WorldGuard/GriefPrevention** (opcional) — hooks de proteção em `protect`.
 - **Multiverse-Core** (opcional, recomendado) — multi-mundo; o menu de Locais e a
   Ilha de Combate funcionam com qualquer setup de mundos, Multiverse ou não.
+- **PlaceholderAPI** (opcional) — se instalado, registra `IcarusPlaceholders`
+  (`placeholder`), expondo `%icarusrpg_globallevel%` (Nível Global do jogador) pra
+  outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
