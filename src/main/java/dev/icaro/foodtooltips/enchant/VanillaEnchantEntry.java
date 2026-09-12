@@ -223,9 +223,10 @@ final class VanillaEnchantEntry implements EnchantEntry {
         };
     }
 
-    /** "+X" for the generic view, or "+" + the resolved number for a specific level. */
+    /** "+" plus {@code formula} evaluated at {@code level} (or at 1, for the generic view - see {@code EnchantText.Token#value}'s own doc for why). */
     private static EnchantText.Token plusValue(Integer level, java.util.function.IntUnaryOperator formula) {
-        return EnchantText.Token.colored(level == null ? "+X" : "+" + formula.applyAsInt(level), EnchantText.VALUE_COLOR);
+        int resolvedLevel = level == null ? 1 : level;
+        return EnchantText.Token.colored("+" + formula.applyAsInt(resolvedLevel), EnchantText.VALUE_COLOR);
     }
 
     /** One-line hand-written descriptions with no numeric value, keyed by the enchantment's plain (unnamespaced) key - null (no line shown) for anything not listed here, so a future/unrecognized enchantment degrades gracefully instead of breaking. */

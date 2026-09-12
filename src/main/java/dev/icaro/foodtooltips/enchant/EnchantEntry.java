@@ -48,16 +48,16 @@ public sealed interface EnchantEntry permits CustomEnchantEntry, VanillaEnchantE
 
     /**
      * Word-wrapped lore lines explaining what this entry does, with any numeric
-     * value shown as a bright green "X" placeholder rather than a real number -
-     * shown in the catalog and Guide, where no specific level is selected yet. Empty
-     * (never null) if there isn't one.
+     * value shown as level 1's own real number (in bright green) rather than a
+     * placeholder letter - shown in the catalog and Guide, where no specific level is
+     * selected yet. Empty (never null) if there isn't one.
      */
     List<Component> genericDescription(boolean pt);
 
     /**
-     * Same description as {@link #genericDescription}, but with {@code level}'s real
-     * value substituted in place of the "X" placeholder - shown on the level-select
-     * screen and in an applied item's own lore. Empty (never null) if there isn't one.
+     * Same description as {@link #genericDescription}, but with {@code level}'s own
+     * real value in place of level 1's - shown on the level-select screen and in an
+     * applied item's own lore. Empty (never null) if there isn't one.
      */
     List<Component> resolvedDescription(boolean pt, int level);
 }

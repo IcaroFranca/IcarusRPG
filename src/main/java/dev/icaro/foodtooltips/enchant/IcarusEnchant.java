@@ -160,14 +160,14 @@ public enum IcarusEnchant {
         return costs[Math.max(1, Math.min(level, costs.length)) - 1];
     }
 
-    /** Word-wrapped description, colored the same way vanilla entries are - see {@link EnchantText}. {@code level} null shows the generic "X"/"Y" placeholder view; a real level resolves the real numbers. */
+    /** Word-wrapped description, colored the same way vanilla entries are - see {@link EnchantText}. {@code level} null shows the generic view (level 1's own numbers - see {@code EnchantText.Token#value}'s own doc for why); a real level resolves that level's own numbers instead. */
     public List<Component> description(boolean pt, Integer level) {
         return switch (this) {
             case FLAME -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("A flecha incendeia seus inimigos por"), lookup(FLAME_DURATION, "X", level), EnchantText.Token.plain("s, causando"),
-                            lookup(FLAME_PERCENT, "Y", level), EnchantText.Token.plain("% do seu dano por segundo."))
-                    : List.of(EnchantText.Token.plain("Arrow ignites your enemies for"), lookup(FLAME_DURATION, "X", level), EnchantText.Token.plain("s, dealing"),
-                            lookup(FLAME_PERCENT, "Y", level), EnchantText.Token.plain("% of your damage per second.")));
+                    ? List.of(EnchantText.Token.plain("A flecha incendeia seus inimigos por"), lookup(FLAME_DURATION, level), EnchantText.Token.plain("s, causando"),
+                            lookup(FLAME_PERCENT, level), EnchantText.Token.plain("% do seu dano por segundo."))
+                    : List.of(EnchantText.Token.plain("Arrow ignites your enemies for"), lookup(FLAME_DURATION, level), EnchantText.Token.plain("s, dealing"),
+                            lookup(FLAME_PERCENT, level), EnchantText.Token.plain("% of your damage per second.")));
             case LURE -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Diminui o tempo máximo para fisgar algo em"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Shortens the maximum time to catch something by"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
@@ -180,10 +180,10 @@ public enum IcarusEnchant {
                     : List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Treasure Chance", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(", which increases the chance of fishing treasure.")));
             case FIRE_ASPECT -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Incendeia seus inimigos por"), lookup(FIRE_ASPECT_DURATION, "X", level), EnchantText.Token.plain("s, causando"),
-                            lookup(FIRE_ASPECT_PERCENT, "Y", level), EnchantText.Token.plain("% do seu dano por nível por segundo."))
-                    : List.of(EnchantText.Token.plain("Ignites your enemies for"), lookup(FIRE_ASPECT_DURATION, "X", level), EnchantText.Token.plain("s, dealing"),
-                            lookup(FIRE_ASPECT_PERCENT, "Y", level), EnchantText.Token.plain("% of your damage per level per second.")));
+                    ? List.of(EnchantText.Token.plain("Incendeia seus inimigos por"), lookup(FIRE_ASPECT_DURATION, level), EnchantText.Token.plain("s, causando"),
+                            lookup(FIRE_ASPECT_PERCENT, level), EnchantText.Token.plain("% do seu dano por nível por segundo."))
+                    : List.of(EnchantText.Token.plain("Ignites your enemies for"), lookup(FIRE_ASPECT_DURATION, level), EnchantText.Token.plain("s, dealing"),
+                            lookup(FIRE_ASPECT_PERCENT, level), EnchantText.Token.plain("% of your damage per level per second.")));
             case PROTECTION -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 4), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 4), EnchantText.Token.colored("❈ Defense", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
@@ -234,7 +234,7 @@ public enum IcarusEnchant {
                     : List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⚓ Aquatic", AQUATIC_COLOR), EnchantText.Token.plain("mobs by"),
                             EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain(".")));
             case EXECUTE -> {
-                String coefficient = level == null ? "X" : number(0.2 * level);
+                String coefficient = number(0.2 * (level == null ? 1 : level));
                 yield EnchantText.wrap(pt
                         ? List.of(EnchantText.Token.plain("Aumenta o dano em"), EnchantText.Token.colored(coefficient + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
                                 EnchantText.Token.plain("para cada 1% de vida faltando do alvo."))
@@ -242,9 +242,10 @@ public enum IcarusEnchant {
                                 EnchantText.Token.plain("for each 1% of the target's missing health.")));
             }
             case GIANT_KILLER -> {
-                String rate = level == null ? "X" : (level >= 5 ? "0,6" : number(0.1 * level));
-                String rateEn = level == null ? "X" : (level >= 5 ? "0.6" : number(0.1 * level));
-                String cap = level == null ? "X" : String.valueOf(level >= 5 ? 30 : 5 * level);
+                int resolvedLevel = level == null ? 1 : level;
+                String rate = resolvedLevel >= 5 ? "0,6" : number(0.1 * resolvedLevel);
+                String rateEn = resolvedLevel >= 5 ? "0.6" : number(0.1 * resolvedLevel);
+                String cap = String.valueOf(resolvedLevel >= 5 ? 30 : 5 * resolvedLevel);
                 yield EnchantText.wrap(pt
                         ? List.of(EnchantText.Token.plain("Aumenta o dano em"), EnchantText.Token.colored(rate + "%", EnchantText.VALUE_COLOR),
                                 EnchantText.Token.plain("para cada 1% de vida extra que o alvo tiver acima da sua, até"),
@@ -254,7 +255,7 @@ public enum IcarusEnchant {
                                 EnchantText.Token.colored(cap + "%", EnchantText.VALUE_COLOR), EnchantText.Token.plain(".")));
             }
             case EXPERIENCE -> {
-                String chance = level == null ? "X" : number(12.5 * level);
+                String chance = number(12.5 * (level == null ? 1 : level));
                 yield EnchantText.wrap(pt
                         ? List.of(EnchantText.Token.plain("Adiciona"), EnchantText.Token.colored(chance + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
                                 EnchantText.Token.plain("de chance de mobs ou minérios dropar o dobro de orbs de XP."))
@@ -267,7 +268,7 @@ public enum IcarusEnchant {
                     : List.of(EnchantText.Token.plain("Increases the first hit's damage against a full-health target by"), EnchantText.Token.value(level, "%", l -> l * 25),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
             case LETHALITY -> {
-                String amount = level == null ? "X" : number(1.2 * level);
+                String amount = number(1.2 * (level == null ? 1 : level));
                 yield EnchantText.wrap(pt
                         ? List.of(EnchantText.Token.plain("Reduz a"), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR), EnchantText.Token.plain("do alvo em"),
                                 EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
@@ -277,7 +278,7 @@ public enum IcarusEnchant {
                                 EnchantText.Token.plain("per hit, for up to 4 seconds, stacking up to 4 times.")));
             }
             case LIFE_STEAL -> {
-                String amount = level == null ? "X" : number(0.5 * level);
+                String amount = number(0.5 * (level == null ? 1 : level));
                 yield EnchantText.wrap(pt
                         ? List.of(EnchantText.Token.plain("Cura"), EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
                                 EnchantText.Token.plain("da sua vida máxima a cada acerto em um mob."))
@@ -300,7 +301,7 @@ public enum IcarusEnchant {
                     : List.of(EnchantText.Token.plain("Heals"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
                             EnchantText.Token.plain("of your missing health whenever you kill an enemy.")));
             case VENOMOUS -> {
-                String amount = level == null ? "X" : number(0.3 * level);
+                String amount = number(0.3 * (level == null ? 1 : level));
                 yield EnchantText.wrap(pt
                         ? List.of(EnchantText.Token.plain("Cada acerto reduz a"), EnchantText.Token.colored("✦ Velocidade", LABEL_COLOR), EnchantText.Token.plain("do alvo e causa"),
                                 EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
@@ -323,27 +324,24 @@ public enum IcarusEnchant {
         return rounded == Math.rint(rounded) ? String.valueOf((long) rounded) : String.valueOf(rounded);
     }
 
-    /** A duration/percent lookup value formatted without a trailing ".0" for a whole number, or the literal {@code placeholder} for the generic view. */
-    private static EnchantText.Token lookup(double[] table, String placeholder, Integer level) {
-        if (level == null) {
-            return EnchantText.Token.colored(placeholder, EnchantText.VALUE_COLOR);
-        }
-        double v = table[Math.min(level, table.length - 1)];
+    /** A duration/percent lookup value formatted without a trailing ".0" for a whole number - the generic view (null {@code level}) reads level 1's own entry, a real number instead of a placeholder letter, same as every other description helper in this class (see {@code EnchantText.Token#value}'s own doc). */
+    private static EnchantText.Token lookup(double[] table, Integer level) {
+        int resolvedLevel = level == null ? 1 : level;
+        double v = table[Math.min(resolvedLevel, table.length - 1)];
         String text = v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
         return EnchantText.Token.colored(text, EnchantText.VALUE_COLOR);
     }
 
-    /** "+X" for the generic view, or "+" + the resolved number for a specific level - same shape as {@code VanillaEnchantEntry#plusValue}. */
+    /** "+" plus {@code formula} evaluated at {@code level} (or at 1, for the generic view) - same shape as {@code VanillaEnchantEntry#plusValue} and {@code EnchantText.Token#value}. */
     private static EnchantText.Token plusValue(Integer level, IntUnaryOperator formula) {
-        return EnchantText.Token.colored(level == null ? "+X" : "+" + formula.applyAsInt(level), EnchantText.VALUE_COLOR);
+        int resolvedLevel = level == null ? 1 : level;
+        return EnchantText.Token.colored("+" + formula.applyAsInt(resolvedLevel), EnchantText.VALUE_COLOR);
     }
 
-    /** "+X" for the generic view, or "+0.5"/"+1"/.../"+2.5" (0.5-per-level, trimmed to a whole number when it lands on one) for a resolved level - see CustomEnchantEffectListener#fishCatch for how this chance is actually rolled. */
+    /** "+0.5"/"+1"/.../"+2.5" (0.5-per-level, trimmed to a whole number when it lands on one) - the generic view reads level 1's own value, same as everywhere else. See CustomEnchantEffectListener#fishCatch for how this chance is actually rolled. */
     private static String treasureChanceText(Integer level) {
-        if (level == null) {
-            return "+X";
-        }
-        double v = 0.5 * level;
+        int resolvedLevel = level == null ? 1 : level;
+        double v = 0.5 * resolvedLevel;
         String number = v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
         return "+" + number;
     }

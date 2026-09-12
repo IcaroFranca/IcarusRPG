@@ -33,10 +33,19 @@ final class EnchantText {
             return new Token(s, color, true);
         }
 
-        /** The colored value token: the literal "X" placeholder plus {@code unit} when {@code level} is null (generic view), or the real computed number plus {@code unit} (resolved view). */
+        /**
+         * The colored value token: {@code formula} evaluated at {@code level}, plus
+         * {@code unit} - or, for the generic view ({@code level} null, no specific level
+         * chosen yet), the same formula evaluated at level 1, showing a real per-level
+         * rate (e.g. "10%") instead of a bare "X" placeholder - per the user's own
+         * correction, every entry's catalog/guide description should read like Critical's
+         * own ("10% per level"), not a generic letter, and the same goes for every other
+         * unit this builds a value for (blocks, seconds, flat stat points...), not just
+         * percentages.
+         */
         static Token value(Integer level, String unit, java.util.function.IntUnaryOperator formula) {
-            String number = level == null ? "X" : String.valueOf(formula.applyAsInt(level));
-            return colored(number + unit, VALUE_COLOR);
+            int resolvedLevel = level == null ? 1 : level;
+            return colored(formula.applyAsInt(resolvedLevel) + unit, VALUE_COLOR);
         }
     }
 
