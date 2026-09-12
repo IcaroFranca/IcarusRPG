@@ -58,34 +58,34 @@ public enum IcarusEnchant {
     /**
      * The plugin's own melee-weapon enchant family (Critical through Venomous below) -
      * entirely new mechanics, not a leveled-up vanilla enchant like most of the entries
-     * above. All fourteen share the same item scope (swords and axes/pickaxes/shovels/
-     * hoes - see {@link Category#SWORD_OR_TOOL}) and are wired up across {@code
-     * CombatListener} (the damage-percentage ones: Critical, Cubism, Ender Slayer,
-     * Execute, First Strike, Giant Killer, Impaling, plus Lethality's Defense-reduction
-     * debuff) and {@code MeleeEnchantEffectListener} (the on-hit/on-kill ones: Life
-     * Steal, Vampirism, Thunderlord, Venomous, Experience, Luck). Cubism/Ender Slayer/
-     * Impaling target three new mob categories the plugin didn't have before -
-     * {@code CombatListener}'s own {@code CUBIC_TYPES}/{@code ENDER_TYPES}/{@code
-     * AQUATIC_TYPES}.
+     * above. All fourteen are sword-only ({@link Category#SWORD}, same as Fire Aspect
+     * above - explicitly NOT axes/pickaxes/shovels/hoes, per the user's own correction)
+     * and are wired up across {@code CombatListener} (the damage-percentage ones:
+     * Critical, Cubism, Ender Slayer, Execute, First Strike, Giant Killer, Impaling,
+     * plus Lethality's Defense-reduction debuff) and {@code MeleeEnchantEffectListener}
+     * (the on-hit/on-kill ones: Life Steal, Vampirism, Thunderlord, Venomous,
+     * Experience, Luck). Cubism/Ender Slayer/Impaling target three new mob categories
+     * the plugin didn't have before - {@code CombatListener}'s own {@code CUBIC_TYPES}/
+     * {@code ENDER_TYPES}/{@code AQUATIC_TYPES}.
      */
-    CRITICAL("Crítico", "Critical", 5, Category.SWORD_OR_TOOL),
-    CUBISM("Cubismo", "Cubism", 5, Category.SWORD_OR_TOOL),
-    ENDER_SLAYER("Matador do Fim", "Ender Slayer", 5, Category.SWORD_OR_TOOL),
-    EXECUTE("Execução", "Execute", 5, Category.SWORD_OR_TOOL),
-    EXPERIENCE("Experiência", "Experience", 4, Category.SWORD_OR_TOOL),
-    FIRST_STRIKE("Primeiro Golpe", "First Strike", 4, Category.SWORD_OR_TOOL),
-    GIANT_KILLER("Matador de Gigantes", "Giant Killer", 5, Category.SWORD_OR_TOOL),
-    IMPALING("Perfurante", "Impaling", 5, Category.SWORD_OR_TOOL),
-    LETHALITY("Letalidade", "Lethality", 5, Category.SWORD_OR_TOOL),
-    LIFE_STEAL("Roubo de Vida", "Life Steal", 3, Category.SWORD_OR_TOOL),
-    LUCK("Sorte", "Luck", 5, Category.SWORD_OR_TOOL),
-    THUNDERLORD("Senhor do Trovão", "Thunderlord", 5, Category.SWORD_OR_TOOL),
-    VAMPIRISM("Vampirismo", "Vampirism", 5, Category.SWORD_OR_TOOL),
-    VENOMOUS("Venenoso", "Venomous", 5, Category.SWORD_OR_TOOL);
+    CRITICAL("Crítico", "Critical", 5, Category.SWORD),
+    CUBISM("Cubismo", "Cubism", 5, Category.SWORD),
+    ENDER_SLAYER("Matador do Fim", "Ender Slayer", 5, Category.SWORD),
+    EXECUTE("Execução", "Execute", 5, Category.SWORD),
+    EXPERIENCE("Experiência", "Experience", 4, Category.SWORD),
+    FIRST_STRIKE("Primeiro Golpe", "First Strike", 4, Category.SWORD),
+    GIANT_KILLER("Matador de Gigantes", "Giant Killer", 5, Category.SWORD),
+    IMPALING("Perfurante", "Impaling", 5, Category.SWORD),
+    LETHALITY("Letalidade", "Lethality", 5, Category.SWORD),
+    LIFE_STEAL("Roubo de Vida", "Life Steal", 3, Category.SWORD),
+    LUCK("Sorte", "Luck", 5, Category.SWORD),
+    THUNDERLORD("Senhor do Trovão", "Thunderlord", 5, Category.SWORD),
+    VAMPIRISM("Vampirismo", "Vampirism", 5, Category.SWORD),
+    VENOMOUS("Venenoso", "Venomous", 5, Category.SWORD);
 
     /** An entry's item-type restriction - a single material for a held-item entry (a specific bow/rod), or a whole category otherwise, since one {@link Material} can't express "any sword"/"any armor piece". Kept as a nested enum (rather than e.g. a {@code Predicate<Material>} field) so the constant list above - which Java requires to come first in an enum body - never has to forward-reference a same-class static field. */
     private enum Category {
-        SINGLE, SWORD, ARMOR, BOOTS, HELMET, SWORD_OR_TOOL
+        SINGLE, SWORD, ARMOR, BOOTS, HELMET
     }
 
     /** Level 1's (duration seconds, damage % per second) pair; level 2's. Doesn't fit a "flat rate * level" formula, so it's a direct lookup instead. */
@@ -142,7 +142,6 @@ public enum IcarusEnchant {
             case ARMOR -> n.endsWith("_HELMET") || n.endsWith("_CHESTPLATE") || n.endsWith("_LEGGINGS") || n.endsWith("_BOOTS");
             case BOOTS -> n.endsWith("_BOOTS");
             case HELMET -> n.endsWith("_HELMET");
-            case SWORD_OR_TOOL -> n.endsWith("_SWORD") || n.endsWith("_AXE") || n.endsWith("_PICKAXE") || n.endsWith("_SHOVEL") || n.endsWith("_HOE");
         };
     }
 

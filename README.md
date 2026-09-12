@@ -202,8 +202,7 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   descrição corrigida pra bater com o efeito de verdade, e ganharam efeito real quando
   a descrição prometia algo que não existia (ex.: Efficiency agora aplica um bônus
   real de velocidade de mineração; Fortune agora soma na Mining Fortune de verdade).
-- **Família de encantamentos corpo a corpo** (espadas e ferramentas — machado,
-  picareta, pá, enxada): Critical (+dano crítico), Cubism/Ender Slayer/Impaling
+- **Família de encantamentos corpo a corpo** (apenas espadas): Critical (+dano crítico), Cubism/Ender Slayer/Impaling
   (+dano contra mobs Cúbicos ⚂, do Fim ⊙ e Aquáticos ⚓ respectivamente — cada um com
   sua própria lista de `EntityType`), Execute (+dano por % de vida faltando no alvo),
   Giant Killer (+dano por % de vida extra que o alvo tiver acima da sua), First Strike

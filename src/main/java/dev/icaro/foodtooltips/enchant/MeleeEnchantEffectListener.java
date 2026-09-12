@@ -1,7 +1,6 @@
 package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.item.SwordDamageService;
-import dev.icaro.foodtooltips.item.ToolDamageService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -157,9 +156,12 @@ public final class MeleeEnchantEffectListener implements Listener {
      * fully-stacked target is slowed, never fully frozen) and a damage-over-time tick
      * once per second, both scaled by {@code 0.3%-per-level * current stacks} - the DoT
      * is a percentage of the weapon's own known flat total (see {@code
-     * SwordDamageService}/{@code ToolDamageService}), the same clean base {@code
+     * SwordDamageService}), the same clean base {@code
      * CombatListener#applyMeleeEnchantBonus} reads from, rather than the noisy final
-     * hit damage. A no-op for a weapon neither damage service recognizes.
+     * hit damage. A no-op for a weapon {@code SwordDamageService} doesn't recognize -
+     * Venomous is sword-only ({@link IcarusEnchant}'s own doc), so this never has a
+     * tool to fall back to the way {@code CombatListener#applyMeleeEnchantBonus} does
+     * for Sharpness/Smite/Bane.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void venomousHit(EntityDamageByEntityEvent e) {
@@ -172,9 +174,6 @@ public final class MeleeEnchantEffectListener implements Listener {
             return;
         }
         Double base = SwordDamageService.totalDamage(weapon.getType());
-        if (base == null) {
-            base = ToolDamageService.totalDamage(weapon.getType());
-        }
         if (base == null) {
             return;
         }
@@ -244,7 +243,7 @@ public final class MeleeEnchantEffectListener implements Listener {
         e.setDroppedExp(e.getDroppedExp() * 2);
     }
 
-    /** Experience's other half: the same chance to double an XP-dropping ore/block's own dropped orbs, read from the tool that broke it. */
+    /** Experience's other half: the same chance to double an XP-dropping ore/block's own dropped orbs, read from whatever's in the breaking player's main hand - Experience is sword-only ({@link IcarusEnchant}'s own doc), so this only ever procs if that happens to be an enchanted sword rather than the pickaxe actually doing the mining. */
     @EventHandler(ignoreCancelled = true)
     public void experienceOnBreak(BlockBreakEvent e) {
         if (e.getExpToDrop() <= 0) {
