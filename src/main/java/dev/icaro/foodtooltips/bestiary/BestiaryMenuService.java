@@ -6,7 +6,6 @@ import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
-import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
@@ -30,21 +29,16 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.plugin.Plugin;
 
 public final class BestiaryMenuService {
     private static final int PAGE_SIZE = 45;
-    private final Plugin plugin;
     private final BestiaryProgressService progress;
-    private final EconomyService economy;
     private final CombatValorService valor;
     private final GlobalLevelService global;
     private final Map<UUID, View> viewers = new HashMap<UUID, View>();
 
-    public BestiaryMenuService(Plugin plugin, BestiaryProgressService p, EconomyService e, CombatValorService valor, GlobalLevelService global) {
-        this.plugin = plugin;
+    public BestiaryMenuService(BestiaryProgressService p, CombatValorService valor, GlobalLevelService global) {
         this.progress = p;
-        this.economy = e;
         this.valor = valor;
         this.global = global;
     }
@@ -162,7 +156,6 @@ public final class BestiaryMenuService {
         lore.add((Component)Component.text((String)(l.choose("Abates: ", "Kills: ") + this.progress.kills(p, e)), (TextColor)NamedTextColor.RED));
         lore.add((Component)Component.text((String)("Milestones: " + this.progress.achieved(p, e)), (TextColor)NamedTextColor.GOLD));
         lore.add((Component)Component.text((String)("Combat XP: " + e.awardedCombatXp()), (TextColor)NamedTextColor.RED));
-        lore.add((Component)Component.text((String)(l.choose("Moedas: ", "Coins: ") + this.economy.catalogCoins(e.type(), e.awardedCombatXp()) + " \u26c3"), (TextColor)NamedTextColor.YELLOW));
         lore.add((Component)Component.text((String)("\ud83e\ude78 " + l.choose("Pontos de Sangue: ", "Blood Points: ") + this.valor.catalogValor(e)), (TextColor)NamedTextColor.DARK_RED));
         lore.add((Component)Component.text((String)(l.choose("Orbes de XP: ", "XP Orbs: ") + e.orbXp()), (TextColor)NamedTextColor.GREEN));
         lore.add((Component)Component.empty());
@@ -196,20 +189,12 @@ public final class BestiaryMenuService {
         return out;
     }
 
-    /** The menu icon for {@code e} - a custom-textured head matching its actual equipped head for any island mob configured with one (island-mobs.mobs.<id>.head-texture), {@code e.icon()} as-is for every other variant entry (never auto-egg - a variant's whole point is looking distinct from the raw vanilla type it's based on), and the vanilla spawn egg (falling back to {@code e.icon()}) for genuinely canonical entries. */
+    /** The menu icon for {@code e} - the vanilla spawn egg, falling back to {@code e.icon()} for any EntityType with no matching spawn egg. */
     private ItemStack icon(BestiaryEntry e, String name, List<Component> lore) {
-        String texture = this.plugin.getConfig().getString("island-mobs.mobs." + e.id() + ".head-texture", "");
-        if (!texture.isBlank()) {
-            return this.customHeadIcon(texture, name, lore);
-        }
         return this.item(this.spawnEgg(e), name, lore);
     }
 
     private Material spawnEgg(BestiaryEntry e) {
-        boolean canonical = e.id().equals(e.type().key().value());
-        if (!canonical) {
-            return e.icon();
-        }
         Material egg = Material.matchMaterial((String)(e.type().key().value().toUpperCase(Locale.ROOT) + "_SPAWN_EGG"));
         return egg == null ? e.icon() : egg;
     }

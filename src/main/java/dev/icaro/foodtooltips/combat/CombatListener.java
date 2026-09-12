@@ -5,7 +5,6 @@ import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
-import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
@@ -95,7 +94,6 @@ public final class CombatListener implements Listener {
     private final BestiaryProgressService bestiary;
     private final SkillProgressBarService progressBar;
     private final CombatAbilityService abilities;
-    private final EconomyService economy;
     private final GlobalLevelService global;
     private final PlayerStatsService stats;
     private final CombatValorService valor;
@@ -111,11 +109,10 @@ public final class CombatListener implements Listener {
     private final double mobHealthMultiplier;
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
-    private final int islandUnlockLevel;
     private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
-                           CombatAbilityService abilityService, EconomyService economyService, GlobalLevelService global,
+                           CombatAbilityService abilityService, GlobalLevelService global,
                            PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
                            LegendaryWeaponService legendary) {
         this.plugin = p;
@@ -124,7 +121,6 @@ public final class CombatListener implements Listener {
         this.bestiary = b;
         this.progressBar = bar;
         this.abilities = abilityService;
-        this.economy = economyService;
         this.global = global;
         this.stats = stats;
         this.valor = valor;
@@ -137,7 +133,6 @@ public final class CombatListener implements Listener {
         this.mobHealthMultiplier = Math.max(1.0, p.getConfig().getDouble("mob-visuals.health-multiplier", 5.0));
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
-        this.islandUnlockLevel = p.getConfig().getInt("travel.combat-island-min-level", 5);
     }
 
     @EventHandler
@@ -179,7 +174,17 @@ public final class CombatListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    /**
+     * Deliberately HIGH, not HIGHEST: this computes the attacker's own final outgoing
+     * damage (combat level, crit, Global Strength...), which every late-stage incoming-
+     * damage reducer (Defense - {@code ArmorDefenseListener#defense}, enchant
+     * Protection - {@code ArmorEnchantEffectListener#protection}, and this class's own
+     * {@link #secondWind}) needs to already be in place before it runs. HIGH always
+     * runs before any HIGHEST handler regardless of registration order, so this ordering
+     * holds even if those other listeners get re-registered in a different order later -
+     * see the registration-order comment in {@code FoodTooltipsPlugin#onEnable}.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void damage(EntityDamageByEntityEvent e) {
         Player p = this.attacker(e.getDamager());
         if (p == null || !(e.getEntity() instanceof LivingEntity target)) {
@@ -335,12 +340,10 @@ public final class CombatListener implements Listener {
                 this.milestoneMessage(p, entry, update.after(), reward);
             }
         });
-        // A Citizens-tagged NPC (our own custom island mobs) is never instanceof Enemy -
-        // it's a Player-type entity under the hood - so it needs its own check here to
-        // still count as a hostile kill for coins/valor/XP.
+        // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
+        // under the hood - so it needs its own check here to still count as a hostile
+        // kill for valor/XP.
         if (e.getEntity() instanceof Enemy || CitizensIntegrationService.isNpc(e.getEntity())) {
-            int coins = this.economy.mobCoins(p, e.getEntity());
-            this.economy.deposit(p, coins);
             long valorEarned = this.valor.mobValor(e.getEntity());
             this.valor.deposit(p, valorEarned);
             this.abilities.hostileKill(p);
@@ -370,6 +373,16 @@ public final class CombatListener implements Listener {
         }
     }
 
+    /**
+     * HIGHEST, and must be REGISTERED after {@code ArmorDefenseListener} and {@code
+     * ArmorEnchantEffectListener} (see {@code FoodTooltipsPlugin#onEnable}'s comment) -
+     * all three sit at this same priority tier, where Bukkit orders handlers by
+     * registration order, and this needs to see {@link EntityDamageEvent#getFinalDamage()}
+     * AFTER Defense and Protection have already reduced it, not the raw pre-mitigation
+     * number - otherwise a hit that Defense/Protection would have survived could still
+     * burn this ability's cooldown (or worse, judge a hit lethal that never would have
+     * been after mitigation).
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void secondWind(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof Player p) || !this.isRealPlayer(p) || !this.abilities.enabled(p, CombatAbility.SECOND_WIND) || e.getFinalDamage() < p.getHealth()) {
@@ -403,7 +416,6 @@ public final class CombatListener implements Listener {
         this.combat.applyAttackSpeed(p);
         this.stats.applySwingRange(p);
         this.visuals.track(p);
-        this.economy.updateBoard(p);
     }
 
     /** Remembers where the player died - {@link #respawn} hands them a compass pointing back here. */
@@ -517,7 +529,12 @@ public final class CombatListener implements Listener {
         this.progressBar.remove(e.getPlayer());
         this.abilities.clear(e.getPlayer());
         this.secondWind.remove(e.getPlayer().getUniqueId());
-        this.economy.clearBoard(e.getPlayer());
+        // Only ever set between a death and its respawn (see #playerDeath/#respawn) -
+        // if the player quits in that window instead of respawning, nothing else would
+        // ever remove this entry, so it would sit in memory for as long as the server
+        // runs (low impact - one Location per player who's ever done this - but still
+        // an unbounded leak with no cap).
+        this.deathLocations.remove(e.getPlayer().getUniqueId());
     }
 
     private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {
@@ -601,9 +618,6 @@ public final class CombatListener implements Listener {
         p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (bonusValor > 0L) {
             p.sendMessage(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
-        }
-        if (oldLevel < this.islandUnlockLevel && newLevel >= this.islandUnlockLevel) {
-            p.sendMessage(Component.text("🗝 " + l.choose("Ilha de Combate desbloqueada! Acesse pelo menu /skills → Locais.", "Combat Island unlocked! Access it from /skills → Locations."), NamedTextColor.LIGHT_PURPLE));
         }
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
     }

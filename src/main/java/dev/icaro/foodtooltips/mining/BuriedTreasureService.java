@@ -3,15 +3,12 @@ package dev.icaro.foodtooltips.mining;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.mining.TreasureRarity;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
-import java.text.NumberFormat;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleConsumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,13 +24,10 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
 
 public final class BuriedTreasureService {
     private final Plugin plugin;
     private final GeneralSkillService skills;
-    private final NamespacedKey coins = new NamespacedKey("foodtooltips", "coins");
 
     public BuriedTreasureService(GeneralSkillService s) {
         this(null, s);
@@ -124,24 +118,21 @@ public final class BuriedTreasureService {
     private void deliver(Player p, TreasureRarity r, Reward reward, DoubleConsumer xpReward) {
         this.skills.depositMineralDust(p, reward.dust);
         PersistentDataContainer data = p.getPersistentDataContainer();
-        long balance = (Long)data.getOrDefault(this.coins, PersistentDataType.LONG, 0L) + reward.coins;
-        data.set(this.coins, PersistentDataType.LONG, balance);
         NamespacedKey key = this.countKey(r);
         data.set(key, PersistentDataType.INTEGER, ((Integer)data.getOrDefault(key, PersistentDataType.INTEGER, 0) + 1));
         xpReward.accept(reward.xp);
         this.announce(p, r, reward);
-        this.refreshCoins(p, balance);
     }
 
     private Reward reward(TreasureRarity r) {
         ThreadLocalRandom x = ThreadLocalRandom.current();
         return switch (r) {
             default -> throw new MatchException(null, null);
-            case TreasureRarity.COMMON -> new Reward(x.nextLong(25L, 51L), x.nextLong(20L, 51L), 25.0);
-            case TreasureRarity.UNCOMMON -> new Reward(x.nextLong(75L, 126L), x.nextLong(75L, 151L), 75.0);
-            case TreasureRarity.RARE -> new Reward(x.nextLong(250L, 401L), x.nextLong(250L, 501L), 200.0);
-            case TreasureRarity.EPIC -> new Reward(x.nextLong(750L, 1201L), x.nextLong(1000L, 2001L), 500.0);
-            case TreasureRarity.LEGENDARY -> new Reward(x.nextLong(2500L, 4001L), x.nextLong(5000L, 10001L), 1500.0);
+            case TreasureRarity.COMMON -> new Reward(x.nextLong(25L, 51L), 25.0);
+            case TreasureRarity.UNCOMMON -> new Reward(x.nextLong(75L, 126L), 75.0);
+            case TreasureRarity.RARE -> new Reward(x.nextLong(250L, 401L), 200.0);
+            case TreasureRarity.EPIC -> new Reward(x.nextLong(750L, 1201L), 500.0);
+            case TreasureRarity.LEGENDARY -> new Reward(x.nextLong(2500L, 4001L), 1500.0);
         };
     }
 
@@ -173,27 +164,13 @@ public final class BuriedTreasureService {
         p.sendMessage((Component)Component.text((String)("\u2726 " + l.choose("TESOURO SOTERRADO!", "BURIED TREASURE!") + " \u2726"), (TextColor)r.color()));
         p.sendMessage((Component)Component.text((String)(l.choose("Raridade: ", "Rarity: ") + r.name(l == Language.PT)), (TextColor)r.color()));
         p.sendMessage((Component)Component.text((String)("\u2727 " + reward.dust + " " + l.choose("P\u00f3 Mineral", "Mineral Dust")), (TextColor)NamedTextColor.LIGHT_PURPLE));
-        p.sendMessage((Component)Component.text((String)("\u26c3 " + reward.coins + " " + l.choose("moedas", "coins")), (TextColor)NamedTextColor.GOLD));
         p.sendMessage((Component)Component.text((String)("+" + Math.round(reward.xp) + " XP " + l.choose("de Minera\u00e7\u00e3o", "Mining XP")), (TextColor)NamedTextColor.AQUA));
         p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
         p.playSound(p.getLocation(), r.ordinal() >= 3 ? Sound.ENTITY_ENDER_DRAGON_GROWL : Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
         p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0.0, 1.0, 0.0), 30, 0.5, 0.7, 0.5, 0.05);
     }
 
-    private void refreshCoins(Player p, long balance) {
-        Scoreboard board = p.getScoreboard();
-        Objective objective = board.getObjective("rpg_sidebar");
-        if (objective == null) {
-            return;
-        }
-        for (String entry : new HashSet<>(board.getEntries())) {
-            if (!entry.contains("\u26c3")) continue;
-            board.resetScores(entry);
-        }
-        objective.getScore(String.valueOf(ChatColor.YELLOW) + NumberFormat.getIntegerInstance(Locale.US).format(balance) + " \u26c3").setScore(1);
-    }
-
-    private record Reward(long dust, long coins, double xp) {
+    private record Reward(long dust, double xp) {
     }
 }
 
