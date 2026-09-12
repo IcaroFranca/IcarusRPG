@@ -47,6 +47,8 @@ public final class ArmorDefenseService {
     private GeneralSkillService general;
     /** Extra Defense from the Protection enchant (see {@code ArmorEnchantEffectListener}) - wired in the same late-bound way as {@link #general}, as a plain functional callback rather than a direct type reference so this class (in {@code skills}) never has to depend on the {@code enchant} package. Defaults to always-0 so this class works before it's wired (or if it never is). */
     private java.util.function.ToIntFunction<LivingEntity> protectionBonus = e -> 0;
+    /** Lethality's own Defense-reduction debuff (see {@code CombatListener}) - same late-bound callback idea as {@link #protectionBonus}, subtracted instead of added - see {@link #defense}. Defaults to always-0. */
+    private java.util.function.ToIntFunction<LivingEntity> lethalityPenalty = e -> 0;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
@@ -58,18 +60,26 @@ public final class ArmorDefenseService {
         this.protectionBonus = protectionBonus;
     }
 
+    /** Wired in after construction, same pattern as {@link #general} - see {@link #lethalityPenalty}. */
+    public void lethalityPenalty(java.util.function.ToIntFunction<LivingEntity> lethalityPenalty) {
+        this.lethalityPenalty = lethalityPenalty;
+    }
+
     /**
      * Sum of the equipped helmet/chestplate/leggings/boots' Defense values, plus
      * {@link GeneralSkillService#bonusDefense} (Mining, 1 per level) and the
-     * Protection enchant's own Defense (see {@link #protectionBonus}) for players -
-     * works for any player or mob, mobs just never have a skill/enchant bonus to add
-     * (the callback itself handles that - see its own default).
+     * Protection enchant's own Defense (see {@link #protectionBonus}) for players,
+     * minus whatever Lethality's own debuff (see {@link #lethalityPenalty}) currently
+     * takes off - works for any player or mob, mobs just never have a skill/enchant
+     * bonus to add (the callbacks themselves handle that - see their own defaults).
+     * Never negative.
      */
     public int defense(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
         int armorDefense = eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
         int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
-        return armorDefense + skillBonus + this.protectionBonus.applyAsInt(e);
+        int total = armorDefense + skillBonus + this.protectionBonus.applyAsInt(e) - this.lethalityPenalty.applyAsInt(e);
+        return Math.max(0, total);
     }
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */

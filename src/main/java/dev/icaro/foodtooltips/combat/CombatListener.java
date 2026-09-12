@@ -5,6 +5,8 @@ import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
+import dev.icaro.foodtooltips.enchant.EnchantService;
+import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
@@ -87,6 +89,17 @@ public final class CombatListener implements Listener {
     /** Real vanilla's own "arthropod" category - who Bane of Arthropods targets - see {@link #applyMeleeEnchantBonus}. */
     private static final Set<EntityType> ARTHROPOD_TYPES = EnumSet.of(EntityType.SPIDER, EntityType.CAVE_SPIDER,
             EntityType.SILVERFISH, EntityType.ENDERMITE);
+    /** The plugin's own "Cubic" mob category - who Cubism targets - see {@link #customMeleeDamagePercent}. */
+    private static final Set<EntityType> CUBIC_TYPES = EnumSet.of(EntityType.SLIME, EntityType.CREEPER, EntityType.MAGMA_CUBE, EntityType.GHAST);
+    /** The plugin's own "Ender" mob category - who Ender Slayer targets. */
+    private static final Set<EntityType> ENDER_TYPES = EnumSet.of(EntityType.ENDERMAN, EntityType.ENDERMITE, EntityType.ENDER_DRAGON);
+    /** The plugin's own "Aquatic" mob category - who Impaling targets. */
+    private static final Set<EntityType> AQUATIC_TYPES = EnumSet.of(EntityType.COD, EntityType.SALMON, EntityType.TROPICAL_FISH,
+            EntityType.PUFFERFISH, EntityType.SQUID, EntityType.GLOW_SQUID, EntityType.DROWNED, EntityType.GUARDIAN, EntityType.ELDER_GUARDIAN);
+    /** How long a Lethality debuff stage lasts before it's treated as expired - see {@link #addLethalityStack}. */
+    private static final long LETHALITY_DURATION_MILLIS = 4000L;
+    /** Lethality's own cap on how many stacks can be active on one target at once. */
+    private static final int LETHALITY_MAX_STACKS = 4;
 
     private final Plugin plugin;
     private final CombatSkillService combat;
@@ -100,9 +113,12 @@ public final class CombatListener implements Listener {
     private final ArmorDefenseService armor;
     private final GeneralSkillService general;
     private final LegendaryWeaponService legendary;
+    private final EnchantService enchants;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     /** Captured on death, consumed on respawn (see {@link #playerDeath}/{@link #respawn}) - where to point the death compass. */
     private final Map<UUID, Location> deathLocations = new HashMap<>();
+    /** Lethality's own active-debuff state per target - see {@link #addLethalityStack}/{@link #lethalityDefensePenalty}. Pruned periodically (see the constructor) rather than only on read, since a target that stops being hit (a mob that despawns, wanders off, or dies) would otherwise sit here forever with a long-expired entry. */
+    private final Map<UUID, LethalityDebuff> lethality = new HashMap<>();
     private final double critMultiplier;
     private final double hpXp;
     private final double levelXp;
@@ -111,10 +127,14 @@ public final class CombatListener implements Listener {
     private final boolean pvpFullDamageStack;
     private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
+    /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
+    private record LethalityDebuff(int level, int stacks, long expiry) {
+    }
+
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, GlobalLevelService global,
                            PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
-                           LegendaryWeaponService legendary) {
+                           LegendaryWeaponService legendary, EnchantService enchants) {
         this.plugin = p;
         this.combat = c;
         this.visuals = v;
@@ -127,6 +147,22 @@ public final class CombatListener implements Listener {
         this.armor = armor;
         this.general = general;
         this.legendary = legendary;
+        this.enchants = enchants;
+        // Self-registers rather than being wired from FoodTooltipsPlugin (unlike
+        // ArmorEnchantEffectListener#protectionDefenseBonus/ArmorDefenseService#protectionBonus,
+        // which are wired externally since neither class already depends on the other) -
+        // this class already receives ArmorDefenseService itself above, so there's no
+        // reason to also thread the callback back through the plugin's own onEnable.
+        armor.lethalityPenalty(this::lethalityDefensePenalty);
+        // Lethality debuffs expire on their own (see lethalityDefensePenalty), but a
+        // target that stops getting hit (dies, despawns, wanders off) would otherwise
+        // leave its now-permanently-expired entry sitting in the map forever - this
+        // periodic sweep is the same "prune on a timer" fix already applied elsewhere
+        // in this plugin for other long-lived per-entity maps.
+        Bukkit.getScheduler().runTaskTimer(p, () -> {
+            long now = System.currentTimeMillis();
+            this.lethality.values().removeIf(d -> d.expiry() <= now);
+        }, 200L, 200L);
         this.critMultiplier = p.getConfig().getDouble("combat.critical-damage-multiplier", 1.5);
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
@@ -206,15 +242,26 @@ public final class CombatListener implements Listener {
             return;
         }
         ItemStack weapon = p.getInventory().getItemInMainHand();
-        if (!(e.getDamager() instanceof Projectile)) {
+        boolean melee = !(e.getDamager() instanceof Projectile);
+        double customPercent = 0.0;
+        double criticalEnchantBonus = 0.0;
+        if (melee) {
             // Sharpness/Smite/Bane of Arthropods only ever apply to a genuine melee
             // hit - an arrow's own damage is already set (Power included) back in
             // CustomEnchantEffectListener#bowShoot. Without this check, a projectile
             // hit would read whatever's in the player's main hand AT THE MOMENT THE
             // ARROW LANDS (which could easily be an unrelated Sharpness sword, not
             // the bow that actually fired it) and wrongly replace the arrow's damage
-            // with that sword's own flat total.
+            // with that sword's own flat total. The plugin's own melee-weapon enchants
+            // (Critical through Venomous - see IcarusEnchant's own doc) are gated on
+            // the exact same condition, for the exact same reason.
             this.applyMeleeEnchantBonus(e, weapon, target);
+            customPercent = this.customMeleeDamagePercent(p, weapon, target);
+            criticalEnchantBonus = 0.10 * this.enchants.customLevel(weapon, IcarusEnchant.CRITICAL);
+            int lethalityLevel = this.enchants.customLevel(weapon, IcarusEnchant.LETHALITY);
+            if (lethalityLevel > 0) {
+                this.addLethalityStack(target, lethalityLevel);
+            }
         }
         boolean playerTarget = this.isRealPlayer(target);
         if (playerTarget && !this.pvpFullDamageStack) {
@@ -239,8 +286,8 @@ public final class CombatListener implements Listener {
         double armored = this.legendary.armoredMultiplier(target, weapon);
         double undead = this.legendary.undeadMultiplier(target, weapon);
         double damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
-                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) : 1.0)
-                * backstab * armored * undead;
+                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus : 1.0)
+                * backstab * armored * undead * (1.0 + customPercent / 100.0);
         e.setDamage(damage);
         this.legendary.onHit(p, target, weapon);
         if (!playerTarget) {
@@ -307,12 +354,104 @@ public final class CombatListener implements Listener {
         }
     }
 
-    /** 5%/level, except level 5 jumps straight to 30% instead of continuing the line - same shape {@code VanillaEnchantEntry#linearCapped} describes on the catalog entry itself. 0 for level 0 (no enchant). */
+    /** 5%/level, except level 5 jumps straight to 30% instead of continuing the line - same shape {@code VanillaEnchantEntry#linearCapped} describes on the catalog entry itself. 0 for level 0 (no enchant). Also used by Cubism/Ender Slayer/Impaling (see {@link #customMeleeDamagePercent}), which share this exact shape. */
     private static int linearCapped(int level) {
         if (level <= 0) {
             return 0;
         }
         return level == 5 ? 30 : level * 5;
+    }
+
+    /**
+     * Percentage bonus folded into {@link #damage}'s own multiplier stack (on top of
+     * everything else, as one {@code (1 + percent/100)} factor) from the plugin's own
+     * melee-weapon enchants that scale with the target rather than a flat per-level
+     * number - Cubism/Ender Slayer/Impaling (target-type-gated, {@link #linearCapped}'s
+     * shape, same as Sharpness/Smite/Bane above), Execute (per percent of the target's
+     * own missing health), Giant Killer (per percent of the target's max health above
+     * the player's own - see {@link #giantKillerPercent}), and First Strike (a flat
+     * bonus on the first hit against a target still at full health - see
+     * IcarusEnchant's own doc for why that's what "first hit" means here). Sums
+     * additively across every one of these that applies, same as real Hypixel-style
+     * enchant stacking.
+     */
+    private double customMeleeDamagePercent(Player p, ItemStack weapon, LivingEntity target) {
+        double percent = 0.0;
+        EntityType type = target.getType();
+        if (CUBIC_TYPES.contains(type)) {
+            percent += linearCapped(this.enchants.customLevel(weapon, IcarusEnchant.CUBISM));
+        }
+        if (ENDER_TYPES.contains(type)) {
+            percent += linearCapped(this.enchants.customLevel(weapon, IcarusEnchant.ENDER_SLAYER));
+        }
+        if (AQUATIC_TYPES.contains(type)) {
+            percent += linearCapped(this.enchants.customLevel(weapon, IcarusEnchant.IMPALING));
+        }
+        int executeLevel = this.enchants.customLevel(weapon, IcarusEnchant.EXECUTE);
+        if (executeLevel > 0) {
+            percent += 0.2 * executeLevel * missingHealthPercent(target);
+        }
+        int giantKillerLevel = this.enchants.customLevel(weapon, IcarusEnchant.GIANT_KILLER);
+        if (giantKillerLevel > 0) {
+            percent += giantKillerPercent(giantKillerLevel, extraHealthPercent(p, target));
+        }
+        int firstStrikeLevel = this.enchants.customLevel(weapon, IcarusEnchant.FIRST_STRIKE);
+        if (firstStrikeLevel > 0 && isAtFullHealth(target)) {
+            percent += 25.0 * firstStrikeLevel;
+        }
+        return percent;
+    }
+
+    /** {@code target}'s current missing health, as a percentage of its own max health (0 if it's already at or above max, or has no measurable max). */
+    private static double missingHealthPercent(LivingEntity target) {
+        AttributeInstance a = target.getAttribute(Attribute.MAX_HEALTH);
+        double max = a == null ? target.getHealth() : a.getValue();
+        return max <= 0.0 ? 0.0 : 100.0 * Math.max(0.0, max - target.getHealth()) / max;
+    }
+
+    /** How much extra max health {@code target} has over {@code p}'s own max health, as a percentage of {@code p}'s max health (0 if the target has equal or less, or {@code p} has no measurable max). */
+    private static double extraHealthPercent(Player p, LivingEntity target) {
+        AttributeInstance playerAttr = p.getAttribute(Attribute.MAX_HEALTH);
+        AttributeInstance targetAttr = target.getAttribute(Attribute.MAX_HEALTH);
+        double playerMax = playerAttr == null ? p.getHealth() : playerAttr.getValue();
+        double targetMax = targetAttr == null ? target.getHealth() : targetAttr.getValue();
+        return playerMax <= 0.0 ? 0.0 : 100.0 * Math.max(0.0, targetMax - playerMax) / playerMax;
+    }
+
+    /** 0.1%/level per percent of extra health, capped at 5%/level - except level 5, which jumps to a flat 0.6%/percent capped at 30% overall, instead of continuing the line (30% - the same "last-level spike" shape {@link #linearCapped} uses for Cubism/Ender Slayer/Impaling, just with its own numbers). 0 for level 0. */
+    private static double giantKillerPercent(int level, double extraPercent) {
+        if (level <= 0) {
+            return 0.0;
+        }
+        if (level >= 5) {
+            return Math.min(30.0, 0.6 * extraPercent);
+        }
+        return Math.min(5.0 * level, 0.1 * level * extraPercent);
+    }
+
+    /** Whether {@code target} is still at (essentially) full health right now - First Strike's own definition of "first hit": the first one landed since the target was last topped up, since any hit at all immediately drops it below this. */
+    private static boolean isAtFullHealth(LivingEntity target) {
+        AttributeInstance a = target.getAttribute(Attribute.MAX_HEALTH);
+        double max = a == null ? target.getHealth() : a.getValue();
+        return target.getHealth() >= max - 0.01;
+    }
+
+    /** Lethality: each hit adds a stack (capped at {@value #LETHALITY_MAX_STACKS}) and refreshes the whole debuff's {@value #LETHALITY_DURATION_MILLIS}ms duration - every active stack shares the level of whichever hit most recently refreshed it (see {@link LethalityDebuff}'s own doc) rather than tracking each stack's own level independently, which in practice only matters if two players with differently-leveled Lethality weapons are hitting the same target at once. */
+    private void addLethalityStack(LivingEntity target, int level) {
+        UUID id = target.getUniqueId();
+        long now = System.currentTimeMillis();
+        LethalityDebuff prev = this.lethality.get(id);
+        int stacks = prev != null && prev.expiry() > now ? Math.min(LETHALITY_MAX_STACKS, prev.stacks() + 1) : 1;
+        this.lethality.put(id, new LethalityDebuff(level, stacks, now + LETHALITY_DURATION_MILLIS));
+    }
+
+    /** Wired into {@code ArmorDefenseService#lethalityPenalty} from this class's own constructor - how much to subtract from {@code target}'s Defense right now, 0 once the debuff has expired (an expired entry is treated as gone here without needing to already have been pruned - see the constructor's periodic sweep for why one still runs anyway). */
+    private int lethalityDefensePenalty(LivingEntity target) {
+        LethalityDebuff d = this.lethality.get(target.getUniqueId());
+        if (d == null || d.expiry() <= System.currentTimeMillis()) {
+            return 0;
+        }
+        return (int) Math.round(1.2 * d.level() * d.stacks());
     }
 
     /** Mirrors vanilla's own condition for baking its "jump critical" bonus into an attack - see {@link #VANILLA_CRITICAL_MULTIPLIER}. */

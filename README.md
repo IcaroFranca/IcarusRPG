@@ -202,6 +202,17 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   descrição corrigida pra bater com o efeito de verdade, e ganharam efeito real quando
   a descrição prometia algo que não existia (ex.: Efficiency agora aplica um bônus
   real de velocidade de mineração; Fortune agora soma na Mining Fortune de verdade).
+- **Família de encantamentos corpo a corpo** (espadas e ferramentas — machado,
+  picareta, pá, enxada): Critical (+dano crítico), Cubism/Ender Slayer/Impaling
+  (+dano contra mobs Cúbicos ⚂, do Fim ⊙ e Aquáticos ⚓ respectivamente — cada um com
+  sua própria lista de `EntityType`), Execute (+dano por % de vida faltando no alvo),
+  Giant Killer (+dano por % de vida extra que o alvo tiver acima da sua), First Strike
+  (+dano no primeiro golpe contra um alvo com vida cheia), Lethality (reduz a Defesa
+  do alvo por acerto, empilhando até 4 vezes por 4s), Life Steal (cura % da sua vida
+  máxima por acerto), Vampirism (cura % da vida faltante ao matar), Thunderlord (raio
+  a cada 3 acertos), Venomous (lentidão + dano contínuo empilhável por acerto),
+  Experience (chance de dobrar orbes de XP de mobs ou minérios) e Luck (chance de mobs
+  dropar uma peça de armadura extra).
 
 ## Bestiário (`/bestiary`)
 

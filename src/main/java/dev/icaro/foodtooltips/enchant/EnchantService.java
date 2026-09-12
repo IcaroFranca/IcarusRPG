@@ -92,6 +92,11 @@ public final class EnchantService {
         return list;
     }
 
+    /** {@code item}'s current level of the custom entry {@code enchant}, or 0 if it doesn't have it - a convenience for callers outside this package (combat/damage listeners) that only ever deal in {@link IcarusEnchant} directly and have no way to build a {@link CustomEnchantEntry} themselves (package-private by design). */
+    public int customLevel(ItemStack item, IcarusEnchant enchant) {
+        return this.levelOf(item, new CustomEnchantEntry(enchant));
+    }
+
     /** {@code item}'s current level of {@code entry}, or 0 if it doesn't have it. */
     public int levelOf(ItemStack item, EnchantEntry entry) {
         if (item == null || item.isEmpty()) {

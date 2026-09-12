@@ -19,6 +19,7 @@ import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
 import dev.icaro.foodtooltips.enchant.ArmorEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
+import dev.icaro.foodtooltips.enchant.MeleeEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMilestoneService;
@@ -169,13 +170,14 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
+        pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants);
         // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
         // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
         // CombatListener#secondWind - Bukkit runs same-priority handlers in
