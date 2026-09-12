@@ -13,8 +13,7 @@ import org.bukkit.plugin.Plugin;
 
 /**
  * Manages Blood Points, the currency spent in the combat ability tree to
- * unlock and upgrade abilities. Deliberately separate from {@link
- * dev.icaro.foodtooltips.economy.EconomyService}'s coins: Blood Points only
+ * unlock and upgrade abilities: the plugin's only currency. Blood Points only
  * ever come from combat and only ever buy tree ranks.
  */
 public final class CombatValorService {

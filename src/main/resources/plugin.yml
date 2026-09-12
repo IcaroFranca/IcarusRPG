@@ -1,14 +1,11 @@
 name: IcarusRPG
-version: '0.70.43'
+version: '0.70.44'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
 prefix: IcarusRPG
 softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention, Citizens, Sentinel, PlaceholderAPI]
 commands:
-  coins:
-    description: Shows or administrates coin balances.
-    usage: /coins [player] [set|give] [amount]
   skills:
     description: Opens the Skills menu.
     usage: /skills
@@ -46,16 +43,12 @@ commands:
     usage: /biomewand [player]
     permission: foodtooltips.admin
   resetstats:
-    description: Resets a player's stats (Mana, Vitality, Combat/General skills, Combat Ability tree, Valor, Coins, Global Level, Bestiary) back to their initial values.
+    description: Resets a player's stats (Mana, Vitality, Combat/General skills, Combat Ability tree, Valor, Global Level, Bestiary) back to their initial values.
     usage: /resetstats <player>
     permission: foodtooltips.admin
   rpgitems:
     description: Opens the admin-only Legendary Items menu.
     usage: /rpgitems
-    permission: foodtooltips.admin
-  islandmobs:
-    description: (Re)spawns the combat island's custom mobs (admin-only).
-    usage: /islandmobs
     permission: foodtooltips.admin
 permissions:
   foodtooltips.admin:

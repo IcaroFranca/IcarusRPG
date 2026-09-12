@@ -8,7 +8,6 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
-import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,33 +32,21 @@ import org.bukkit.plugin.Plugin;
 /**
  * The /skills "Locais" button: a short list of teleport destinations, free and
  * unlimited (replaces the old consumable ticket item). World names are never shown to
- * the player - each destination gets a human-readable name instead. The Combat Island
- * entry is gated by Combat Level (see {@link #combatIslandMinLevel()}, read by
- * SkillsMenuService to add a matching "Unlocks: ..." line on that level's node).
+ * the player - each destination gets a human-readable name instead.
  */
 public final class TravelMenuService {
     private final Plugin plugin;
-    private final CombatSkillService combat;
     private final Consumer<Player> back;
     private final String defaultWorld;
-    private final String islandWorld;
-    private final int islandMinLevel;
 
-    public TravelMenuService(Plugin plugin, CombatSkillService combat, Consumer<Player> back) {
+    public TravelMenuService(Plugin plugin, Consumer<Player> back) {
         this.plugin = plugin;
-        this.combat = combat;
         this.back = back;
         // Blank/unset falls back to the server's actual primary world (server.properties'
         // level-name, always Bukkit.getWorlds().get(0)) instead of a hardcoded guess like
         // "world" - Multiverse and similar setups often name it something else entirely.
         String configuredDefault = plugin.getConfig().getString("travel.default-world", "");
         this.defaultWorld = configuredDefault.isBlank() ? Bukkit.getWorlds().get(0).getName() : configuredDefault;
-        this.islandWorld = plugin.getConfig().getString("island-mobs.world", "combat_island");
-        this.islandMinLevel = plugin.getConfig().getInt("travel.combat-island-min-level", 5);
-    }
-
-    public int combatIslandMinLevel() {
-        return this.islandMinLevel;
     }
 
     public void open(Player p) {
@@ -78,23 +65,6 @@ public final class TravelMenuService {
         pane.addItem(new GuiItem(this.item(Material.GRASS_BLOCK, l.choose("Mundo Padrão", "Default World"),
                 List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                 event -> this.travel(p, this.defaultWorld)), 3, 1);
-
-        boolean unlocked = this.combat.progress(p).level() >= this.islandMinLevel;
-        List<Component> islandLore = unlocked
-                ? List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW))
-                : List.of(this.text(l.choose("Requer Nível de Combate ", "Requires Combat Level ") + this.islandMinLevel + ".", NamedTextColor.RED));
-        ItemStack islandIcon = unlocked
-                ? this.customHeadItem(HeadTexture.ALIEN_GRASS, l.choose("Ilha de Combate", "Combat Island"), islandLore, NamedTextColor.GOLD)
-                : this.item(Material.GRAY_DYE, l.choose("Ilha de Combate", "Combat Island"), islandLore, NamedTextColor.DARK_GRAY);
-        pane.addItem(new GuiItem(islandIcon,
-                event -> {
-                    if (!unlocked) {
-                        p.sendMessage(Component.text(l.choose("Você precisa do Nível de Combate ", "You need Combat Level ") + this.islandMinLevel
-                                + l.choose(" para acessar a Ilha de Combate.", " to access the Combat Island."), NamedTextColor.RED));
-                        return;
-                    }
-                    this.travel(p, this.islandWorld);
-                }), 5, 1);
 
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 

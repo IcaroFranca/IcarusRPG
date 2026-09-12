@@ -17,7 +17,6 @@ import dev.icaro.foodtooltips.trash.TrashMenuListener;
 import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
-import dev.icaro.foodtooltips.economy.EconomyService;
 import dev.icaro.foodtooltips.enchant.ArmorEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
@@ -37,9 +36,6 @@ import dev.icaro.foodtooltips.global.LevelColorCommand;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.global.LevelColorService;
 import dev.icaro.foodtooltips.i18n.Language;
-import dev.icaro.foodtooltips.island.IslandMobListener;
-import dev.icaro.foodtooltips.island.IslandMobService;
-import dev.icaro.foodtooltips.island.IslandProtectionListener;
 import dev.icaro.foodtooltips.item.DurabilityListener;
 import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
@@ -106,10 +102,6 @@ extends JavaPlugin {
         this.saveDefaultConfig();
         this.mergeConfigDefaults();
         this.cleanupLegacyCitizensNpcs();
-        if (this.getConfig().getInt("combat.max-level", 50) < 200) {
-            this.getConfig().set("combat.max-level", 200);
-            this.saveConfig();
-        }
         PlayerStatsService stats = new PlayerStatsService((Plugin)this);
         CombatSkillService combat = new CombatSkillService((Plugin)this);
         GeneralSkillService general = new GeneralSkillService();
@@ -127,7 +119,6 @@ extends JavaPlugin {
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
         stats.abilities(abilities);
-        EconomyService economy = new EconomyService((Plugin)this, abilities);
         BestiaryProgressService bestiaryProgress = new BestiaryProgressService((Plugin)this);
         GemService gems = new GemService((Plugin)this);
         MiningMenuService mining = new MiningMenuService(gems);
@@ -139,8 +130,7 @@ extends JavaPlugin {
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         this.visuals = new MobVisualService((Plugin)this);
-        IslandMobService islandMobs = new IslandMobService((Plugin)this, legendary, this.visuals);
-        BestiaryMenuService bestiary = new BestiaryMenuService((Plugin)this, bestiaryProgress, economy, valor, global);
+        BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, valor, global);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);
         LevelBadgeRenderer badgeRenderer = new LevelBadgeRenderer(this.getConfig().getInt("global-level.badge-animation-smoothness", 4));
@@ -149,7 +139,7 @@ extends JavaPlugin {
         menus.levelColors(levelColorMenu);
         CombatTreeMenuService treeMenu = new CombatTreeMenuService(combat, abilities, valor, menus::openMain);
         menus.tree(treeMenu);
-        TravelMenuService travelMenu = new TravelMenuService((Plugin)this, combat, menus::openMain);
+        TravelMenuService travelMenu = new TravelMenuService((Plugin)this, menus::openMain);
         menus.travel(travelMenu);
         CraftingMenuService craftingMenu = new CraftingMenuService(menus::openMain);
         menus.crafting(craftingMenu);
@@ -185,13 +175,22 @@ extends JavaPlugin {
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, economy, global, stats, valor, armor, general, legendary);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary);
+        // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
+        // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
+        // CombatListener#secondWind - Bukkit runs same-priority handlers in
+        // registration order, and Second Wind needs to judge lethality using the
+        // FINAL, already-mitigated damage, not the raw pre-mitigation number. So
+        // these two must be registered before combatListener. (CombatListener#damage,
+        // the attacker-side damage calculation, is a separate EventPriority.HIGH
+        // handler and always runs before any HIGHEST handler regardless of
+        // registration order - see its own priority comment.)
+        pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
+        pm.registerEvents((Listener)armorEnchants, (Plugin)this);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
         pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
-        pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
-        pm.registerEvents((Listener)armorEnchants, (Plugin)this);
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
         pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);
         pm.registerEvents((Listener)new SwordDamageListener(swordDamage), (Plugin)this);
@@ -199,12 +198,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BuilderWandListener(builderWand), (Plugin)this);
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
-        pm.registerEvents((Listener)new IslandMobListener(islandMobs), (Plugin)this);
-        pm.registerEvents((Listener)new IslandProtectionListener((Plugin)this), (Plugin)this);
-        // Delayed so world-management plugins (e.g. Multiverse) have a chance to finish
-        // loading the island's world first if it isn't loaded at server-start time yet.
-        Bukkit.getScheduler().runTaskLater((Plugin)this, () -> islandMobs.spawnPopulation(), 40L);
-        GeyserSkullExport.export((Plugin)this, gems, islandMobs, global);
+        GeyserSkullExport.export((Plugin)this, gems, global);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSwordThrowListener(swordThrow), (Plugin)this);
@@ -213,7 +207,7 @@ extends JavaPlugin {
         SetSkillLevelCommand setSkill = new SetSkillLevelCommand(combat, general, global);
         this.getCommand("setskilllevel").setExecutor((CommandExecutor)setSkill);
         this.getCommand("setskilllevel").setTabCompleter((TabCompleter)setSkill);
-        ResetStatsCommand resetStats = new ResetStatsCommand(stats, combat, armor, global, bestiaryProgress, economy, general);
+        ResetStatsCommand resetStats = new ResetStatsCommand(stats, combat, armor, global, bestiaryProgress, general);
         this.getCommand("resetstats").setExecutor((CommandExecutor)resetStats);
         this.getCommand("resetstats").setTabCompleter((TabCompleter)resetStats);
         GlobalLevelCommand globalCommand = new GlobalLevelCommand(global);
@@ -224,37 +218,6 @@ extends JavaPlugin {
         LevelColorCommand levelColorCommand = new LevelColorCommand(levelColors, levelColorMenu);
         this.getCommand("levelcolor").setExecutor((CommandExecutor)levelColorCommand);
         this.getCommand("levelcolor").setTabCompleter((TabCompleter)levelColorCommand);
-        this.getCommand("coins").setExecutor((s, c, l, a) -> {
-            if (a.length == 0 && s instanceof Player) {
-                Player p = (Player)s;
-                s.sendMessage((Component)Component.text((String)(this.text(s, "Saldo: ", "Balance: ") + economy.format(economy.balance(p)) + " \u26c3"), (TextColor)NamedTextColor.GOLD));
-                return true;
-            }
-            if (a.length != 3 || !s.hasPermission("foodtooltips.admin")) {
-                s.sendMessage((Component)Component.text((String)(this.text(s, "Uso: ", "Usage: ") + "/coins <player> <set|give> <amount>"), (TextColor)NamedTextColor.RED));
-                return true;
-            }
-            Player target = Bukkit.getPlayerExact((String)a[0]);
-            if (target == null) {
-                s.sendMessage((Component)Component.text((String)this.text(s, "Jogador n\u00e3o encontrado.", "Player not found."), (TextColor)NamedTextColor.RED));
-                return true;
-            }
-            try {
-                long amount = Long.parseLong(a[2]);
-                if (a[1].equalsIgnoreCase("set")) {
-                    economy.setBalance(target, amount);
-                } else if (a[1].equalsIgnoreCase("give")) {
-                    economy.deposit(target, amount);
-                } else {
-                    throw new IllegalArgumentException();
-                }
-                s.sendMessage((Component)Component.text((String)(this.text(s, "Saldo de ", "Balance of ") + target.getName() + ": " + economy.format(economy.balance(target)) + " \u26c3"), (TextColor)NamedTextColor.GREEN));
-            }
-            catch (IllegalArgumentException ex) {
-                s.sendMessage((Component)Component.text((String)(this.text(s, "Uso: ", "Usage: ") + "/coins <player> <set|give> <amount>"), (TextColor)NamedTextColor.RED));
-            }
-            return true;
-        });
         this.getCommand("builderwand").setExecutor((s, c, l, a) -> {
             Player target;
             if (a.length >= 1) {
@@ -307,11 +270,6 @@ extends JavaPlugin {
             }
             target.getInventory().addItem(biomeWand.create(Language.of(target)));
             s.sendMessage((Component)Component.text((String)(this.text(s, "Varinha de Biomas entregue a ", "Biome's Wand given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
-            return true;
-        });
-        this.getCommand("islandmobs").setExecutor((s, c, l, a) -> {
-            int spawned = islandMobs.spawnPopulation();
-            s.sendMessage((Component)Component.text((String)(this.text(s, "Mobs da ilha reiniciados: ", "Island mobs respawned: ") + spawned), (TextColor)NamedTextColor.GREEN));
             return true;
         });
         this.getCommand("skills").setExecutor((s, c, l, a) -> {
@@ -413,7 +371,6 @@ extends JavaPlugin {
             }
             foodListener.refresh((Player)p);
             this.visuals.track((LivingEntity)p);
-            economy.updateBoard((Player)p);
         });
         Bukkit.getScheduler().runTask((Plugin)this, presentation::refreshAll);
         if (this.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
@@ -433,7 +390,7 @@ extends JavaPlugin {
     /**
      * saveDefaultConfig() only ever writes config.yml if it doesn't exist yet on disk -
      * a server upgrading from an older jar keeps its existing file untouched, so any
-     * section a newer version adds (like island-mobs) is simply missing there and every
+     * section a newer version adds is simply missing there and every
      * getInt/getString call on it silently falls back to 0/empty instead of the real
      * bundled default. Layering the jar's own config.yml in as Bukkit "defaults" and
      * copying only the keys genuinely absent from the live file (never touching ones

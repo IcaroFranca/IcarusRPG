@@ -132,9 +132,6 @@ public final class SkillsMenuService {
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(this.text("+0.5% " + l.choose("Chance crítica", "Crit Chance"), NamedTextColor.AQUA), this.text("+4% " + l.choose("de dano", "Damage"), NamedTextColor.RED)));
-            if (this.travel != null && level == this.travel.combatIslandMinLevel()) {
-                lore.add(this.text("🗝 " + l.choose("Desbloqueia: Ilha de Combate", "Unlocks: Combat Island"), NamedTextColor.LIGHT_PURPLE));
-            }
             if (level == x.level() + 1) {
                 lore.add(this.xp(x.xp(), x.requiredXp()));
             }

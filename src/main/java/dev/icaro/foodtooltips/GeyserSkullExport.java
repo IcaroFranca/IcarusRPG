@@ -1,7 +1,6 @@
 package dev.icaro.foodtooltips;
 
 import dev.icaro.foodtooltips.global.GlobalLevelService;
-import dev.icaro.foodtooltips.island.IslandMobService;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.mining.GemService;
 import java.io.IOException;
@@ -15,8 +14,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Exports every custom-head Base64 texture IcarusRPG currently uses (gems,
- * island mobs, the Global Level icon) into a Geyser "custom skulls" mappings
+ * Exports every custom-head Base64 texture IcarusRPG currently uses (gems, the
+ * Global Level icon) into a Geyser "custom skulls" mappings
  * file, so Bedrock players (via Geyser/Floodgate) see the actual configured
  * skin instead of a blank default head - same fix already shipped in
  * IcarusChests.
@@ -50,21 +49,18 @@ public final class GeyserSkullExport {
     private GeyserSkullExport() {
     }
 
-    public static void export(Plugin icarusRpg, GemService gems, IslandMobService islandMobs, GlobalLevelService global) {
+    public static void export(Plugin icarusRpg, GemService gems, GlobalLevelService global) {
         Plugin geyser = Bukkit.getPluginManager().getPlugin(GEYSER_PLUGIN_NAME);
         if (geyser == null) {
             return; // Geyser isn't installed on this server: nothing to export to
         }
         Set<String> textures = new HashSet<>();
         textures.addAll(gems.allTextures());
-        textures.addAll(islandMobs.headTextures());
         if (!global.iconTexture().isBlank()) {
             textures.add(global.iconTexture());
         }
-        // The Locais/Locations "Planet" button and the Combat Island entries (Bestiary
-        // category tab + Travel menu icon) both reuse these two shared constants instead
-        // of each hardcoding their own copy - see HeadTexture's own javadoc.
-        textures.add(HeadTexture.ALIEN_GRASS);
+        // The Locais/Locations "Planet" button reuses this shared constant instead of
+        // hardcoding its own copy - see HeadTexture's own javadoc.
         textures.add(HeadTexture.PLANET);
         if (textures.isEmpty()) {
             return;

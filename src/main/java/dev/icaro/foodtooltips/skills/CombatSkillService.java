@@ -24,7 +24,10 @@ public final class CombatSkillService {
     private final double s50;
 
     public CombatSkillService(Plugin p) {
-        this.max = Math.max(200, p.getConfig().getInt("combat.max-level", 200));
+        // Only a sanity floor of 1, not 200 - combat.max-level is a real, honored
+        // config value (see config.yml's own comment), not a value the plugin
+        // silently overrides back up to 200 no matter what an admin sets it to.
+        this.max = Math.max(1, p.getConfig().getInt("combat.max-level", 200));
         this.baseCritChance = p.getConfig().getDouble("combat.base-crit-chance", 20.0);
         this.critPer = p.getConfig().getDouble("combat.crit-chance-per-level", 0.5);
         this.damagePer = p.getConfig().getDouble("combat.damage-percent-per-level", 4.0);
