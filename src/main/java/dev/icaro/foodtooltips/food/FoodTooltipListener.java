@@ -3,14 +3,17 @@ package dev.icaro.foodtooltips.food;
 import dev.icaro.foodtooltips.food.FoodTooltipService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemStackUtil;
+import dev.icaro.foodtooltips.item.ItemTierService;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -25,11 +28,46 @@ public final class FoodTooltipListener
 implements Listener {
     private final Plugin plugin;
     private final FoodTooltipService service;
+    private final ItemTierService tiers;
     private final Set<UUID> scheduled = new HashSet<UUID>();
 
-    public FoodTooltipListener(Plugin p, FoodTooltipService s) {
+    public FoodTooltipListener(Plugin p, FoodTooltipService s, ItemTierService tiers) {
         this.plugin = p;
         this.service = s;
+        this.tiers = tiers;
+    }
+
+    /**
+     * Tags TIER (and, where applicable, food/mining) lore onto every item the instant
+     * it spawns in the world - a block break, a mob kill, a dispenser, anything -
+     * rather than only once it's already sitting in a player's inventory. Without this,
+     * a freshly-dropped item (no lore yet) picked up right after an already-tagged
+     * stack of the same item sits in the player's inventory looks like a DIFFERENT item
+     * to vanilla's own stacking check (different lore = not stackable) until the next
+     * tick/interaction catches up and re-tags/coalesces it - for a big burst of drops
+     * (Vein Miner breaking dozens of ore blocks in one go, say) that shows up as a pile
+     * of separate un-merged stacks instead of one. {@link ItemTierService#applyTier}
+     * ignores its {@code Language} argument entirely (the "TIER X" label is the same in
+     * both languages - see its own doc) and {@link FoodTooltipService#update} never
+     * reads the {@code Player} it's handed, so passing a fixed language and no player
+     * here is safe; a language mismatch on the food-attributes header text, if it ever
+     * mattered, self-heals the moment the item is next touched by any of this class's
+     * other hooks.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void spawn(ItemSpawnEvent e) {
+        Item entity = e.getEntity();
+        ItemStack stack = entity.getItemStack();
+        if (stack.isEmpty()) {
+            return;
+        }
+        boolean changed = this.service.update(stack, Language.EN, null);
+        if (this.tiers.applyTier(stack, Language.EN) != null) {
+            changed = true;
+        }
+        if (changed) {
+            entity.setItemStack(stack);
+        }
     }
 
     @EventHandler
@@ -112,13 +150,31 @@ implements Listener {
         };
     }
 
-    /** {@code coalesce} gates only the same-item-stack-merging pass (see {@link #isSimpleStorage}) - the tooltip rewrite above it always runs regardless of slot layout. */
+    /**
+     * {@code coalesce} gates only the same-item-stack-merging pass (see {@link
+     * #isSimpleStorage}) - the tooltip rewrite above it always runs regardless of slot
+     * layout. Also tags TIER lore ({@link ItemTierService#applyTier}/{@link
+     * ItemTierService#repairTierSpacing}) on every item this touches, not just the
+     * player's own inventory - {@code ItemTierService#applyItemTiers}'s own periodic
+     * tick (see {@code FoodTooltipsPlugin}) only ever reaches a PLAYER's inventory, so
+     * without this, a chest filled some other way than passing through a player first
+     * (a loot table, a hopper, an admin command, another plugin) would show untagged
+     * items forever the moment it's opened, instead of getting the same tier tooltip
+     * a player's own gear already has.
+     */
     private boolean update(Inventory inv, Language l, Player p, boolean coalesce) {
         boolean changed = false;
         ItemStack[] contents = inv.getContents();
         for (ItemStack i : contents) {
             if (i == null || i.isEmpty()) continue;
             changed |= this.service.update(i, l, p);
+            ItemStack tiered = this.tiers.applyTier(i, l);
+            if (tiered == null) {
+                tiered = this.tiers.repairTierSpacing(i);
+            }
+            if (tiered != null) {
+                changed = true;
+            }
         }
         // Heals same-item stacks left split by this very rewrite pass (or
         // ItemTierService's, running on its own schedule) landing on the two stacks in
