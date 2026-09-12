@@ -11,8 +11,10 @@ import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.PolearmDamageService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageService;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
@@ -82,11 +84,11 @@ public final class CombatListener implements Listener {
      * plugin's own configurable multiplier for that roll.
      */
     private static final float VANILLA_CRITICAL_MULTIPLIER = 1.5F;
-    /** Real vanilla's own "undead" category - who Smite targets - see {@link #applyMeleeEnchantBonus}. */
+    /** Real vanilla's own "undead" category - who Smite targets - see {@link #vanillaDamageEnchantPercent}. */
     private static final Set<EntityType> UNDEAD_TYPES = EnumSet.of(EntityType.ZOMBIE, EntityType.SKELETON,
             EntityType.WITHER_SKELETON, EntityType.STRAY, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
             EntityType.DROWNED, EntityType.PHANTOM, EntityType.WITHER, EntityType.ZOGLIN, EntityType.ZOMBIFIED_PIGLIN);
-    /** Real vanilla's own "arthropod" category - who Bane of Arthropods targets - see {@link #applyMeleeEnchantBonus}. */
+    /** Real vanilla's own "arthropod" category - who Bane of Arthropods targets - see {@link #vanillaDamageEnchantPercent}. */
     private static final Set<EntityType> ARTHROPOD_TYPES = EnumSet.of(EntityType.SPIDER, EntityType.CAVE_SPIDER,
             EntityType.SILVERFISH, EntityType.ENDERMITE);
     /** The plugin's own "Cubic" mob category - who Cubism targets - see {@link #customMeleeDamagePercent}. */
@@ -96,6 +98,13 @@ public final class CombatListener implements Listener {
     /** The plugin's own "Aquatic" mob category - who Impaling targets. */
     private static final Set<EntityType> AQUATIC_TYPES = EnumSet.of(EntityType.COD, EntityType.SALMON, EntityType.TROPICAL_FISH,
             EntityType.PUFFERFISH, EntityType.SQUID, EntityType.GLOW_SQUID, EntityType.DROWNED, EntityType.GUARDIAN, EntityType.ELDER_GUARDIAN);
+    /**
+     * The formula's own flat baseline ("5 + WeaponDMG") - matches real Hypixel
+     * SkyBlock's own bare-hands damage constant, per the user's own exact spec (see
+     * {@link #damage}'s own doc). {@link #weaponBaseDamage} returns 0 for bare hands
+     * or anything it doesn't recognize, so this alone is what a barehanded hit uses.
+     */
+    private static final double BASE_UNARMED_DAMAGE = 5.0;
     /** How long a Lethality debuff stage lasts before it's treated as expired - see {@link #addLethalityStack}. */
     private static final long LETHALITY_DURATION_MILLIS = 4000L;
     /** Lethality's own cap on how many stacks can be active on one target at once. */
@@ -219,6 +228,38 @@ public final class CombatListener implements Listener {
      * runs before any HIGHEST handler regardless of registration order, so this ordering
      * holds even if those other listeners get re-registered in a different order later -
      * see the registration-order comment in {@code FoodTooltipsPlugin#onEnable}.
+     *
+     * <p>The melee half of this method follows the exact formula shape the user asked
+     * for (a real Hypixel SkyBlock-style breakdown), reorganizing what this plugin
+     * already had into named terms rather than replacing any of it:
+     * <pre>
+     * InitialDamage = ({@value #BASE_UNARMED_DAMAGE} + WeaponDMG) * (1 + Strength/100)
+     * DamageMultiplier = 1 + CombatLevelBonus + Enchants + WeaponBonus + AbilityTreeBonus
+     * FinalDamage = InitialDamage * DamageMultiplier * (1 + ArmorBonus) * (critical ? 1 + CritDamage/100 : 1)
+     * </pre>
+     * WeaponDMG comes from {@link #weaponBaseDamage} (the same known flat totals
+     * {@code SwordDamageService}/{@code ToolDamageService}/{@code PolearmDamageService}/
+     * a legendary weapon's own base + Strength-scaling bonus already used elsewhere -
+     * no longer read from {@code e.getDamage()}, so Sharpness/Smite/Bane no longer
+     * needs to replace it outright, see {@link #vanillaDamageEnchantPercent}); Strength
+     * is the player's own real stat (not a placeholder - matches {@code
+     * GlobalLevelService#strengthMultiplier}'s own {@code 1 + strength/100} exactly,
+     * just computed once here instead of as a separate multiplicative factor, so it
+     * isn't double-counted). Enchants sums every percentage damage bonus this plugin
+     * already grants (Sharpness/Smite/Bane, Cubism, Ender Slayer, Execute, Giant Killer,
+     * Impaling, First Strike - see {@link #customMeleeDamagePercent}); WeaponBonus and
+     * ArmorBonus are reserved for a future legendary-weapon/armor "flat ability damage
+     * %" mechanic this plugin doesn't have yet, always 0 for now; AbilityTreeBonus is
+     * the existing combat ability tree's own outgoing multiplier ({@link
+     * CombatAbilityService#outgoingMultiplier}). Bestiary's mob-type bonus and the
+     * legendary weapon's own situational multipliers (backstab/armored/undead) aren't
+     * named terms in the user's own formula - they're this plugin's own extras, kept
+     * exactly as before, multiplied on top of the whole result.
+     *
+     * <p>The projectile (arrow) half is untouched - the user's spec was specifically
+     * about melee weapons (their own example is a sword), and arrows already have
+     * their own separate flat-damage-plus-Power pipeline in {@code
+     * CustomEnchantEffectListener#bowShoot}.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void damage(EntityDamageByEntityEvent e) {
@@ -243,20 +284,19 @@ public final class CombatListener implements Listener {
         }
         ItemStack weapon = p.getInventory().getItemInMainHand();
         boolean melee = !(e.getDamager() instanceof Projectile);
-        double customPercent = 0.0;
+        double enchantPercent = 0.0;
         double criticalEnchantBonus = 0.0;
+        double weaponDamage = 0.0;
         if (melee) {
-            // Sharpness/Smite/Bane of Arthropods only ever apply to a genuine melee
-            // hit - an arrow's own damage is already set (Power included) back in
-            // CustomEnchantEffectListener#bowShoot. Without this check, a projectile
-            // hit would read whatever's in the player's main hand AT THE MOMENT THE
-            // ARROW LANDS (which could easily be an unrelated Sharpness sword, not
-            // the bow that actually fired it) and wrongly replace the arrow's damage
-            // with that sword's own flat total. The plugin's own melee-weapon enchants
-            // (Critical through Venomous - see IcarusEnchant's own doc) are gated on
-            // the exact same condition, for the exact same reason.
-            this.applyMeleeEnchantBonus(e, weapon, target);
-            customPercent = this.customMeleeDamagePercent(p, weapon, target);
+            // Sharpness/Smite/Bane of Arthropods, and the plugin's own melee-weapon
+            // enchants (Critical through Venomous - see IcarusEnchant's own doc), only
+            // ever apply to a genuine melee hit - an arrow's own damage is already set
+            // (Power included) back in CustomEnchantEffectListener#bowShoot. Without
+            // this check, a projectile hit would read whatever's in the player's main
+            // hand AT THE MOMENT THE ARROW LANDS (which could easily be an unrelated
+            // enchanted sword, not the bow that actually fired it).
+            weaponDamage = this.weaponBaseDamage(p, weapon);
+            enchantPercent = this.vanillaDamageEnchantPercent(weapon, target) + this.customMeleeDamagePercent(p, weapon, target);
             criticalEnchantBonus = 0.10 * this.enchants.customLevel(weapon, IcarusEnchant.CRITICAL);
             int lethalityLevel = this.enchants.customLevel(weapon, IcarusEnchant.LETHALITY);
             if (lethalityLevel > 0) {
@@ -281,13 +321,25 @@ public final class CombatListener implements Listener {
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
         // formula PvE gets, so a player's progression means the same thing in both.
         double mobBonus = playerTarget ? 1.0 : 1.0 + BestiaryCatalog.find(target).map(entry -> this.bestiary.damageBonus(p, entry)).orElse(0.0);
-        double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
         double undead = this.legendary.undeadMultiplier(target, weapon);
-        double damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
-                * this.global.strengthMultiplier(p) * (critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus : 1.0)
-                * backstab * armored * undead * (1.0 + customPercent / 100.0);
+        double critMultiplier = critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus : 1.0;
+        double damage;
+        if (melee) {
+            double strength = this.stats.stats(p).strength();
+            double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + strength / 100.0);
+            // 1 + CombatLevelBonus + Enchants + WeaponBonus (always 0, see this method's
+            // own doc) + AbilityTreeBonus - combat.damageMultiplier(level) already IS
+            // "1 + CombatLevelBonus" (see CombatSkillService), so adding the rest
+            // straight onto it gives the full sum without re-adding the leading 1.
+            double damageMultiplier = this.combat.damageMultiplier(level) + enchantPercent / 100.0 + (this.abilities.outgoingMultiplier(p) - 1.0);
+            damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead;
+        } else {
+            double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
+            damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
+                    * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead;
+        }
         e.setDamage(damage);
         this.legendary.onHit(p, target, weapon);
         if (!playerTarget) {
@@ -319,39 +371,56 @@ public final class CombatListener implements Listener {
     }
 
     /**
-     * Replaces {@code e}'s damage with {@code weapon}'s own known flat total (see
-     * {@code SwordDamageService}/{@code ToolDamageService}) times {@code 1 +} the real
-     * Sharpness/Smite/Bane of Arthropods percentage described on the enchant's own
-     * catalog entry ({@code linearCapped(level, 5, 5, 30)}, same shape {@code
-     * VanillaEnchantEntry} uses) - vanilla's own native bonus for these three (a small
-     * flat number baked into {@code e.getDamage()} before this event even fires,
-     * nowhere close to the described percentage) is thrown away entirely rather than
-     * measured and subtracted, since recomputing from the weapon's own known clean
-     * base sidesteps ever having to reverse-engineer vanilla's internal formula
-     * precisely. No-ops (leaves vanilla's own small native bonus as-is) for a weapon
-     * neither damage service recognizes - bare hands, or anything Sharpness/Smite/
-     * Bane can't even be applied to in the first place.
+     * The weapon's own known flat total - {@code SwordDamageService}/{@code
+     * ToolDamageService}/{@code PolearmDamageService}'s per-material tables, or a
+     * legendary weapon's own base Attack Damage plus its Strength-scaling bonus (Two
+     * as One / Kamish's Wrath - see {@code LegendaryWeaponService#strengthDamageBonus},
+     * added here rather than as its own separate term since it's fundamentally still
+     * part of what that specific weapon deals, the same way its base Attack Damage is).
+     * This plugin's own "WeaponDMG" in {@link #damage}'s InitialDamage formula - 0 for
+     * bare hands or anything none of these recognize, since the formula's own flat
+     * {@value #BASE_UNARMED_DAMAGE} already covers that baseline (matches real Hypixel
+     * SkyBlock's own bare-hands damage).
      */
-    private void applyMeleeEnchantBonus(EntityDamageByEntityEvent e, ItemStack weapon, LivingEntity target) {
+    private double weaponBaseDamage(Player attacker, ItemStack weapon) {
+        LegendaryWeapon legendaryWeapon = LegendaryWeaponService.of(weapon);
+        if (legendaryWeapon != null) {
+            return legendaryWeapon.baseAttackDamage() + this.legendary.strengthDamageBonus(attacker, weapon);
+        }
         Double base = SwordDamageService.totalDamage(weapon.getType());
         if (base == null) {
             base = ToolDamageService.totalDamage(weapon.getType());
         }
         if (base == null) {
-            return;
+            base = PolearmDamageService.totalDamage(weapon.getType());
         }
+        return base == null ? 0.0 : base;
+    }
+
+    /**
+     * Sharpness/Smite/Bane of Arthropods' own real percentage - whichever one actually
+     * applies against {@code target} (same shape {@code VanillaEnchantEntry} describes
+     * on the catalog entry itself, via {@link #linearCapped}), 0 if none apply. Folded
+     * into the same "Enchants" percentage sum {@link #customMeleeDamagePercent}
+     * contributes to (see {@link #damage}) instead of replacing the weapon's own damage
+     * outright the way this class used to - InitialDamage is computed from {@link
+     * #weaponBaseDamage} directly now, not {@code e.getDamage()}, so vanilla's own
+     * small native bonus for these three (baked into {@code e.getDamage()} before this
+     * event even fires) is already out of the picture on its own, nothing left here to
+     * measure and subtract.
+     */
+    private int vanillaDamageEnchantPercent(ItemStack weapon, LivingEntity target) {
         int sharpness = weapon.getEnchantmentLevel(Enchantment.SHARPNESS);
-        int percent = 0;
         if (sharpness > 0) {
-            percent = linearCapped(sharpness);
-        } else if (UNDEAD_TYPES.contains(target.getType())) {
-            percent = linearCapped(weapon.getEnchantmentLevel(Enchantment.SMITE));
-        } else if (ARTHROPOD_TYPES.contains(target.getType())) {
-            percent = linearCapped(weapon.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS));
+            return linearCapped(sharpness);
         }
-        if (percent > 0) {
-            e.setDamage(base * (1.0 + percent / 100.0));
+        if (UNDEAD_TYPES.contains(target.getType())) {
+            return linearCapped(weapon.getEnchantmentLevel(Enchantment.SMITE));
         }
+        if (ARTHROPOD_TYPES.contains(target.getType())) {
+            return linearCapped(weapon.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS));
+        }
+        return 0;
     }
 
     /** 5%/level, except level 5 jumps straight to 30% instead of continuing the line - same shape {@code VanillaEnchantEntry#linearCapped} describes on the catalog entry itself. 0 for level 0 (no enchant). Also used by Cubism/Ender Slayer/Impaling (see {@link #customMeleeDamagePercent}), which share this exact shape. */

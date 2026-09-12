@@ -53,6 +53,8 @@ public final class SkillsMenuService {
             28, 29, 30, 31, 32, 33, 34};
     private static final int STAT_LIST_TITLE_SLOT = 4;
     private static final int STAT_LIST_BACK_SLOT = 45;
+    /** The Damage stat's own formula constant - see {@code CombatListener}'s identical constant for why (matches real Hypixel SkyBlock's own bare-hands damage, per the user's own spec). Duplicated here rather than shared since this is purely a display-facing approximation, not the real combat calculation. */
+    private static final double BASE_UNARMED_DAMAGE = 5.0;
 
     private final CombatSkillService combat;
     private final GeneralSkillService general;
@@ -789,47 +791,52 @@ public final class SkillsMenuService {
                 MENDING_INFO, l));
 
         double weaponDamage = this.value(p, Attribute.ATTACK_DAMAGE, 1.0);
-        double combatMultiplier = this.combat.damageMultiplier(c.level());
-        double abilityMultiplier = this.abilities.outgoingMultiplier(p);
-        double globalMultiplier = this.global.strengthMultiplier(p);
-        double computedDamage = weaponDamage * combatMultiplier * abilityMultiplier * globalMultiplier;
-        items.add(this.damageItem(l, weaponDamage, combatMultiplier, abilityMultiplier, globalMultiplier, computedDamage));
+        double combatLevelBonus = this.combat.damageMultiplier(c.level()) - 1.0;
+        double abilityTreeBonus = this.abilities.outgoingMultiplier(p) - 1.0;
+        items.add(this.damageItem(l, weaponDamage, s.strength(), combatLevelBonus, abilityTreeBonus));
 
         return items;
     }
 
     /**
-     * The actual outgoing-damage equation (see {@code CombatListener#damage}) with
-     * {@code p}'s own real numbers substituted - a deliberate simplification, not the
-     * full per-hit formula: it shows the baseline (no critical roll, no mob-type/
-     * target-health-based enchant bonus, no legendary weapon's own Backstab/Armored/
-     * Undead/Strength-scaling multiplier - all of those are situational, depending on
-     * what's actually being hit, not a fixed number this screen could show). {@code
-     * weapon} is read straight from {@link Attribute#ATTACK_DAMAGE} (the real,
-     * currently-held total - already includes whatever {@code SwordDamageService}/
-     * {@code ToolDamageService}/{@code LegendaryWeaponService} granted the equipped
-     * weapon, so this works correctly for any of them without needing its own
-     * reference to those classes).
+     * The actual outgoing-damage equation (see {@code CombatListener#damage}'s own doc
+     * for the full breakdown this mirrors) with {@code p}'s own real numbers
+     * substituted - a deliberate simplification, not the full per-hit formula: Enchants
+     * is shown as "depends on target" rather than computed, since most of the enchants
+     * that would feed it (Cubism/Ender Slayer/Impaling/Execute/Giant Killer) need an
+     * actual target's type or health to resolve, which this screen doesn't have; no
+     * critical roll, mob-type bonus, or legendary weapon's own situational Backstab/
+     * Armored/Undead multiplier either, for the same reason. {@code weaponDamage} is
+     * read straight from {@link Attribute#ATTACK_DAMAGE} (the real, currently-held
+     * total - already includes whatever {@code SwordDamageService}/{@code
+     * ToolDamageService}/{@code PolearmDamageService}/{@code LegendaryWeaponService}
+     * granted the equipped weapon, so this works correctly for any of them without
+     * needing its own reference to those classes).
      */
-    private ItemStack damageItem(Language l, double weapon, double combatMult, double abilityMult, double globalMult, double result) {
+    private ItemStack damageItem(Language l, double weaponDamage, long strength, double combatLevelBonus, double abilityTreeBonus) {
+        double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + (double) strength / 100.0);
+        double damageMultiplier = 1.0 + combatLevelBonus + abilityTreeBonus;
+        double baseline = initialDamage * damageMultiplier;
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(l.choose("Fórmula (sem crítico, contra um alvo neutro):", "Formula (non-crit, against a neutral target):"), NamedTextColor.GOLD));
-        for (String part : LoreWrap.wrapText(l.choose(
-                "Dano da Arma × Multiplicador de Combate × Multiplicador de Habilidades × Multiplicador de Força Global",
-                "Weapon Damage × Combat Multiplier × Ability Multiplier × Global Strength Multiplier"), LoreWrap.DEFAULT_WIDTH)) {
-            lore.add(this.text(part, NamedTextColor.GRAY));
-        }
+        lore.add(this.text(l.choose("Dano Inicial = (5 + Dano da Arma) × (1 + Força/100)", "Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)"), NamedTextColor.GOLD));
+        lore.add(this.text("= (5 + " + String.format(Locale.US, "%.1f", weaponDamage) + ") × (1 + " + strength + "/100) = "
+                + String.format(Locale.US, "%.2f", initialDamage), NamedTextColor.GREEN));
         lore.add(Component.empty());
-        lore.add(this.text(String.format(Locale.US, "%.1f", weapon) + " × " + String.format(Locale.US, "%.2f", combatMult)
-                + " × " + String.format(Locale.US, "%.2f", abilityMult) + " × " + String.format(Locale.US, "%.2f", globalMult)
-                + " = " + String.format(Locale.US, "%.1f", result), NamedTextColor.GREEN));
+        lore.add(this.text(l.choose("Multiplicador = 1 + Bônus de Nível + Encantamentos + Bônus de Habilidade", "Multiplier = 1 + Level Bonus + Enchants + Ability Bonus"), NamedTextColor.GOLD));
+        lore.add(this.text("= 1 + " + String.format(Locale.US, "%.2f", combatLevelBonus) + " + "
+                + l.choose("(depende do alvo)", "(depends on target)") + " + " + String.format(Locale.US, "%.2f", abilityTreeBonus)
+                + " = " + String.format(Locale.US, "%.2f", damageMultiplier), NamedTextColor.GREEN));
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("Dano Final (base) = Dano Inicial × Multiplicador", "Final Damage (baseline) = Initial × Multiplier"), NamedTextColor.GOLD));
+        lore.add(this.text("= " + String.format(Locale.US, "%.2f", initialDamage) + " × " + String.format(Locale.US, "%.2f", damageMultiplier)
+                + " = " + String.format(Locale.US, "%.1f", baseline), NamedTextColor.GREEN));
         lore.add(Component.empty());
         for (String part : LoreWrap.wrapText(l.choose(
                 "Crítico, bônus contra tipos de mob, vida do alvo e encantamentos de dano se somam por cima disso, dependendo do alvo.",
                 "Critical hits, mob-type/target-health bonuses, and damage enchants stack on top of this depending on the target."), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.DARK_GRAY));
         }
-        return this.item(Material.NETHERITE_AXE, "⚔ " + l.choose("Dano: ", "Damage: ") + String.format(Locale.US, "%.1f", result), lore);
+        return this.item(Material.NETHERITE_AXE, "⚔ " + l.choose("Dano: ", "Damage: ") + String.format(Locale.US, "%.1f", baseline), lore);
     }
 
     /**
