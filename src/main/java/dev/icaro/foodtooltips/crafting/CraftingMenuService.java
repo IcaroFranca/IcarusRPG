@@ -78,9 +78,33 @@ public final class CraftingMenuService {
         this.viewing.remove(p.getUniqueId());
     }
 
+    /** Order matters: fires the back navigation first (which opens a new top inventory and, in doing so, synchronously triggers {@link CraftingMenuListener#close} for this one while {@link #viewing} still says yes) so {@link #returnGridItems} actually runs before this player stops counting as viewing. */
     public void back(Player p) {
-        this.viewing.remove(p.getUniqueId());
         this.back.accept(p);
+        this.viewing.remove(p.getUniqueId());
+    }
+
+    /**
+     * Gives back whatever's left sitting in the 3x3 grid when the menu closes for any
+     * reason (pressing Escape, the Back button, a plugin reload, the player quitting) -
+     * this is a virtual inventory conjured with {@link Bukkit#createInventory}, not a
+     * real placed block, so unlike a real crafting table nothing else would ever return
+     * these items to the player. Overflow drops at their feet, same as {@link
+     * #takeOutput}. Called from {@link CraftingMenuListener#close} with the
+     * about-to-close inventory, whose contents are still readable at that point.
+     */
+    public void returnGridItems(Player p, Inventory v) {
+        for (int slot : MATRIX_SLOTS) {
+            ItemStack item = v.getItem(slot);
+            if (item == null || item.isEmpty()) {
+                continue;
+            }
+            Map<Integer, ItemStack> overflow = p.getInventory().addItem(item.clone());
+            for (ItemStack leftover : overflow.values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+            }
+            v.setItem(slot, null);
+        }
     }
 
     /** Re-derives the output slot from the grid's current contents - called (next tick, after the click that changed it actually lands) whenever a matrix slot changes. */
