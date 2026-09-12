@@ -183,13 +183,13 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
 
 - **Bookshelf Power**: qualquer Estante numa das 16 posições do anel de 5x5 ao redor
   da mesa (2 blocos de distância em X/Z, não só as 4 paredes cardeais + 4 cantos
-  diagonais), no mesmo andar da mesa ou 1 acima, conta 1 ponto — sem exigir linha de
-  visão livre entre a mesa e a Estante (uma Estante colada na mesa, ou com algo na
-  frente dela, ainda conta). Um único anel completo num andar só já bate o teto.
-  Alguns encantamentos/níveis exigem um Bookshelf Power mínimo pra aplicar — nível 1
-  de qualquer encantamento é sempre livre, escalando linear até o teto no nível
-  máximo daquele encantamento; o nível aparece no menu mesmo bloqueado, só com o
-  custo em vermelho.
+  diagonais como antes), no mesmo andar da mesa ou 1 acima, conta 1 ponto — desde que
+  o bloco entre a mesa e a Estante (o vão de ar de 1 bloco, igual ao vanilla de
+  verdade) esteja livre. Um único anel completo num andar só já bate o teto. Alguns
+  encantamentos/níveis exigem um Bookshelf Power mínimo pra aplicar — nível 1 de
+  qualquer encantamento é sempre livre, escalando linear até o teto no nível máximo
+  daquele encantamento; o nível aparece no menu mesmo bloqueado, só com o custo em
+  vermelho.
 - **XP da skill de Encantamento** usa a fórmula real do vanilla (Mesa de
   Encantamento/Bigorna): `XP = 3,5 × X^1,5`, onde X é a quantidade de níveis de XP
   gastos na aplicação.
