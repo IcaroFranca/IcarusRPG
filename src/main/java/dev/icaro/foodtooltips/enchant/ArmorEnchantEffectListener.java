@@ -75,7 +75,7 @@ public final class ArmorEnchantEffectListener implements Listener {
             }
         }
         int defense = switch (cause) {
-            case BLOCK_EXPLOSION, ENTITY_EXPLOSION -> this.armorLevel(target, IcarusEnchant.BLAST_PROTECTION) * 30;
+            case BLOCK_EXPLOSION, ENTITY_EXPLOSION -> this.armorLevel(target, IcarusEnchant.BLAST_PROTECTION) * 7;
             case PROJECTILE -> this.armorLevel(target, IcarusEnchant.PROJECTILE_PROTECTION) * 7;
             default -> 0;
         };
