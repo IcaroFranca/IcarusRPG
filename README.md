@@ -3,8 +3,7 @@
 Plugin de RPG para servidores Paper/Spigot (`dev.icaro.foodtooltips.FoodTooltipsPlugin`,
 registrado como `IcarusRPG` no `plugin.yml`) — sistemas de progressão inspirados no
 Hypixel SkyBlock: nível de Combate com árvore de habilidades, skills gerais com bônus
-de atributo, raridade por Tiers, Armas Lendárias, Bestiário com milestones, e uma ilha
-de combate customizada com mobs, bioma e viagem rápida próprios.
+de atributo, raridade por Tiers, Armas Lendárias e Bestiário com milestones.
 
 > **Renomeado de NexusRPG pra IcarusRPG na v0.39.0.** O pacote Java
 > (`dev.icaro.foodtooltips`) não mudou, mas o `name:` do `plugin.yml` sim — e é esse
@@ -37,12 +36,10 @@ nova ou mudança de sistema.
 | `builder` | Builder's Wand |
 | `combat` | Listener de combate, visuais de mob (HP/nome acima da cabeça) |
 | `destroyer` | Destroyer's Hand |
-| `economy` | Moedas dos jogadores |
 | `enchant` | Mesa de Encantamento reformulada (catálogo próprio, Bookshelf Power, Amolador) |
 | `food` | Tooltips de comida |
 | `global` | Nível Global, XP, cores de badge/tema |
 | `i18n` | Idioma por jogador (PT/EN, a partir do locale do cliente) |
-| `island` | Ilha de combate: mobs customizados, zona por bioma, proteção de blocos |
 | `item` | Tiers de raridade, dano de espada/ferramenta, durabilidade, Armas Lendárias |
 | `mining` | Baú do tesouro, gemas, menu de mineração |
 | `placeholder` | Expansão de PlaceholderAPI (opcional) expondo stats do plugin pra outros plugins |
@@ -50,7 +47,11 @@ nova ou mudança de sistema.
 | `skills` | Skills de combate/gerais, árvore de habilidades, Estrela do Menu |
 | `stats` | Status do jogador e HUD |
 | `travel` | Menu de Locais (teleporte rápido) |
-| `citizens` | Integração legada com Citizens2 (só limpeza de NPCs órfãos — ver Ilha de Combate) |
+| `citizens` | Soft-dependency bridge pra Citizens2/Sentinel — hoje só usada por `CombatListener` pra reconhecer um NPC como abate válido (`isNpc`); a limpeza de NPCs de uma implementação antiga (não deste pacote) fica em `FoodTooltipsPlugin`, uma migração de uma vez só, não uma limpeza geral de órfãos |
+
+Não existe mais economia de moedas nem Ilha de Combate — removidas (a moeda nunca teve
+sumidouro nenhum, só subia; a ilha some numa reconstrução de mapa do zero, num mundo
+novo).
 
 Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins, em
 `skills`) foram removidos — armazenamento vira um plugin próprio, separado.
@@ -62,8 +63,10 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   (`combat.base-crit-chance`) + 0.5%/nível + bônus de habilidade, sempre limitada a
   100% no total. Não existe mais crítico por pulo (jump crit) — só a rolagem de
   porcentagem conta.
-- **Árvore de Habilidades de Combate** (`/skills` → Árvore de Combate): 19 nós em 3
-  ramos temáticos (Fúria, Sangue, Precisão) convergindo no capstone `APEX_WARRIOR`.
+- **Árvore de Habilidades de Combate** (`/skills` → Árvore de Combate): 7 habilidades
+  em 2 ramos de 3 nós cada — Fúria (Golpes Implacáveis → Berserker → Maestria Crítica)
+  e Sangue (Sede de Sangue → Colheita de Almas → Segundo Fôlego) — convergindo no único
+  nó de Precisão, Arremesso de Espada (ativo por keybind, exige o topo dos dois ramos).
   Custa **Pontos de Sangue** 🩸 (ganhos por abate/level-up), com Nível de Combate
   mínimo por tier além do custo. Botão de reset devolve os pontos gastos.
 - **Nível Global**: XP linear sem teto real, dá +HP e +Strength por faixa de nível, e
@@ -76,8 +79,8 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   partir do 31. A barra de progresso (boss bar) de cada skill tem uma cor própria:
   Agricultura verde, Pesca azul, Mineração branca, Coleta amarela, Encantamento rosa,
   Alquimia roxa (Combate mantém a vermelha).
-- **Menu de Locais** (`/skills` → Locais): teleporte grátis e ilimitado — Mundo Padrão
-  e Ilha de Combate (esta exige Nível de Combate mínimo, padrão 5).
+- **Menu de Locais** (`/skills` → Locais): teleporte grátis e ilimitado pro Mundo
+  Padrão.
 
 ## Vida, Defesa e Dano
 
@@ -159,7 +162,7 @@ fixa em vez do multiplicador padrão.
 | Adagas do Rei Demônio | Adaga | S | +220 | Two as One: +0,5 dano/Strength |
 | Espada Longa do Rei Demônio | Espada Longa | S | +350 | +2 alcance; Storm of White Flames (F, 40 Mana, 30s) |
 | Fúria de Kamish | Adaga | S | 1500 + 1/Strength | Sem penalidade de alcance |
-| Undead's Sword | Espada | C | +30 | +100% dano vs. mortos-vivos; também dropa da Ilha de Combate (2,5%) |
+| Undead's Sword | Espada | C | +30 | +100% dano vs. mortos-vivos |
 
 Toda Adaga tem -1 de alcance e dobra o dano por trás; Espada Longa e Undead's Sword
 não têm gimmick de posicionamento. Todas são `Unbreakable`, ganham brilho se Tier S,
@@ -178,15 +181,15 @@ aplicado daquela mesma entrada (ex.: já ter o nível 1 de 5 dá 20% de desconto
 níveis 2-5; ter o nível 3 de 5 dá 60% de desconto nos níveis 4-5). Remover um
 encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`).
 
-- **Bookshelf Power**: uma Estante a 2 blocos de distância (qualquer uma das 8
-  direções horizontais, cardeais + diagonais), no mesmo andar da mesa ou 1 acima,
-  conta 1 ponto (16 posições possíveis, teto real). Um bloco sólido — incluindo outra
-  Estante — bem do lado da mesa bloqueia a Estante 2 blocos adiante naquela
-  direção/andar de contar (regra de obstrução igual à do vanilla de verdade). Alguns
-  encantamentos/níveis exigem um Bookshelf Power mínimo pra aplicar — nível 1 de
-  qualquer encantamento é sempre livre, escalando linear até o teto no nível máximo
-  daquele encantamento; o nível aparece no menu mesmo bloqueado, só com o custo em
-  vermelho.
+- **Bookshelf Power**: qualquer Estante numa das 16 posições do anel de 5x5 ao redor
+  da mesa (2 blocos de distância em X/Z, não só as 4 paredes cardeais + 4 cantos
+  diagonais), no mesmo andar da mesa ou 1 acima, conta 1 ponto — sem exigir linha de
+  visão livre entre a mesa e a Estante (uma Estante colada na mesa, ou com algo na
+  frente dela, ainda conta). Um único anel completo num andar só já bate o teto.
+  Alguns encantamentos/níveis exigem um Bookshelf Power mínimo pra aplicar — nível 1
+  de qualquer encantamento é sempre livre, escalando linear até o teto no nível
+  máximo daquele encantamento; o nível aparece no menu mesmo bloqueado, só com o
+  custo em vermelho.
 - **XP da skill de Encantamento** usa a fórmula real do vanilla (Mesa de
   Encantamento/Bigorna): `XP = 3,5 × X^1,5`, onde X é a quantidade de níveis de XP
   gastos na aplicação.
@@ -203,11 +206,9 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
 ## Bestiário (`/bestiary`)
 
 Catálogo de mobs organizado em abas por categoria (Animais, Monstros Terrestres,
-Aquáticos, Cavernas, Nether, The End, **Ilha de Combate**). Cada entrada mostra XP de
-Combate, moedas, Pontos de Sangue, orbes de XP e drops; matar um mob concede
-milestones que dão bônus de dano/loot contra aquele tipo específico. Mobs
-"variantes" (ex.: os da Ilha de Combate) têm progresso e ícone próprios, nunca
-misturados com o mob vanilla que compartilham.
+Aquáticos, Cavernas, Nether, The End). Cada entrada mostra XP de Combate, Pontos de
+Sangue, orbes de XP e drops; matar um mob concede milestones que dão bônus de
+dano/loot contra aquele tipo específico.
 
 ## Mineração
 
@@ -223,23 +224,6 @@ Obsidiana, Ancient Debris, Crying Obsidian e Respawn Anchor continuam lentos com
 sempre. Depende só do item + encantamento, sem exigir nível de skill; ferramentas de
 ouro ficam de fora dessa garantia.
 
-## Ilha de Combate (`dev.icaro.foodtooltips.island`)
-
-Mundo `combat_island`, biome "Cemitério Sombrio" pintado com a Biome's Wand. A
-população de mobs **segue o bioma pintado**, não coordenadas fixas — cresce/encolhe
-junto com a área.
-
-- **Mobs** (`island-mobs.mobs.<id>` no `config.yml`, totalmente config-driven — novo
-  mob não pede código): **Dealt** (Zumbi, armadura de ferro, cabeça customizada) e
-  **Espectro Ossudo** (Esqueleto, cabeça customizada, só corpo a corpo). Os dois
-  seguram uma Undead's Sword de verdade e têm 2,5% de chance de dropá-la ao morrer.
-  Nome exibido varia por idioma do cliente de cada jogador simultaneamente.
-- **Acesso**: menu de Locais (`/skills` → Locais), grátis, exige Nível de Combate
-  mínimo (padrão 5).
-- **Proteção**: jogadores fora do modo Criativo não conseguem quebrar/colocar
-  blocos no mundo da ilha (`island-mobs.protect-blocks`, OP sempre ignora).
-- Comando `/islandmobs` (admin) reinicia a população na hora.
-
 ## Ferramentas de Construção (admin-only, sem craft/drop)
 
 | Ferramenta | Comando | Uso |
@@ -248,18 +232,12 @@ junto com a área.
 | Destroyer's Hand | `/destroyerhand` | Espelho da Builder's Wand, pra limpar em vez de construir |
 | Biome's Wand | `/biomewand` | Pinta um bioma numa área quadrada ao redor do bloco clicado (raio ajustável) |
 
-## Economia
-
-`EconomyService` administra o saldo de moedas (`/coins`) — ganhas matando mobs
-(valor por Bestiário) e outras fontes de XP/progresso.
-
 ## Comandos
 
 | Comando | Descrição | Permissão |
 |---|---|---|
 | `/skills` | Menu de Habilidades | — |
 | `/bestiary` | Bestiário | — |
-| `/coins [player] [set\|give] [amount]` | Ver/administrar moedas | admin pra alterar |
 | `/nivelglobal` (`/globallevel`, `/level`) | Progresso de Nível Global | — |
 | `/levelcolor [tema]` | Tema de cor do nível | — |
 | `/rpgitems` | Menu de Armas Lendárias | `foodtooltips.admin` |
@@ -269,17 +247,15 @@ junto com a área.
 | `/builderwand [player]` | Dá a Builder's Wand | `foodtooltips.admin` |
 | `/destroyerhand [player]` | Dá a Destroyer's Hand | `foodtooltips.admin` |
 | `/biomewand [player]` | Dá a Biome's Wand | `foodtooltips.admin` |
-| `/islandmobs` | Reinicia a população da Ilha de Combate | `foodtooltips.admin` |
 
 ## Configuração
 
 Tudo em `config.yml`, com comentários inline por chave. Seções principais:
 `stats` (bases de Vida/Mana/etc.), `combat` e `combat-tree` (progressão e árvore),
 `global-level`, `item-tiers` (overrides de raridade), `builder-wand`/`destroyer-hand`/
-`biome-wand` (limites), `island-mobs` (mundo, bioma-alvo e cada definição de mob),
-`travel` (destinos do menu de Locais). Novas chaves introduzidas em updates são
-mescladas automaticamente num `config.yml` já existente no servidor (chaves já
-presentes nunca são sobrescritas).
+`biome-wand` (limites), `travel` (destino do menu de Locais). Novas chaves introduzidas
+em updates são mescladas automaticamente num `config.yml` já existente no servidor
+(chaves já presentes nunca são sobrescritas).
 
 ## Dependências
 
@@ -287,8 +263,8 @@ presentes nunca são sobrescritas).
   usada pelos menus mais novos (`ChestGui`/`StaticPane`/`GuiItem`). Pinada em `0.12.0`
   por um bug de upstream na `0.12.1` que quebra qualquer `ChestGui`.
 - **WorldGuard/GriefPrevention** (opcional) — hooks de proteção em `protect`.
-- **Multiverse-Core** (opcional, recomendado) — multi-mundo; o menu de Locais e a
-  Ilha de Combate funcionam com qualquer setup de mundos, Multiverse ou não.
+- **Multiverse-Core** (opcional, recomendado) — multi-mundo; o menu de Locais funciona
+  com qualquer setup de mundos, Multiverse ou não.
 - **PlaceholderAPI** (opcional) — se instalado, registra `IcarusPlaceholders`
   (`placeholder`), expondo `%icarusrpg_globallevel%` (Nível Global do jogador) pra
   outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
