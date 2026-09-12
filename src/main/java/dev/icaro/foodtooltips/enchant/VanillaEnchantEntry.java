@@ -105,6 +105,13 @@ final class VanillaEnchantEntry implements EnchantEntry {
         return this.enchantment.getMaxLevel();
     }
 
+    /** Sweeping Edge is the only vanilla entry the user asked to gate behind an Enchanting skill level (1, alongside the 13 new melee enchants - see {@code IcarusEnchant#requiredEnchantingLevel}) - both real key spellings covered, same as {@code EnchantService#COSTS}. */
+    @Override
+    public int requiredEnchantingLevel() {
+        String key = this.enchantment.getKey().getKey();
+        return key.equals("sweeping_edge") || key.equals("sweeping") ? 1 : 0;
+    }
+
     @Override
     public int costAtLevel(int level) {
         int[] costs = COSTS.get(this.enchantment.getKey().getKey());

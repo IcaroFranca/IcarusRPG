@@ -133,6 +133,35 @@ public enum IcarusEnchant {
         return this.maxLevel;
     }
 
+    /**
+     * The Enchanting skill level required for this entry to even appear on the real
+     * Enchanting Table's own catalog ({@code EnchantMenuService#compatibleAndUnlocked}) -
+     * 0 for everything except the 13 melee-weapon enchants below (Experience is
+     * deliberately excluded from this list, staying available from the start, per the
+     * user's own spec). Spread 1-14 across a rough power/complexity curve chosen by the
+     * assistant (the user only fixed the "everything unlocked by level 15" ceiling, not
+     * an order) - open to reordering on request. Doesn't gate the Guide or Milestones
+     * screens, which stay full reference lists regardless of level.
+     */
+    public int requiredEnchantingLevel() {
+        return switch (this) {
+            case CRITICAL -> 2;
+            case LIFE_STEAL -> 3;
+            case LUCK -> 4;
+            case VAMPIRISM -> 5;
+            case CUBISM -> 6;
+            case IMPALING -> 7;
+            case ENDER_SLAYER -> 8;
+            case THUNDERLORD -> 9;
+            case EXECUTE -> 10;
+            case VENOMOUS -> 11;
+            case GIANT_KILLER -> 12;
+            case FIRST_STRIKE -> 13;
+            case LETHALITY -> 14;
+            default -> 0;
+        };
+    }
+
     /** Whether {@code item} is in this entry's item category - unlike vanilla entries, which delegate this straight to {@code Enchantment#canEnchantItem}. */
     public boolean canApplyTo(Material item) {
         String n = item.name();
@@ -154,7 +183,10 @@ public enum IcarusEnchant {
             case PROTECTION, FIRE_PROTECTION, BLAST_PROTECTION, PROJECTILE_PROTECTION, FEATHER_FALLING -> new int[]{10, 15, 20, 25, 30};
             case RESPIRATION -> new int[]{10, 20, 30};
             case CRITICAL, CUBISM, ENDER_SLAYER, EXECUTE, GIANT_KILLER, IMPALING, LETHALITY, LUCK, THUNDERLORD, VAMPIRISM, VENOMOUS -> new int[]{10, 20, 30, 40, 50};
-            case EXPERIENCE, FIRST_STRIKE -> new int[]{10, 20, 30, 40};
+            case EXPERIENCE -> new int[]{10, 20, 30, 40};
+            // Rebalanced per the user's own request: level IV (max) costs exactly 75,
+            // levels I-III scaled up to match instead of the usual flat +10/level shape.
+            case FIRST_STRIKE -> new int[]{15, 30, 50, 75};
             case LIFE_STEAL -> new int[]{10, 20, 30};
         };
         return costs[Math.max(1, Math.min(level, costs.length)) - 1];

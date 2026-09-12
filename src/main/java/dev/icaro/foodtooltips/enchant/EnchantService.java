@@ -92,6 +92,17 @@ public final class EnchantService {
         return list;
     }
 
+    /** Catalog names of every entry whose {@link EnchantEntry#requiredEnchantingLevel} is exactly {@code level} - used by {@code SkillsMenuService}'s own per-level browser for the Enchanting skill (via {@code EnchantMenuService}'s delegate) to show what unlocks at that level. Empty if nothing does. */
+    public List<String> unlocksAtLevel(int level, boolean pt) {
+        List<String> names = new ArrayList<>();
+        for (EnchantEntry e : this.allEntries(pt)) {
+            if (e.requiredEnchantingLevel() == level) {
+                names.add(e.catalogName(pt));
+            }
+        }
+        return names;
+    }
+
     /** {@code item}'s current level of the custom entry {@code enchant}, or 0 if it doesn't have it - a convenience for callers outside this package (combat/damage listeners) that only ever deal in {@link IcarusEnchant} directly and have no way to build a {@link CustomEnchantEntry} themselves (package-private by design). */
     public int customLevel(ItemStack item, IcarusEnchant enchant) {
         return this.levelOf(item, new CustomEnchantEntry(enchant));

@@ -36,6 +36,11 @@ final class CustomEnchantEntry implements EnchantEntry {
     }
 
     @Override
+    public int requiredEnchantingLevel() {
+        return this.enchant.requiredEnchantingLevel();
+    }
+
+    @Override
     public int costAtLevel(int level) {
         return this.enchant.costAtLevel(level);
     }

@@ -240,7 +240,7 @@ public final class EnchantMenuService {
     private void renderMainCatalog(Inventory v, Player p, int page) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
-        List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT), pt);
+        List<EnchantEntry> all = this.compatibleAndUnlocked(p, v.getItem(ITEM_SLOT), pt);
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             int index = page * CATALOG_SLOTS.length + i;
             v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.catalogIcon(all.get(index), l, pt) : this.filler());
@@ -575,12 +575,36 @@ public final class EnchantMenuService {
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             if (CATALOG_SLOTS[i] == rawSlot) {
                 Inventory v = p.getOpenInventory().getTopInventory();
-                List<EnchantEntry> all = this.enchants.compatibleEntries(v.getItem(ITEM_SLOT), pt);
+                List<EnchantEntry> all = this.compatibleAndUnlocked(p, v.getItem(ITEM_SLOT), pt);
                 int index = page * CATALOG_SLOTS.length + i;
                 return index < all.size() ? all.get(index) : null;
             }
         }
         return null;
+    }
+
+    /**
+     * {@link EnchantService#compatibleEntries}, further filtered to only what {@code
+     * p}'s current Enchanting skill level has unlocked (see {@link
+     * EnchantEntry#requiredEnchantingLevel}) - only gates the real table's own
+     * application catalog ({@link #renderMainCatalog}/{@link #catalogEnchantAt}); the
+     * Guide and Milestones screens deliberately stay full, unfiltered reference lists
+     * regardless of level (see their own docs).
+     */
+    private List<EnchantEntry> compatibleAndUnlocked(Player p, ItemStack item, boolean pt) {
+        int enchantingLevel = this.general.progress(p, SkillType.ENCHANTING).level();
+        List<EnchantEntry> result = new ArrayList<>();
+        for (EnchantEntry e : this.enchants.compatibleEntries(item, pt)) {
+            if (e.requiredEnchantingLevel() <= enchantingLevel) {
+                result.add(e);
+            }
+        }
+        return result;
+    }
+
+    /** Delegates to {@link EnchantService#unlocksAtLevel} - exposed here so {@code SkillsMenuService} (a different package, with no direct {@link EnchantService} reference of its own) can show what unlocks at each Enchanting skill level via the {@code enchantMenu} field it already holds. */
+    public List<String> enchantingUnlocksAtLevel(int level, boolean pt) {
+        return this.enchants.unlocksAtLevel(level, pt);
     }
 
     /** The level (1-based) a level-select screen click on {@code rawSlot} refers to, or -1 if that slot isn't one of the level slots. */

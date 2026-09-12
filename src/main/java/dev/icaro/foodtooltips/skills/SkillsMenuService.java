@@ -143,6 +143,10 @@ public final class SkillsMenuService {
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(this.text("+0.5% " + l.choose("Chance crítica", "Crit Chance"), NamedTextColor.AQUA), this.text("+4% " + l.choose("de dano", "Damage"), NamedTextColor.RED)));
+            double speedGain = this.combat.attackSpeed(level) - this.combat.attackSpeed(level - 1);
+            if (speedGain > 1.0E-4) {
+                lore.add(this.text("+" + String.format(Locale.US, "%.2f", speedGain) + " " + l.choose("Velocidade de Ataque", "Attack Speed"), NamedTextColor.YELLOW));
+            }
             if (level == x.level() + 1) {
                 lore.add(this.xp(x.xp(), x.requiredXp()));
             }
@@ -164,8 +168,13 @@ public final class SkillsMenuService {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(this.text(l.choose("Continue usando esta skill para evoluir.", "Keep using this skill to level up."), NamedTextColor.GRAY)));
             lore.addAll(this.attributeRewardLines(t, l));
+            List<String> enchantUnlocks = t == SkillType.ENCHANTING && this.enchantMenu != null ? this.enchantMenu.enchantingUnlocksAtLevel(level, l == Language.PT) : List.of();
             if (t == SkillType.MINING && level == 3) {
                 lore.add(this.text("✦ " + l.choose("Desbloqueia: Vein Miner", "Unlocks: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
+            } else if (!enchantUnlocks.isEmpty()) {
+                for (String name : enchantUnlocks) {
+                    lore.add(this.text("✦ " + l.choose("Desbloqueia encantamento: ", "Unlocks enchantment: ") + name, NamedTextColor.LIGHT_PURPLE));
+                }
             } else {
                 lore.add(this.text(l.choose("Nenhuma habilidade neste nível.", "No ability at this level."), NamedTextColor.DARK_GRAY));
             }
@@ -779,7 +788,48 @@ public final class SkillsMenuService {
                         mendingBonus > 0 ? l.choose("Segundo Fôlego +", "Second Wind +") + Math.round(mendingBonus) + "%" : null),
                 MENDING_INFO, l));
 
+        double weaponDamage = this.value(p, Attribute.ATTACK_DAMAGE, 1.0);
+        double combatMultiplier = this.combat.damageMultiplier(c.level());
+        double abilityMultiplier = this.abilities.outgoingMultiplier(p);
+        double globalMultiplier = this.global.strengthMultiplier(p);
+        double computedDamage = weaponDamage * combatMultiplier * abilityMultiplier * globalMultiplier;
+        items.add(this.damageItem(l, weaponDamage, combatMultiplier, abilityMultiplier, globalMultiplier, computedDamage));
+
         return items;
+    }
+
+    /**
+     * The actual outgoing-damage equation (see {@code CombatListener#damage}) with
+     * {@code p}'s own real numbers substituted - a deliberate simplification, not the
+     * full per-hit formula: it shows the baseline (no critical roll, no mob-type/
+     * target-health-based enchant bonus, no legendary weapon's own Backstab/Armored/
+     * Undead/Strength-scaling multiplier - all of those are situational, depending on
+     * what's actually being hit, not a fixed number this screen could show). {@code
+     * weapon} is read straight from {@link Attribute#ATTACK_DAMAGE} (the real,
+     * currently-held total - already includes whatever {@code SwordDamageService}/
+     * {@code ToolDamageService}/{@code LegendaryWeaponService} granted the equipped
+     * weapon, so this works correctly for any of them without needing its own
+     * reference to those classes).
+     */
+    private ItemStack damageItem(Language l, double weapon, double combatMult, double abilityMult, double globalMult, double result) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(this.text(l.choose("Fórmula (sem crítico, contra um alvo neutro):", "Formula (non-crit, against a neutral target):"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(l.choose(
+                "Dano da Arma × Multiplicador de Combate × Multiplicador de Habilidades × Multiplicador de Força Global",
+                "Weapon Damage × Combat Multiplier × Ability Multiplier × Global Strength Multiplier"), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(this.text(String.format(Locale.US, "%.1f", weapon) + " × " + String.format(Locale.US, "%.2f", combatMult)
+                + " × " + String.format(Locale.US, "%.2f", abilityMult) + " × " + String.format(Locale.US, "%.2f", globalMult)
+                + " = " + String.format(Locale.US, "%.1f", result), NamedTextColor.GREEN));
+        lore.add(Component.empty());
+        for (String part : LoreWrap.wrapText(l.choose(
+                "Crítico, bônus contra tipos de mob, vida do alvo e encantamentos de dano se somam por cima disso, dependendo do alvo.",
+                "Critical hits, mob-type/target-health bonuses, and damage enchants stack on top of this depending on the target."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.DARK_GRAY));
+        }
+        return this.item(Material.NETHERITE_AXE, "⚔ " + l.choose("Dano: ", "Damage: ") + String.format(Locale.US, "%.1f", result), lore);
     }
 
     /**

@@ -28,6 +28,17 @@ public sealed interface EnchantEntry permits CustomEnchantEntry, VanillaEnchantE
     int maxLevel();
 
     /**
+     * Enchanting skill level required for this entry to appear on the real Enchanting
+     * Table's own application catalog (see {@code EnchantMenuService}) - 0 (always
+     * available) for almost everything; only a handful of entries override this. Does
+     * NOT gate the Guide or Milestones screens, which stay full reference lists
+     * regardless of the viewer's own Enchanting level.
+     */
+    default int requiredEnchantingLevel() {
+        return 0;
+    }
+
+    /**
      * Minimum Bookshelf Power (see {@code EnchantMenuService#bookshelfPower}) needed
      * to apply this entry at {@code level} - 0 for every entry's own level 1 (always
      * free), scaling linearly up to a flat {@value #MAX_BOOKSHELF_POWER} at the
