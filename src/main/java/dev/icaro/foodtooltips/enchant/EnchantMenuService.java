@@ -248,6 +248,23 @@ public final class EnchantMenuService {
     }
 
     /**
+     * Turns the main screen's catalog to {@code page} in place - reuses the SAME open
+     * {@link Inventory} instance and only re-renders the catalog grid/scroll arrows
+     * (see {@link #renderMainCatalog}), instead of {@link #openMain}'s full rebuild
+     * (a brand new {@link Inventory}, which would only ever get {@code pendingItem}'s
+     * contents back into {@link #ITEM_SLOT} - empty on a plain page turn, since nothing
+     * populates it for one). Previously this called {@code openMain} directly, which
+     * silently discarded whatever real item was sitting on the table the moment a
+     * player turned the page - same "reuse the existing instance" fix {@code
+     * GrindstoneMenuService#handleNav} already gets right for its own pagination.
+     */
+    private void turnMainPage(Player p, int page) {
+        Inventory v = p.getOpenInventory().getTopInventory();
+        this.renderMainCatalog(v, p, page);
+        this.views.put(p.getUniqueId(), new View(Type.MAIN, page, null));
+    }
+
+    /**
      * Called (next tick, after the click that changed it actually lands - see {@code
      * EnchantMenuListener}) whenever {@link #ITEM_SLOT} changes on the main screen:
      * re-renders the catalog from the new item without closing/reopening the
@@ -646,10 +663,10 @@ public final class EnchantMenuService {
                     this.openGuide(p, 0);
                     return true;
                 } else if (slot == SCROLL_UP_SLOT && v.page() > 0) {
-                    this.openMain(p, v.page() - 1);
+                    this.turnMainPage(p, v.page() - 1);
                     return true;
                 } else if (slot == SCROLL_DOWN_SLOT) {
-                    this.openMain(p, v.page() + 1);
+                    this.turnMainPage(p, v.page() + 1);
                     return true;
                 }
             }
