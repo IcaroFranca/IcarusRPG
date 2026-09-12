@@ -129,7 +129,9 @@ implements Listener {
         // tiles (every empty slot typically shares the SAME ItemStack reference) would
         // otherwise get coalesced into a single stack instead of staying filled.
         // isSimpleStorage further narrows the *coalesce* half specifically - see its doc.
-        if (top.getLocation() != null && (changed |= this.update(top, l, p, isSimpleStorage(top.getType())))) {
+        // isExcludedContainer skips this class entirely for furnace-family blocks and
+        // the real vanilla Crafting Table - see its own doc.
+        if (top.getLocation() != null && !isExcludedContainer(top.getType()) && (changed |= this.update(top, l, p, isSimpleStorage(top.getType())))) {
             p.updateInventory();
         }
     }
@@ -146,6 +148,26 @@ implements Listener {
     private static boolean isSimpleStorage(InventoryType type) {
         return switch (type) {
             case CHEST, BARREL, SHULKER_BOX, ENDER_CHEST, DISPENSER, DROPPER, HOPPER -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * Furnace-family blocks (Furnace/Blast Furnace/Smoker) and the real vanilla
+     * Crafting Table - this class no longer touches their contents' lore AT ALL (not
+     * just skipping coalescing, like {@link #isSimpleStorage} does for other
+     * process blocks) per the user's own request: rewriting the tier/food tooltip on
+     * whatever's sitting in a furnace's input/fuel/output slots or a crafting grid was
+     * breaking IcarusFurnaces (a separate plugin managing its own furnace/crafting
+     * behavior, presumably reading that same lore/meta for its own recipe or item
+     * identity checks). This plugin's own Crafting Table screen ({@code
+     * CraftingMenuService}) is unaffected either way - it's a synthetic {@code
+     * Bukkit.createInventory} GUI with no real block behind it, already excluded by
+     * the {@code top.getLocation() != null} check above.
+     */
+    private static boolean isExcludedContainer(InventoryType type) {
+        return switch (type) {
+            case FURNACE, BLAST_FURNACE, SMOKER, WORKBENCH -> true;
             default -> false;
         };
     }
