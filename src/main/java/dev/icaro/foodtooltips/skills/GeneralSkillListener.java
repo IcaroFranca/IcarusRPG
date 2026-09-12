@@ -40,10 +40,15 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
@@ -80,6 +85,52 @@ implements Listener {
     @EventHandler(ignoreCancelled=true)
     public void place(BlockPlaceEvent e) {
         this.placed.add(this.key(e.getBlock().getLocation()));
+    }
+
+    /**
+     * {@link #placed} only ever shrinks in {@link #broken} (a genuine {@link
+     * BlockBreakEvent}) - a placed block destroyed any other way (an explosion, fire,
+     * a piston pushing/pulling it away, an external plugin like WorldEdit) left its
+     * entry behind forever, since nothing else ever removed it. Over a long-running
+     * server's lifetime that's an unbounded leak - every block anyone has ever placed
+     * and lost some other way, kept in memory permanently. These four handlers untrack
+     * a placed block the moment it's gone (or, for a piston, simply relocated) instead
+     * of only on a direct break - a piston-pushed block isn't specially re-tracked at
+     * its new location (accepting that a placed block deliberately piston-shuffled
+     * away and later broken there won't be recognized as player-placed anymore) since
+     * that's a minor, rare edge case next to an unbounded memory leak.
+     */
+    @EventHandler(ignoreCancelled=true)
+    public void explodedByEntity(EntityExplodeEvent e) {
+        for (Block b : e.blockList()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void explodedByBlock(BlockExplodeEvent e) {
+        for (Block b : e.blockList()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void burned(BlockBurnEvent e) {
+        this.placed.remove(this.key(e.getBlock().getLocation()));
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void pistonExtend(BlockPistonExtendEvent e) {
+        for (Block b : e.getBlocks()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void pistonRetract(BlockPistonRetractEvent e) {
+        for (Block b : e.getBlocks()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
