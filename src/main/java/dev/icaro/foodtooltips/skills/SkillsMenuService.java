@@ -121,7 +121,7 @@ public final class SkillsMenuService {
         }
         v.setItem(13, this.globalLevelIcon(p, l));
         if (this.levelColors != null) {
-            v.setItem(47, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
+            v.setItem(45, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
         }
         if (this.travel != null) {
             v.setItem(49, this.customHead(HeadTexture.PLANET, l.choose("Locais", "Locations"), List.of(this.click(l))));
@@ -258,7 +258,7 @@ public final class SkillsMenuService {
                     this.openCombat(p, 0);
                 } else if (S.containsKey(slot)) {
                     this.openGeneral(p, S.get(slot), 0);
-                } else if (slot == 47 && this.levelColors != null) {
+                } else if (slot == 45 && this.levelColors != null) {
                     this.views.remove(p.getUniqueId());
                     this.levelColors.open(p);
                 } else if (slot == 49 && this.travel != null) {
