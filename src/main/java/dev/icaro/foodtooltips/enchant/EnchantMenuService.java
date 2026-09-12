@@ -742,11 +742,15 @@ public final class EnchantMenuService {
      * still cap out at a handful of points if the player never happened to place one
      * at those exact 8 spots.
      *
-     * <p>No line-of-sight/air-gap requirement between the table and the shelf - a
-     * shelf placed right up against the table, or with something else in front of it,
-     * still counts. Matches the simple "surround the table with bookshelves" mental
-     * model a player actually has, rather than a geometry rule that could silently
-     * zero out a shelf for being blocked or 1 block too close.
+     * <p>Same air-gap requirement real vanilla's own bookshelf power uses (and this
+     * plugin's original implementation had, before it was briefly dropped and then
+     * asked back): the block one step closer to the table, in the shelf's own
+     * direction, has to be air, or that shelf doesn't count. For the 8 non-axis-aligned
+     * ring positions (e.g. 2 over/1 across - not a clean x2 of a unit vector, so there's
+     * no exact integer midpoint), the "one step closer" cell uses each axis' sign
+     * independently ({@link Integer#signum}) - the diagonal neighbor cell one step
+     * toward the shelf, the natural generalization of the axis-aligned/diagonal case
+     * to every ring position uniformly.
      */
     private int bookshelfPower(Player p) {
         Location table = this.tableLocation.get(p.getUniqueId());
@@ -760,7 +764,14 @@ public final class EnchantMenuService {
         int count = 0;
         for (int dy = 0; dy <= 1; dy++) {
             for (int[] dir : BOOKSHELF_DIRECTIONS) {
-                if (world.getBlockAt(bx + dir[0], by + dy, bz + dir[1]).getType() == Material.BOOKSHELF) {
+                int dx = dir[0];
+                int dz = dir[1];
+                int gapX = bx + Integer.signum(dx);
+                int gapZ = bz + Integer.signum(dz);
+                if (!world.getBlockAt(gapX, by + dy, gapZ).getType().isAir()) {
+                    continue;
+                }
+                if (world.getBlockAt(bx + dx, by + dy, bz + dz).getType() == Material.BOOKSHELF) {
                     count++;
                 }
             }
