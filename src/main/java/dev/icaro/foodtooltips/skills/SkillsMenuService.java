@@ -39,7 +39,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 public final class SkillsMenuService {
     private static final int[] N = new int[]{9, 18, 27, 28, 29, 20, 11, 2, 3, 4, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8, 17, 26, 35, 44, 53};
-    private static final Map<Integer, SkillType> S = Map.of(22, SkillType.FARMING, 24, SkillType.FISHING, 30, SkillType.MINING, 31, SkillType.FORAGING, 32, SkillType.ENCHANTING, 33, SkillType.ALCHEMY);
+    private static final Map<Integer, SkillType> S = Map.of(22, SkillType.MINING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING, 33, SkillType.FARMING, 51, SkillType.FISHING);
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
     private static final int TRASH_BUTTON_SLOT = 53;
 
@@ -113,10 +113,10 @@ public final class SkillsMenuService {
             v.setItem(47, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
         }
         if (this.travel != null) {
-            v.setItem(51, this.customHead(HeadTexture.PLANET, l.choose("Locais", "Locations"), List.of(this.click(l))));
+            v.setItem(49, this.customHead(HeadTexture.PLANET, l.choose("Locais", "Locations"), List.of(this.click(l))));
         }
         if (this.crafting != null) {
-            v.setItem(49, this.item(Material.CRAFTING_TABLE, l.choose("Mesa de Trabalho", "Crafting Table"), List.of(this.click(l))));
+            v.setItem(31, this.item(Material.CRAFTING_TABLE, l.choose("Mesa de Trabalho", "Crafting Table"), List.of(this.click(l))));
         }
         if (this.trash != null) {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
@@ -250,10 +250,10 @@ public final class SkillsMenuService {
                 } else if (slot == 47 && this.levelColors != null) {
                     this.views.remove(p.getUniqueId());
                     this.levelColors.open(p);
-                } else if (slot == 51 && this.travel != null) {
+                } else if (slot == 49 && this.travel != null) {
                     this.views.remove(p.getUniqueId());
                     this.travel.open(p);
-                } else if (slot == 49 && this.crafting != null) {
+                } else if (slot == 31 && this.crafting != null) {
                     this.views.remove(p.getUniqueId());
                     this.crafting.open(p);
                 } else if (slot == TRASH_BUTTON_SLOT && this.trash != null) {
