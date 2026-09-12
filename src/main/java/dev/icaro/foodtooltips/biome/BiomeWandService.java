@@ -46,6 +46,17 @@ import org.bukkit.plugin.Plugin;
 public final class BiomeWandService {
     /** Biome storage is aligned to 4-block cells - see this class's doc. */
     private static final int CELL = 4;
+    /**
+     * Hard ceiling on {@code biome-wand.max-radius}, regardless of what's configured -
+     * {@link #paint} is a single synchronous loop covering a (2*radius/CELL+1)^2 area of
+     * cell-columns across the world's FULL height (each cell a getBiome + maybe setBiome
+     * call), so an admin setting the config radius much higher than this (even by
+     * accident - a typo like "500" instead of "50") could turn one right-click into tens
+     * of thousands of synchronous calls in a single tick. At this cap, one paint is at
+     * most (2*32/4+1)^2 * (world height / 4) - comfortably bounded (a ~65x65 block area,
+     * already generous for a biome brush) instead of unbounded.
+     */
+    private static final int MAX_RADIUS_CEILING = 32;
 
     private final NamespacedKey wandKey;
     private final NamespacedKey biomeKey;
@@ -70,7 +81,7 @@ public final class BiomeWandService {
         this.wandKey = new NamespacedKey(plugin, "biome_wand");
         this.biomeKey = new NamespacedKey(plugin, "biome_wand_biome");
         this.radiusKey = new NamespacedKey(plugin, "biome_wand_radius");
-        this.maxRadius = Math.max(0, plugin.getConfig().getInt("biome-wand.max-radius", 10));
+        this.maxRadius = Math.max(0, Math.min(MAX_RADIUS_CEILING, plugin.getConfig().getInt("biome-wand.max-radius", 10)));
         this.tiers = tiers;
     }
 
