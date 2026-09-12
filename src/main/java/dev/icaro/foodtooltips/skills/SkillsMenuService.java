@@ -43,7 +43,7 @@ public final class SkillsMenuService {
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
     private static final int TRASH_BUTTON_SLOT = 53;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
-    private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(39, SkillType.MINING, 40, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 44, SkillType.ENCHANTING);
+    private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
     private static final int STATS_COMBAT_SLOT = 24;
     /** Grid for the STAT_LIST screens (see {@link #openStatList}) - 3 rows of 7, the same catalog shape {@code EnchantMenuService}'s Guide/Milestones screens use. Comfortably covers Combat's 16 stats, the most of any category. */
@@ -476,10 +476,10 @@ public final class SkillsMenuService {
         Language l = Language.of(viewer);
         Inventory v = this.inv(target.getName() + " - " + l.choose("Status & Equipamento", "Stats & Equipment"));
         v.setItem(4, this.statsOverviewHead(target, l));
-        v.setItem(20, this.armorSlot(target.getInventory().getHelmet(), l.choose("Capacete", "Helmet"), l));
-        v.setItem(29, this.armorSlot(target.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
-        v.setItem(38, this.armorSlot(target.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
-        v.setItem(47, this.armorSlot(target.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
+        v.setItem(11, this.armorSlot(target.getInventory().getHelmet(), l.choose("Capacete", "Helmet"), l));
+        v.setItem(20, this.armorSlot(target.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
+        v.setItem(29, this.armorSlot(target.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
+        v.setItem(38, this.armorSlot(target.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
         v.setItem(STATS_COMBAT_SLOT, this.combatStatsItem(target, l));
         for (Map.Entry<Integer, SkillType> e : STATS_SKILL_SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.skillBonusItem(target, e.getValue(), l));
