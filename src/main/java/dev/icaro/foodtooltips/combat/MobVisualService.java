@@ -1,9 +1,11 @@
 package dev.icaro.foodtooltips.combat;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -130,6 +132,15 @@ public final class MobVisualService {
     }
 
     public void tick() {
+        // Grouped by world once per tick (instead of every tracked mob individually
+        // scanning every online player and rejecting the ones in a different world) -
+        // still O(mobs x players in that mob's own world), not a real spatial index,
+        // but on any server with more than one populated world (nether/end/a hub...)
+        // this alone skips a large chunk of the wasted per-mob player iteration.
+        Map<World, List<Player>> playersByWorld = new HashMap<>();
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            playersByWorld.computeIfAbsent(viewer.getWorld(), w -> new ArrayList<>()).add(viewer);
+        }
         Iterator<Map.Entry<UUID, TextDisplay>> it = this.labels.entrySet().iterator();
         while (it.hasNext()) {
             LivingEntity living;
@@ -168,9 +179,9 @@ public final class MobVisualService {
             this.update(living);
             Set previous = this.shownTo.getOrDefault(id, Set.of());
             HashSet<UUID> nowVisible = new HashSet<UUID>();
-            for (Player viewer : Bukkit.getOnlinePlayers()) {
+            for (Player viewer : playersByWorld.getOrDefault(living.getWorld(), List.of())) {
                 boolean visible;
-                boolean bl = visible = viewer != living && viewer.getWorld() == living.getWorld() && viewer.getLocation().distanceSquared(living.getLocation()) <= this.maxDistanceSquared;
+                boolean bl = visible = viewer != living && viewer.getLocation().distanceSquared(living.getLocation()) <= this.maxDistanceSquared;
                 if (visible) {
                     nowVisible.add(viewer.getUniqueId());
                     if (!previous.contains(viewer.getUniqueId())) {
