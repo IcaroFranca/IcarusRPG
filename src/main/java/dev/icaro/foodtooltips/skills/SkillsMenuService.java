@@ -42,6 +42,17 @@ public final class SkillsMenuService {
     private static final Map<Integer, SkillType> S = Map.of(22, SkillType.MINING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING, 33, SkillType.FARMING, 51, SkillType.FISHING);
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
     private static final int TRASH_BUTTON_SLOT = 53;
+    /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
+    private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(39, SkillType.MINING, 40, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 44, SkillType.ENCHANTING);
+    /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
+    private static final int STATS_COMBAT_SLOT = 24;
+    /** Grid for the STAT_LIST screens (see {@link #openStatList}) - 3 rows of 7, the same catalog shape {@code EnchantMenuService}'s Guide/Milestones screens use. Comfortably covers Combat's 16 stats, the most of any category. */
+    private static final int[] STAT_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34};
+    private static final int STAT_LIST_TITLE_SLOT = 4;
+    private static final int STAT_LIST_BACK_SLOT = 45;
 
     private final CombatSkillService combat;
     private final GeneralSkillService general;
@@ -273,6 +284,26 @@ public final class SkillsMenuService {
             case STATS -> {
                 if (slot == 45) {
                     this.openMain(p);
+                } else if (slot == STATS_COMBAT_SLOT) {
+                    Player target = this.resolveTarget(p, v);
+                    if (target != null) {
+                        this.openStatList(p, target, null);
+                    }
+                } else if (STATS_SKILL_SLOTS.containsKey(slot)) {
+                    Player target = this.resolveTarget(p, v);
+                    if (target != null) {
+                        this.openStatList(p, target, STATS_SKILL_SLOTS.get(slot));
+                    }
+                }
+            }
+            case STAT_LIST -> {
+                if (slot == STAT_LIST_BACK_SLOT) {
+                    Player target = this.resolveTarget(p, v);
+                    if (target != null) {
+                        this.openStats(p, target);
+                    } else {
+                        this.openMain(p);
+                    }
                 }
             }
             case COMBAT -> {
@@ -449,15 +480,17 @@ public final class SkillsMenuService {
         v.setItem(29, this.armorSlot(target.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
         v.setItem(38, this.armorSlot(target.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
         v.setItem(47, this.armorSlot(target.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
-        v.setItem(24, this.combatStatsItem(target, l));
-        v.setItem(39, this.skillBonusItem(target, SkillType.MINING, l));
-        v.setItem(40, this.skillBonusItem(target, SkillType.FARMING, l));
-        v.setItem(41, this.skillBonusItem(target, SkillType.FISHING, l));
-        v.setItem(42, this.skillBonusItem(target, SkillType.FORAGING, l));
-        v.setItem(43, this.skillBonusItem(target, SkillType.ALCHEMY, l));
-        v.setItem(44, this.skillBonusItem(target, SkillType.ENCHANTING, l));
+        v.setItem(STATS_COMBAT_SLOT, this.combatStatsItem(target, l));
+        for (Map.Entry<Integer, SkillType> e : STATS_SKILL_SLOTS.entrySet()) {
+            v.setItem(e.getKey(), this.skillBonusItem(target, e.getValue(), l));
+        }
         v.setItem(45, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
-        this.open(viewer, v, new View(Type.STATS, 0, null));
+        this.open(viewer, v, new View(Type.STATS, 0, null, target.getUniqueId()));
+    }
+
+    /** {@code v.target()} resolved back to an online {@link Player}, or {@code viewer} itself if that field is absent - never null unless the target logged off since the screen opened. */
+    private Player resolveTarget(Player viewer, View v) {
+        return v.target() == null ? viewer : Bukkit.getPlayer(v.target());
     }
 
     private ItemStack statsOverviewHead(Player p, Language l) {
@@ -478,18 +511,163 @@ public final class SkillsMenuService {
         return equipped.clone();
     }
 
+    /** One "what it does / how to get more" pair for a stat's detail item (see {@link #statItem}) - the current value and its breakdown are computed live per-player by the caller, only this descriptive text is fixed per stat. */
+    private record StatInfo(String whatPt, String whatEn, String howPt, String howEn) {
+        String what(boolean pt) {
+            return pt ? this.whatPt : this.whatEn;
+        }
+
+        String how(boolean pt) {
+            return pt ? this.howPt : this.howEn;
+        }
+    }
+
+    // ---- Combat Stats' own StatInfo, one per line of the old combatStatsItem lore ----
+    private static final StatInfo HEALTH_INFO = new StatInfo(
+            "Quanto dano você aguenta antes de morrer. Regenera sozinha com o tempo (veja Regen. de Vida) e ao ser curada.",
+            "How much damage you can take before dying. Regenerates over time (see Health Regen) and when healed.",
+            "Sobe com o Nível Global, milestones do Bestiário, e as skills de Agricultura e Pesca.",
+            "Increases with Global Level, Bestiary milestones, and the Farming and Fishing skills.");
+    private static final StatInfo DEFENSE_INFO = new StatInfo(
+            "Reduz o dano que você recebe: mitigação de defesa/(defesa+100). O vanilla nativo (armadura crua) é zerado - só esse stat conta.",
+            "Reduces damage you take: defense/(defense+100) mitigation. Vanilla's own armor value is zeroed out - only this stat matters.",
+            "Vem só do equipamento: peças de armadura (Couro a Netherite) e o encantamento Protection (+4/nível, até nível V). A skill de Mineração soma um bônus fixo por nível também.",
+            "Comes only from gear: armor pieces (Leather to Netherite) and the Protection enchantment (+4/level, up to level V). The Mining skill also adds a flat bonus per level.");
+    private static final StatInfo TRUE_DEFENSE_INFO = new StatInfo(
+            "Redução de dano fixa (não percentual), aplicada depois da Defesa normal - não é afetada por nenhum efeito.",
+            "Flat (not percentage-based) damage reduction, applied after normal Defense - unaffected by any other effect.",
+            "Hoje é só um valor base fixo (config do servidor) - nenhuma fonte em jogo aumenta ainda.",
+            "Currently just a fixed base value (server config) - nothing in-game raises it yet.");
+    private static final StatInfo STRENGTH_INFO = new StatInfo(
+            "% de dano extra em todo golpe (PvE e PvP), multiplicativo sobre o dano final.",
+            "% extra damage on every hit (PvE and PvP alike), multiplicative on top of your final damage.",
+            "Sobe com o Nível Global (a cada alguns níveis) e com a skill de Coleta.",
+            "Increases with Global Level (every few levels) and the Foraging skill.");
+    private static final StatInfo CRIT_CHANCE_INFO = new StatInfo(
+            "Chance por golpe de acertar um Crítico (multiplica o dano por Dano Crítico) em vez de dano normal.",
+            "Chance per hit to land a Critical (multiplies damage by Crit Damage) instead of a normal hit.",
+            "Base fixa (config) + escala com o Nível de Combate + a habilidade Golpes Implacáveis (árvore de Combate).",
+            "Fixed base (config) + scales with Combat Level + the Ruthless Strikes ability (combat tree).");
+    private static final StatInfo CRIT_DAMAGE_INFO = new StatInfo(
+            "Multiplicador de dano de um golpe Crítico, em cima do dano normal.",
+            "Damage multiplier a Critical hit gets, on top of a normal hit.",
+            "Base fixa (config); a habilidade Maestria Crítica (árvore de Combate) aumenta de acordo com o rank.",
+            "Fixed base (config); the Critical Mastery ability (combat tree) raises it based on its rank.");
+    private static final StatInfo FEROCITY_INFO = new StatInfo(
+            "% de chance por ponto de desferir um golpe extra automático a cada ataque; a cada 100 pontos, 1 golpe extra garantido.",
+            "% chance per point of an automatic extra hit on every attack; every 100 points guarantees one extra hit.",
+            "Hoje é só um valor base fixo (config) - nenhuma fonte em jogo aumenta ainda.",
+            "Currently just a fixed base value (config) - nothing in-game raises it yet.");
+    private static final StatInfo ATTACK_SPEED_INFO = new StatInfo(
+            "Quantos golpes por segundo sua arma consegue dar - já mostrado assim na tooltip da própria arma.",
+            "How many hits per second your weapon can land - already shown this way on the weapon's own tooltip.",
+            "Escala com o Nível de Combate (sobe até o nível 50, depois estabiliza).",
+            "Scales with Combat Level (climbs up to level 50, then levels off).");
+    private static final StatInfo SWING_RANGE_INFO = new StatInfo(
+            "Alcance (em blocos) pra acertar golpes corpo a corpo.",
+            "Reach (in blocks) for landing melee hits.",
+            "Base fixa (config); desbloquear a habilidade Arremesso de Espada (árvore de Combate) soma um bônus. Algumas Adagas Lendárias têm um -1 fixo próprio.",
+            "Fixed base (config); unlocking the Sword Throw ability (combat tree) adds a bonus. Some Legendary Daggers carry their own fixed -1 penalty.");
+    private static final StatInfo INTELLIGENCE_INFO = new StatInfo(
+            "Soma direto na sua Mana máxima e escala o dano de habilidades mágicas.",
+            "Adds directly to your max Mana and scales magic-damage abilities.",
+            "Sobe com as skills de Alquimia e Encantamento (bônus fixo por nível).",
+            "Increases with the Alchemy and Enchanting skills (flat bonus per level).");
+    private static final StatInfo AGILITY_INFO = new StatInfo(
+            "Alimenta a Velocidade de Movimento - 1 de Agilidade = +1% de Speed.",
+            "Feeds your Movement Speed - 1 Agility = +1% Speed.",
+            "Hoje só vem de segurar a Adaga de Baruka (Arma Lendária, +50 Agilidade).",
+            "Currently only comes from wielding Baruka's Dagger (Legendary Weapon, +50 Agility).");
+    private static final StatInfo SPEED_INFO = new StatInfo(
+            "Velocidade de movimento real, em % sobre o padrão do vanilla (100% = normal).",
+            "Real movement speed, as a % of vanilla's own default (100% = normal).",
+            "100% base + Agilidade (veja o stat Agilidade).",
+            "100% base + Agility (see the Agility stat).");
+    private static final StatInfo ABILITY_DAMAGE_INFO = new StatInfo(
+            "% de dano extra em habilidades ativas (Arremesso de Espada, Storm of White Flames...) - não afeta golpes normais.",
+            "% extra damage on active abilities (Sword Throw, Storm of White Flames...) - doesn't affect normal hits.",
+            "Hoje é só um valor base fixo (config) - nenhuma fonte em jogo aumenta ainda.",
+            "Currently just a fixed base value (config) - nothing in-game raises it yet.");
+    private static final StatInfo HEALTH_REGEN_INFO = new StatInfo(
+            "% multiplicador sobre a regeneração natural de Vida por segundo.",
+            "% multiplier on your natural Health regeneration per second.",
+            "Base 100% + a habilidade Colheita de Almas (árvore de Combate, ramo Sangue).",
+            "100% base + the Soul Harvest ability (combat tree, Blood branch).");
+    private static final StatInfo VITALITY_INFO = new StatInfo(
+            "Recurso gasto por habilidades de cura (ex.: Vital Touch) - sem Vitalidade suficiente, a habilidade não pode ser usada.",
+            "Resource spent by healing abilities (e.g. Vital Touch) - without enough Vitality, the ability can't be used.",
+            "Regenera sozinha com o tempo. O máximo é só um valor base fixo (config) - nenhuma fonte em jogo aumenta ainda.",
+            "Regenerates on its own over time. The maximum is just a fixed base value (config) - nothing in-game raises it yet.");
+    private static final StatInfo MENDING_INFO = new StatInfo(
+            "% multiplicador sobre a cura que uma habilidade aplica em OUTRA pessoa (não em você mesmo).",
+            "% multiplier on healing an ability lands on someone ELSE (not on yourself).",
+            "Base 100% + a habilidade Segundo Fôlego (árvore de Combate, ramo Sangue).",
+            "100% base + the Second Wind ability (combat tree, Blood branch).");
+
+    // ---- General skills' own StatInfo ----
+    private static final StatInfo FORTUNE_INFO = new StatInfo(
+            "Aumenta a quantidade de itens que você recebe ao coletar (minério, colheita ou madeira/recursos, dependendo da skill).",
+            "Increases the amount of items you get when gathering (ore, crops, or wood/resources, depending on the skill).",
+            "Sobe automaticamente com o nível dessa skill.",
+            "Increases automatically with that skill's level.");
+    private static final StatInfo SKILL_DEFENSE_INFO = new StatInfo(
+            "Soma direto na sua Defesa total (veja o stat Defesa em Status de Combate).",
+            "Adds directly to your total Defense (see the Defense stat under Combat Stats).",
+            "Sobe automaticamente com o nível da skill de Mineração.",
+            "Increases automatically with the Mining skill's level.");
+    private static final StatInfo SKILL_HEALTH_INFO = new StatInfo(
+            "Soma direto na sua Vida Máxima (veja o stat Vida em Status de Combate).",
+            "Adds directly to your Max Health (see the Health stat under Combat Stats).",
+            "Sobe automaticamente com o nível dessa skill.",
+            "Increases automatically with that skill's level.");
+    private static final StatInfo SKILL_STRENGTH_INFO = new StatInfo(
+            "Soma direto na sua Strength (veja o stat Strength em Status de Combate).",
+            "Adds directly to your Strength (see the Strength stat under Combat Stats).",
+            "Sobe automaticamente com o nível da skill de Coleta.",
+            "Increases automatically with the Foraging skill's level.");
+    private static final StatInfo SKILL_INTELLIGENCE_INFO = new StatInfo(
+            "Soma direto na sua Inteligência (veja o stat Inteligência em Status de Combate).",
+            "Adds directly to your Intelligence (see the Intelligence stat under Combat Stats).",
+            "Sobe automaticamente com o nível dessa skill.",
+            "Increases automatically with that skill's level.");
+    private static final StatInfo XP_ORBS_INFO = new StatInfo(
+            "Aumenta a quantidade de XP vanilla (orbs verdes) que você recebe.",
+            "Increases the amount of vanilla XP (green orbs) you receive.",
+            "Sobe automaticamente com o nível da skill de Encantamento.",
+            "Increases automatically with the Enchanting skill's level.");
+    private static final StatInfo POTION_DURATION_INFO = new StatInfo(
+            "Aumenta a duração de qualquer poção que você beber.",
+            "Increases the duration of any potion you drink.",
+            "Sobe automaticamente com o nível da skill de Alquimia.",
+            "Increases automatically with the Alchemy skill's level.");
+
     /**
-     * The full Combat Stats list in one place — every combat stat the player has, in the
-     * order Health/Defense/True Defense/Strength/Crit Chance/Crit Damage/Ferocity/Swing
-     * Range/Intelligence/Agility/Speed/Ability Damage/Health Regen/Vitality/Mending, each
-     * followed by a gray sub-line naming exactly where its number comes from. Everything
-     * here except True Defense is upgradeable through the combat tree and/or a general
-     * skill (see {@link CombatAbilityService}'s class doc for which ability grants which
-     * bonus, and {@link GeneralSkillService} for Mining/Farming/Fishing/Foraging/Alchemy/
-     * Enchanting). Agility/Speed is the odd one out - its only source today is a
-     * legendary weapon (Baruka's Dagger), not the tree or a general skill.
+     * Combat's own summary button on the STATS screen - click to open the full
+     * per-stat breakdown ({@link #openStatList}). No live numbers here anymore - every
+     * stat's actual value/source lives one click away, on its own item.
      */
     private ItemStack combatStatsItem(Player p, Language l) {
+        List<Component> lore = List.of(
+                this.text(l.choose("Status que influenciam quanto dano você recebe e causa em combate.", "Stats that influence how much damage you take and deal in combat."), NamedTextColor.GRAY),
+                Component.empty(),
+                this.click(l));
+        return this.item(Material.IRON_SWORD, l.choose("Status de Combate", "Combat Stats"), lore);
+    }
+
+    /**
+     * One item per combat stat (see {@link #STAT_SLOTS}) - Health/Defense/True
+     * Defense/Strength/Crit Chance/Crit Damage/Ferocity/Attack Speed/Swing
+     * Range/Intelligence/Agility/Speed/Ability Damage/Health Regen/Vitality/Mending,
+     * each showing its current value, exactly where that number comes from (the same
+     * breakdown {@link #combatStatsItem} used to cram into one item's lore), what the
+     * stat actually does, and how to raise it (see {@link #statItem}). Everything here
+     * except True Defense is upgradeable through the combat tree and/or a general skill
+     * (see {@link CombatAbilityService}'s class doc for which ability grants which
+     * bonus, and {@link GeneralSkillService} for Mining/Farming/Fishing/Foraging/
+     * Alchemy/Enchanting). Agility/Speed is the odd one out - its only source today is a
+     * legendary weapon (Baruka's Dagger), not the tree or a general skill.
+     */
+    private List<ItemStack> combatStatItems(Player p, Language l) {
         PlayerStats s = this.stats.stats(p);
         CombatProgress c = this.combat.progress(p);
         GlobalLevelSnapshot g = this.global.snapshot(p);
@@ -511,55 +689,60 @@ public final class SkillsMenuService {
         int bootsDef = ArmorDefenseService.pieceDefense(p.getInventory().getBoots());
         int miningDef = this.general.bonusDefense(p);
 
-        List<Component> lore = new ArrayList<>(List.of(
-                this.text(l.choose("Status que influenciam quanto dano você recebe e causa em combate.", "Stats that influence how much damage you take and deal in combat."), NamedTextColor.GRAY),
-                Component.empty()));
+        List<ItemStack> items = new ArrayList<>();
 
-        this.stat(lore, "❤ " + l.choose("Vida: ", "Health: ") + Math.round(s.health()) + "/" + Math.round(s.maxHealth()), NamedTextColor.RED,
+        items.add(this.statItem(Material.GOLDEN_APPLE, "❤ " + l.choose("Vida: ", "Health: ") + Math.round(s.health()) + "/" + Math.round(s.maxHealth()),
                 this.join(l.choose("Base ", "Base ") + Math.round(baseHealth),
                         bestiaryHealth > 0 ? l.choose("Bestiário +", "Bestiary +") + Math.round(bestiaryHealth) : null,
                         globalHealth > 0 ? l.choose("Nível Global +", "Global Level +") + Math.round(globalHealth) : null,
-                        skillHealth > 0 ? l.choose("Agricultura/Pesca +", "Farming/Fishing +") + Math.round(skillHealth) : null));
+                        skillHealth > 0 ? l.choose("Agricultura/Pesca +", "Farming/Fishing +") + Math.round(skillHealth) : null),
+                HEALTH_INFO, l));
 
-        this.stat(lore, "✦ " + l.choose("Defesa: ", "Defense: ") + defense, NamedTextColor.GREEN,
+        items.add(this.statItem(Material.SHIELD, "✦ " + l.choose("Defesa: ", "Defense: ") + defense,
                 this.join(null,
                         helmetDef > 0 ? l.choose("Elmo +", "Helmet +") + helmetDef : null,
                         chestDef > 0 ? l.choose("Peitoral +", "Chestplate +") + chestDef : null,
                         legsDef > 0 ? l.choose("Calças +", "Leggings +") + legsDef : null,
                         bootsDef > 0 ? l.choose("Botas +", "Boots +") + bootsDef : null,
                         miningDef > 0 ? l.choose("Mineração +", "Mining +") + miningDef : null,
-                        defense == 0 ? l.choose("Nenhuma fonte", "No source") : null));
+                        defense == 0 ? l.choose("Nenhuma fonte", "No source") : null),
+                DEFENSE_INFO, l));
 
-        this.stat(lore, "🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()), NamedTextColor.GRAY,
-                l.choose("Base (config)", "Base (config)"));
+        items.add(this.statItem(Material.NETHERITE_INGOT, "🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()),
+                l.choose("Base (config)", "Base (config)"), TRUE_DEFENSE_INFO, l));
 
-        this.stat(lore, "✹ Strength: " + s.strength(), NamedTextColor.RED,
+        items.add(this.statItem(Material.DIAMOND_SWORD, "✹ Strength: " + s.strength(),
                 this.join(l.choose("Nível Global +", "Global Level +") + globalStrength,
-                        foragingStrength > 0 ? l.choose("Coleta +", "Foraging +") + foragingStrength : null));
+                        foragingStrength > 0 ? l.choose("Coleta +", "Foraging +") + foragingStrength : null),
+                STRENGTH_INFO, l));
 
-        this.stat(lore, "☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.AQUA,
+        items.add(this.statItem(Material.ARROW, "☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%",
                 this.join(l.choose("Nível de Combate +", "Combat Level +") + String.format(Locale.US, "%.1f", combatCritChance) + "%",
-                        critChanceBonus > 0 ? l.choose("Golpes Implacáveis +", "Ruthless Strikes +") + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null));
+                        critChanceBonus > 0 ? l.choose("Golpes Implacáveis +", "Ruthless Strikes +") + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null),
+                CRIT_CHANCE_INFO, l));
 
-        this.stat(lore, "☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.AQUA,
+        items.add(this.statItem(Material.NETHERITE_SWORD, "☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%",
                 criticalMastery ? l.choose("Maestria Crítica (rank ", "Critical Mastery (rank ") + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
-                        : l.choose("Base (config) - Maestria Crítica não desbloqueada", "Base (config) - Critical Mastery not unlocked"));
+                        : l.choose("Base (config) - Maestria Crítica não desbloqueada", "Base (config) - Critical Mastery not unlocked"),
+                CRIT_DAMAGE_INFO, l));
 
-        this.stat(lore, "Ⓕ Ferocity: " + Math.round(s.ferocity()), NamedTextColor.RED,
-                l.choose("Base (config)", "Base (config)"));
+        items.add(this.statItem(Material.GOLDEN_AXE, "Ⓕ Ferocity: " + Math.round(s.ferocity()),
+                l.choose("Base (config)", "Base (config)"), FEROCITY_INFO, l));
 
-        this.stat(lore, "⚔ " + l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)), NamedTextColor.GOLD,
-                l.choose("Nível de Combate " + c.level(), "Combat Level " + c.level()));
+        items.add(this.statItem(Material.CLOCK, "⚔ " + l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)),
+                l.choose("Nível de Combate " + c.level(), "Combat Level " + c.level()), ATTACK_SPEED_INFO, l));
 
         double swingRangeBonus = this.abilities.swingRangeBonus(p);
-        this.stat(lore, "↔ " + l.choose("Alcance de Ataque: ", "Swing Range: ") + String.format(Locale.US, "%.1f", s.swingRange()), NamedTextColor.YELLOW,
+        items.add(this.statItem(Material.FISHING_ROD, "↔ " + l.choose("Alcance de Ataque: ", "Swing Range: ") + String.format(Locale.US, "%.1f", s.swingRange()),
                 this.join(l.choose("Base ", "Base ") + String.format(Locale.US, "%.1f", this.stats.baseSwingRange()),
-                        swingRangeBonus > 0 ? l.choose("Arremesso de Espada +", "Sword Throw +") + String.format(Locale.US, "%.1f", swingRangeBonus) : null));
+                        swingRangeBonus > 0 ? l.choose("Arremesso de Espada +", "Sword Throw +") + String.format(Locale.US, "%.1f", swingRangeBonus) : null),
+                SWING_RANGE_INFO, l));
 
         long alchemyEnchantingIntelligence = this.general.bonusIntelligence(p);
-        this.stat(lore, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA,
+        items.add(this.statItem(Material.LAPIS_LAZULI, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()),
                 this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseIntelligence()),
-                        alchemyEnchantingIntelligence > 0 ? l.choose("Alquimia/Encantamento +", "Alchemy/Enchanting +") + alchemyEnchantingIntelligence : null));
+                        alchemyEnchantingIntelligence > 0 ? l.choose("Alquimia/Encantamento +", "Alchemy/Enchanting +") + alchemyEnchantingIntelligence : null),
+                INTELLIGENCE_INFO, l));
 
         // Agility/Speed is the same pairing as Intelligence/Mana above - a plain stat
         // (base plus whatever's currently wielded) that feeds a resource one-for-one,
@@ -567,45 +750,62 @@ public final class SkillsMenuService {
         // than a fully custom one - see PlayerStatsService#effectiveAgility.
         double agility = this.stats.effectiveAgility(p);
         double heldAgility = agility - this.stats.baseAgility();
-        this.stat(lore, "🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(agility), NamedTextColor.WHITE,
+        items.add(this.statItem(Material.RABBIT_FOOT, "🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(agility),
                 this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseAgility()),
-                        heldAgility > 0 ? l.choose("Arma equipada +", "Held weapon +") + Math.round(heldAgility) : null));
+                        heldAgility > 0 ? l.choose("Arma equipada +", "Held weapon +") + Math.round(heldAgility) : null),
+                AGILITY_INFO, l));
 
         long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
-        this.stat(lore, "🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent + "%", NamedTextColor.WHITE,
+        items.add(this.statItem(Material.SUGAR, "🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent + "%",
                 this.join(l.choose("Base 100%", "Base 100%"),
-                        agility > 0 ? l.choose("Agilidade +", "Agility +") + Math.round(agility) + "%" : null));
+                        agility > 0 ? l.choose("Agilidade +", "Agility +") + Math.round(agility) + "%" : null),
+                SPEED_INFO, l));
 
-        this.stat(lore, "❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%", NamedTextColor.LIGHT_PURPLE,
-                l.choose("Base (config)", "Base (config)"));
+        items.add(this.statItem(Material.BLAZE_POWDER, "❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%",
+                l.choose("Base (config)", "Base (config)"), ABILITY_DAMAGE_INFO, l));
 
         double healthRegenBonus = this.abilities.healthRegenBonus(p);
-        this.stat(lore, "❣ " + l.choose("Regen. de Vida: ", "Health Regen: ") + Math.round(s.healthRegen()) + "%", NamedTextColor.RED,
+        items.add(this.statItem(Material.HONEY_BOTTLE, "❣ " + l.choose("Regen. de Vida: ", "Health Regen: ") + Math.round(s.healthRegen()) + "%",
                 this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseHealthRegen()) + "%",
-                        healthRegenBonus > 0 ? l.choose("Colheita de Almas +", "Soul Harvest +") + Math.round(healthRegenBonus) + "%" : null));
+                        healthRegenBonus > 0 ? l.choose("Colheita de Almas +", "Soul Harvest +") + Math.round(healthRegenBonus) + "%" : null),
+                HEALTH_REGEN_INFO, l));
 
-        this.stat(lore, "✿ Vitality: " + Math.round(s.vitality()) + "/" + Math.round(s.maxVitality()), NamedTextColor.LIGHT_PURPLE,
-                l.choose("Base (config)", "Base (config)"));
+        items.add(this.statItem(Material.GHAST_TEAR, "✿ Vitality: " + Math.round(s.vitality()) + "/" + Math.round(s.maxVitality()),
+                l.choose("Base (config)", "Base (config)"), VITALITY_INFO, l));
 
         double mendingBonus = this.abilities.mendingBonus(p);
-        this.stat(lore, "❋ " + l.choose("Cura (Mending): ", "Mending: ") + Math.round(s.mending()) + "%", NamedTextColor.GREEN,
+        items.add(this.statItem(Material.TOTEM_OF_UNDYING, "❋ " + l.choose("Cura (Mending): ", "Mending: ") + Math.round(s.mending()) + "%",
                 this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseMending()) + "%",
-                        mendingBonus > 0 ? l.choose("Segundo Fôlego +", "Second Wind +") + Math.round(mendingBonus) + "%" : null));
+                        mendingBonus > 0 ? l.choose("Segundo Fôlego +", "Second Wind +") + Math.round(mendingBonus) + "%" : null),
+                MENDING_INFO, l));
 
-        return this.item(Material.IRON_SWORD, l.choose("Status de Combate", "Combat Stats"), lore);
+        return items;
     }
 
     /**
-     * Adds a stat line plus its gray "where this comes from" sub-line(s) right under it.
-     * source often comes from {@link #join} joining several active bonus sources (Helmet +
-     * Chestplate + Leggings + Boots + Mining, say) into one string that can run past a
-     * comfortable line width, so it's wrapped the same way as every other menu's lore.
+     * One stat's detail item on a STAT_LIST screen ({@link #openStatList}) - the
+     * stat's own name/current value as the item's display name, then three labeled
+     * lore blocks: where the current number comes from ({@code source}), what the stat
+     * actually does, and how to get more of it (the last two from {@code info}).
      */
-    private void stat(List<Component> lore, String line, NamedTextColor color, String source) {
-        lore.add(this.text(line, color));
-        for (String part : LoreWrap.wrapText(source, LoreWrap.DEFAULT_WIDTH - 2)) {
-            lore.add(this.text("  " + part, NamedTextColor.DARK_GRAY));
+    private ItemStack statItem(Material icon, String name, String source, StatInfo info, Language l) {
+        boolean pt = l == Language.PT;
+        List<Component> lore = new ArrayList<>();
+        lore.add(this.text(l.choose("De onde vem:", "Where it comes from:"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(source, LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text("  " + part, NamedTextColor.GRAY));
         }
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("O que faz:", "What it does:"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(info.what(pt), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("Como conseguir mais:", "How to get more:"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(info.how(pt), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        return this.item(icon, name, lore);
     }
 
     /** Joins non-null parts with " + " - null entries (a bonus that's currently zero) are simply skipped. */
@@ -623,42 +823,79 @@ public final class SkillsMenuService {
     }
 
     /**
-     * One tile per general skill (Mining/Farming/Fishing/Foraging/Alchemy/Enchanting) —
-     * every attribute bonus that skill grants (see {@link GeneralSkillService}), each
-     * with the same "stat line + gray source line" treatment {@link #combatStatsItem}
-     * uses, so every skill's contribution is visible somewhere in Stats & Equipment,
-     * not just the three that happen to grant Fortune.
+     * One tile per general skill (Mining/Farming/Fishing/Foraging/Alchemy/Enchanting) on
+     * the STATS screen - click to open the full per-stat breakdown ({@link
+     * #openStatList}). No live numbers here anymore, same as {@link #combatStatsItem}.
      */
     private ItemStack skillBonusItem(Player p, SkillType t, Language l) {
-        int level = this.general.progress(p, t).level();
-        List<Component> lore = new ArrayList<>();
-        if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
-            this.stat(lore, t.name(l == Language.PT) + " Fortune: " + this.general.fortune(p, t), NamedTextColor.AQUA,
-                    this.rate(l, level, this.general.fortunePerLevel()));
-        }
-        switch (t) {
-            case MINING -> this.stat(lore, "+" + (level * this.general.defensePerLevel()) + " " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN,
-                    this.rate(l, level, this.general.defensePerLevel()));
-            case FARMING, FISHING -> this.stat(lore, "+" + (level * this.general.healthPerLevel()) + " " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED,
-                    this.rate(l, level, this.general.healthPerLevel()));
-            case FORAGING -> this.stat(lore, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW,
-                    this.rate(l, level, this.general.strengthPerLevel()));
-            case ALCHEMY, ENCHANTING -> this.stat(lore, "+" + (level * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence"), NamedTextColor.LIGHT_PURPLE,
-                    this.rate(l, level, this.general.intelligencePerLevel()));
-            default -> {}
-        }
-        if (t == SkillType.ENCHANTING) {
-            this.stat(lore, "+" + (level * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA,
-                    this.rate(l, level, this.general.xpOrbPercentPerLevel()));
-        }
-        if (t == SkillType.ALCHEMY) {
-            this.stat(lore, "+" + (level * this.general.potionDurationPercentPerLevel()) + "% " + l.choose("Duração de Poções", "Potion Duration"), NamedTextColor.DARK_PURPLE,
-                    this.rate(l, level, this.general.potionDurationPercentPerLevel()));
-        }
+        List<Component> lore = List.of(
+                this.text(l.choose("Bônus de atributo que essa skill concede.", "Attribute bonuses this skill grants."), NamedTextColor.GRAY),
+                Component.empty(),
+                this.click(l));
         return this.item(t.icon(), t.name(l == Language.PT), lore);
     }
 
-    /** "Level N × rate/level" - the source line every {@link #skillBonusItem} entry shares. */
+    /**
+     * Every attribute bonus {@code t} grants (see {@link GeneralSkillService}), one
+     * item each - so every skill's contribution is visible somewhere in Stats &
+     * Equipment, not just the three that happen to grant Fortune.
+     */
+    private List<ItemStack> skillStatItems(Player p, SkillType t, Language l) {
+        int level = this.general.progress(p, t).level();
+        List<ItemStack> items = new ArrayList<>();
+        if (t == SkillType.MINING || t == SkillType.FARMING || t == SkillType.FORAGING) {
+            Material fortuneIcon = switch (t) {
+                case MINING -> Material.RAW_GOLD;
+                case FARMING -> Material.WHEAT;
+                default -> Material.OAK_LOG;
+            };
+            items.add(this.statItem(fortuneIcon, t.name(l == Language.PT) + " Fortune: " + this.general.fortune(p, t),
+                    this.rate(l, level, this.general.fortunePerLevel()), FORTUNE_INFO, l));
+        }
+        switch (t) {
+            case MINING -> items.add(this.statItem(Material.SHIELD, "+" + (level * this.general.defensePerLevel()) + " " + l.choose("Defesa", "Defense"),
+                    this.rate(l, level, this.general.defensePerLevel()), SKILL_DEFENSE_INFO, l));
+            case FARMING, FISHING -> items.add(this.statItem(Material.GOLDEN_APPLE, "+" + (level * this.general.healthPerLevel()) + " " + l.choose("Vida Máxima", "Max Health"),
+                    this.rate(l, level, this.general.healthPerLevel()), SKILL_HEALTH_INFO, l));
+            case FORAGING -> items.add(this.statItem(Material.DIAMOND_SWORD, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"),
+                    this.rate(l, level, this.general.strengthPerLevel()), SKILL_STRENGTH_INFO, l));
+            case ALCHEMY, ENCHANTING -> items.add(this.statItem(Material.LAPIS_LAZULI, "+" + (level * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence"),
+                    this.rate(l, level, this.general.intelligencePerLevel()), SKILL_INTELLIGENCE_INFO, l));
+            default -> {}
+        }
+        if (t == SkillType.ENCHANTING) {
+            items.add(this.statItem(Material.EXPERIENCE_BOTTLE, "+" + (level * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"),
+                    this.rate(l, level, this.general.xpOrbPercentPerLevel()), XP_ORBS_INFO, l));
+        }
+        if (t == SkillType.ALCHEMY) {
+            items.add(this.statItem(Material.POTION, "+" + (level * this.general.potionDurationPercentPerLevel()) + "% " + l.choose("Duração de Poções", "Potion Duration"),
+                    this.rate(l, level, this.general.potionDurationPercentPerLevel()), POTION_DURATION_INFO, l));
+        }
+        return items;
+    }
+
+    /**
+     * Full per-stat breakdown for either Combat ({@code skill == null}) or one general
+     * skill - one item per stat (see {@link #STAT_SLOTS}), each built by {@link
+     * #statItem}. Reached by clicking {@link #combatStatsItem}/{@link #skillBonusItem}
+     * on the STATS screen; Voltar returns there for the same (viewer, target) pair.
+     */
+    private void openStatList(Player viewer, Player target, SkillType skill) {
+        Language l = Language.of(viewer);
+        boolean pt = l == Language.PT;
+        String title = skill == null ? l.choose("Status de Combate", "Combat Stats")
+                : l.choose(skill.name(true) + " - Status", skill.name(false) + " Stats");
+        Inventory v = this.inv(title);
+        List<ItemStack> items = skill == null ? this.combatStatItems(target, l) : this.skillStatItems(target, skill, l);
+        for (int i = 0; i < items.size() && i < STAT_SLOTS.length; i++) {
+            v.setItem(STAT_SLOTS[i], items.get(i));
+        }
+        v.setItem(STAT_LIST_TITLE_SLOT, this.item(skill == null ? Material.IRON_SWORD : skill.icon(), title, List.of()));
+        v.setItem(STAT_LIST_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        this.open(viewer, v, new View(Type.STAT_LIST, 0, skill, target.getUniqueId()));
+    }
+
+    /** "Level N × rate/level" - the source line every {@link #skillStatItems} entry shares. */
     private String rate(Language l, int level, int perLevel) {
         return l.choose("Nível " + level + " × " + perLevel + "/nível", "Level " + level + " × " + perLevel + "/level");
     }
@@ -682,10 +919,14 @@ public final class SkillsMenuService {
         return i;
     }
 
-    private record View(Type type, int page, SkillType skill) {
+    /** {@code target} is only ever non-null for {@link Type#STATS}/{@link Type#STAT_LIST} - who the viewer (this View's own owner, the key in {@link #views}) is looking at, self included (see {@link #openStats}). */
+    private record View(Type type, int page, SkillType skill, UUID target) {
+        private View(Type type, int page, SkillType skill) {
+            this(type, page, skill, null);
+        }
     }
 
     private enum Type {
-        MAIN, COMBAT, GENERAL, GLOBAL, STATS
+        MAIN, COMBAT, GENERAL, GLOBAL, STATS, STAT_LIST
     }
 }
