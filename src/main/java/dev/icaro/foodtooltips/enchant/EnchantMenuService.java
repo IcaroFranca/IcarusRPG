@@ -70,11 +70,13 @@ public final class EnchantMenuService {
     /** Where each of an enchant's levels sits on the level-select screen (up to {@link EnchantEntry#maxLevel()} used - the max across every vanilla entry is 5, so this covers them all too). */
     private static final int[] LEVEL_SLOTS = {20, 21, 22, 23, 24};
     private static final int LEVEL_PREVIEW_SLOT = 4;
-    /** The 8 horizontal directions a Bookshelf can grant power from - see {@link #bookshelfPower}. */
+    /** Every position on the 5x5 perimeter ring 2 blocks from the table (X/Z offsets where the larger of the two is 2) - see {@link #bookshelfPower}. */
     private static final int[][] BOOKSHELF_DIRECTIONS = {
-            {1, 0}, {-1, 0}, {0, 1}, {0, -1},
-            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-    /** Never exceeded by {@link #bookshelfPower} - the real achievable max given {@link #BOOKSHELF_DIRECTIONS}' 8 directions x 2 floors, matching {@link EnchantEntry#MAX_BOOKSHELF_POWER} (what {@link EnchantEntry#requiredBookshelfPower} scales up to). */
+            {2, 0}, {-2, 0}, {0, 2}, {0, -2},
+            {2, 1}, {2, -1}, {-2, 1}, {-2, -1},
+            {1, 2}, {1, -2}, {-1, 2}, {-1, -2},
+            {2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
+    /** Never exceeded by {@link #bookshelfPower} - well below the real achievable max ({@link #BOOKSHELF_DIRECTIONS}' 16 positions x 2 floors = 32), matching {@link EnchantEntry#MAX_BOOKSHELF_POWER} (what {@link EnchantEntry#requiredBookshelfPower} scales up to) - a single full ring on one floor alone already maxes it out. */
     private static final int BOOKSHELF_POWER_CAP = EnchantEntry.MAX_BOOKSHELF_POWER;
 
     private static final int GUIDE_TITLE_SLOT = 4;
@@ -730,16 +732,21 @@ public final class EnchantMenuService {
     }
 
     /**
-     * A Bookshelf 2 blocks away from {@code p}'s current table - any of the 8
-     * horizontal directions (the 4 cardinal ones and the 4 diagonals) - counts for 1
-     * point, on either the table's own floor or the one directly above it - 16
-     * possible positions total, exactly {@value #BOOKSHELF_POWER_CAP}, so {@link
-     * #BOOKSHELF_POWER_CAP} is really just a safety clamp, never actually reached
-     * first by anything else.
-     * Each direction/floor is independent: the block 1 step closer to the table in
-     * that same direction and floor must be air, or that Bookshelf doesn't count -
-     * placing anything solid (including another Bookshelf) directly next to the
-     * table can block a Bookshelf 2 away from ever counting.
+     * Every Bookshelf on the 5x5 perimeter ring around {@code p}'s current table (all
+     * 16 {@link #BOOKSHELF_DIRECTIONS} positions - not just the 4 cardinal walls and 4
+     * exact diagonal corners a narrower check used to require) counts for 1 point, on
+     * either the table's own floor or the one directly above it. A normally-built
+     * bookshelf room (a continuous wall/ring of shelves around the table) fills most
+     * or all of this ring, not just its 4 cardinal midpoints and 4 corners - checking
+     * only those 8 positions meant a real room with plenty of shelves around it could
+     * still cap out at a handful of points if the player never happened to place one
+     * at those exact 8 spots.
+     *
+     * <p>No line-of-sight/air-gap requirement between the table and the shelf - a
+     * shelf placed right up against the table, or with something else in front of it,
+     * still counts. Matches the simple "surround the table with bookshelves" mental
+     * model a player actually has, rather than a geometry rule that could silently
+     * zero out a shelf for being blocked or 1 block too close.
      */
     private int bookshelfPower(Player p) {
         Location table = this.tableLocation.get(p.getUniqueId());
@@ -753,12 +760,7 @@ public final class EnchantMenuService {
         int count = 0;
         for (int dy = 0; dy <= 1; dy++) {
             for (int[] dir : BOOKSHELF_DIRECTIONS) {
-                int dx = dir[0];
-                int dz = dir[1];
-                if (!world.getBlockAt(bx + dx, by + dy, bz + dz).getType().isAir()) {
-                    continue;
-                }
-                if (world.getBlockAt(bx + dx * 2, by + dy, bz + dz * 2).getType() == Material.BOOKSHELF) {
+                if (world.getBlockAt(bx + dir[0], by + dy, bz + dir[1]).getType() == Material.BOOKSHELF) {
                     count++;
                 }
             }
