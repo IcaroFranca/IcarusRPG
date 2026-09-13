@@ -320,12 +320,7 @@ public final class EnchantService {
         this.stripLoreBlock(lore);
         if (!levels.isEmpty()) {
             List<Component> block = this.loreBlock(levels, pt);
-            int tierIndex = this.findTierIndex(lore);
-            if (tierIndex >= 0) {
-                lore.addAll(tierIndex, block);
-            } else {
-                lore.addAll(block);
-            }
+            this.insertBeforeTier(lore, block);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             meta.setEnchantmentGlintOverride(true);
         } else {
@@ -378,10 +373,9 @@ public final class EnchantService {
         }
     }
 
-    /** The "Encantamentos:"/list block only - a blank separator line first if there's other lore before it. */
+    /** The "Encantamentos:"/list block only, no surrounding blank lines - {@link #insertBeforeTier} decides those dynamically based on what's actually adjacent once inserted. */
     private List<Component> loreBlock(Map<EnchantEntry, Integer> levels, boolean pt) {
         List<Component> block = new ArrayList<>();
-        block.add(Component.empty());
         block.add(this.line(pt ? LORE_HEADER_PT : LORE_HEADER_EN, NamedTextColor.GOLD));
         boolean showDescriptions = levels.size() <= DESCRIPTION_CUTOFF;
         for (Map.Entry<EnchantEntry, Integer> entry : levels.entrySet()) {
@@ -434,6 +428,39 @@ public final class EnchantService {
             }
         }
         return -1;
+    }
+
+    /**
+     * Inserts {@code block} right before the item's "TIER ..." badge line (or at the
+     * end, if it isn't tagged yet) - same "insert before TIER" convention {@code
+     * FoodTooltipService#insertBeforeTier} already uses for its own block, reusing
+     * whatever blank line already happens to sit at the insertion point instead of
+     * always adding a fresh one. Without this - {@code loreBlock} used to prepend its
+     * own unconditional blank - inserting right at an existing blank (the one {@code
+     * ItemTierService#applyTier} leaves right before TIER) produced two blank lines in
+     * a row before "Encantamentos:"/"Enchantments:" and none at all before TIER, since
+     * the block's own trailing content landed directly against it.
+     */
+    private void insertBeforeTier(List<Component> lore, List<Component> block) {
+        if (block.isEmpty()) {
+            return;
+        }
+        int at = this.findTierIndex(lore);
+        if (at < 0) {
+            at = lore.size();
+        }
+        if (at == 0 || !this.isBlank(lore.get(at - 1))) {
+            lore.add(at++, Component.empty());
+        }
+        lore.addAll(at, block);
+        at += block.size();
+        if (at < lore.size() && !this.isBlank(lore.get(at))) {
+            lore.add(at, Component.empty());
+        }
+    }
+
+    private boolean isBlank(Component c) {
+        return PLAIN.serialize(c).isEmpty();
     }
 
     private Component line(String s, NamedTextColor c) {
