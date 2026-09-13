@@ -92,8 +92,29 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
 | | Valor |
 |---|---|
 | HP base do jogador | 100 (`stats.base-health`) |
-| Vida máxima dos mobs | ×5 (`mob-visuals.health-multiplier`) |
-| Defesa | Só do equipamento (vanilla zerado) — mesma fórmula de mitigação `defesa/(defesa+100)` |
+| Vida máxima dos mobs | ×5 base (`mob-visuals.health-multiplier`) + escala por dificuldade — ver abaixo |
+| Defesa | Só do equipamento (vanilla zerado) — mesma fórmula de mitigação `defesa/(defesa+100)`, vale pra jogador e mob |
+
+**Dificuldade dos mobs** (`MobDifficultyService`): em cima do ×5 base acima (que nunca
+diminui — todo mob de superfície continua com a mesma vida de sempre), dois bônus se
+somam:
+
+- **Tier**: reaproveita o `combatXp` que cada mob já tem no Bestiário (Zumbi 50 até
+  Ender Dragon 2500) — mobs mais difíceis na progressão do Bestiário ficam mais tanques
+  e batem mais forte.
+- **Profundidade**: quanto mais abaixo do nível de referência de cada dimensão
+  (Overworld Y64, Nether Y128, End Y64) o mob nasce, mais forte fica — vale pra
+  caverna funda também, não só pro Nether.
+
+O **Nether tem um piso próprio**: nenhum mob de lá (Piglin incluído, mesmo com
+`combatXp` baixo) nasce com menos de 4500 HP ou dá menos de 500 de dano por golpe —
+configurável em `mob-visuals.min-health-nether`/`min-damage-nether`. Como a vida
+máxima do vanilla trava em 1024 independente do que for setado no atributo, o
+excedente acima de `mob-visuals.real-health-cap` (1000) fica num "escudo" próprio
+(absorve qualquer dano antes da vida real, igual Absorção do vanilla) — a etiqueta de
+vida acima do mob sempre mostra o total real, sem essa divisão interna aparecer.
+Mobs passivos (Vaca, Porco, Lobo, Abelha, Golem de Ferro, Vilarão, peixes/tartaruga/
+golfinho/axolote...) nunca escalam.
 
 **Defesa por peça de armadura:**
 

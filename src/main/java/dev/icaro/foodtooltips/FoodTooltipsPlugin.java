@@ -10,6 +10,7 @@ import dev.icaro.foodtooltips.builder.BuilderWandService;
 import dev.icaro.foodtooltips.combat.AnimalSeparationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.ElementalDamageListener;
+import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuListener;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
@@ -136,6 +137,7 @@ extends JavaPlugin {
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         this.visuals = new MobVisualService((Plugin)this);
+        MobDifficultyService difficulty = new MobDifficultyService((Plugin)this);
         BestiaryMenuService bestiary = new BestiaryMenuService(bestiaryProgress, valor, global);
         this.progressBar = new SkillProgressBarService((Plugin)this);
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);
@@ -184,7 +186,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty);
         // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
         // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
         // CombatListener#secondWind - Bukkit runs same-priority handlers in
@@ -347,7 +349,7 @@ extends JavaPlugin {
         this.getServer().getScheduler().runTaskTimer((Plugin)this, animalSeparation::separateAll, 1L, 10L);
         for (World w : this.getServer().getWorlds()) {
             for (LivingEntity e : w.getLivingEntities()) {
-                combatListener.scaleMobHealth(e);
+                difficulty.scale(e);
                 armor.neutralizeVanillaArmor(e);
                 this.visuals.track(e);
             }

@@ -74,9 +74,41 @@ combat-tree:
   # not just farming currency. Tiers beyond this list extrapolate using the last step.
   tier-level-requirements: [0, 15, 35, 60, 90, 130]
 mob-visuals:
-  # First step toward the planned mob level scaling: multiplies every mob's Max Health
-  # (applied once per mob, tracked via a PDC flag so reloads never re-multiply).
+  # Flat baseline every hostile mob's Max Health is multiplied by (applied once per
+  # mob, tracked via a PDC flag so reloads never re-multiply) - this alone is still
+  # exactly what a surface/tier-0 mob ends up at; everything below only adds on top,
+  # never below this baseline. See MobDifficultyService.
   health-multiplier: 5.0
+  # --- Mob difficulty scaling (MobDifficultyService) ---
+  # Extra Max Health multiplier per point of a mob's own Bestiary tier (combatXp -
+  # Zombie=50 up to Ender Dragon=2500, see BestiaryCatalog). Stacks with the flat
+  # health-multiplier above, not instead of it.
+  health-multiplier-per-xp: 0.006
+  # Extra Max Health multiplier per block a mob spawns below its dimension's own
+  # depth-reference-y - the deeper, the tougher, in every dimension.
+  health-multiplier-per-depth-block: 0.03
+  depth-reference-y-overworld: 64
+  depth-reference-y-nether: 128
+  depth-reference-y-end: 64
+  # Hard floors on a scaled mob's TOTAL effective Max Health, regardless of what the
+  # multipliers above land on - 0 = no floor. The Nether's is the one non-zero by
+  # default, matching how much more dangerous that dimension is meant to feel.
+  min-health-overworld: 0.0
+  min-health-nether: 4500.0
+  min-health-end: 0.0
+  # Vanilla's own Max Health attribute hard-caps at 1024 no matter what's set on it -
+  # everything above this cap is tracked as a separate bonus HP pool instead (absorbs
+  # damage first, same idea as vanilla's own Absorption effect - see
+  # MobDifficultyService#scale's own doc). Kept comfortably under 1024 as a margin.
+  real-health-cap: 1000.0
+  # Same "extra on top, plus a floor" shape as HP, for the damage a mob deals TO the
+  # player (100% vanilla otherwise) - deliberately smaller coefficients than HP's own,
+  # so Defense/True Defense investment still meaningfully counters it.
+  damage-multiplier-per-xp: 0.0025
+  damage-multiplier-per-depth-block: 0.01
+  min-damage-overworld: 0.0
+  min-damage-nether: 500.0
+  min-damage-end: 0.0
   # Text Display view range uses 64-block units: 0.25 = approximately 16 blocks.
   label-view-range: 0.12
   damage-view-range: 0.25

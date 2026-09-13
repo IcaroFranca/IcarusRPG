@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
+import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
@@ -39,7 +40,6 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
@@ -66,7 +66,6 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -123,6 +122,7 @@ public final class CombatListener implements Listener {
     private final GeneralSkillService general;
     private final LegendaryWeaponService legendary;
     private final EnchantService enchants;
+    private final MobDifficultyService difficulty;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     /** Captured on death, consumed on respawn (see {@link #playerDeath}/{@link #respawn}) - where to point the death compass. */
     private final Map<UUID, Location> deathLocations = new HashMap<>();
@@ -131,10 +131,8 @@ public final class CombatListener implements Listener {
     private final double critMultiplier;
     private final double hpXp;
     private final double levelXp;
-    private final double mobHealthMultiplier;
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
-    private final NamespacedKey hpScaledKey = new NamespacedKey("foodtooltips", "hp_scaled");
 
     /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
     private record LethalityDebuff(int level, int stacks, long expiry) {
@@ -143,7 +141,7 @@ public final class CombatListener implements Listener {
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, GlobalLevelService global,
                            PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
-                           LegendaryWeaponService legendary, EnchantService enchants) {
+                           LegendaryWeaponService legendary, EnchantService enchants, MobDifficultyService difficulty) {
         this.plugin = p;
         this.combat = c;
         this.visuals = v;
@@ -157,6 +155,7 @@ public final class CombatListener implements Listener {
         this.general = general;
         this.legendary = legendary;
         this.enchants = enchants;
+        this.difficulty = difficulty;
         // Self-registers rather than being wired from FoodTooltipsPlugin (unlike
         // ArmorEnchantEffectListener#protectionDefenseBonus/ArmorDefenseService#protectionBonus,
         // which are wired externally since neither class already depends on the other) -
@@ -175,39 +174,40 @@ public final class CombatListener implements Listener {
         this.critMultiplier = p.getConfig().getDouble("combat.critical-damage-multiplier", 1.5);
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
-        this.mobHealthMultiplier = Math.max(1.0, p.getConfig().getDouble("mob-visuals.health-multiplier", 5.0));
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
     }
 
     @EventHandler
     public void spawn(CreatureSpawnEvent e) {
-        this.scaleMobHealth(e.getEntity());
+        this.difficulty.scale(e.getEntity());
         this.armor.neutralizeVanillaArmor(e.getEntity());
         Bukkit.getScheduler().runTask(this.plugin, () -> this.visuals.track(e.getEntity()));
     }
 
     /**
-     * First step toward the planned mob level scaling: every mob's Max Health is
-     * multiplied by {@code mob-visuals.health-multiplier} (default 5). Idempotent via
-     * a PDC flag so re-running it (plugin reload picking up already-spawned mobs)
-     * never re-multiplies; scales current health proportionally so mid-fight mobs
-     * keep their health fraction instead of snapping to full.
+     * Drains a scaled mob's bonus HP pool (see {@link MobDifficultyService#scale}'s own
+     * doc for why one exists at all - vanilla's Max Health attribute can't hold a total
+     * past 1024) before any of a hit reaches its real vanilla health. Deliberately
+     * MONITOR, not HIGHEST like {@code ArmorDefenseListener#defense} - this has to be
+     * the very last thing to touch the damage number, after Defense/Protection/every
+     * other reducer already ran, since the pool is meant to absorb whatever's actually
+     * about to land, not the raw pre-mitigation hit. Listens on the {@link
+     * EntityDamageEvent} supertype rather than just the by-entity one, on purpose - a
+     * bonus HP pool is a shield against any damage source (fire, fall, lava...), the
+     * same way vanilla's own Absorption effect is.
      */
-    public void scaleMobHealth(LivingEntity e) {
-        if (e instanceof Player || e.getPersistentDataContainer().has(this.hpScaledKey, PersistentDataType.BYTE)) {
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void absorbBonusHealth(EntityDamageEvent e) {
+        if (!(e.getEntity() instanceof LivingEntity target) || target instanceof Player) {
             return;
         }
-        AttributeInstance a = e.getAttribute(Attribute.MAX_HEALTH);
-        if (a == null) {
-            return;
+        double damage = e.getDamage();
+        double leftover = this.difficulty.absorb(target, damage);
+        if (leftover != damage) {
+            e.setDamage(leftover);
+            Bukkit.getScheduler().runTask(this.plugin, () -> this.visuals.update(target));
         }
-        double oldMax = a.getValue();
-        double fraction = oldMax > 0.0 ? e.getHealth() / oldMax : 1.0;
-        a.setBaseValue(a.getBaseValue() * this.mobHealthMultiplier);
-        double newMax = a.getValue();
-        e.setHealth(Math.max(0.0, Math.min(newMax, fraction * newMax)));
-        e.getPersistentDataContainer().set(this.hpScaledKey, PersistentDataType.BYTE, (byte) 1);
     }
 
     @EventHandler
@@ -264,7 +264,23 @@ public final class CombatListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void damage(EntityDamageByEntityEvent e) {
         Player p = this.attacker(e.getDamager());
-        if (p == null || !(e.getEntity() instanceof LivingEntity target)) {
+        if (p == null) {
+            // Not a player-dealt hit - the one other case this method cares about is a
+            // mob hitting a real player, scaled by MobDifficultyService the same way a
+            // player's own outgoing damage is scaled above, just with its own (smaller)
+            // multiplier and its own per-dimension floor (see #mobSource/the class doc
+            // on MobDifficultyService). Deliberately still HIGH, same reasoning as the
+            // player-damage half of this method - Defense/Protection need this already
+            // in place before they run at HIGHEST.
+            LivingEntity mob = this.mobSource(e.getDamager());
+            if (mob != null && this.isRealPlayer(e.getEntity()) && this.difficulty.scales(mob)) {
+                double scaled = e.getDamage() * this.difficulty.damageMultiplier(mob);
+                double floor = this.difficulty.minDamage(mob.getWorld());
+                e.setDamage(Math.max(scaled, floor));
+            }
+            return;
+        }
+        if (!(e.getEntity() instanceof LivingEntity target)) {
             return;
         }
         if (this.isVanillaCritical(p)) {
@@ -555,8 +571,7 @@ public final class CombatListener implements Listener {
             long valorEarned = this.valor.mobValor(e.getEntity());
             this.valor.deposit(p, valorEarned);
             this.abilities.hostileKill(p);
-            AttributeInstance a = e.getEntity().getAttribute(Attribute.MAX_HEALTH);
-            double hp = a == null ? e.getEntity().getHealth() : a.getValue();
+            double hp = this.visuals.effectiveMaxHealth(e.getEntity());
             double fallback = Math.max(1L, Math.round(Math.max(5.0, hp * this.hpXp + this.visuals.level(e.getEntity()) * this.levelXp) / 10.0));
             double xp = BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
             int oldLevel = this.combat.progress(p).level();
@@ -792,6 +807,17 @@ public final class CombatListener implements Listener {
             }
             item.remove();
         }
+    }
+
+    /** The mob actually responsible for {@code damager} - itself if it's a non-player LivingEntity, or whatever non-player LivingEntity fired it if it's a Projectile (an arrow, a Ghast fireball...) - or null for anything else (a player, a Citizens NPC, an unmanned source like TNT/a dispenser). Mirrors {@link #attacker}'s own shape, just for the mob side instead of the player side - see {@link #damage}'s own doc. */
+    private LivingEntity mobSource(Entity damager) {
+        if (damager instanceof LivingEntity mob && !(mob instanceof Player)) {
+            return mob;
+        }
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof LivingEntity mob && !(mob instanceof Player)) {
+            return mob;
+        }
+        return null;
     }
 
     private boolean hostile(Entity damager) {

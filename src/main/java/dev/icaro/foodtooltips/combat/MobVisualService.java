@@ -19,6 +19,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -32,6 +33,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.WaterMob;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
@@ -40,6 +42,9 @@ import org.joml.Vector3f;
 
 public final class MobVisualService {
     private static final String TAG = "foodtooltips_mob_label";
+    /** Same keys {@code MobDifficultyService} writes at spawn - independently constructed here rather than threaded through the constructor, the same "same literal NamespacedKey, two classes" convention this plugin already uses elsewhere (e.g. {@code ResetStatsCommand}'s namespace wipe). */
+    private static final NamespacedKey BONUS_MAX_HP_KEY = new NamespacedKey("foodtooltips", "mob_bonus_max_hp");
+    private static final NamespacedKey BONUS_HP_KEY = new NamespacedKey("foodtooltips", "mob_bonus_hp");
     private static final Pattern LEGACY = Pattern.compile("^\\[Lv\\.?\\s*\\d+].*\\d+/\\d+\u2764$");
     private final Plugin plugin;
     private final Map<UUID, TextDisplay> labels = new HashMap<UUID, TextDisplay>();
@@ -208,9 +213,21 @@ public final class MobVisualService {
     }
 
     public int level(LivingEntity e) {
+        return Math.max(1, (int)Math.round(this.effectiveMaxHealth(e) / 5.0));
+    }
+
+    /** {@code e}'s real vanilla Max Health plus whatever's left of its {@code MobDifficultyService} bonus pool (see that class's own doc for why one exists - vanilla's attribute alone can't hold a scaled total past 1024). 0 bonus for anything that was never scaled, so this is exactly {@code a.getValue()} for those - safe to always call. */
+    public double effectiveMaxHealth(LivingEntity e) {
         AttributeInstance a = e.getAttribute(Attribute.MAX_HEALTH);
-        double hp = a == null ? e.getHealth() : a.getValue();
-        return Math.max(1, (int)Math.round(hp / 5.0));
+        double base = a == null ? e.getHealth() : a.getValue();
+        Double bonus = e.getPersistentDataContainer().get(BONUS_MAX_HP_KEY, PersistentDataType.DOUBLE);
+        return base + (bonus == null ? 0.0 : bonus);
+    }
+
+    /** {@code e}'s real current health plus whatever's left of its bonus pool - see {@link #effectiveMaxHealth}. */
+    public double effectiveHealth(LivingEntity e) {
+        Double bonus = e.getPersistentDataContainer().get(BONUS_HP_KEY, PersistentDataType.DOUBLE);
+        return e.getHealth() + (bonus == null ? 0.0 : bonus);
     }
 
     public void update(LivingEntity e) {
@@ -218,10 +235,9 @@ public final class MobVisualService {
         if (d == null) {
             return;
         }
-        AttributeInstance a = e.getAttribute(Attribute.MAX_HEALTH);
-        double max = a == null ? e.getHealth() : a.getValue();
+        double max = this.effectiveMaxHealth(e);
         boolean showName = !(e instanceof Player) && e.customName() == null && !this.namePt.containsKey(e.getUniqueId());
-        long hp = Math.max(0L, Math.round(e.getHealth()));
+        long hp = Math.max(0L, Math.round(this.effectiveHealth(e)));
         long maxHp = Math.round(max);
         long key = (hp * 100000L + maxHp) * 2L + (long)(showName ? 1 : 0);
         Long last = this.renderState.get(e.getUniqueId());
