@@ -32,23 +32,76 @@ public final class FoodTooltipService {
         List original = Objects.requireNonNullElse(meta.lore(), List.of());
         ArrayList<Component> lore = new ArrayList<Component>(original);
         this.clean(lore);
+        ArrayList<Component> block = new ArrayList<Component>();
         if (food != null) {
-            lore.add((Component)Component.empty());
-            lore.add(this.line(l.choose("Atributos do alimento:", "Food attributes:"), NamedTextColor.GOLD));
-            lore.add(this.line("\ud83c\udf57 " + l.choose("Fome", "Hunger") + ": +" + this.n(food.nutrition()) + " (" + this.n((double)food.nutrition() / 2.0) + " \ud83c\udf57)", NamedTextColor.GREEN));
-            lore.add(this.line("\u2726 " + l.choose("Satura\u00e7\u00e3o", "Saturation") + ": +" + this.n(food.saturation()) + " (" + this.n((double)food.saturation() / 2.0) + " \u2726)", NamedTextColor.AQUA));
+            block.add(this.line(l.choose("Atributos do alimento:", "Food attributes:"), NamedTextColor.GOLD));
+            block.add(this.line("\ud83c\udf57 " + l.choose("Fome", "Hunger") + ": +" + this.n(food.nutrition()) + " (" + this.n((double)food.nutrition() / 2.0) + " \ud83c\udf57)", NamedTextColor.GREEN));
+            block.add(this.line("\u2726 " + l.choose("Satura\u00e7\u00e3o", "Saturation") + ": +" + this.n(food.saturation()) + " (" + this.n((double)food.saturation() / 2.0) + " \u2726)", NamedTextColor.AQUA));
         }
         if (pickaxe) {
-            lore.add((Component)Component.empty());
-            lore.add(this.line(l.choose("Atributos de minera\u00e7\u00e3o:", "Mining attributes:"), NamedTextColor.GOLD));
-            lore.add(this.line("\u26cf Mining Speed: " + this.skills.miningSpeed(item), NamedTextColor.AQUA));
+            if (!block.isEmpty()) {
+                block.add((Component)Component.empty());
+            }
+            block.add(this.line(l.choose("Atributos de minera\u00e7\u00e3o:", "Mining attributes:"), NamedTextColor.GOLD));
+            block.add(this.line("\u26cf Mining Speed: " + this.skills.miningSpeed(item), NamedTextColor.AQUA));
         }
+        this.insertBeforeTier(lore, block);
         if (lore.equals(original)) {
             return false;
         }
         meta.lore(lore);
         item.setItemMeta(meta);
         return true;
+    }
+
+    /**
+     * Inserts {@code block} right before the item's "TIER ..." line if one is already
+     * there, appending at the very end otherwise - {@link ItemTierService#applyTier}
+     * always keeps TIER as the very last line, and used to get appended AFTER this
+     * class's own food/mining block only when it happened to run first; since {@link
+     * ItemTierService#applyTier} is one-shot (never repositions TIER once applied) but
+     * this method re-runs on every refresh, whichever order the two independently-
+     * triggered systems first reached a given item stuck to it forever - two
+     * otherwise-identical stacks (say, two Rotten Flesh picked up moments apart) could
+     * end up with their "Food attributes:"/"TIER ..." blocks in a different order and
+     * never merge again, since stacking requires identical lore including order. This
+     * always resolves food/mining lore to the same position relative to TIER
+     * regardless of which system ran first, self-healing any already-split stack the
+     * next time either side touches it. A leading blank line separates {@code block}
+     * from whatever precedes it (added fresh, or reusing one already sitting there -
+     * e.g. one {@link ItemTierService#applyTier} pre-emptively left before TIER,
+     * anticipating this block would land there later - to never end up with two blanks
+     * in a row); a trailing one does the same if TIER immediately follows.
+     */
+    private void insertBeforeTier(List<Component> lore, List<Component> block) {
+        if (block.isEmpty()) {
+            return;
+        }
+        int at = this.findTierIndex(lore);
+        if (at < 0) {
+            at = lore.size();
+        }
+        if (at == 0 || !this.isBlank(lore.get(at - 1))) {
+            lore.add(at++, (Component)Component.empty());
+        }
+        lore.addAll(at, block);
+        at += block.size();
+        if (at < lore.size() && !this.isBlank(lore.get(at))) {
+            lore.add(at, (Component)Component.empty());
+        }
+    }
+
+    private int findTierIndex(List<Component> lore) {
+        for (int i = 0; i < lore.size(); i++) {
+            if (P.serialize(lore.get(i)).startsWith("TIER ")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isBlank(Component c) {
+        return P.serialize(c).isEmpty();
     }
 
     private void clean(List<Component> lore) {
