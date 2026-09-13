@@ -595,7 +595,7 @@ implements Listener {
     }
 
     private double logXp(Material m) {
-        return m.name().contains("CRIMSON") || m.name().contains("WARPED") ? 8.0 : 5.0;
+        return m.name().contains("CRIMSON") || m.name().contains("WARPED") ? 8.0 : 6.0;
     }
 
     private double cropXp(Material m) {

@@ -42,6 +42,8 @@ public final class SkillsMenuService {
     private static final Map<Integer, SkillType> S = Map.of(21, SkillType.FARMING, 22, SkillType.MINING, 23, SkillType.FISHING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING);
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
     private static final int TRASH_BUTTON_SLOT = 53;
+    /** The MAIN screen's Quiver button - see {@link QuiverService}. */
+    private static final int QUIVER_SLOT = 33;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
@@ -70,6 +72,7 @@ public final class SkillsMenuService {
     private CraftingMenuService crafting;
     private TrashMenuService trash;
     private EnchantMenuService enchantMenu;
+    private QuiverService quiver;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -107,6 +110,10 @@ public final class SkillsMenuService {
         this.enchantMenu = enchantMenu;
     }
 
+    public void quiver(QuiverService quiver) {
+        this.quiver = quiver;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -133,6 +140,10 @@ public final class SkillsMenuService {
         }
         if (this.trash != null) {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
+        }
+        if (this.quiver != null && this.quiver.unlocked(p)) {
+            v.setItem(QUIVER_SLOT, this.customHead(HeadTexture.QUIVER, this.quiver.displayName(p, l),
+                    List.of(this.text(l.choose("O arco puxa flechas daqui direto, sem precisar deixá-las no inventário.", "The bow pulls arrows from here directly, without needing to keep them in your inventory."), NamedTextColor.GRAY), this.click(l))));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -281,6 +292,9 @@ public final class SkillsMenuService {
                 } else if (slot == TRASH_BUTTON_SLOT && this.trash != null) {
                     this.views.remove(p.getUniqueId());
                     this.trash.open(p);
+                } else if (slot == QUIVER_SLOT && this.quiver != null && this.quiver.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.quiver.open(p);
                 }
             }
             case GLOBAL -> {

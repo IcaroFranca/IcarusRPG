@@ -65,6 +65,8 @@ import dev.icaro.foodtooltips.skills.CombatValorService;
 import dev.icaro.foodtooltips.skills.GeneralSkillListener;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.PlayerStatsViewListener;
+import dev.icaro.foodtooltips.skills.QuiverListener;
+import dev.icaro.foodtooltips.skills.QuiverService;
 import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillsListener;
@@ -98,6 +100,7 @@ public final class FoodTooltipsPlugin
 extends JavaPlugin {
     private MobVisualService visuals;
     private SkillProgressBarService progressBar;
+    private QuiverService quiver;
 
     public void onEnable() {
         this.saveDefaultConfig();
@@ -126,6 +129,8 @@ extends JavaPlugin {
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
+        this.quiver = new QuiverService((Plugin)this, combat);
+        menus.quiver(this.quiver);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
         stats.legendary(legendary);
@@ -174,6 +179,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants), (Plugin)this);
+        pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
@@ -331,6 +337,7 @@ extends JavaPlugin {
             general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
+            this.quiver.topUp((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);
         this.getServer().getScheduler().runTaskTimer((Plugin)this, this.visuals::tick, 1L, Math.max(1L, this.getConfig().getLong("mob-visuals.update-ticks", 3L)));
@@ -386,6 +393,9 @@ extends JavaPlugin {
         }
         if (this.progressBar != null) {
             this.progressBar.shutdown();
+        }
+        if (this.quiver != null) {
+            this.quiver.saveAll();
         }
     }
 

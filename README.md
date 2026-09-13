@@ -63,6 +63,11 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   (`combat.base-crit-chance`) + 0.5%/nível + bônus de habilidade, sempre limitada a
   100% no total. Não existe mais crítico por pulo (jump crit) — só a rolagem de
   porcentagem conta.
+- **Aljava** (`/skills`, a partir do Nível de Combate 5): armazenamento próprio de 27
+  slots (o mesmo espaço de um baú simples), só aceita flechas (normais, tocadas ou
+  espectrais). O arco puxa flechas direto de lá sempre que o inventário normal do
+  jogador estiver sem nenhuma — não precisa carregar flecha nenhuma no inventário.
+  Persiste entre sessões, independente do inventário do jogador.
 - **Árvore de Habilidades de Combate** (`/skills` → Árvore de Combate): 7 habilidades
   em 2 ramos de 3 nós cada — Fúria (Golpes Implacáveis → Berserker → Maestria Crítica)
   e Sangue (Sede de Sangue → Colheita de Almas → Segundo Fôlego) — convergindo no único
