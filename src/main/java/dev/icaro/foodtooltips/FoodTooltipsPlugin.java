@@ -129,7 +129,7 @@ extends JavaPlugin {
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
-        this.quiver = new QuiverService((Plugin)this, combat);
+        this.quiver = new QuiverService((Plugin)this, combat, menus::openMain);
         menus.quiver(this.quiver);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
