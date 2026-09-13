@@ -66,6 +66,9 @@ import dev.icaro.foodtooltips.skills.CombatTreeMenuService;
 import dev.icaro.foodtooltips.skills.CombatValorService;
 import dev.icaro.foodtooltips.skills.GeneralSkillListener;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
+import dev.icaro.foodtooltips.skills.PassiveAbilityListener;
+import dev.icaro.foodtooltips.skills.PassiveAbilityMenuService;
+import dev.icaro.foodtooltips.skills.PassiveAbilityService;
 import dev.icaro.foodtooltips.skills.PlayerStatsViewListener;
 import dev.icaro.foodtooltips.skills.QuiverListener;
 import dev.icaro.foodtooltips.skills.QuiverService;
@@ -133,6 +136,9 @@ extends JavaPlugin {
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         this.quiver = new QuiverService((Plugin)this, combat, menus::openMain);
         menus.quiver(this.quiver);
+        PassiveAbilityService passives = new PassiveAbilityService();
+        PassiveAbilityMenuService passiveAbilityMenu = new PassiveAbilityMenuService(passives, global, menus::openMain);
+        menus.passiveAbilities(passiveAbilityMenu);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
         stats.legendary(legendary);
@@ -183,12 +189,13 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
-        pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants), (Plugin)this);
+        pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives), (Plugin)this);
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
+        pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives);
         // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
         // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
         // CombatListener#secondWind - Bukkit runs same-priority handlers in

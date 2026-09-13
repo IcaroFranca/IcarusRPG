@@ -171,14 +171,32 @@ public final class MobVisualService {
                 continue;
             }
             if (!living.getPassengers().contains(d)) {
+                // A cross-world teleport (a portal, /rtp, the Locais menu...) leaves a
+                // passenger behind in the old world instead of carrying it along -
+                // Entity#addPassenger silently fails (returns false, no exception) across
+                // worlds, so without this the label would sit orphaned forever and this
+                // same check would keep failing every tick from then on. Teleporting it
+                // to the owner's current location first (also moving it to the right
+                // world) is what actually re-establishes it - the passenger relationship
+                // itself can't cross worlds, but the display entity moving into the same
+                // world as its owner first, then reattaching, can.
+                if (d.getWorld() != living.getWorld()) {
+                    d.teleport(living.getLocation());
+                }
                 living.addPassenger((Entity)d);
             }
             TextDisplay pt = this.namePt.get(id);
             TextDisplay en = this.nameEn.get(id);
             if (pt != null && !living.getPassengers().contains(pt)) {
+                if (pt.getWorld() != living.getWorld()) {
+                    pt.teleport(living.getLocation());
+                }
                 living.addPassenger((Entity)pt);
             }
             if (en != null && !living.getPassengers().contains(en)) {
+                if (en.getWorld() != living.getWorld()) {
+                    en.teleport(living.getLocation());
+                }
                 living.addPassenger((Entity)en);
             }
             this.update(living);

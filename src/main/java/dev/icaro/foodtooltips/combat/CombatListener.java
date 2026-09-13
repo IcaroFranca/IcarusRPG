@@ -24,6 +24,8 @@ import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.skills.CombatTreeMath;
 import dev.icaro.foodtooltips.skills.CombatValorService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
+import dev.icaro.foodtooltips.skills.PassiveAbilityService;
+import dev.icaro.foodtooltips.skills.PassiveToggle;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
@@ -60,12 +63,15 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -124,17 +130,22 @@ public final class CombatListener implements Listener {
     private final LegendaryWeaponService legendary;
     private final EnchantService enchants;
     private final MobDifficultyService difficulty;
+    private final PassiveAbilityService passives;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     /** Captured on death, consumed on respawn (see {@link #playerDeath}/{@link #respawn}) - where to point the death compass. */
     private final Map<UUID, Location> deathLocations = new HashMap<>();
     /** Lethality's own active-debuff state per target - see {@link #addLethalityStack}/{@link #lethalityDefensePenalty}. Pruned periodically (see the constructor) rather than only on read, since a target that stops being hit (a mob that despawns, wanders off, or dies) would otherwise sit here forever with a long-expired entry. */
     private final Map<UUID, LethalityDebuff> lethality = new HashMap<>();
+    /** A death compass right-clicked once, waiting for a confirming second click within the window - see {@link #useDeathCompass}. Value is the expiry timestamp; pruned by the same periodic sweep as {@link #lethality}. */
+    private final Map<UUID, Long> teleportArmed = new HashMap<>();
+    private final NamespacedKey deathCompassKey = new NamespacedKey("foodtooltips", "death_compass");
     private final double critMultiplier;
     private final double hpXp;
     private final double levelXp;
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
     private final double minerCombatXp;
+    private final long teleportArmWindowMillis;
 
     /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
     private record LethalityDebuff(int level, int stacks, long expiry) {
@@ -143,7 +154,7 @@ public final class CombatListener implements Listener {
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, GlobalLevelService global,
                            PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
-                           LegendaryWeaponService legendary, EnchantService enchants, MobDifficultyService difficulty) {
+                           LegendaryWeaponService legendary, EnchantService enchants, MobDifficultyService difficulty, PassiveAbilityService passives) {
         this.plugin = p;
         this.combat = c;
         this.visuals = v;
@@ -158,6 +169,7 @@ public final class CombatListener implements Listener {
         this.legendary = legendary;
         this.enchants = enchants;
         this.difficulty = difficulty;
+        this.passives = passives;
         // Self-registers rather than being wired from FoodTooltipsPlugin (unlike
         // ArmorEnchantEffectListener#protectionDefenseBonus/ArmorDefenseService#protectionBonus,
         // which are wired externally since neither class already depends on the other) -
@@ -172,10 +184,12 @@ public final class CombatListener implements Listener {
         Bukkit.getScheduler().runTaskTimer(p, () -> {
             long now = System.currentTimeMillis();
             this.lethality.values().removeIf(d -> d.expiry() <= now);
+            this.teleportArmed.values().removeIf(expiry -> expiry <= now);
         }, 200L, 200L);
         this.critMultiplier = p.getConfig().getDouble("combat.critical-damage-multiplier", 1.5);
         this.hpXp = p.getConfig().getDouble("combat.hostile-xp-health-multiplier", 2.0);
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
+        this.teleportArmWindowMillis = Math.max(1000L, p.getConfig().getLong("global-level.death-teleport-confirm-window-millis", 10000L));
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
         this.minerCombatXp = p.getConfig().getDouble("miner-variants.combat-xp", 24.0);
@@ -596,7 +610,7 @@ public final class CombatListener implements Listener {
                 this.levelUpMessage(p, oldLevel, newLevel, reward, bonusValor);
             }
         }
-        if (this.global.telekinesisUnlocked(p)) {
+        if (this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_MOB_DROPS)) {
             this.collectDrops(p, e);
             double radius = this.global.telekinesisRadius(p);
             if (radius > 0.0) {
@@ -684,10 +698,62 @@ public final class CombatListener implements Listener {
         meta.displayName(Component.text(l.choose("Local da Morte: ", "Death Location: ")
                         + death.getBlockX() + ", " + death.getBlockY() + ", " + death.getBlockZ(), NamedTextColor.GOLD)
                 .decoration(TextDecoration.ITALIC, false));
+        meta.getPersistentDataContainer().set(this.deathCompassKey, PersistentDataType.BYTE, (byte) 1);
         compass.setItemMeta(meta);
         for (ItemStack overflow : p.getInventory().addItem(compass).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
+    }
+
+    /**
+     * Right-clicking the death compass (see {@link #giveDeathCompass} - tagged with
+     * {@link #deathCompassKey} so a player's own separately-acquired vanilla lodestone
+     * compass never triggers this) teleports back to the exact location baked into that
+     * specific compass, once {@code global-level.death-teleport-level} (5 by default) is
+     * unlocked - below that it's still just a plain pointer, same as it always was.
+     * Requires a confirming second right-click within {@link #teleportArmWindowMillis}
+     * (same "arm, then confirm" idea as {@code GrindstoneMenuService}'s own remove
+     * confirmation) rather than teleporting instantly, so an incidental right-click
+     * doesn't yank the player away without warning.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void useDeathCompass(PlayerInteractEvent e) {
+        if (e.getHand() != EquipmentSlot.HAND || !e.getAction().isRightClick()) {
+            return;
+        }
+        ItemStack item = e.getItem();
+        if (item == null || item.getType() != Material.COMPASS) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (!(meta instanceof CompassMeta compassMeta) || !meta.getPersistentDataContainer().has(this.deathCompassKey, PersistentDataType.BYTE)) {
+            return;
+        }
+        Player p = e.getPlayer();
+        Language l = Language.of(p);
+        if (!this.global.deathTeleportUnlocked(p)) {
+            p.sendMessage(Component.text(l.choose(
+                    "A teleportação da bússola de morte desbloqueia no Nível Global " + this.global.deathTeleportRequiredLevel() + ".",
+                    "The death compass' teleport unlocks at Global Level " + this.global.deathTeleportRequiredLevel() + "."), NamedTextColor.RED));
+            return;
+        }
+        Location target = compassMeta.getLodestone();
+        if (target == null || target.getWorld() == null) {
+            return;
+        }
+        e.setCancelled(true);
+        long now = System.currentTimeMillis();
+        Long armedUntil = this.teleportArmed.get(p.getUniqueId());
+        if (armedUntil != null && armedUntil >= now) {
+            this.teleportArmed.remove(p.getUniqueId());
+            p.teleport(target);
+            p.sendMessage(Component.text(l.choose("Teleportado para o local da sua morte.", "Teleported to your death location."), NamedTextColor.GREEN));
+            return;
+        }
+        this.teleportArmed.put(p.getUniqueId(), now + this.teleportArmWindowMillis);
+        p.sendMessage(Component.text(l.choose(
+                "Clique novamente na bússola em até " + (this.teleportArmWindowMillis / 1000L) + "s para teleportar.",
+                "Right-click the compass again within " + (this.teleportArmWindowMillis / 1000L) + "s to teleport."), NamedTextColor.YELLOW));
     }
 
     /**
@@ -767,6 +833,7 @@ public final class CombatListener implements Listener {
         // runs (low impact - one Location per player who's ever done this - but still
         // an unbounded leak with no cap).
         this.deathLocations.remove(e.getPlayer().getUniqueId());
+        this.teleportArmed.remove(e.getPlayer().getUniqueId());
     }
 
     private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {

@@ -156,6 +156,13 @@ global-level:
   # items within telekinesis-radius blocks get swept in too.
   telekinesis-level: 3
   telekinesis-radius: 3.0
+  # Global Level required to unlock the death compass' own teleport (see
+  # CombatListener#useDeathCompass) - the compass itself (a plain pointer) is still
+  # handed out on every respawn regardless of level.
+  death-teleport-level: 5
+  # How long (in milliseconds) a right-click on the death compass stays "armed" waiting
+  # for the confirming second right-click before it expires and has to be re-armed.
+  death-teleport-confirm-window-millis: 10000
   strength-damage-percent-per-point: 1.0
   # Custom player-head texture for the Global Level icon in /skills. Leave blank to use
   # the default fallback icon (an experience bottle). To set a custom head: find one on

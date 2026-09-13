@@ -75,6 +75,7 @@ implements Listener {
     private final BuriedTreasureService treasures;
     private final GlobalLevelService global;
     private final EnchantService enchants;
+    private final PassiveAbilityService passives;
     private final Set<String> placed = new HashSet<String>();
     private final Set<UUID> veinActive = new HashSet<UUID>();
     /** Reentrancy guard for {@link #potionDuration} - reapplying an extended effect fires this same event again, and this stops that from being treated as a new drink to extend a second time. */
@@ -82,12 +83,13 @@ implements Listener {
     private final Map<String, Target> targets = new HashMap<String, Target>();
     private final Map<UUID, Combo> combos = new HashMap<UUID, Combo>();
 
-    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants) {
+    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants, PassiveAbilityService passives) {
         this.plugin = p;
         this.skills = s;
         this.bars = b;
         this.global = g;
         this.enchants = enchants;
+        this.passives = passives;
         this.treasures = new BuriedTreasureService(p, s);
     }
 
@@ -336,7 +338,7 @@ implements Listener {
                 extra -= overflow.getAmount();
             }
         }
-        if (t.skill == SkillType.MINING && this.global.telekinesisUnlocked(e.getPlayer())) {
+        if (t.skill == SkillType.MINING && this.global.telekinesisUnlocked(e.getPlayer()) && this.passives.enabled(e.getPlayer(), PassiveToggle.TELEKINESIS_BLOCK_DROPS)) {
             for (Item item : new ArrayList<>(e.getItems())) {
                 for (ItemStack overflow : e.getPlayer().getInventory().addItem(new ItemStack[]{item.getItemStack()}).values()) {
                     e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);

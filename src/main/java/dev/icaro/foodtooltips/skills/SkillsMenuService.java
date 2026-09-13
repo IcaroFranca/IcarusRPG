@@ -47,6 +47,8 @@ public final class SkillsMenuService {
     private static final int TRASH_BUTTON_SLOT = 53;
     /** The MAIN screen's Quiver button - see {@link QuiverService}. */
     private static final int QUIVER_SLOT = 33;
+    /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
+    private static final int PASSIVE_ABILITIES_SLOT = 29;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
@@ -81,6 +83,7 @@ public final class SkillsMenuService {
     private TrashMenuService trash;
     private EnchantMenuService enchantMenu;
     private QuiverService quiver;
+    private PassiveAbilityMenuService passiveAbilities;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -127,6 +130,10 @@ public final class SkillsMenuService {
         this.quiver = quiver;
     }
 
+    public void passiveAbilities(PassiveAbilityMenuService passiveAbilities) {
+        this.passiveAbilities = passiveAbilities;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -153,6 +160,16 @@ public final class SkillsMenuService {
         }
         if (this.trash != null) {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
+        }
+        if (this.passiveAbilities != null) {
+            List<Component> passiveLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Ative ou desative habilidades passivas como a Telecinese, separadamente para drops de mobs e de blocos.",
+                    "Turn passive abilities like Telekinesis on or off, separately for mob drops and block drops."), LoreWrap.DEFAULT_WIDTH)) {
+                passiveLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            passiveLore.add(this.click(l));
+            v.setItem(PASSIVE_ABILITIES_SLOT, this.item(Material.LEVER, l.choose("Habilidades Passivas", "Passive Abilities"), passiveLore));
         }
         if (this.quiver != null && this.quiver.unlocked(p)) {
             List<Component> quiverLore = new ArrayList<>();
@@ -325,6 +342,9 @@ public final class SkillsMenuService {
                 } else if (slot == QUIVER_SLOT && this.quiver != null && this.quiver.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.quiver.open(p);
+                } else if (slot == PASSIVE_ABILITIES_SLOT && this.passiveAbilities != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.passiveAbilities.open(p);
                 }
             }
             case GLOBAL -> {

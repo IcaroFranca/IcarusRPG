@@ -75,7 +75,11 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   Custa **Pontos de Sangue** 🩸 (ganhos por abate/level-up), com Nível de Combate
   mínimo por tier além do custo. Botão de reset devolve os pontos gastos.
 - **Nível Global**: XP linear sem teto real, dá +HP e +Strength por faixa de nível, e
-  desbloqueia **Telecinese** (loot direto pro inventário) num nível configurável.
+  desbloqueia **Telecinese** (loot direto pro inventário) num nível configurável, e a
+  **teleportação da bússola de morte** no Nível Global 5 (`global-level.death-teleport-level`).
+  A bússola em si (aponta pro local da sua última morte) sempre foi dada no respawn,
+  independente de nível — abaixo do nível 5 ela continua sendo só um ponteiro; a partir
+  dele, clicar nela e clicar de novo em até 10s (pra confirmar) te teleporta pra lá.
 - **Skills gerais** (Mineração, Agricultura, Pesca, Coleta, Encantamento, Alquimia):
   cada uma dá Fortune e/ou um bônus de atributo por nível (Vida, Strength,
   Inteligência ou Defesa, dependendo da skill) — ver `/skills` → skill individual.
@@ -86,6 +90,11 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   Alquimia roxa (Combate mantém a vermelha).
 - **Menu de Locais** (`/skills` → Locais): teleporte grátis e ilimitado pro Mundo
   Padrão.
+- **Habilidades Passivas** (`/skills`, slot 29): liga/desliga habilidades passivas
+  individualmente — hoje só a Telecinese, separada em duas chaves independentes (drops
+  de mobs e drops de blocos minerados). Continua exigindo o nível de desbloqueio normal
+  da Telecinese; a tela só aparece destrancada a partir dele, e por padrão as duas
+  ficam ativadas (nada muda pra quem nunca abrir essa tela).
 
 ## Vida, Defesa e Dano
 
