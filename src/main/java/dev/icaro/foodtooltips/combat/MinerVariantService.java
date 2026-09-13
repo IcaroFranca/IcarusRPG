@@ -1,7 +1,11 @@
 package dev.icaro.foodtooltips.combat;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
+import dev.icaro.foodtooltips.item.HeadTexture;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -14,20 +18,24 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
  * A natural Zombie or Skeleton (the plain vanilla type only - not Husk/Drowned/Stray/
  * Wither Skeleton/Zombie Villager) that spawns in the Overworld below {@code
- * miner-variants.below-y} becomes a "Zombie Miner"/"Skeleton Miner" instead: full
- * Diamond armor enchanted with this plugin's own Protection V (real vanilla Diamond
- * material Defense, {@code +4}/level/piece on top from Protection - see {@code
- * ArmorEnchantEffectListener#protectionDefenseBonus}, wired the same for every
- * {@code LivingEntity}, mobs included), and its own guaranteed minimum ({@code
- * miner-variants.min-health}/{@code min-damage}, 300/180 by default) raised past
- * whatever a plain Zombie/Skeleton's own Bestiary tier would otherwise give it via
- * {@link MobDifficultyService}.
+ * miner-variants.below-y} becomes a "Zombie Miner"/"Skeleton Miner" instead: a custom
+ * head ({@link HeadTexture#ZOMBIE_MINER}/{@link HeadTexture#SKELETON_MINER}) worn in
+ * place of a plain Diamond Helmet, Diamond Chestplate/Leggings/Boots enchanted with
+ * this plugin's own Protection V (real vanilla Diamond material Defense on the three
+ * remaining pieces, {@code +4}/level/piece on top from Protection - see {@code
+ * ArmorEnchantEffectListener#protectionDefenseBonus}, wired the same for every {@code
+ * LivingEntity}, mobs included, and not gated on the helmet's own material, so it still
+ * contributes even worn on a head with no material Defense of its own), and its own
+ * guaranteed minimum ({@code miner-variants.min-health}/{@code min-damage}, 300/180 by
+ * default) raised past whatever a plain Zombie/Skeleton's own Bestiary tier would
+ * otherwise give it via {@link MobDifficultyService}.
  *
  * <p>Converts the mob in place rather than despawning it and spawning a different
  * EntityType - simpler, and keeps vanilla's own AI/pathfinding intact. {@link #spawn}
@@ -74,7 +82,7 @@ public final class MinerVariantService implements Listener {
         if (world.getEnvironment() != World.Environment.NORMAL || mob.getLocation().getY() >= this.belowY) {
             return;
         }
-        this.equip(mob);
+        this.equip(mob, type);
         this.difficulty.raiseFloor(mob, this.minHealth, this.minDamage);
         mob.getPersistentDataContainer().set(VARIANT_KEY, PersistentDataType.BYTE, (byte) 1);
         String pt = type == EntityType.ZOMBIE ? "Zumbi Minerador" : "Esqueleto Minerador";
@@ -91,21 +99,36 @@ public final class MinerVariantService implements Listener {
         }, 2L);
     }
 
-    private void equip(LivingEntity mob) {
+    private void equip(LivingEntity mob, EntityType type) {
         EntityEquipment eq = mob.getEquipment();
         if (eq == null) {
             return;
         }
-        eq.setHelmet(this.protectedDiamond(Material.DIAMOND_HELMET));
-        eq.setChestplate(this.protectedDiamond(Material.DIAMOND_CHESTPLATE));
-        eq.setLeggings(this.protectedDiamond(Material.DIAMOND_LEGGINGS));
-        eq.setBoots(this.protectedDiamond(Material.DIAMOND_BOOTS));
+        String headTexture = type == EntityType.ZOMBIE ? HeadTexture.ZOMBIE_MINER : HeadTexture.SKELETON_MINER;
+        eq.setHelmet(this.protectedItem(this.customHead(headTexture)));
+        eq.setChestplate(this.protectedItem(new ItemStack(Material.DIAMOND_CHESTPLATE)));
+        eq.setLeggings(this.protectedItem(new ItemStack(Material.DIAMOND_LEGGINGS)));
+        eq.setBoots(this.protectedItem(new ItemStack(Material.DIAMOND_BOOTS)));
     }
 
-    /** One Diamond armor piece carrying this plugin's own Protection V (a PDC-stored custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese lore by default, same as everything else spawned without a player context to read a language preference from. */
-    private ItemStack protectedDiamond(Material material) {
-        ItemStack item = new ItemStack(material);
+    /** {@code item} enchanted with this plugin's own Protection V (a PDC-stored custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese lore by default, same as everything else spawned without a player context to read a language preference from. Not gated on the item's own material ({@link ArmorEnchantEffectListener#armorLevel} reads the PDC level straight off whatever's equipped), so this works on the custom head helmet too, not just real armor. */
+    private ItemStack protectedItem(ItemStack item) {
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
+        return item;
+    }
+
+    /** A custom player head worn as the Miner's own helmet in place of a plain Diamond Helmet - same {@code PlayerProfile}/{@code ProfileProperty} texture-setting shape every custom menu icon in this plugin already uses (see {@code SkillsMenuService#customHead}), just equipped instead of shown in a menu. */
+    private ItemStack customHead(String texture) {
+        ItemStack item = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", texture));
+            meta.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the spawn.
+        }
+        item.setItemMeta(meta);
         return item;
     }
 }
