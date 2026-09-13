@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -178,7 +179,9 @@ public final class GrindstoneMenuService {
             lore.add(this.text(l.choose("Clique de novo para confirmar.", "Click again to confirm."), NamedTextColor.RED));
             return this.item(Material.TNT, l.choose("Remover " + name + "?", "Remove " + name + "?"), lore);
         }
-        lore.add(this.text(l.choose("Clique para remover este encantamento do item.", "Click to remove this enchantment from the item."), NamedTextColor.RED));
+        for (String part : LoreWrap.wrapText(l.choose("Clique para remover este encantamento do item.", "Click to remove this enchantment from the item."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.RED));
+        }
         return this.enchantedBook(name, lore);
     }
 

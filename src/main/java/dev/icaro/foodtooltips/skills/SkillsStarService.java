@@ -1,6 +1,8 @@
 package dev.icaro.foodtooltips.skills;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.util.LoreWrap;
+import java.util.ArrayList;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -54,9 +56,12 @@ public final class SkillsStarService {
         ItemStack star = ItemStack.of(Material.NETHER_STAR);
         ItemMeta meta = star.getItemMeta();
         meta.displayName(Component.text("★ " + l.choose("Menu", "Menu"), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
-        meta.lore(List.of(
-                Component.text(l.choose("Clique para abrir o Menu.", "Click to open the Menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text(l.choose("Não pode ser removido ou dado a outro jogador.", "Cannot be removed or given to another player."), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(l.choose("Clique para abrir o Menu.", "Click to open the Menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        for (String part : LoreWrap.wrapText(l.choose("Não pode ser removido ou dado a outro jogador.", "Cannot be removed or given to another player."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(Component.text(part, NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+        }
+        meta.lore(lore);
         meta.setEnchantmentGlintOverride(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         meta.getPersistentDataContainer().set(this.starKey, PersistentDataType.BYTE, (byte) 1);

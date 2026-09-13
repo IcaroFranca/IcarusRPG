@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -222,20 +223,26 @@ public final class CombatTreeMenuService {
     private ItemStack headerItem(Player p, Language l) {
         int level = this.combat.progress(p).level();
         long balance = this.valor.balance(p);
-        List<Component> lore = List.of(
-                this.text(l.choose("Nível de Combate: ", "Combat Level: ") + level, NamedTextColor.GREEN),
-                this.text(CURRENCY_SYMBOL + " " + l.choose("Pontos de Sangue: ", "Blood Points: ") + this.valor.format(balance), NamedTextColor.DARK_RED),
-                this.text(l.choose("Ganhe matando mobs hostis (veja o Bestiário) e ao subir de nível de Combate.", "Earn them by killing hostile mobs (see the Bestiary) and leveling up Combat."), NamedTextColor.GRAY),
-                this.text(l.choose("Nós mais fundos na árvore também exigem um Nível de Combate mínimo.", "Deeper nodes in the tree also require a minimum Combat level."), NamedTextColor.GRAY),
-                Component.empty(),
-                this.text(l.choose("🔒 Carvão: bloqueada", "🔒 Coal: locked"), NamedTextColor.DARK_GRAY),
-                this.text(l.choose("✔ Esmeralda: desbloqueada", "✔ Emerald: unlocked"), NamedTextColor.GREEN),
-                this.text(l.choose("★ Diamante: nível máximo", "★ Diamond: max level"), NamedTextColor.AQUA),
-                this.text(l.choose("(bloco = ativa, minério/gema = passiva)", "(block = active, ore/gem = passive)"), NamedTextColor.DARK_GRAY),
-                Component.empty(),
-                this.text(l.choose("Clique: desbloquear/melhorar", "Click: unlock/upgrade"), NamedTextColor.YELLOW),
-                this.text(l.choose("Shift + clique: ativar/desativar", "Shift + click: enable/disable"), NamedTextColor.YELLOW),
-                this.text(l.choose("Bloco de TNT: resetar a árvore (devolve os Pontos de Sangue)", "TNT block: reset the tree (refunds Blood Points)"), NamedTextColor.YELLOW));
+        List<Component> lore = new ArrayList<>();
+        lore.add(this.text(l.choose("Nível de Combate: ", "Combat Level: ") + level, NamedTextColor.GREEN));
+        lore.add(this.text(CURRENCY_SYMBOL + " " + l.choose("Pontos de Sangue: ", "Blood Points: ") + this.valor.format(balance), NamedTextColor.DARK_RED));
+        for (String part : LoreWrap.wrapText(l.choose("Ganhe matando mobs hostis (veja o Bestiário) e ao subir de nível de Combate.", "Earn them by killing hostile mobs (see the Bestiary) and leveling up Combat."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        for (String part : LoreWrap.wrapText(l.choose("Nós mais fundos na árvore também exigem um Nível de Combate mínimo.", "Deeper nodes in the tree also require a minimum Combat level."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("🔒 Carvão: bloqueada", "🔒 Coal: locked"), NamedTextColor.DARK_GRAY));
+        lore.add(this.text(l.choose("✔ Esmeralda: desbloqueada", "✔ Emerald: unlocked"), NamedTextColor.GREEN));
+        lore.add(this.text(l.choose("★ Diamante: nível máximo", "★ Diamond: max level"), NamedTextColor.AQUA));
+        lore.add(this.text(l.choose("(bloco = ativa, minério/gema = passiva)", "(block = active, ore/gem = passive)"), NamedTextColor.DARK_GRAY));
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("Clique: desbloquear/melhorar", "Click: unlock/upgrade"), NamedTextColor.YELLOW));
+        lore.add(this.text(l.choose("Shift + clique: ativar/desativar", "Shift + click: enable/disable"), NamedTextColor.YELLOW));
+        for (String part : LoreWrap.wrapText(l.choose("Bloco de TNT: resetar a árvore (devolve os Pontos de Sangue)", "TNT block: reset the tree (refunds Blood Points)"), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.YELLOW));
+        }
         ItemStack i = this.item(Material.PLAYER_HEAD, l.choose("Sua Árvore de Combate", "Your Combat Tree"), lore);
         SkullMeta m = (SkullMeta) i.getItemMeta();
         m.setOwningPlayer((OfflinePlayer) p);
@@ -245,12 +252,14 @@ public final class CombatTreeMenuService {
 
     private ItemStack resetItem(Player p, Language l) {
         boolean armed = this.resetConfirm.getOrDefault(p.getUniqueId(), 0L) > System.currentTimeMillis();
-        List<Component> lore = List.of(
-                this.text(l.choose("Reseta todos os níveis da árvore e devolve todos os Pontos de Sangue gastos.", "Resets every tree level and refunds every Blood Point spent."), NamedTextColor.GRAY),
-                Component.empty(),
-                armed
-                        ? this.text(l.choose("Clique de novo para confirmar!", "Click again to confirm!"), NamedTextColor.RED)
-                        : this.text(l.choose("Clique para resetar (pede confirmação).", "Click to reset (asks for confirmation)."), NamedTextColor.YELLOW));
+        List<Component> lore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(l.choose("Reseta todos os níveis da árvore e devolve todos os Pontos de Sangue gastos.", "Resets every tree level and refunds every Blood Point spent."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(armed
+                ? this.text(l.choose("Clique de novo para confirmar!", "Click again to confirm!"), NamedTextColor.RED)
+                : this.text(l.choose("Clique para resetar (pede confirmação).", "Click to reset (asks for confirmation)."), NamedTextColor.YELLOW));
         return this.item(Material.TNT, l.choose("Resetar Árvore", "Reset Tree"), lore, armed ? NamedTextColor.RED : NamedTextColor.GOLD);
     }
 
@@ -311,7 +320,9 @@ public final class CombatTreeMenuService {
             lore.add(this.text(enabled ? l.choose("ATIVADA (shift-clique desativa)", "ENABLED (shift-click disables)") : l.choose("DESATIVADA (shift-clique ativa)", "DISABLED (shift-click enables)"), enabled ? NamedTextColor.GREEN : NamedTextColor.GRAY));
         }
         if (node.kind() == CombatTreeNode.Kind.ACTIVE_KEYBIND) {
-            lore.add(this.text(l.choose("Ativa: trocar de mão (F) sem agachar", "Activates: swap hands (F) without sneaking"), NamedTextColor.AQUA));
+            for (String part : LoreWrap.wrapText(l.choose("Ativa: trocar de mão (F) sem agachar", "Activates: swap hands (F) without sneaking"), LoreWrap.DEFAULT_WIDTH)) {
+                lore.add(this.text(part, NamedTextColor.AQUA));
+            }
         }
 
         ItemStack item = this.item(this.stateIcon(active, rank, max), name, lore, nameColor);

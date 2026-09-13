@@ -10,6 +10,7 @@ import dev.icaro.foodtooltips.mining.MiningCatalog;
 import dev.icaro.foodtooltips.mining.MiningEntry;
 import dev.icaro.foodtooltips.mining.TreasureRarity;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -60,7 +61,12 @@ public final class MiningMenuService {
         Material target = this.skills.commissionTarget(p);
         inv.setItem(45, this.item(Material.WRITABLE_BOOK, (Component)Component.text((String)l.choose("Comiss\u00e3o di\u00e1ria", "Daily Commission"), (TextColor)NamedTextColor.GOLD), List.of(Component.translatable((String)target.translationKey()).color((TextColor)NamedTextColor.YELLOW), this.line(this.skills.commissionProgress(p) + "/" + this.skills.commissionGoal(p), NamedTextColor.GREEN), this.line(l.choose("Recompensa: 500 XP e 250 P\u00f3 Mineral", "Reward: 500 XP and 250 Mineral Dust"), NamedTextColor.AQUA))));
         inv.setItem(46, this.treasureItem(p, l));
-        inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text((String)l.choose("P\u00f3 Mineral", "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE), List.of(this.line(Long.toString(this.skills.mineralDust(p)), NamedTextColor.AQUA), this.line(l.choose("Usado em futuras melhorias de Minera\u00e7\u00e3o.", "Used for future Mining upgrades."), NamedTextColor.GRAY))));
+        List<Component> mineralDustLore = new ArrayList<>();
+        mineralDustLore.add(this.line(Long.toString(this.skills.mineralDust(p)), NamedTextColor.AQUA));
+        for (String part : LoreWrap.wrapText(l.choose("Usado em futuras melhorias de Minera\u00e7\u00e3o.", "Used for future Mining upgrades."), LoreWrap.DEFAULT_WIDTH)) {
+            mineralDustLore.add(this.line(part, NamedTextColor.GRAY));
+        }
+        inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text((String)l.choose("P\u00f3 Mineral", "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE), mineralDustLore));
         inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar", "Back"), (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
         this.viewers.add(p.getUniqueId());
@@ -123,7 +129,9 @@ public final class MiningMenuService {
 
     private ItemStack treasureItem(Player p, Language l) {
         ArrayList<Component> lore = new ArrayList<Component>();
-        lore.add(this.line(l.choose("Encontrados ao minerar min\u00e9rios naturais.", "Found while mining natural ores."), NamedTextColor.GRAY));
+        for (String part : LoreWrap.wrapText(l.choose("Encontrados ao minerar min\u00e9rios naturais.", "Found while mining natural ores."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.line(part, NamedTextColor.GRAY));
+        }
         lore.add((Component)Component.empty());
         lore.add(this.treasureLine(p, l, TreasureRarity.COMMON, "1/500"));
         lore.add(this.treasureLine(p, l, TreasureRarity.UNCOMMON, "1/2.000"));

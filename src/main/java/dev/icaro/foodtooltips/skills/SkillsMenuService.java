@@ -142,8 +142,14 @@ public final class SkillsMenuService {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
         }
         if (this.quiver != null && this.quiver.unlocked(p)) {
-            v.setItem(QUIVER_SLOT, this.customHead(HeadTexture.QUIVER, this.quiver.displayName(p, l),
-                    List.of(this.text(l.choose("O arco puxa flechas daqui direto, sem precisar deixá-las no inventário.", "The bow pulls arrows from here directly, without needing to keep them in your inventory."), NamedTextColor.GRAY), this.click(l))));
+            List<Component> quiverLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "O arco puxa flechas daqui direto, sem precisar deixá-las no inventário.",
+                    "The bow pulls arrows from here directly, without needing to keep them in your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+                quiverLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            quiverLore.add(this.click(l));
+            v.setItem(QUIVER_SLOT, this.customHead(HeadTexture.QUIVER, this.quiver.displayName(p, l), quiverLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -198,11 +204,20 @@ public final class SkillsMenuService {
         }
         v.setItem(0, this.item(t.icon(), l.choose("Progressão de ", "Progression: ") + t.name(l == Language.PT), List.of(this.skillLine(p, t, l))));
         if (t == SkillType.MINING) {
-            v.setItem(40, this.item(Material.BOOK, l.choose("Compêndio de Mineração", "Mining Compendium"), List.of(this.text(l.choose("Contadores, milestones, XP, drops e camadas.", "Counters, milestones, XP, drops and layers."), NamedTextColor.YELLOW))));
+            List<Component> compendiumLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose("Contadores, milestones, XP, drops e camadas.", "Counters, milestones, XP, drops and layers."), LoreWrap.DEFAULT_WIDTH)) {
+                compendiumLore.add(this.text(part, NamedTextColor.YELLOW));
+            }
+            v.setItem(40, this.item(Material.BOOK, l.choose("Compêndio de Mineração", "Mining Compendium"), compendiumLore));
         } else if (t == SkillType.ENCHANTING && this.enchantMenu != null) {
-            v.setItem(39, this.item(Material.ENCHANTED_BOOK, l.choose("Milestones de Encantamento", "Enchantment Milestones"),
-                    List.of(this.text(l.choose("Progresso por encantamento, filtrado por Armas/Ferramentas/Armadura.", "Progress per enchantment, filtered by Weapons/Tools/Armor."), NamedTextColor.YELLOW),
-                            this.text(l.choose("Só conta o que foi aplicado na Mesa de Encantamento.", "Only counts what was applied at the Enchanting Table."), NamedTextColor.GRAY))));
+            List<Component> milestonesLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose("Progresso por encantamento, filtrado por Armas/Ferramentas/Armadura.", "Progress per enchantment, filtered by Weapons/Tools/Armor."), LoreWrap.DEFAULT_WIDTH)) {
+                milestonesLore.add(this.text(part, NamedTextColor.YELLOW));
+            }
+            for (String part : LoreWrap.wrapText(l.choose("Só conta o que foi aplicado na Mesa de Encantamento.", "Only counts what was applied at the Enchanting Table."), LoreWrap.DEFAULT_WIDTH)) {
+                milestonesLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            v.setItem(39, this.item(Material.ENCHANTED_BOOK, l.choose("Milestones de Encantamento", "Enchantment Milestones"), milestonesLore));
             v.setItem(41, this.item(Material.BOOK, l.choose("Guia de Encantamentos", "Enchantment Guide"), List.of(this.text(l.choose("Veja todos os encantamentos disponíveis.", "See every enchantment available."), NamedTextColor.YELLOW))));
         }
         this.nav(v, l, page, this.general.maxLevel());
@@ -229,7 +244,9 @@ public final class SkillsMenuService {
             lines.add(this.text("+" + this.general.potionDurationPercentPerLevel() + "% " + l.choose("Duração de Poções", "Potion Duration"), NamedTextColor.DARK_PURPLE));
         }
         if (lines.isEmpty()) {
-            lines.add(this.text(l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), NamedTextColor.AQUA));
+            for (String part : LoreWrap.wrapText(l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), LoreWrap.DEFAULT_WIDTH)) {
+                lines.add(this.text(part, NamedTextColor.AQUA));
+            }
         }
         return lines;
     }
@@ -672,10 +689,12 @@ public final class SkillsMenuService {
      * stat's actual value/source lives one click away, on its own item.
      */
     private ItemStack combatStatsItem(Player p, Language l) {
-        List<Component> lore = List.of(
-                this.text(l.choose("Status que influenciam quanto dano você recebe e causa em combate.", "Stats that influence how much damage you take and deal in combat."), NamedTextColor.GRAY),
-                Component.empty(),
-                this.click(l));
+        List<Component> lore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(l.choose("Status que influenciam quanto dano você recebe e causa em combate.", "Stats that influence how much damage you take and deal in combat."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(this.click(l));
         return this.item(Material.IRON_SWORD, l.choose("Status de Combate", "Combat Stats"), lore);
     }
 
@@ -832,16 +851,22 @@ public final class SkillsMenuService {
         double damageMultiplier = 1.0 + combatLevelBonus + abilityTreeBonus;
         double baseline = initialDamage * damageMultiplier;
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(l.choose("Dano Inicial = (5 + Dano da Arma) × (1 + Força/100)", "Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(l.choose("Dano Inicial = (5 + Dano da Arma) × (1 + Força/100)", "Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)"), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GOLD));
+        }
         lore.add(this.text("= (5 + " + String.format(Locale.US, "%.1f", weaponDamage) + ") × (1 + " + strength + "/100) = "
                 + String.format(Locale.US, "%.2f", initialDamage), NamedTextColor.GREEN));
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Multiplicador = 1 + Bônus de Nível + Encantamentos + Bônus de Habilidade", "Multiplier = 1 + Level Bonus + Enchants + Ability Bonus"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(l.choose("Multiplicador = 1 + Bônus de Nível + Encantamentos + Bônus de Habilidade", "Multiplier = 1 + Level Bonus + Enchants + Ability Bonus"), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GOLD));
+        }
         lore.add(this.text("= 1 + " + String.format(Locale.US, "%.2f", combatLevelBonus) + " + "
                 + l.choose("(depende do alvo)", "(depends on target)") + " + " + String.format(Locale.US, "%.2f", abilityTreeBonus)
                 + " = " + String.format(Locale.US, "%.2f", damageMultiplier), NamedTextColor.GREEN));
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Dano Final (base) = Dano Inicial × Multiplicador", "Final Damage (baseline) = Initial × Multiplier"), NamedTextColor.GOLD));
+        for (String part : LoreWrap.wrapText(l.choose("Dano Final (base) = Dano Inicial × Multiplicador", "Final Damage (baseline) = Initial × Multiplier"), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GOLD));
+        }
         lore.add(this.text("= " + String.format(Locale.US, "%.2f", initialDamage) + " × " + String.format(Locale.US, "%.2f", damageMultiplier)
                 + " = " + String.format(Locale.US, "%.1f", baseline), NamedTextColor.GREEN));
         lore.add(Component.empty());
@@ -899,10 +924,12 @@ public final class SkillsMenuService {
      * #openStatList}). No live numbers here anymore, same as {@link #combatStatsItem}.
      */
     private ItemStack skillBonusItem(Player p, SkillType t, Language l) {
-        List<Component> lore = List.of(
-                this.text(l.choose("Bônus de atributo que essa skill concede.", "Attribute bonuses this skill grants."), NamedTextColor.GRAY),
-                Component.empty(),
-                this.click(l));
+        List<Component> lore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(l.choose("Bônus de atributo que essa skill concede.", "Attribute bonuses this skill grants."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(this.click(l));
         return this.item(t.icon(), t.name(l == Language.PT), lore);
     }
 

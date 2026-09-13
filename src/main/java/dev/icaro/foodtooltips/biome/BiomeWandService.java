@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.biome;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -112,7 +113,9 @@ public final class BiomeWandService {
         List<Component> lore = new ArrayList<>();
         lore.add(this.line(l.choose("Clique esquerdo abre o menu de biomas.", "Left-click opens the biome menu."), NamedTextColor.GRAY));
         lore.add(this.line(l.choose("Clique direito num bloco pinta o bioma.", "Right-click a block to paint the biome."), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Shift + clique esquerdo desfaz a última pintura.", "Shift + left-click undoes the last paint."), NamedTextColor.GRAY));
+        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última pintura.", "Shift + left-click undoes the last paint."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.line(part, NamedTextColor.GRAY));
+        }
         lore.add(Component.empty());
         lore.add(this.line(l.choose("Bioma: ", "Biome: ") + selected.displayName(l == Language.PT), NamedTextColor.YELLOW));
         lore.add(this.line(l.choose("Raio: ", "Radius: ") + this.radiusLabel(radius, l), NamedTextColor.YELLOW));

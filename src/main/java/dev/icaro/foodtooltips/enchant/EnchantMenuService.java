@@ -224,10 +224,12 @@ public final class EnchantMenuService {
         v.setItem(TABLE_ICON_SLOT, this.item(Material.ENCHANTING_TABLE,
                 l.choose("Mesa de Encantamento", "Enchanting Table"),
                 List.of(this.text(l.choose("Apenas representação.", "Just a representation."), NamedTextColor.GRAY))));
-        v.setItem(BOOKSHELF_SLOT, this.item(Material.BOOKSHELF,
-                l.choose("Poder das Estantes", "Bookshelf Power"),
-                List.of(this.text(this.bookshelfPower(p) + " / " + BOOKSHELF_POWER_CAP, NamedTextColor.AQUA),
-                        this.text(l.choose("Necessário para desbloquear alguns encantamentos e níveis.", "Needed to unlock some enchantments and levels."), NamedTextColor.DARK_GRAY))));
+        List<Component> bookshelfLore = new ArrayList<>();
+        bookshelfLore.add(this.text(this.bookshelfPower(p) + " / " + BOOKSHELF_POWER_CAP, NamedTextColor.AQUA));
+        for (String part : LoreWrap.wrapText(l.choose("Necessário para desbloquear alguns encantamentos e níveis.", "Needed to unlock some enchantments and levels."), LoreWrap.DEFAULT_WIDTH)) {
+            bookshelfLore.add(this.text(part, NamedTextColor.DARK_GRAY));
+        }
+        v.setItem(BOOKSHELF_SLOT, this.item(Material.BOOKSHELF, l.choose("Poder das Estantes", "Bookshelf Power"), bookshelfLore));
         v.setItem(GUIDE_SLOT, this.item(Material.BOOK,
                 l.choose("Guia de Encantamentos", "Enchantment Guide"),
                 List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW))));
@@ -436,12 +438,18 @@ public final class EnchantMenuService {
         Language l = Language.of(p);
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Milestones de Encantamento", "Enchantment Milestones"));
         this.fill(v);
-        v.setItem(CATEGORY_WEAPONS_SLOT, this.item(Material.NETHERITE_SWORD, l.choose("Armas", "Weapons"),
-                List.of(this.text(l.choose("Espada, Tridente, Maça, Arco, Besta, Lança.", "Sword, Trident, Mace, Bow, Crossbow, Spear."), NamedTextColor.GRAY))));
+        List<Component> weaponsLore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(l.choose("Espada, Tridente, Maça, Arco, Besta, Lança.", "Sword, Trident, Mace, Bow, Crossbow, Spear."), LoreWrap.DEFAULT_WIDTH)) {
+            weaponsLore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        v.setItem(CATEGORY_WEAPONS_SLOT, this.item(Material.NETHERITE_SWORD, l.choose("Armas", "Weapons"), weaponsLore));
         v.setItem(CATEGORY_TOOLS_SLOT, this.item(Material.NETHERITE_PICKAXE, l.choose("Ferramentas", "Tools"),
                 List.of(this.text(l.choose("Picareta, Machado, Pá, Enxada.", "Pickaxe, Axe, Shovel, Hoe."), NamedTextColor.GRAY))));
-        v.setItem(CATEGORY_ARMOR_SLOT, this.item(Material.NETHERITE_CHESTPLATE, l.choose("Armadura", "Armor"),
-                List.of(this.text(l.choose("Capacete, Peitoral, Calça, Bota, Elytra.", "Helmet, Chestplate, Leggings, Boots, Elytra."), NamedTextColor.GRAY))));
+        List<Component> armorLore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(l.choose("Capacete, Peitoral, Calça, Bota, Elytra.", "Helmet, Chestplate, Leggings, Boots, Elytra."), LoreWrap.DEFAULT_WIDTH)) {
+            armorLore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        v.setItem(CATEGORY_ARMOR_SLOT, this.item(Material.NETHERITE_CHESTPLATE, l.choose("Armadura", "Armor"), armorLore));
         v.setItem(CATEGORY_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.CATEGORIES, 0, null));
