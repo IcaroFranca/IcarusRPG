@@ -110,6 +110,11 @@ public final class EnchantService {
         return this.levelOf(item, new CustomEnchantEntry(enchant));
     }
 
+    /** Same convenience as {@link #customLevel}, the write side - lets a caller outside this package (e.g. a mob-spawn system gearing up a variant with its own enchanted equipment) apply a custom entry without needing a {@link CustomEnchantEntry} of its own. Same as calling {@link #setLevel} directly, just resolving the entry for you. */
+    public void setCustomLevel(ItemStack item, IcarusEnchant enchant, int level, boolean pt) {
+        this.setLevel(item, new CustomEnchantEntry(enchant), level, pt);
+    }
+
     /** {@code item}'s current level of {@code entry}, or 0 if it doesn't have it. */
     public int levelOf(ItemStack item, EnchantEntry entry) {
         if (item == null || item.isEmpty()) {

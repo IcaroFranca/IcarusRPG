@@ -1,6 +1,11 @@
 package dev.icaro.foodtooltips.enchant;
 
 import java.util.concurrent.ThreadLocalRandom;
+import net.kyori.adventure.key.Key;
+import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -39,6 +44,7 @@ import org.bukkit.inventory.EntityEquipment;
 public final class ArmorEnchantEffectListener implements Listener {
     /** Every fall damage instance is this many times vanilla's own - player and mob alike, see {@link #fall}. */
     private static final double FALL_DAMAGE_MULTIPLIER = 5.0;
+    private final NamespacedKey growthKey = new NamespacedKey("foodtooltips", "growth_bonus_health");
     private final EnchantService enchants;
 
     public ArmorEnchantEffectListener(EnchantService enchants) {
@@ -127,5 +133,31 @@ public final class ArmorEnchantEffectListener implements Listener {
         int level = this.enchants.levelOf(p.getEquipment() == null ? null : p.getEquipment().getHelmet(), new CustomEnchantEntry(IcarusEnchant.RESPIRATION));
         int bonusTicks = level * 15 * 10;
         p.setMaximumAir(300 + bonusTicks);
+    }
+
+    /**
+     * Growth: +15 Max Health per level, summed across every equipped piece (same
+     * additive-across-pieces shape as Protection) - a transient {@link
+     * AttributeModifier} recomputed every tick from {@code FoodTooltipsPlugin}'s
+     * existing periodic loop, same "re-derive from current equipment" pattern as
+     * {@link #applyRespiration}/{@code PlayerStatsService#applySwingRange}, deliberately
+     * independent of {@code CombatListener#reapplyHealthStack}'s own bonus-health stack
+     * (Bestiary/Global Level/general skills - those only change on a discrete event,
+     * gear can change any time) - swapping Growth armor off takes effect the same tick,
+     * without needing a full join/world-change pass to notice.
+     */
+    public void applyGrowthHealth(Player p) {
+        AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
+        if (a == null) {
+            return;
+        }
+        AttributeModifier old = a.getModifier(Key.key(this.growthKey.getNamespace(), this.growthKey.getKey()));
+        if (old != null) {
+            a.removeModifier(old);
+        }
+        double bonus = this.armorLevel(p, IcarusEnchant.GROWTH) * 15.0;
+        if (bonus > 0.0) {
+            a.addTransientModifier(new AttributeModifier(this.growthKey, bonus, AttributeModifier.Operation.ADD_NUMBER));
+        }
     }
 }

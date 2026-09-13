@@ -54,6 +54,8 @@ public enum IcarusEnchant {
     RESPIRATION("Respiração", "Respiration", 3, Category.HELMET),
     /** Replaces vanilla Thorns - same level cap (3), but a flat chance/per-level amount rather than vanilla's own formula - see ArmorEnchantEffectListener#thorns. */
     THORNS("Espinhos", "Thorns", 3, Category.ARMOR),
+    /** Brand new - not a leveled-up vanilla enchant. +15 Max Health per level, summed across every equipped piece - see ArmorEnchantEffectListener#applyGrowthHealth. */
+    GROWTH("Crescimento", "Growth", 5, Category.ARMOR),
 
     /**
      * The plugin's own melee-weapon enchant family (Critical through Venomous below) -
@@ -204,7 +206,7 @@ public enum IcarusEnchant {
             case FLAME -> new int[]{25, 50};
             case LURE, INFINITE_QUIVER, LUCK_OF_THE_SEA -> new int[]{10, 20, 30, 40, 50};
             case FIRE_ASPECT, THORNS -> new int[]{15, 30, 45};
-            case PROTECTION, FIRE_PROTECTION, BLAST_PROTECTION, PROJECTILE_PROTECTION, FEATHER_FALLING -> new int[]{10, 15, 20, 25, 30};
+            case PROTECTION, FIRE_PROTECTION, BLAST_PROTECTION, PROJECTILE_PROTECTION, FEATHER_FALLING, GROWTH -> new int[]{10, 15, 20, 25, 30};
             case RESPIRATION -> new int[]{10, 20, 30};
             case CRITICAL, CUBISM, ENDER_SLAYER, EXECUTE, GIANT_KILLER, IMPALING, LETHALITY, LUCK, THUNDERLORD, VAMPIRISM, VENOMOUS -> new int[]{10, 20, 30, 40, 50};
             case EXPERIENCE -> new int[]{10, 20, 30, 40};
@@ -275,6 +277,9 @@ public enum IcarusEnchant {
                             EnchantText.Token.value(level, "%", l -> l * 3), EnchantText.Token.plain("do dano"), EnchantText.perLevel(level, true), EnchantText.Token.plain("de volta ao atacante."))
                     : List.of(EnchantText.Token.plain("Grants a"), EnchantText.Token.colored("50%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("chance to rebound"),
                             EnchantText.Token.value(level, "%", l -> l * 3), EnchantText.Token.plain("of damage"), EnchantText.perLevel(level, false), EnchantText.Token.plain("dealt back at the attacker.")));
+            case GROWTH -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 15), EnchantText.Token.colored("❤ Vida Máxima", LABEL_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 15), EnchantText.Token.colored("❤ Max Health", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
             case CRITICAL -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Aumenta o dano crítico da arma em"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Increases the weapon's critical damage by"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));

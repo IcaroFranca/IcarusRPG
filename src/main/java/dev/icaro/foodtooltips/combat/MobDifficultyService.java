@@ -60,6 +60,8 @@ public final class MobDifficultyService {
     private final NamespacedKey bonusMaxHpKey = new NamespacedKey("foodtooltips", "mob_bonus_max_hp");
     private final NamespacedKey bonusHpKey = new NamespacedKey("foodtooltips", "mob_bonus_hp");
     private final NamespacedKey dmgMultiplierKey = new NamespacedKey("foodtooltips", "mob_dmg_multiplier");
+    private final NamespacedKey overrideMinHealthKey = new NamespacedKey("foodtooltips", "mob_override_min_health");
+    private final NamespacedKey overrideMinDamageKey = new NamespacedKey("foodtooltips", "mob_override_min_damage");
 
     private final double flatHealthMultiplier;
     private final double healthPerXp;
@@ -112,6 +114,29 @@ public final class MobDifficultyService {
     }
 
     /**
+     * Raises {@code e}'s own Max Health/damage floor past whatever {@link #scale} would
+     * otherwise give it from tier+depth+the dimension's own floor - for a more specific
+     * spawn-time system (e.g. {@code MinerVariantService}) that wants a guaranteed
+     * minimum for its own mobs regardless of their Bestiary tier. Must run before {@link
+     * #scale} sees this mob (register at a lower event priority - see {@code
+     * MinerVariantService}'s own doc on why); a no-op once {@link #scale} already has
+     * (same idempotency flag), so calling it late just does nothing rather than
+     * retroactively raising an already-scaled mob.
+     */
+    public void raiseFloor(LivingEntity e, double minHealth, double minDamage) {
+        PersistentDataContainer pdc = e.getPersistentDataContainer();
+        if (pdc.has(this.scaledKey, PersistentDataType.BYTE)) {
+            return;
+        }
+        if (minHealth > 0.0) {
+            pdc.set(this.overrideMinHealthKey, PersistentDataType.DOUBLE, minHealth);
+        }
+        if (minDamage > 0.0) {
+            pdc.set(this.overrideMinDamageKey, PersistentDataType.DOUBLE, minDamage);
+        }
+    }
+
+    /**
      * Computes {@code e}'s tier+depth Max Health and outgoing-damage multipliers from
      * where and what it is, and applies the Max Health half immediately. Idempotent via
      * a PDC flag, so safe to call on every spawn unconditionally - already-scaled mobs
@@ -148,6 +173,10 @@ public final class MobDifficultyService {
         double depth = this.depthBelowReference(e.getLocation());
         double healthMultiplier = this.flatHealthMultiplier + tier * this.healthPerXp + depth * this.healthPerDepthBlock;
         double desiredTotal = Math.max(vanillaMax * healthMultiplier, this.minHealth(e.getWorld()));
+        Double overrideMinHealth = pdc.get(this.overrideMinHealthKey, PersistentDataType.DOUBLE);
+        if (overrideMinHealth != null) {
+            desiredTotal = Math.max(desiredTotal, overrideMinHealth);
+        }
         double realMax = Math.min(desiredTotal, this.realHealthCap);
         double bonusMax = Math.max(0.0, desiredTotal - realMax);
         attribute.setBaseValue(attribute.getBaseValue() * (realMax / vanillaMax));
@@ -170,8 +199,14 @@ public final class MobDifficultyService {
         return stored == null ? 1.0 : stored;
     }
 
-    /** The floor a hostile hit from a mob in {@code world} is never allowed to fall below (before the target's own Defense/Protection mitigate it) - 0 means no floor. */
-    public double minDamage(World world) {
+    /** {@code mob}'s own floor - its dimension's own default, or whatever {@link #raiseFloor} set for this specific mob if that's higher. Never allowed to fall below (before the target's own Defense/Protection mitigate it) - 0 means no floor. */
+    public double minDamage(LivingEntity mob) {
+        double dimensionFloor = this.minDamageForWorld(mob.getWorld());
+        Double override = mob.getPersistentDataContainer().get(this.overrideMinDamageKey, PersistentDataType.DOUBLE);
+        return override == null ? dimensionFloor : Math.max(dimensionFloor, override);
+    }
+
+    private double minDamageForWorld(World world) {
         return switch (world.getEnvironment()) {
             case NETHER -> this.minDamageNether;
             case THE_END -> this.minDamageEnd;

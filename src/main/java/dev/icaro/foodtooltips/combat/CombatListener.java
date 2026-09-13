@@ -275,7 +275,7 @@ public final class CombatListener implements Listener {
             LivingEntity mob = this.mobSource(e.getDamager());
             if (mob != null && this.isRealPlayer(e.getEntity()) && this.difficulty.scales(mob)) {
                 double scaled = e.getDamage() * this.difficulty.damageMultiplier(mob);
-                double floor = this.difficulty.minDamage(mob.getWorld());
+                double floor = this.difficulty.minDamage(mob);
                 e.setDamage(Math.max(scaled, floor));
             }
             return;

@@ -10,6 +10,7 @@ import dev.icaro.foodtooltips.builder.BuilderWandService;
 import dev.icaro.foodtooltips.combat.AnimalSeparationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.ElementalDamageListener;
+import dev.icaro.foodtooltips.combat.MinerVariantService;
 import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuListener;
@@ -155,6 +156,7 @@ extends JavaPlugin {
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
         menus.enchants(enchants);
+        MinerVariantService minerVariants = new MinerVariantService((Plugin)this, enchants, difficulty, this.visuals);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
@@ -199,6 +201,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
         pm.registerEvents((Listener)armorEnchants, (Plugin)this);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
+        pm.registerEvents((Listener)minerVariants, (Plugin)this);
         pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
@@ -331,6 +334,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             armorEnchants.applyRespiration((Player)p);
+            armorEnchants.applyGrowthHealth((Player)p);
             customEnchants.applyBowDamageTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
             enchants.applyToInventory((Player)p);

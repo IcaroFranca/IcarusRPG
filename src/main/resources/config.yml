@@ -116,6 +116,17 @@ mob-visuals:
   # How often (in server ticks) mob name/HP labels re-check their text and viewer visibility.
   # The HP text also updates instantly on every hit regardless of this value. Higher = cheaper.
   update-ticks: 3
+miner-variants:
+  # A plain Zombie/Skeleton (not Husk/Drowned/Stray/Wither Skeleton/Zombie Villager)
+  # naturally spawning in the Overworld below this Y becomes a "Zombie Miner"/
+  # "Skeleton Miner" instead - full Diamond armor enchanted with this plugin's own
+  # Protection V, and its own guaranteed minimum below (raised past whatever a plain
+  # Zombie/Skeleton's own Bestiary tier would otherwise give it - see
+  # MobDifficultyService#raiseFloor). See MinerVariantService.
+  enabled: true
+  below-y: 0
+  min-health: 300.0
+  min-damage: 180.0
 global-level:
   xp-per-level: 100
   # How often (in server ticks, 20 = 1s) the level-number color animation advances a frame.

@@ -116,6 +116,13 @@ vida acima do mob sempre mostra o total real, sem essa divisão interna aparecer
 Mobs passivos (Vaca, Porco, Lobo, Abelha, Golem de Ferro, Vilarão, peixes/tartaruga/
 golfinho/axolote...) nunca escalam.
 
+**Zombie Miner / Skeleton Miner** (`MinerVariantService`): um Zumbi ou Esqueleto
+normal (não Husk/Drowned/Stray/Wither Skeleton/Zombie Villager) que nasce no Overworld
+abaixo de Y0 vira essa variante em vez do mob comum — armadura de Diamante completa
+encantada com Proteção V (do próprio plugin), e um piso garantido de 300 HP / 180 de
+dano por golpe (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
+Zumbi/Esqueleto normal já teria pelo tier+profundidade acima.
+
 **Defesa por peça de armadura:**
 
 | Material | Capacete | Peitoral | Calça | Bota | Total |
@@ -225,6 +232,9 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   sua tooltip convertida pro mesmo formato colorido (nome + descrição) que a Mesa já
   usa, em vez de mostrar o texto cinza padrão do vanilla — aplicado ao spawnar no
   mundo, ao abrir o baú, e por uma varredura periódica no inventário do jogador.
+- **Growth** (qualquer peça de armadura, até nível 5): +15 de Vida Máxima por nível,
+  somando em cada peça equipada — igual à Proteção, mas concedendo Vida em vez de
+  Defesa.
 - Vários encantamentos vanilla foram convertidos em entradas próprias do plugin com
   efeito e descrição reais (não mais o efeito nativo do vanilla): Flame, Lure,
   Infinite Quiver, Luck of the Sea, Fire Aspect, toda a família Protection
