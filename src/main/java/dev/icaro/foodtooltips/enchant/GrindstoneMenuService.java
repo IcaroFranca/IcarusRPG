@@ -118,14 +118,28 @@ public final class GrindstoneMenuService {
             this.pages.put(p.getUniqueId(), 0);
             return;
         }
-        this.removeConfirm.put(p.getUniqueId(), new RemoveArm(entry.id(), System.currentTimeMillis()));
+        this.removeConfirm.put(p.getUniqueId(), new RemoveArm(entry.id(), item.clone(), System.currentTimeMillis()));
         this.renderCatalog(v, p, this.pages.getOrDefault(p.getUniqueId(), 0));
     }
 
+    /**
+     * Also checks the item currently in {@link #ITEM_SLOT} against the one the
+     * confirmation was armed on ({@link RemoveArm#item}, a clone taken at arm time -
+     * the live slot contents mutate in place, including from {@link
+     * EnchantService#removeLevel} itself, so comparing against the live reference
+     * instead would just always match) - without this, arming a removal on one item
+     * then swapping in a different item that happens to carry the same entry (even
+     * just by placing an entirely different item in the same 10-second window) let a
+     * second click remove it from THAT item without ever confirming on it specifically.
+     */
     private boolean isRemoveArmed(Player p, EnchantEntry entry) {
         RemoveArm arm = this.removeConfirm.get(p.getUniqueId());
-        return arm != null && arm.entryId().equals(entry.id())
-                && System.currentTimeMillis() - arm.armedAt() < REMOVE_CONFIRM_WINDOW_MILLIS;
+        if (arm == null || !arm.entryId().equals(entry.id())
+                || System.currentTimeMillis() - arm.armedAt() >= REMOVE_CONFIRM_WINDOW_MILLIS) {
+            return false;
+        }
+        ItemStack current = p.getOpenInventory().getTopInventory().getItem(ITEM_SLOT);
+        return current != null && current.isSimilar(arm.item());
     }
 
     /** The applied entry a click on {@code rawSlot} refers to, or null - used by {@code GrindstoneMenuListener}. */
@@ -223,6 +237,6 @@ public final class GrindstoneMenuService {
         return stack;
     }
 
-    private record RemoveArm(String entryId, long armedAt) {
+    private record RemoveArm(String entryId, ItemStack item, long armedAt) {
     }
 }

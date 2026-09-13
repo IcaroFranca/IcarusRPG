@@ -30,6 +30,7 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -59,6 +60,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.BrewerInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -138,6 +140,12 @@ implements Listener {
         for (Block b : e.getBlocks()) {
             this.placed.remove(this.key(b.getLocation()));
         }
+    }
+
+    /** {@link #combos} is keyed by player, never trimmed anywhere else - every other per-UUID collection in this class (veinActive, extendingPotion) is cleared in its own try/finally right after use, but a combo streak has no such natural end point (it just goes stale after 3s), so without this it grows forever, one entry per player who's ever mined anything. */
+    @EventHandler
+    public void quit(PlayerQuitEvent e) {
+        this.combos.remove(e.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
@@ -225,12 +233,12 @@ implements Listener {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 60, haste - 1, false, false, false));
             }
             if (MiningCatalog.isOre(m) && !p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
-                this.targets.put(k, new Target(SkillType.MINING, x.drop()));
+                this.track(k, new Target(SkillType.MINING, x.drop()), p);
             }
         });
         if (this.isLog(m)) {
             this.gain(p, SkillType.FORAGING, this.logXp(m));
-            this.targets.put(k, new Target(SkillType.FORAGING, m));
+            this.track(k, new Target(SkillType.FORAGING, m), p);
         } else if (m == Material.SUGAR_CANE) {
             // Sugar cane's own Ageable#getAge() is an internal 0-15 "ticks until the next
             // segment grows" counter, not a wheat-style maturity gate - it resets to 0 the
@@ -245,15 +253,28 @@ implements Listener {
             // XP at all. Counted here (while they're still real blocks, right before this
             // break resolves) and folded into one gain call.
             this.gain(p, SkillType.FARMING, this.cropXp(m) * (1 + this.caneSegmentsAbove(e.getBlock())));
-            this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
+            this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
             if (blockData instanceof Ageable && (a = (Ageable)blockData).getAge() == a.getMaximumAge()) {
                 this.gain(p, SkillType.FARMING, this.cropXp(m));
-                this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
+                this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
                 this.tryReplenish(p, e.getBlock(), m);
             }
+        }
+    }
+
+    /**
+     * Registers {@code t} for {@code k} so the next {@link BlockDropItemEvent} at that
+     * location applies Fortune/Smelting Touch - except in Creative mode, which never
+     * fires that event (nothing actually drops there), so an entry registered anyway
+     * would sit in {@link #targets} forever with nothing left to ever remove it - an
+     * unbounded leak keyed by every block position a Creative player has ever broken.
+     */
+    private void track(String k, Target t, Player p) {
+        if (p.getGameMode() != GameMode.CREATIVE) {
+            this.targets.put(k, t);
         }
     }
 

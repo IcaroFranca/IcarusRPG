@@ -91,6 +91,15 @@ public final class SkillsStarListener implements Listener {
      * cancelled" - left-click never hit that because {@link #swing} already opens the
      * menu independently of this event. Running last and unconditionally means opening
      * this menu always wins, regardless of what else touched the event first.
+     *
+     * <p>The left-click branch only re-opens the menu when it isn't already showing -
+     * {@link #swing} (which fires first on a real Java client, for the same left-click)
+     * already opened it by the time this runs, and {@code SkillsMenuService#openMain}
+     * unconditionally rebuilds and reopens its inventory rather than no-oping when
+     * already on that screen, so calling it a second time in the same tick visibly
+     * flickers (close, reopen) instead of just being a harmless no-op. The check still
+     * lets this branch do its real job - the Bedrock/Geyser case where {@link #swing}
+     * never fires at all - since {@code viewing} is false there.
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void interact(PlayerInteractEvent e) {
@@ -99,7 +108,9 @@ public final class SkillsStarListener implements Listener {
         }
         if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
             e.setCancelled(true);
-            this.menus.openMain(e.getPlayer());
+            if (!this.menus.viewing(e.getPlayer())) {
+                this.menus.openMain(e.getPlayer());
+            }
             return;
         }
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {

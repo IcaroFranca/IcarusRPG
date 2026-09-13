@@ -81,6 +81,19 @@ public final class QuiverService {
     private final CombatSkillService combat;
     private final Consumer<Player> back;
     private final NamespacedKey contentsKey;
+    /**
+     * Where this class's own contentsKey used to (wrongly) live: {@code new
+     * NamespacedKey(plugin, ...)} resolves to this plugin's own name ({@code
+     * icarusrpg}, per plugin.yml), not the fixed {@code "foodtooltips"} literal every
+     * other player-scoped key in this plugin actually uses (see e.g. {@code
+     * CombatSkillService}/{@code PlayerStatsService}/{@code GlobalLevelService}) - and
+     * the one {@code ResetStatsCommand} filters on to wipe a player's stats. Under the
+     * wrong namespace, {@code /resetstats} silently never touched a Quiver's contents
+     * at all. {@link #load} falls back to this legacy key (and {@link #persist}
+     * clears it) purely to migrate anything already saved there before this was
+     * caught - never written to going forward.
+     */
+    private final NamespacedKey legacyContentsKey;
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
@@ -88,7 +101,8 @@ public final class QuiverService {
         this.plugin = plugin;
         this.combat = combat;
         this.back = back;
-        this.contentsKey = new NamespacedKey(plugin, "quiver_contents");
+        this.contentsKey = new NamespacedKey("foodtooltips", "quiver_contents");
+        this.legacyContentsKey = new NamespacedKey(plugin, "quiver_contents");
     }
 
     public static boolean isArrow(Material m) {
@@ -292,6 +306,7 @@ public final class QuiverService {
         }
         ItemStack[] storage = Arrays.copyOfRange(inv.getContents(), 0, STORAGE_SIZE);
         p.getPersistentDataContainer().set(this.contentsKey, PersistentDataType.STRING, this.serialize(storage));
+        p.getPersistentDataContainer().remove(this.legacyContentsKey);
     }
 
     /** The Skills-menu back button, same texture ({@link HeadTexture#BACK}) every other sub-screen in this menu system uses. */
@@ -322,7 +337,13 @@ public final class QuiverService {
     private ItemStack[] load(Player p) {
         String data = p.getPersistentDataContainer().get(this.contentsKey, PersistentDataType.STRING);
         if (data == null || data.isEmpty()) {
-            return null;
+            // Migration: anything saved under the legacy (wrong-namespace) key before
+            // the fix - see legacyContentsKey's own doc - loads once here; persist()
+            // then writes it back under the correct key and clears the legacy one.
+            data = p.getPersistentDataContainer().get(this.legacyContentsKey, PersistentDataType.STRING);
+            if (data == null || data.isEmpty()) {
+                return null;
+            }
         }
         try {
             return this.deserialize(data);

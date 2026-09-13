@@ -164,16 +164,25 @@ public final class PolearmDamageService {
         }
         Component speedLine = this.speedLine(this.realAttackSpeed(p, item.getType()), l);
         boolean applied = meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE);
+        // Re-checked separately from applied (not folded into it) so a polearm that
+        // already went through the one-shot setup below before this modifier existed -
+        // an older item already in someone's inventory when this shipped, or one whose
+        // attribute_modifiers got stripped by some other means while the PDC flag
+        // survived - gets it retrofitted here without re-running (and duplicating) the
+        // one-shot lore insertion further down, which only ever runs once per item.
+        // Without this, a polearm missing just this one modifier kept the wielder's own
+        // innate 1.0 base Attack Damage stacking on top of this class's own total
+        // forever, with no way for it to ever self-correct - see SwordDamageService's
+        // own hasBaseZero, the same fix this mirrors.
+        boolean needsBaseZero = !this.hasBaseZero(meta);
         List<Component> currentLore = meta.hasLore() ? meta.lore() : null;
-        if (applied && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
+        if (applied && !needsBaseZero && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
             return null;
         }
         List<Component> lore = currentLore == null ? new ArrayList<>() : new ArrayList<>(currentLore);
         if (!applied) {
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
                     new AttributeModifier(this.damageKey, total, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
-            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
-                    new AttributeModifier(this.baseZeroKey, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
             meta.addAttributeModifier(Attribute.ATTACK_SPEED,
                     new AttributeModifier(this.speedKey, baseAttackSpeed(item.getType()) - SwordDamageService.BASE_ATTACK_SPEED_REFERENCE,
                             AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
@@ -184,9 +193,26 @@ public final class PolearmDamageService {
         } else {
             lore.set(1, speedLine);
         }
+        if (needsBaseZero) {
+            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
+                    new AttributeModifier(this.baseZeroKey, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}) - mirrors {@code SwordDamageService#hasBaseZero}. */
+    private boolean hasBaseZero(ItemMeta meta) {
+        if (!meta.hasAttributeModifiers()) {
+            return false;
+        }
+        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+            if (m.getKey().equals(this.baseZeroKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Component damageLine(double total, Language l) {

@@ -172,9 +172,20 @@ public final class EnchantMenuListener implements Listener {
         }
     }
 
+    /**
+     * Reverts the fake search sign right here if the player quits mid-search, instead
+     * of just dropping the map entry - the scheduled {@link #openSearchSign} timeout
+     * reverts via an atomic remove-if-value-equals check (see its own {@code
+     * runTaskLater}), which would silently no-op once this entry's already gone,
+     * leaving the {@code OAK_SIGN} sitting 2 blocks above wherever the player was
+     * permanently instead.
+     */
     @EventHandler
     public void quit(PlayerQuitEvent e) {
-        this.pendingSearches.remove(e.getPlayer().getUniqueId());
+        PendingSearch pending = this.pendingSearches.remove(e.getPlayer().getUniqueId());
+        if (pending != null) {
+            pending.block().setBlockData(pending.originalData(), false);
+        }
     }
 
     /**

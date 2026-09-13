@@ -74,6 +74,34 @@ public final class CombatTreeMenuService {
     public void open(Player p) {
         Language l = Language.of(p);
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Árvore de Combate", "Combat Tree"));
+        this.render(v, p, l);
+        p.openInventory(v);
+        this.viewing.add(p.getUniqueId());
+    }
+
+    /**
+     * Rebuilds every icon into the screen the player already has open, in place -
+     * {@link #handleClick} used to call {@link #open} again after every single click
+     * (a purchase, a toggle, arming/confirming the reset), which closes and reopens a
+     * brand new 54-slot {@link Inventory} from scratch every time: a visible flicker
+     * on top of the wasted allocation/render work, for a screen that never actually
+     * needed to close at all. No-ops if the player isn't looking at this screen
+     * anymore (they closed it, or backed out, between the click and this running) or
+     * whatever's open isn't this screen's own 54-slot inventory.
+     */
+    private void refresh(Player p) {
+        if (!this.viewing(p)) {
+            return;
+        }
+        Inventory v = p.getOpenInventory().getTopInventory();
+        if (v.getSize() != 54) {
+            return;
+        }
+        this.render(v, p, Language.of(p));
+    }
+
+    /** The actual icon layout, shared by {@link #open} (a fresh {@link Inventory}) and {@link #refresh} (the already-open one, updated in place). */
+    private void render(Inventory v, Player p, Language l) {
         // Not Material.COAL: locked passive nodes already use that icon (see #stateIcon below),
         // so a coal filler made every still-locked node vanish into the background. Gray glass,
         // not black, to match the filler convention every other menu in the plugin already uses.
@@ -88,8 +116,6 @@ public final class CombatTreeMenuService {
             v.setItem(entry.getKey(), this.nodeItem(p, entry.getValue(), l));
         }
         this.placeLevelIndicators(v, p, l);
-        p.openInventory(v);
-        this.viewing.add(p.getUniqueId());
     }
 
     /**
@@ -137,6 +163,12 @@ public final class CombatTreeMenuService {
         this.viewing.remove(p.getUniqueId());
     }
 
+    /** {@link #resetConfirm} is keyed by player and only ever cleared by a successful reset or by arming a new one - nothing removes a stale arm if the player just quits mid-window, so without this it grows forever, one entry per player who's ever clicked the reset button. */
+    public void handleQuit(Player p) {
+        this.viewing.remove(p.getUniqueId());
+        this.resetConfirm.remove(p.getUniqueId());
+    }
+
     public boolean handleClick(Player p, int slot, ClickType click) {
         if (slot == BACK_SLOT) {
             this.close(p);
@@ -145,7 +177,7 @@ public final class CombatTreeMenuService {
         }
         if (slot == RESET_SLOT) {
             this.handleReset(p, Language.of(p));
-            this.open(p);
+            this.refresh(p);
             return true;
         }
         CombatAbility ability = SLOT_TO_ABILITY.get(slot);
@@ -160,7 +192,7 @@ public final class CombatTreeMenuService {
         } else {
             this.handlePurchase(p, ability, l);
         }
-        this.open(p);
+        this.refresh(p);
         return true;
     }
 

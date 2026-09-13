@@ -7,6 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public final class CombatTreeListener implements Listener {
     private final CombatTreeMenuService tree;
@@ -36,5 +37,10 @@ public final class CombatTreeListener implements Listener {
         if (humanEntity instanceof Player p) {
             this.tree.close(p);
         }
+    }
+
+    @EventHandler
+    public void quit(PlayerQuitEvent e) {
+        this.tree.handleQuit(e.getPlayer());
     }
 }
