@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.enchant;
 
+import dev.icaro.foodtooltips.i18n.Language;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -20,6 +21,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -272,15 +274,35 @@ public final class EnchantService {
      * only glints an item that carries a real {@code Enchantment}, so an item with
      * only custom (PDC-stored) entries applied would otherwise render with no glint
      * at all despite genuinely being enchanted.
+     *
+     * <p>Public (and returning whether anything changed, same shape as {@code
+     * FoodTooltipService#update}/{@code ItemTierService#applyTier}) so {@code
+     * FoodTooltipListener} can call this on every item its own general per-item
+     * refresh sweeps over - not just the ones this class itself just enchanted via
+     * {@link #setLevel}/{@link #removeLevel}. Without that, an item enchanted the
+     * vanilla way (a loot chest, a mob drop, fishing, villager trading - anything
+     * that never went through the reworked Enchanting Table) kept showing real
+     * vanilla's own plain enchantment tooltip forever, instead of this plugin's own
+     * colored name+description block every enchant applied through the table gets.
+     * The {@code levels.isEmpty() && !hasItemFlag(HIDE_ENCHANTS)} fast path skips
+     * building/comparing lore lists for the vast majority of plain items such a sweep
+     * touches that have nothing to do with enchantments at all.
      */
-    public void rebuildLore(ItemStack item, boolean pt) {
+    public boolean rebuildLore(ItemStack item, boolean pt) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
-            return;
+            return false;
+        }
+        Map<EnchantEntry, Integer> levels = this.levelsOf(item);
+        if (levels.isEmpty() && !meta.hasItemFlag(ItemFlag.HIDE_ENCHANTS)) {
+            return false;
         }
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        List<Component> original = new ArrayList<>(lore);
         this.stripLoreBlock(lore);
-        Map<EnchantEntry, Integer> levels = this.levelsOf(item);
         if (!levels.isEmpty()) {
             List<Component> block = this.loreBlock(levels, pt);
             int tierIndex = this.findTierIndex(lore);
@@ -295,8 +317,50 @@ public final class EnchantService {
             meta.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
             meta.setEnchantmentGlintOverride(null);
         }
+        if (lore.equals(original)) {
+            return false;
+        }
         meta.lore(lore);
         item.setItemMeta(meta);
+        return true;
+    }
+
+    /**
+     * Runs {@link #rebuildLore} across {@code p}'s entire inventory (storage, armor,
+     * offhand) - the same belt-and-suspenders periodic sweep {@code
+     * ItemTierService#applyItemTiers} already runs for TIER tags, called from the same
+     * {@code FoodTooltipsPlugin} per-tick loop, so an item that arrived some way
+     * {@code FoodTooltipListener}'s own event-driven refresh never fires for (a
+     * {@code /give} command, another plugin's kill reward...) still gets converted
+     * without needing the player to touch it first.
+     */
+    public void applyToInventory(Player p) {
+        boolean pt = Language.of(p) == Language.PT;
+        PlayerInventory inv = p.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        boolean changed = false;
+        for (int i = 0; i < storage.length; i++) {
+            if (this.rebuildLore(storage[i], pt)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            inv.setStorageContents(storage);
+        }
+        ItemStack[] armor = inv.getArmorContents();
+        boolean armorChanged = false;
+        for (int i = 0; i < armor.length; i++) {
+            if (this.rebuildLore(armor[i], pt)) {
+                armorChanged = true;
+            }
+        }
+        if (armorChanged) {
+            inv.setArmorContents(armor);
+        }
+        ItemStack offhand = inv.getItemInOffHand();
+        if (this.rebuildLore(offhand, pt)) {
+            inv.setItemInOffHand(offhand);
+        }
     }
 
     /** The "Encantamentos:"/list block only - a blank separator line first if there's other lore before it. */

@@ -210,7 +210,7 @@ extends JavaPlugin {
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSwordThrowListener(swordThrow), (Plugin)this);
-        FoodTooltipListener foodListener = new FoodTooltipListener((Plugin)this, new FoodTooltipService(), tiers);
+        FoodTooltipListener foodListener = new FoodTooltipListener((Plugin)this, new FoodTooltipService(), tiers, enchants);
         pm.registerEvents((Listener)foodListener, (Plugin)this);
         SetSkillLevelCommand setSkill = new SetSkillLevelCommand(combat, general, global);
         this.getCommand("setskilllevel").setExecutor((CommandExecutor)setSkill);
@@ -330,6 +330,7 @@ extends JavaPlugin {
             armorEnchants.applyRespiration((Player)p);
             customEnchants.applyBowDamageTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            enchants.applyToInventory((Player)p);
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
