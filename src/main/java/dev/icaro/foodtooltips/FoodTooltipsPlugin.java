@@ -152,6 +152,7 @@ extends JavaPlugin {
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
+        menus.enchants(enchants);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));

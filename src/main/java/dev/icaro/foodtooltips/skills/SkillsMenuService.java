@@ -5,6 +5,8 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
+import dev.icaro.foodtooltips.enchant.EnchantService;
+import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalLevelSnapshot;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
@@ -30,6 +32,7 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -57,6 +60,10 @@ public final class SkillsMenuService {
     private static final int STAT_LIST_BACK_SLOT = 45;
     /** The Damage stat's own formula constant - see {@code CombatListener}'s identical constant for why (matches real Hypixel SkyBlock's own bare-hands damage, per the user's own spec). Duplicated here rather than shared since this is purely a display-facing approximation, not the real combat calculation. */
     private static final double BASE_UNARMED_DAMAGE = 5.0;
+    /** The six custom melee-damage enchants {@link #damageItem} can't resolve without a real target - see {@code CombatListener#customMeleeDamagePercent}'s own doc for why each one is target-type/health-dependent. */
+    private static final IcarusEnchant[] TARGET_DEPENDENT_ENCHANTS = {
+            IcarusEnchant.CUBISM, IcarusEnchant.ENDER_SLAYER, IcarusEnchant.IMPALING,
+            IcarusEnchant.EXECUTE, IcarusEnchant.GIANT_KILLER, IcarusEnchant.FIRST_STRIKE};
 
     private final CombatSkillService combat;
     private final GeneralSkillService general;
@@ -66,6 +73,7 @@ public final class SkillsMenuService {
     private final GlobalLevelService global;
     private final ArmorDefenseService armor;
     private final BestiaryProgressService bestiaryProgress;
+    private EnchantService enchants;
     private LevelColorMenuService levelColors;
     private CombatTreeMenuService tree;
     private TravelMenuService travel;
@@ -84,6 +92,11 @@ public final class SkillsMenuService {
         this.global = global;
         this.armor = armor;
         this.bestiaryProgress = bestiaryProgress;
+    }
+
+    /** Wired after construction (same reason as {@link #levelColors}/{@link #tree}/etc. - {@code EnchantService} isn't built until after this service is, see {@code FoodTooltipsPlugin#onEnable}). Only used by {@link #damageItem} to read the held weapon's own custom melee-damage enchants. */
+    public void enchants(EnchantService enchants) {
+        this.enchants = enchants;
     }
 
     public void levelColors(LevelColorMenuService levelColors) {
@@ -823,10 +836,11 @@ public final class SkillsMenuService {
                         mendingBonus > 0 ? l.choose("Segundo Fôlego +", "Second Wind +") + Math.round(mendingBonus) + "%" : null),
                 MENDING_INFO, l));
 
+        ItemStack weapon = p.getInventory().getItemInMainHand();
         double weaponDamage = this.value(p, Attribute.ATTACK_DAMAGE, 1.0);
         double combatLevelBonus = this.combat.damageMultiplier(c.level()) - 1.0;
         double abilityTreeBonus = this.abilities.outgoingMultiplier(p) - 1.0;
-        items.add(this.damageItem(l, weaponDamage, s.strength(), combatLevelBonus, abilityTreeBonus));
+        items.add(this.damageItem(l, weapon, weaponDamage, s.strength(), combatLevelBonus, abilityTreeBonus));
 
         return items;
     }
@@ -834,21 +848,44 @@ public final class SkillsMenuService {
     /**
      * The actual outgoing-damage equation (see {@code CombatListener#damage}'s own doc
      * for the full breakdown this mirrors) with {@code p}'s own real numbers
-     * substituted - a deliberate simplification, not the full per-hit formula: Enchants
-     * is shown as "depends on target" rather than computed, since most of the enchants
-     * that would feed it (Cubism/Ender Slayer/Impaling/Execute/Giant Killer) need an
-     * actual target's type or health to resolve, which this screen doesn't have; no
-     * critical roll, mob-type bonus, or legendary weapon's own situational Backstab/
-     * Armored/Undead multiplier either, for the same reason. {@code weaponDamage} is
-     * read straight from {@link Attribute#ATTACK_DAMAGE} (the real, currently-held
-     * total - already includes whatever {@code SwordDamageService}/{@code
-     * ToolDamageService}/{@code PolearmDamageService}/{@code LegendaryWeaponService}
-     * granted the equipped weapon, so this works correctly for any of them without
-     * needing its own reference to those classes).
+     * substituted - still a simplification, not the full per-hit formula: no critical
+     * roll, mob-type bonus, or legendary weapon's own situational Backstab/Armored/
+     * Undead multiplier, since those genuinely depend on the actual target being hit.
+     * Enchants, though, used to be shown outright as "(depends on target)" regardless -
+     * wrong for Sharpness specifically, which (unlike Smite/Bane of Arthropods, or the
+     * six custom melee-damage enchants - Cubism/Ender Slayer/Impaling/Execute/Giant
+     * Killer/First Strike, all genuinely target-type/health-dependent, see {@code
+     * CombatListener#customMeleeDamagePercent}) applies to every target the same way,
+     * so it's resolvable right here from the weapon alone (mirrors {@code
+     * CombatListener#vanillaDamageEnchantPercent}'s own Sharpness branch and {@code
+     * #linearCapped}'s shape). Now folded into the real computed Multiplier instead,
+     * with "(+ depends on target)" appended only when the weapon actually carries one
+     * of the genuinely target-dependent enchants above (so a weapon with only Sharpness,
+     * like the common case, shows its true baseline with no caveat at all). {@code
+     * weaponDamage} is read straight from {@link Attribute#ATTACK_DAMAGE} (the real,
+     * currently-held total - already includes whatever {@code SwordDamageService}/
+     * {@code ToolDamageService}/{@code PolearmDamageService}/{@code
+     * LegendaryWeaponService} granted the equipped weapon, so this works correctly for
+     * any of them without needing its own reference to those classes).
      */
-    private ItemStack damageItem(Language l, double weaponDamage, long strength, double combatLevelBonus, double abilityTreeBonus) {
+    private ItemStack damageItem(Language l, ItemStack weapon, double weaponDamage, long strength, double combatLevelBonus, double abilityTreeBonus) {
         double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + (double) strength / 100.0);
-        double damageMultiplier = 1.0 + combatLevelBonus + abilityTreeBonus;
+        int sharpness = weapon.getEnchantmentLevel(Enchantment.SHARPNESS);
+        double vanillaEnchantPercent = sharpness > 0 ? linearCapped(sharpness) : 0.0;
+        // Sharpness overrides Smite/Bane in CombatListener#vanillaDamageEnchantPercent
+        // (real vanilla enchant-table rules never let a weapon carry more than one of
+        // the three anyway), so Smite/Bane only matter here when Sharpness is absent.
+        boolean targetDependent = sharpness <= 0
+                && (weapon.getEnchantmentLevel(Enchantment.SMITE) > 0 || weapon.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS) > 0);
+        if (this.enchants != null) {
+            for (IcarusEnchant e : TARGET_DEPENDENT_ENCHANTS) {
+                if (this.enchants.customLevel(weapon, e) > 0) {
+                    targetDependent = true;
+                    break;
+                }
+            }
+        }
+        double damageMultiplier = 1.0 + combatLevelBonus + vanillaEnchantPercent / 100.0 + abilityTreeBonus;
         double baseline = initialDamage * damageMultiplier;
         List<Component> lore = new ArrayList<>();
         for (String part : LoreWrap.wrapText(l.choose("Dano Inicial = (5 + Dano da Arma) × (1 + Força/100)", "Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)"), LoreWrap.DEFAULT_WIDTH)) {
@@ -861,7 +898,8 @@ public final class SkillsMenuService {
             lore.add(this.text(part, NamedTextColor.GOLD));
         }
         lore.add(this.text("= 1 + " + String.format(Locale.US, "%.2f", combatLevelBonus) + " + "
-                + l.choose("(depende do alvo)", "(depends on target)") + " + " + String.format(Locale.US, "%.2f", abilityTreeBonus)
+                + String.format(Locale.US, "%.2f", vanillaEnchantPercent / 100.0) + (targetDependent ? " " + l.choose("(+ depende do alvo)", "(+ depends on target)") : "")
+                + " + " + String.format(Locale.US, "%.2f", abilityTreeBonus)
                 + " = " + String.format(Locale.US, "%.2f", damageMultiplier), NamedTextColor.GREEN));
         lore.add(Component.empty());
         for (String part : LoreWrap.wrapText(l.choose("Dano Final (base) = Dano Inicial × Multiplicador", "Final Damage (baseline) = Initial × Multiplier"), LoreWrap.DEFAULT_WIDTH)) {
@@ -871,11 +909,16 @@ public final class SkillsMenuService {
                 + " = " + String.format(Locale.US, "%.1f", baseline), NamedTextColor.GREEN));
         lore.add(Component.empty());
         for (String part : LoreWrap.wrapText(l.choose(
-                "Crítico, bônus contra tipos de mob, vida do alvo e encantamentos de dano se somam por cima disso, dependendo do alvo.",
-                "Critical hits, mob-type/target-health bonuses, and damage enchants stack on top of this depending on the target."), LoreWrap.DEFAULT_WIDTH)) {
+                "Crítico, bônus contra tipos de mob, vida do alvo" + (targetDependent ? " e os encantamentos de dano acima" : "") + " se somam por cima disso, dependendo do alvo.",
+                "Critical hits, mob-type/target-health bonuses" + (targetDependent ? ", and the damage enchants above" : "") + " stack on top of this depending on the target."), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.DARK_GRAY));
         }
         return this.item(Material.NETHERITE_AXE, "⚔ " + l.choose("Dano: ", "Damage: ") + String.format(Locale.US, "%.1f", baseline), lore);
+    }
+
+    /** {@code CombatListener#linearCapped}'s exact shape (5%/level, level 5 jumps to 30%) - duplicated here for the same reason as {@link #BASE_UNARMED_DAMAGE}: this is a display-facing approximation, not the real combat calculation, so it doesn't share code with the private method it mirrors. */
+    private static int linearCapped(int level) {
+        return level == 5 ? 30 : level * 5;
     }
 
     /**
