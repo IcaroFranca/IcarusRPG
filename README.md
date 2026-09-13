@@ -121,7 +121,9 @@ normal (não Husk/Drowned/Stray/Wither Skeleton/Zombie Villager) que nasce no Ov
 abaixo de Y0 vira essa variante em vez do mob comum — armadura de Diamante completa
 encantada com Proteção V (do próprio plugin), e um piso garantido de 300 HP / 180 de
 dano por golpe (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
-Zumbi/Esqueleto normal já teria pelo tier+profundidade acima.
+Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Ao morrer, dá um XP de
+Combate fixo (`miner-variants.combat-xp`, 24) em vez do valor da Bestiary do
+Zumbi/Esqueleto comum (já que continua sendo o mesmo `EntityType` por baixo).
 
 **Defesa por peça de armadura:**
 

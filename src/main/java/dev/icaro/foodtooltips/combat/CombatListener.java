@@ -66,6 +66,7 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -133,6 +134,7 @@ public final class CombatListener implements Listener {
     private final double levelXp;
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
+    private final double minerCombatXp;
 
     /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
     private record LethalityDebuff(int level, int stacks, long expiry) {
@@ -176,6 +178,7 @@ public final class CombatListener implements Listener {
         this.levelXp = p.getConfig().getDouble("combat.hostile-xp-level-multiplier", 3.0);
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
+        this.minerCombatXp = p.getConfig().getDouble("miner-variants.combat-xp", 24.0);
     }
 
     @EventHandler
@@ -573,7 +576,13 @@ public final class CombatListener implements Listener {
             this.abilities.hostileKill(p);
             double hp = this.visuals.effectiveMaxHealth(e.getEntity());
             double fallback = Math.max(1L, Math.round(Math.max(5.0, hp * this.hpXp + this.visuals.level(e.getEntity()) * this.levelXp) / 10.0));
-            double xp = BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
+            // A Zombie/Skeleton Miner is still its own real EntityType underneath (see
+            // MinerVariantService's own doc on why it's converted in place, not spawned
+            // as something new) - without this check it'd silently fall through to the
+            // plain Zombie/Skeleton's own Bestiary award instead of its own combat-xp.
+            double xp = e.getEntity().getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)
+                    ? this.minerCombatXp
+                    : BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
             int oldLevel = this.combat.progress(p).level();
             int levels = this.combat.addXp(p, xp);
             int newLevel = this.combat.progress(p).level();

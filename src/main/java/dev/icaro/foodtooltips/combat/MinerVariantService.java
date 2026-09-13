@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -13,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -38,6 +40,9 @@ import org.bukkit.plugin.Plugin;
  * override before it computes the mob's final Max Health/damage in the same pass.
  */
 public final class MinerVariantService implements Listener {
+    /** Tags a mob as a Zombie/Skeleton Miner - checked by {@code CombatListener}'s own kill-XP branch (a Miner's own {@code combat-xp}, not whatever its underlying Zombie/Skeleton Bestiary entry would normally award) since it's still the same real {@code EntityType} under the hood, not a distinct Bestiary entry of its own. */
+    public static final NamespacedKey VARIANT_KEY = new NamespacedKey("foodtooltips", "miner_variant");
+
     private final Plugin plugin;
     private final EnchantService enchants;
     private final MobDifficultyService difficulty;
@@ -71,6 +76,7 @@ public final class MinerVariantService implements Listener {
         }
         this.equip(mob);
         this.difficulty.raiseFloor(mob, this.minHealth, this.minDamage);
+        mob.getPersistentDataContainer().set(VARIANT_KEY, PersistentDataType.BYTE, (byte) 1);
         String pt = type == EntityType.ZOMBIE ? "Zumbi Minerador" : "Esqueleto Minerador";
         String en = type == EntityType.ZOMBIE ? "Zombie Miner" : "Skeleton Miner";
         // MobVisualService#setLocalizedName requires the mob to already be #track()ed -
