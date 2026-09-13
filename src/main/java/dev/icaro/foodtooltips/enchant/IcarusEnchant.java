@@ -255,9 +255,9 @@ public enum IcarusEnchant {
                     : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 2), EnchantText.Token.colored("❂ True Defense", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("against fire and lava.")));
             case BLAST_PROTECTION -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 7), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR),
+                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 30), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR),
                             EnchantText.perLevel(level, true), EnchantText.Token.plain("contra explosões."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 7), EnchantText.Token.colored("❈ Defense", LABEL_COLOR),
+                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 30), EnchantText.Token.colored("❈ Defense", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("against explosions.")));
             case PROJECTILE_PROTECTION -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 7), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR),

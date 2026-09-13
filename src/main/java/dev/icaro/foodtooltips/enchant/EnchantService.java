@@ -5,6 +5,7 @@ import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -67,6 +68,8 @@ public final class EnchantService {
             "feather_falling", "respiration", "thorns");
     /** Sharpness/Smite/Bane of Arthropods conflict with each other in real vanilla (you can't combine them via an anvil) - this table deliberately allows it. */
     private static final Set<String> NON_EXCLUSIVE_DAMAGE_FAMILY = Set.of("sharpness", "smite", "bane_of_arthropods");
+    /** Mutually exclusive with each other on the same piece - same real vanilla rule as Protection/Fire Protection/Blast Protection/Projectile Protection's own {@code conflictsWith}, re-implemented here since these are custom entries real vanilla's own conflict table never sees (see {@link #customBlockReason}). */
+    private static final Set<IcarusEnchant> PROTECTION_FAMILY = EnumSet.of(IcarusEnchant.PROTECTION, IcarusEnchant.FIRE_PROTECTION, IcarusEnchant.BLAST_PROTECTION, IcarusEnchant.PROJECTILE_PROTECTION);
 
     private final Map<IcarusEnchant, NamespacedKey> keys = new EnumMap<>(IcarusEnchant.class);
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
@@ -215,6 +218,13 @@ public final class EnchantService {
         }
         if (enchant == IcarusEnchant.SMELTING_TOUCH && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0) {
             return pt ? "Conflita com Toque de Seda, já aplicado." : "Conflicts with Silk Touch, already applied.";
+        }
+        if (PROTECTION_FAMILY.contains(enchant)) {
+            for (IcarusEnchant other : PROTECTION_FAMILY) {
+                if (other != enchant && this.customLevel(item, other) > 0) {
+                    return pt ? "Conflita com " + other.displayName(true) + ", já aplicado." : "Conflicts with " + other.displayName(false) + ", already applied.";
+                }
+            }
         }
         return null;
     }

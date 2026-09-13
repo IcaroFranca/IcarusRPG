@@ -252,7 +252,9 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
 - Vários encantamentos vanilla foram convertidos em entradas próprias do plugin com
   efeito e descrição reais (não mais o efeito nativo do vanilla): Flame, Lure,
   Infinite Quiver, Luck of the Sea, Fire Aspect, toda a família Protection
-  (Protection/Fire/Blast/Projectile), Respiration, Thorns, Feather Falling. Os que
+  (Protection/Fire/Blast/Projectile — +4/+2/+30/+7 respectivamente por nível, e
+  **mutuamente excludentes entre si** na mesma peça, igual a regra real do vanilla),
+  Respiration, Thorns, Feather Falling. Os que
   continuam sendo encantamentos vanilla reais (Sharpness, Smite, Bane of Arthropods,
   Power, Knockback, Punch, Looting, Sweeping Edge, Efficiency, Fortune...) tiveram a
   descrição corrigida pra bater com o efeito de verdade, e ganharam efeito real quando
