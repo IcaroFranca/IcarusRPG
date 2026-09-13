@@ -76,7 +76,7 @@ public final class EnchantMenuService {
             {2, 1}, {2, -1}, {-2, 1}, {-2, -1},
             {1, 2}, {1, -2}, {-1, 2}, {-1, -2},
             {2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
-    /** Never exceeded by {@link #bookshelfPower} - well below the real achievable max ({@link #BOOKSHELF_DIRECTIONS}' 16 positions x 2 floors = 32), matching {@link EnchantEntry#MAX_BOOKSHELF_POWER} (what {@link EnchantEntry#requiredBookshelfPower} scales up to) - a single full ring on one floor alone already maxes it out. */
+    /** Never exceeded by {@link #bookshelfPower} - below the real achievable max ({@link #BOOKSHELF_DIRECTIONS}' 16 positions x 2 floors = 32), matching {@link EnchantEntry#MAX_BOOKSHELF_POWER} (what {@link EnchantEntry#requiredBookshelfPower} scales up to) - a full ring on one floor (16) plus half of the other floor's own ring already reaches it. */
     private static final int BOOKSHELF_POWER_CAP = EnchantEntry.MAX_BOOKSHELF_POWER;
 
     private static final int GUIDE_TITLE_SLOT = 4;

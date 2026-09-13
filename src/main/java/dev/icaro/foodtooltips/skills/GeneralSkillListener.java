@@ -1,5 +1,7 @@
 package dev.icaro.foodtooltips.skills;
 
+import dev.icaro.foodtooltips.enchant.EnchantService;
+import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
@@ -7,6 +9,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.mining.BuriedTreasureService;
 import dev.icaro.foodtooltips.mining.MiningCatalog;
 import dev.icaro.foodtooltips.mining.MiningEntry;
+import dev.icaro.foodtooltips.mining.SmeltingCatalog;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillProgress;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
@@ -30,8 +33,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
@@ -67,6 +72,7 @@ implements Listener {
     private final SkillProgressBarService bars;
     private final BuriedTreasureService treasures;
     private final GlobalLevelService global;
+    private final EnchantService enchants;
     private final Set<String> placed = new HashSet<String>();
     private final Set<UUID> veinActive = new HashSet<UUID>();
     /** Reentrancy guard for {@link #potionDuration} - reapplying an extended effect fires this same event again, and this stops that from being treated as a new drink to extend a second time. */
@@ -74,11 +80,12 @@ implements Listener {
     private final Map<String, Target> targets = new HashMap<String, Target>();
     private final Map<UUID, Combo> combos = new HashMap<UUID, Combo>();
 
-    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g) {
+    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants) {
         this.plugin = p;
         this.skills = s;
         this.bars = b;
         this.global = g;
+        this.enchants = enchants;
         this.treasures = new BuriedTreasureService(p, s);
     }
 
@@ -165,14 +172,40 @@ implements Listener {
         }
     }
 
+    /**
+     * Delicate: cancels breaking a crop that hasn't fully grown yet, or a pumpkin/
+     * melon stem at all (mature or not - the stem itself is never a useful drop, and
+     * breaking it kills the plant it's still growing) - runs well before {@link
+     * #broken}'s own MONITOR-priority XP logic, since a cancelled event never reaches
+     * it (matches Bukkit's normal event order: the block itself is still intact at
+     * this point, only actually removed after every handler has run).
+     */
+    @EventHandler(priority=EventPriority.NORMAL, ignoreCancelled=true)
+    public void delicate(BlockBreakEvent e) {
+        Block block = e.getBlock();
+        if (!this.isDelicateProtected(block, block.getType())) {
+            return;
+        }
+        if (this.enchants.customLevel(e.getPlayer().getInventory().getItemInMainHand(), IcarusEnchant.DELICATE) > 0) {
+            e.setCancelled(true);
+        }
+    }
+
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void broken(BlockBreakEvent e) {
         String k = this.key(e.getBlock().getLocation());
-        if (this.placed.remove(k)) {
+        Material m = e.getBlock().getType();
+        // this.placed exists to stop a place-then-immediately-break Mining/Foraging XP
+        // exploit (an ore/log obtained some other way, placed and re-mined for free) -
+        // but planting a seed is a BlockPlaceEvent too, so without this exception a
+        // crop the player planted and legitimately grew to full maturity themselves
+        // (the entire point of the Farming skill) was silently giving zero XP, since
+        // this used to return here unconditionally for anything ever placed. A mature
+        // crop/cane is never what this guard was meant to block.
+        if (this.placed.remove(k) && !this.isHarvestableCrop(e.getBlock(), m)) {
             return;
         }
         Player p = e.getPlayer();
-        Material m = e.getBlock().getType();
         MiningCatalog.find(m).ifPresent(x -> {
             int haste;
             int before = this.skills.miningMilestones(p, m);
@@ -219,27 +252,56 @@ implements Listener {
             if (blockData instanceof Ageable && (a = (Ageable)blockData).getAge() == a.getMaximumAge()) {
                 this.gain(p, SkillType.FARMING, this.cropXp(m));
                 this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
+                this.tryReplenish(p, e.getBlock(), m);
             }
         }
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void drops(BlockDropItemEvent e) {
+        ItemStack tool = e.getPlayer().getInventory().getItemInMainHand();
+        boolean smeltingTouch = this.enchants.customLevel(tool, IcarusEnchant.SMELTING_TOUCH) > 0;
+        if (smeltingTouch) {
+            // Turns every dropped item into its own furnace-smelted form (when one
+            // exists - see SmeltingCatalog) right here, before the tracked-target
+            // stacking pass below reads item types, so that pass still recognizes the
+            // (now smelted) material instead of missing it - see the trackedDrop swap
+            // just below for the other half of that coordination.
+            for (Item entity : e.getItems()) {
+                ItemStack stack = entity.getItemStack();
+                Material smelted = SmeltingCatalog.smeltedForm(stack.getType());
+                if (smelted != null) {
+                    stack.setType(smelted);
+                    entity.setItemStack(stack);
+                }
+            }
+        }
         Target t = this.targets.remove(this.key(e.getBlock().getLocation()));
         if (t == null) {
             return;
+        }
+        Material trackedDrop = t.drop;
+        if (smeltingTouch) {
+            Material smelted = SmeltingCatalog.smeltedForm(trackedDrop);
+            if (smelted != null) {
+                trackedDrop = smelted;
+            }
         }
         // The real vanilla Fortune enchant now feeds directly into the same "Mining
         // Fortune" points pool the skill itself grants, matching its own catalog
         // description (+10/level) - vanilla's own separate, unquantified ore-multiplier
         // effect still applies underneath this on top (untouched), same relationship
         // Sharpness/Smite/Bane of Arthropods have with their own real vanilla bonus.
-        int enchantFortune = e.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.FORTUNE) * 10;
-        int fortune = this.skills.fortune(e.getPlayer(), t.skill) + enchantFortune;
+        // Harvesting adds its own 12.5/level on top of that, but only for Farming.
+        double enchantFortune = e.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.FORTUNE) * 10.0;
+        if (t.skill == SkillType.FARMING) {
+            enchantFortune += this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) * 12.5;
+        }
+        int fortune = this.skills.fortune(e.getPlayer(), t.skill) + (int) Math.round(enchantFortune);
         int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
         for (Item entity : new ArrayList<>(e.getItems())) {
             ItemStack base = entity.getItemStack();
-            if (base.getType() != t.drop) continue;
+            if (base.getType() != trackedDrop) continue;
             int extra = base.getAmount() * copies;
             int max = base.getMaxStackSize();
             int add = Math.min(extra, max - base.getAmount());
@@ -436,6 +498,100 @@ implements Listener {
 
     private boolean isLog(Material m) {
         return m.name().endsWith("_LOG") || m.name().endsWith("_STEM") || m.name().endsWith("_HYPHAE");
+    }
+
+    /**
+     * Whether breaking {@code m} at its current block state is Farming's own harvest -
+     * a crop at full maturity, or any sugar cane segment (see the SUGAR_CANE branch's
+     * own doc in {@link #broken} for why cane has no separate maturity gate) - the one
+     * case {@link #placed} deliberately doesn't block XP for (see {@link #broken}'s own
+     * doc): planting a seed and growing it to harvest is the entire point of the
+     * Farming skill, not the place-then-immediately-break exploit {@link #placed}
+     * exists to guard Mining/Foraging XP against.
+     */
+    private boolean isHarvestableCrop(Block block, Material m) {
+        if (m == Material.SUGAR_CANE) {
+            return true;
+        }
+        BlockData blockData = block.getBlockData();
+        return blockData instanceof Ageable a && a.getAge() == a.getMaximumAge();
+    }
+
+    /**
+     * Whether Delicate protects {@code m} at {@code block}'s current state - a pumpkin/
+     * melon stem in either its {@link Ageable} (not yet attached to a fruit) or {@link
+     * org.bukkit.block.data.type.Cocoa}-less attached form (always, regardless of age -
+     * breaking it kills the plant, so there's no "mature stem" worth letting through),
+     * or any other {@link Ageable} crop below its own maximum age. Does NOT cover
+     * sugar cane (see {@link #isHarvestableCrop}'s own doc on why cane has no
+     * immaturity concept to protect in the first place).
+     */
+    private boolean isDelicateProtected(Block block, Material m) {
+        if (m == Material.PUMPKIN_STEM || m == Material.MELON_STEM
+                || m == Material.ATTACHED_PUMPKIN_STEM || m == Material.ATTACHED_MELON_STEM) {
+            return true;
+        }
+        BlockData blockData = block.getBlockData();
+        return blockData instanceof Ageable a && a.getAge() < a.getMaximumAge();
+    }
+
+    /** Replenish's own seed material - what has to be consumed from the player's inventory to replant {@code m} - separate from {@link #cropDrop}, since a crop's own drop item isn't always what plants it back (wheat drops wheat but replants from wheat seeds; beetroot the same). Null for anything Replenish doesn't cover. */
+    private Material seedFor(Material m) {
+        return switch (m) {
+            case Material.WHEAT -> Material.WHEAT_SEEDS;
+            case Material.CARROTS -> Material.CARROT;
+            case Material.POTATOES -> Material.POTATO;
+            case Material.BEETROOTS -> Material.BEETROOT_SEEDS;
+            case Material.NETHER_WART -> Material.NETHER_WART;
+            case Material.COCOA -> Material.COCOA_BEANS;
+            case Material.SWEET_BERRY_BUSH -> Material.SWEET_BERRIES;
+            default -> null;
+        };
+    }
+
+    /**
+     * Replenish: replants {@code m} at {@code block} one tick after it's actually
+     * removed - {@code broken} (like this method's own caller) still reads the block
+     * intact at MONITOR priority, since Bukkit only removes it after every handler has
+     * finished with the event, so the actual replant has to wait a tick. Cocoa's own
+     * facing (which log side it was attached to) is captured before that removal so
+     * the replant lands back on the same side instead of defaulting to one fixed
+     * facing. No-ops silently (checked again a tick later, since either can have
+     * changed by then) if the tool doesn't carry Replenish, the player runs out of the
+     * needed {@link #seedFor} material, or something else already occupies the block.
+     */
+    private void tryReplenish(Player p, Block block, Material m) {
+        Material seed = this.seedFor(m);
+        if (seed == null || this.enchants.customLevel(p.getInventory().getItemInMainHand(), IcarusEnchant.REPLENISH) == 0) {
+            return;
+        }
+        Location loc = block.getLocation();
+        BlockFace cocoaFacing = block.getBlockData() instanceof Directional dir ? dir.getFacing() : null;
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            Block b = loc.getBlock();
+            if (!b.getType().isAir() || !this.consumeSeed(p, seed)) {
+                return;
+            }
+            b.setType(m);
+            if (cocoaFacing != null && b.getBlockData() instanceof Directional dir) {
+                dir.setFacing(cocoaFacing);
+                b.setBlockData(dir);
+            }
+        });
+    }
+
+    /** Removes one {@code seed} from {@code p}'s inventory (first matching slot, regardless of stack meta), returning whether one was actually found and removed. */
+    private boolean consumeSeed(Player p, Material seed) {
+        int slot = p.getInventory().first(seed);
+        if (slot < 0) {
+            return false;
+        }
+        ItemStack item = p.getInventory().getItem(slot);
+        item.setAmount(item.getAmount() - 1);
+        if (item.getAmount() <= 0) {
+            p.getInventory().setItem(slot, null);
+        }
+        return true;
     }
 
     private double logXp(Material m) {

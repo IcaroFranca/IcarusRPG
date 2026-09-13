@@ -14,7 +14,7 @@ import net.kyori.adventure.text.Component;
  */
 public sealed interface EnchantEntry permits CustomEnchantEntry, VanillaEnchantEntry {
     /** The real achievable maximum Bookshelf Power (see {@code EnchantMenuService#bookshelfPower}) - what {@link #requiredBookshelfPower} scales up to, so nothing is ever gated behind a number that can't actually be reached. */
-    int MAX_BOOKSHELF_POWER = 16;
+    int MAX_BOOKSHELF_POWER = 24;
 
     /** Stable id, unique across both kinds - not shown to players, just used for lookups. */
     String id();

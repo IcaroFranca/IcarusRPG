@@ -185,7 +185,8 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   da mesa (2 blocos de distância em X/Z, não só as 4 paredes cardeais + 4 cantos
   diagonais como antes), no mesmo andar da mesa ou 1 acima, conta 1 ponto — desde que
   o bloco entre a mesa e a Estante (o vão de ar de 1 bloco, igual ao vanilla de
-  verdade) esteja livre. Um único anel completo num andar só já bate o teto. Alguns
+  verdade) esteja livre. O teto é 24 — um anel completo num andar só (16) mais metade
+  do anel do outro andar já bate nele. Alguns
   encantamentos/níveis exigem um Bookshelf Power mínimo pra aplicar — nível 1 de
   qualquer encantamento é sempre livre, escalando linear até o teto no nível máximo
   daquele encantamento; o nível aparece no menu mesmo bloqueado, só com o custo em
@@ -210,8 +211,17 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   do alvo por acerto, empilhando até 4 vezes por 4s), Life Steal (cura % da sua vida
   máxima por acerto), Vampirism (cura % da vida faltante ao matar), Thunderlord (raio
   a cada 3 acertos), Venomous (lentidão + dano contínuo empilhável por acerto),
-  Experience (chance de dobrar orbes de XP de mobs ou minérios) e Luck (chance de mobs
-  dropar uma peça de armadura extra).
+  Experience (chance de dobrar orbes de XP de mobs ou minérios, também aplicável à
+  picareta) e Luck (chance de mobs dropar uma peça de armadura extra).
+- **Família de encantamentos de agricultura/mineração**: Delicate (machado e enxada —
+  impede de quebrar plantações que ainda não cresceram totalmente e caules de abóbora/
+  melancia), Harvesting (enxada, até nível 5 — +12,5 de Farming Fortune por nível),
+  Replenish (machado e enxada — replanta automaticamente, usando materiais do
+  inventário, qualquer plantação quebrada, incluindo cacau e verruga do Nether) e
+  Smelting Touch (picareta, machado e pá — blocos minerados dropam sua versão
+  esquentada pela fornalha; não pode ser combinado com Toque de Seda). A desbloquear
+  na Mesa de Encantamento em níveis 3/6/9/12 da skill de Encantamento respectivamente
+  (Experience continua liberado desde o início, como sempre foi).
 
 ## Bestiário (`/bestiary`)
 

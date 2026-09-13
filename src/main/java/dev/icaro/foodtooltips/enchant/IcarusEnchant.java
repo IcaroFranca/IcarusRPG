@@ -72,7 +72,7 @@ public enum IcarusEnchant {
     CUBISM("Cubismo", "Cubism", 5, Category.SWORD),
     ENDER_SLAYER("Matador do Fim", "Ender Slayer", 5, Category.SWORD),
     EXECUTE("Execução", "Execute", 5, Category.SWORD),
-    EXPERIENCE("Experiência", "Experience", 4, Category.SWORD),
+    EXPERIENCE("Experiência", "Experience", 4, Category.SWORD_OR_PICKAXE),
     FIRST_STRIKE("Primeiro Golpe", "First Strike", 4, Category.SWORD),
     GIANT_KILLER("Matador de Gigantes", "Giant Killer", 5, Category.SWORD),
     IMPALING("Perfurante", "Impaling", 5, Category.SWORD),
@@ -81,11 +81,27 @@ public enum IcarusEnchant {
     LUCK("Sorte", "Luck", 5, Category.SWORD),
     THUNDERLORD("Senhor do Trovão", "Thunderlord", 5, Category.SWORD),
     VAMPIRISM("Vampirismo", "Vampirism", 5, Category.SWORD),
-    VENOMOUS("Venenoso", "Venomous", 5, Category.SWORD);
+    VENOMOUS("Venenoso", "Venomous", 5, Category.SWORD),
+
+    /**
+     * A second, smaller farming/mining family - unrelated tools/materials from the
+     * melee family above, unlocking 3-12 (Enchanting skill level) rather than 2-14,
+     * per the user's own request. Wired up in {@code GeneralSkillListener} (Delicate's
+     * break-cancellation, Replenish's auto-replant, Harvesting's Farming Fortune
+     * contribution inside {@code drops()}) and a new {@code SmeltingCatalog} (Smelting
+     * Touch's furnace-result lookup) - Experience above is extended to pickaxes too
+     * ({@link Category#SWORD_OR_PICKAXE}) but deliberately keeps its own original
+     * unlock level (always available), per the user's explicit "experience continuará
+     * como é".
+     */
+    DELICATE("Delicadeza", "Delicate", 1, Category.AXE_OR_HOE),
+    HARVESTING("Colheita", "Harvesting", 5, Category.HOE),
+    REPLENISH("Reabastecer", "Replenish", 1, Category.AXE_OR_HOE),
+    SMELTING_TOUCH("Toque Fundente", "Smelting Touch", 1, Category.PICKAXE_AXE_SHOVEL);
 
     /** An entry's item-type restriction - a single material for a held-item entry (a specific bow/rod), or a whole category otherwise, since one {@link Material} can't express "any sword"/"any armor piece". Kept as a nested enum (rather than e.g. a {@code Predicate<Material>} field) so the constant list above - which Java requires to come first in an enum body - never has to forward-reference a same-class static field. */
     private enum Category {
-        SINGLE, SWORD, ARMOR, BOOTS, HELMET
+        SINGLE, SWORD, ARMOR, BOOTS, HELMET, HOE, AXE_OR_HOE, PICKAXE_AXE_SHOVEL, SWORD_OR_PICKAXE
     }
 
     /** Level 1's (duration seconds, damage % per second) pair; level 2's. Doesn't fit a "flat rate * level" formula, so it's a direct lookup instead. */
@@ -158,6 +174,10 @@ public enum IcarusEnchant {
             case GIANT_KILLER -> 12;
             case FIRST_STRIKE -> 13;
             case LETHALITY -> 14;
+            case DELICATE -> 3;
+            case HARVESTING -> 6;
+            case REPLENISH -> 9;
+            case SMELTING_TOUCH -> 12;
             default -> 0;
         };
     }
@@ -171,6 +191,10 @@ public enum IcarusEnchant {
             case ARMOR -> n.endsWith("_HELMET") || n.endsWith("_CHESTPLATE") || n.endsWith("_LEGGINGS") || n.endsWith("_BOOTS");
             case BOOTS -> n.endsWith("_BOOTS");
             case HELMET -> n.endsWith("_HELMET");
+            case HOE -> n.endsWith("_HOE");
+            case AXE_OR_HOE -> n.endsWith("_AXE") || n.endsWith("_HOE");
+            case PICKAXE_AXE_SHOVEL -> n.endsWith("_PICKAXE") || n.endsWith("_AXE") || n.endsWith("_SHOVEL");
+            case SWORD_OR_PICKAXE -> n.endsWith("_SWORD") || n.endsWith("_PICKAXE");
         };
     }
 
@@ -188,6 +212,10 @@ public enum IcarusEnchant {
             // levels I-III scaled up to match instead of the usual flat +10/level shape.
             case FIRST_STRIKE -> new int[]{15, 30, 50, 75};
             case LIFE_STEAL -> new int[]{10, 20, 30};
+            case DELICATE -> new int[]{15};
+            case HARVESTING -> new int[]{10, 20, 30, 40, 50};
+            case REPLENISH -> new int[]{20};
+            case SMELTING_TOUCH -> new int[]{30};
         };
         return costs[Math.max(1, Math.min(level, costs.length)) - 1];
     }
@@ -342,6 +370,23 @@ public enum IcarusEnchant {
                                 EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("of your damage per second, stacking globally up to 40 times for 5 seconds.")));
             }
+            case DELICATE -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Impede de quebrar plantações que ainda não cresceram totalmente e caules."))
+                    : List.of(EnchantText.Token.plain("Prevents breaking crops that haven't fully grown yet, and stems.")));
+            case HARVESTING -> {
+                String amount = number(12.5 * (level == null ? 1 : level));
+                yield EnchantText.wrap(pt
+                        ? List.of(EnchantText.Token.plain("Aumenta a"), EnchantText.Token.colored("☘ Fortuna de Fazenda", LABEL_COLOR), EnchantText.Token.plain("em"),
+                                EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                        : List.of(EnchantText.Token.plain("Increases"), EnchantText.Token.colored("☘ Farming Fortune", LABEL_COLOR), EnchantText.Token.plain("by"),
+                                EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            }
+            case REPLENISH -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Ao quebrar uma plantação (incluindo cacau e verruga do Nether), replanta automaticamente usando os materiais do seu inventário."))
+                    : List.of(EnchantText.Token.plain("Breaking a crop (including cocoa beans and nether wart) automatically replants it using materials from your inventory.")));
+            case SMELTING_TOUCH -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Blocos minerados dropam sua versão fundida em fornalha, como se tivessem sido esquentados. Não pode ser combinado com Toque de Seda."))
+                    : List.of(EnchantText.Token.plain("Mined blocks drop their furnace-smelted form, as if they had been smelted. Cannot be combined with Silk Touch.")));
         };
     }
 

@@ -191,6 +191,13 @@ public final class EnchantService {
                 return pt ? "Conflita com " + name + ", já aplicado." : "Conflicts with " + name + ", already applied.";
             }
         }
+        // Smelting Touch (a custom entry, so real vanilla's own conflictsWith never
+        // sees it) drops a mined block's furnace-smelted form instead of the raw block
+        // Silk Touch would keep - mutually exclusive by design, checked by name on both
+        // sides (see the SMELTING_TOUCH case in customBlockReason below).
+        if (enchantment.equals(Enchantment.SILK_TOUCH) && this.customLevel(item, IcarusEnchant.SMELTING_TOUCH) > 0) {
+            return pt ? "Conflita com Toque Fundente, já aplicado." : "Conflicts with Smelting Touch, already applied.";
+        }
         return null;
     }
 
@@ -198,6 +205,9 @@ public final class EnchantService {
     public String customBlockReason(ItemStack item, IcarusEnchant enchant, boolean pt) {
         if (!enchant.canApplyTo(item.getType())) {
             return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
+        }
+        if (enchant == IcarusEnchant.SMELTING_TOUCH && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0) {
+            return pt ? "Conflita com Toque de Seda, já aplicado." : "Conflicts with Silk Touch, already applied.";
         }
         return null;
     }
