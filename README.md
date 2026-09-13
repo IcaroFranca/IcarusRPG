@@ -199,6 +199,11 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
 - **XP da skill de Encantamento** usa a fórmula real do vanilla (Mesa de
   Encantamento/Bigorna): `XP = 3,5 × X^1,5`, onde X é a quantidade de níveis de XP
   gastos na aplicação.
+- Um item que chega encantado do jeito vanilla (baú de loot, drop de mob, pesca,
+  comércio com aldeão — qualquer coisa fora da Mesa de Encantamento reformulada) tem
+  sua tooltip convertida pro mesmo formato colorido (nome + descrição) que a Mesa já
+  usa, em vez de mostrar o texto cinza padrão do vanilla — aplicado ao spawnar no
+  mundo, ao abrir o baú, e por uma varredura periódica no inventário do jogador.
 - Vários encantamentos vanilla foram convertidos em entradas próprias do plugin com
   efeito e descrição reais (não mais o efeito nativo do vanilla): Flame, Lure,
   Infinite Quiver, Luck of the Sea, Fire Aspect, toda a família Protection
