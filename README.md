@@ -130,9 +130,12 @@ normal (não Husk/Drowned/Stray/Wither Skeleton/Zombie Villager) que nasce no Ov
 abaixo de Y0 vira essa variante em vez do mob comum — armadura de Diamante completa
 encantada com Proteção V (do próprio plugin), e um piso garantido de 300 HP / 180 de
 dano por golpe (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
-Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Ao morrer, dá um XP de
-Combate fixo (`miner-variants.combat-xp`, 24) em vez do valor da Bestiary do
-Zumbi/Esqueleto comum (já que continua sendo o mesmo `EntityType` por baixo).
+Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Cada variante tem sua
+própria entrada na Bestiary (`zombie_miner`/`skeleton_miner`, separada da entrada do
+Zumbi/Esqueleto comum mesmo os dois compartilhando o mesmo `EntityType` por baixo) —
+progresso, milestones e XP de Combate (24 por abate) contam à parte. O **Zombie Miner**
+ainda tem **2,5% de chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de
+conseguir essa arma lendária sem ser pelo `/rpgitems` (admin-only).
 
 **Defesa por peça de armadura:**
 

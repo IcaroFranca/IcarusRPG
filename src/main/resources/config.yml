@@ -122,14 +122,14 @@ miner-variants:
   # "Skeleton Miner" instead - full Diamond armor enchanted with this plugin's own
   # Protection V, and its own guaranteed minimum below (raised past whatever a plain
   # Zombie/Skeleton's own Bestiary tier would otherwise give it - see
-  # MobDifficultyService#raiseFloor). See MinerVariantService.
+  # MobDifficultyService#raiseFloor). See MinerVariantService. Combat XP, milestones,
+  # and drops (including the Zombie Miner's own Undead's Sword chance) come from their
+  # own dedicated Bestiary entries ("zombie_miner"/"skeleton_miner" in BestiaryCatalog,
+  # a hardcoded Java list like every other mob - not config-driven here).
   enabled: true
   below-y: 0
   min-health: 300.0
   min-damage: 180.0
-  # Combat skill XP awarded on kill - a fixed amount, not derived from the underlying
-  # Zombie/Skeleton's own Bestiary award (see CombatListener's own kill-XP branch).
-  combat-xp: 24.0
 global-level:
   xp-per-level: 100
   # How often (in server ticks, 20 = 1s) the level-number color animation advances a frame.

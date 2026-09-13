@@ -115,6 +115,8 @@ public final class CombatListener implements Listener {
     private static final long LETHALITY_DURATION_MILLIS = 4000L;
     /** Lethality's own cap on how many stacks can be active on one target at once. */
     private static final int LETHALITY_MAX_STACKS = 4;
+    /** See {@link #rollMinerLegendaryDrop}. */
+    private static final double UNDEAD_SWORD_DROP_CHANCE = 0.025;
 
     private final Plugin plugin;
     private final CombatSkillService combat;
@@ -144,7 +146,6 @@ public final class CombatListener implements Listener {
     private final double levelXp;
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
-    private final double minerCombatXp;
     private final long teleportArmWindowMillis;
 
     /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
@@ -192,7 +193,6 @@ public final class CombatListener implements Listener {
         this.teleportArmWindowMillis = Math.max(1000L, p.getConfig().getLong("global-level.death-teleport-confirm-window-millis", 10000L));
         this.healToFullOnMapEnter = p.getConfig().getBoolean("stats.heal-to-full-on-map-enter", true);
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
-        this.minerCombatXp = p.getConfig().getDouble("miner-variants.combat-xp", 24.0);
     }
 
     @EventHandler
@@ -581,6 +581,7 @@ public final class CombatListener implements Listener {
                 this.milestoneMessage(p, entry, update.after(), reward);
             }
         });
+        this.rollMinerLegendaryDrop(e, p);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
         // kill for valor/XP.
@@ -590,13 +591,7 @@ public final class CombatListener implements Listener {
             this.abilities.hostileKill(p);
             double hp = this.visuals.effectiveMaxHealth(e.getEntity());
             double fallback = Math.max(1L, Math.round(Math.max(5.0, hp * this.hpXp + this.visuals.level(e.getEntity()) * this.levelXp) / 10.0));
-            // A Zombie/Skeleton Miner is still its own real EntityType underneath (see
-            // MinerVariantService's own doc on why it's converted in place, not spawned
-            // as something new) - without this check it'd silently fall through to the
-            // plain Zombie/Skeleton's own Bestiary award instead of its own combat-xp.
-            double xp = e.getEntity().getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)
-                    ? this.minerCombatXp
-                    : BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
+            double xp = BestiaryCatalog.find(e.getEntity()).map(entry -> (double) entry.awardedCombatXp()).orElse(fallback);
             int oldLevel = this.combat.progress(p).level();
             int levels = this.combat.addXp(p, xp);
             int newLevel = this.combat.progress(p).level();
@@ -834,6 +829,17 @@ public final class CombatListener implements Listener {
         // an unbounded leak with no cap).
         this.deathLocations.remove(e.getPlayer().getUniqueId());
         this.teleportArmed.remove(e.getPlayer().getUniqueId());
+    }
+
+    /** A Zombie Miner (only - Skeleton Miner has no special drop) has a small chance of dropping the Undead's Sword - the first non-admin way to obtain it (previously {@code /rpgitems}-only, via {@code LegendaryItemsMenuService}). */
+    private void rollMinerLegendaryDrop(EntityDeathEvent e, Player killer) {
+        LivingEntity mob = e.getEntity();
+        if (mob.getType() != EntityType.ZOMBIE || !mob.getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)) {
+            return;
+        }
+        if (ThreadLocalRandom.current().nextDouble() < UNDEAD_SWORD_DROP_CHANCE) {
+            e.getDrops().add(this.legendary.create(LegendaryWeapon.UNDEAD_SWORD, Language.of(killer)));
+        }
     }
 
     private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {
