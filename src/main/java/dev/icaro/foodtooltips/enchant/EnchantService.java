@@ -47,6 +47,8 @@ public final class EnchantService {
     private static final String[] ROMAN = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
     /** More than this many applied custom entries and the lore drops each one's description line - keeps the tooltip from ballooning. */
     private static final int DESCRIPTION_CUTOFF = 4;
+    /** This many applied entries or more and {@link #loreBlock} packs two names per line (see {@link #pairedNameLines}) instead of one, so a heavily-enchanted item's block doesn't dwarf the rest of the tooltip. */
+    private static final int COLUMN_CUTOFF = 6;
     /** Vanilla's own enchantment-name blue, for an applied entry below its max level. */
     private static final TextColor NAME_COLOR = TextColor.color(0x5555FF);
     /** Reserved for an entry at its max level - previously used for every entry. */
@@ -395,6 +397,10 @@ public final class EnchantService {
     private List<Component> loreBlock(Map<EnchantEntry, Integer> levels, boolean pt) {
         List<Component> block = new ArrayList<>();
         block.add(this.line(pt ? LORE_HEADER_PT : LORE_HEADER_EN, NamedTextColor.GOLD));
+        if (levels.size() >= COLUMN_CUTOFF) {
+            this.pairedNameLines(levels, pt, block);
+            return block;
+        }
         boolean showDescriptions = levels.size() <= DESCRIPTION_CUTOFF;
         for (Map.Entry<EnchantEntry, Integer> entry : levels.entrySet()) {
             EnchantEntry e = entry.getKey();
@@ -408,6 +414,32 @@ public final class EnchantService {
             }
         }
         return block;
+    }
+
+    /**
+     * {@value #COLUMN_CUTOFF}+ applied entries: name-only, packed two per line
+     * ("Name I, Name II") instead of one per line each - true side-by-side columns
+     * aren't reliable in a vanilla tooltip (the default font isn't monospace, so
+     * padding-based alignment drifts depending on the exact names/levels involved),
+     * so this is the comma-separated fallback the user asked for instead. Descriptions
+     * are already dropped past {@link #DESCRIPTION_CUTOFF} (4), well below this
+     * threshold, so there's never a description line to worry about pairing up too.
+     */
+    private void pairedNameLines(Map<EnchantEntry, Integer> levels, boolean pt, List<Component> block) {
+        List<Component> names = new ArrayList<>();
+        for (Map.Entry<EnchantEntry, Integer> entry : levels.entrySet()) {
+            EnchantEntry e = entry.getKey();
+            int level = entry.getValue();
+            TextColor nameColor = level >= e.maxLevel() ? MAX_LEVEL_NAME_COLOR : NAME_COLOR;
+            names.add(Component.text(e.leveledName(pt, level), nameColor).decoration(TextDecoration.ITALIC, false));
+        }
+        for (int i = 0; i < names.size(); i += 2) {
+            Component line = names.get(i);
+            if (i + 1 < names.size()) {
+                line = line.append(Component.text(", ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)).append(names.get(i + 1));
+            }
+            block.add(line);
+        }
     }
 
     /** Removes an existing "Encantamentos"/"Enchantments" block (its header, everything after until the next blank/end, and the blank line right before it) so {@link #rebuildLore} can add a fresh one without duplicating it. */
