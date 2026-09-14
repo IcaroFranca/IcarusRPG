@@ -94,7 +94,10 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   individualmente — hoje só a Telecinese, separada em duas chaves independentes (drops
   de mobs e drops de blocos minerados). Continua exigindo o nível de desbloqueio normal
   da Telecinese; a tela só aparece destrancada a partir dele, e por padrão as duas
-  ficam ativadas (nada muda pra quem nunca abrir essa tela).
+  ficam ativadas (nada muda pra quem nunca abrir essa tela). O item vai direto pro
+  inventário sem nunca chegar a aparecer caído no chão — incluindo as cópias extras
+  que a Mining Fortune gera além de uma stack cheia, que antes escapavam da Telecinese
+  e ficavam visíveis no chão.
 
 ## Vida, Defesa e Dano
 

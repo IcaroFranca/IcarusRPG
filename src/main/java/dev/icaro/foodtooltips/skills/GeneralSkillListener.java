@@ -322,6 +322,13 @@ implements Listener {
         }
         int fortune = this.skills.fortune(e.getPlayer(), t.skill) + (int) Math.round(enchantFortune);
         int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
+        // Checked up front (not just below, right before the telekinesis sweep) so the
+        // Fortune-copies loop right below can route ITS OWN overflow (beyond one max
+        // stack) straight into the inventory too, instead of always spawning it as a
+        // real ground item that loop's own dropItemNaturally call used to leave behind
+        // - e.getItems() (what the sweep below reads) never included that overflow, so
+        // it never got swept and sat there fully visible even with Telekinesis on.
+        boolean telekinesis = t.skill == SkillType.MINING && this.global.telekinesisUnlocked(e.getPlayer()) && this.passives.enabled(e.getPlayer(), PassiveToggle.TELEKINESIS_BLOCK_DROPS);
         for (Item entity : new ArrayList<>(e.getItems())) {
             ItemStack base = entity.getItemStack();
             if (base.getType() != trackedDrop) continue;
@@ -334,17 +341,26 @@ implements Listener {
             while (extra > 0) {
                 ItemStack overflow = base.clone();
                 overflow.setAmount(Math.min(max, extra));
-                e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
                 extra -= overflow.getAmount();
-            }
-        }
-        if (t.skill == SkillType.MINING && this.global.telekinesisUnlocked(e.getPlayer()) && this.passives.enabled(e.getPlayer(), PassiveToggle.TELEKINESIS_BLOCK_DROPS)) {
-            for (Item item : new ArrayList<>(e.getItems())) {
-                for (ItemStack overflow : e.getPlayer().getInventory().addItem(new ItemStack[]{item.getItemStack()}).values()) {
+                if (telekinesis) {
+                    this.give(e.getPlayer(), overflow);
+                } else {
                     e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
                 }
+            }
+        }
+        if (telekinesis) {
+            for (Item item : new ArrayList<>(e.getItems())) {
+                this.give(e.getPlayer(), item.getItemStack());
                 item.remove();
             }
+        }
+    }
+
+    /** Adds {@code stack} straight to {@code p}'s inventory, dropping naturally at their feet only whatever doesn't fit - the shared "give, don't spawn on the ground" half of Telekinesis' block-drop path (see {@link #drops}). */
+    private void give(Player p, ItemStack stack) {
+        for (ItemStack overflow : p.getInventory().addItem(stack).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
     }
 
