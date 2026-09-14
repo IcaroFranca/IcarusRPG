@@ -188,12 +188,17 @@ Feather Falling continua reduzindo por cima desse valor já multiplicado.
 
 ## Itens & Raridade
 
-Todo item tem uma raridade (`ItemTier`): `S` (dourado) > `A` (roxo) > `B` (azul) >
-`C` (verde) > `D` (branco, padrão) > `E` (cinza, blocos/itens crus). Resolvido por
-família de material, com overrides por `Material` em `item-tiers:` no `config.yml`
-ou fixado por item específico via `ItemTierService#forceTier` (usado pelas
-ferramentas/armas únicas do plugin). Mostrado como `TIER {letra}` no nome/lore do
-item, aplicado no join e reaplicado a cada tick do HUD.
+Só armas, ferramentas e armaduras têm raridade (`ItemTier`): `S` (dourado) > `A`
+(roxo) > `B` (azul) > `C` (verde) > `D` (branco, padrão) > `E` (cinza). Drops,
+minérios e outros itens comuns não recebem tier nenhum. Resolvido por família de
+material (`ItemTierService#equipmentTier`), com overrides por `Material` em
+`item-tiers:` no `config.yml` (funciona pra qualquer item, equipamento ou não — é
+uma escolha explícita do dono do servidor) ou fixado por item específico via
+`ItemTierService#forceTier` (usado pelas ferramentas/armas únicas do plugin, ex.
+Builder's Wand). Mostrado como `TIER {letra}` no nome/lore do item, aplicado no
+join e reaplicado a cada tick do HUD; um item já marcado que deixa de ser elegível
+(por exemplo, um override removido do config) tem a tag removida automaticamente
+na próxima varredura.
 
 Durabilidade Máxima de todo item danificável é multiplicada por
 `items.durability-multiplier` (padrão 5) — exceto itens de ouro (`GOLDEN_*`:

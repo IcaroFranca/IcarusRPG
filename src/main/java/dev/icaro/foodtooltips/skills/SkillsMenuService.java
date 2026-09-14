@@ -775,6 +775,7 @@ public final class SkillsMenuService {
                         skillHealth > 0 ? l.choose("Agricultura/Pesca +", "Farming/Fishing +") + Math.round(skillHealth) : null),
                 HEALTH_INFO, l));
 
+        double damageReduction = this.armor.damageReduction(p) * 100.0;
         items.add(this.statItem(Material.SHIELD, "✦ " + l.choose("Defesa: ", "Defense: ") + defense,
                 this.join(null,
                         helmetDef > 0 ? l.choose("Elmo +", "Helmet +") + helmetDef : null,
@@ -783,6 +784,8 @@ public final class SkillsMenuService {
                         bootsDef > 0 ? l.choose("Botas +", "Boots +") + bootsDef : null,
                         miningDef > 0 ? l.choose("Mineração +", "Mining +") + miningDef : null,
                         defense == 0 ? l.choose("Nenhuma fonte", "No source") : null),
+                l.choose("= " + defense + "/(" + defense + "+100) = " + String.format(Locale.US, "%.1f", damageReduction) + "% de redução de dano",
+                        "= " + defense + "/(" + defense + "+100) = " + String.format(Locale.US, "%.1f", damageReduction) + "% damage reduction"),
                 DEFENSE_INFO, l));
 
         items.add(this.statItem(Material.NETHERITE_INGOT, "🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()),
@@ -948,6 +951,16 @@ public final class SkillsMenuService {
      * actually does, and how to get more of it (the last two from {@code info}).
      */
     private ItemStack statItem(Material icon, String name, String source, StatInfo info, Language l) {
+        return this.statItem(icon, name, source, null, info, l);
+    }
+
+    /**
+     * Same as {@link #statItem(Material, String, String, StatInfo, Language)}, plus one extra
+     * highlighted line right under "What it does" for a stat whose effect is worth spelling out
+     * live (e.g. Defense's actual damage-reduction %) instead of leaving it to {@code info}'s
+     * fixed, per-language description. {@code extra} may be {@code null} to skip it entirely.
+     */
+    private ItemStack statItem(Material icon, String name, String source, String extra, StatInfo info, Language l) {
         boolean pt = l == Language.PT;
         List<Component> lore = new ArrayList<>();
         lore.add(this.text(l.choose("De onde vem:", "Where it comes from:"), NamedTextColor.GOLD));
@@ -958,6 +971,11 @@ public final class SkillsMenuService {
         lore.add(this.text(l.choose("O que faz:", "What it does:"), NamedTextColor.GOLD));
         for (String part : LoreWrap.wrapText(info.what(pt), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        if (extra != null) {
+            for (String part : LoreWrap.wrapText(extra, LoreWrap.DEFAULT_WIDTH)) {
+                lore.add(this.text("  " + part, NamedTextColor.YELLOW));
+            }
         }
         lore.add(Component.empty());
         lore.add(this.text(l.choose("Como conseguir mais:", "How to get more:"), NamedTextColor.GOLD));
