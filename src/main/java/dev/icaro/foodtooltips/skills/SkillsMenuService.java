@@ -357,7 +357,7 @@ public final class SkillsMenuService {
                 }
             }
             case STATS -> {
-                if (slot == 45) {
+                if (slot == 49) {
                     this.openMain(p);
                 } else if (slot == STATS_COMBAT_SLOT) {
                     Player target = this.resolveTarget(p, v);
@@ -551,6 +551,7 @@ public final class SkillsMenuService {
         Language l = Language.of(viewer);
         Inventory v = this.inv(target.getName() + " - " + l.choose("Status & Equipamento", "Stats & Equipment"));
         v.setItem(4, this.statsOverviewHead(target, l));
+        v.setItem(2, this.armorSlot(target.getInventory().getItemInMainHand(), l.choose("Item na Mão", "Held Item"), l));
         v.setItem(11, this.armorSlot(target.getInventory().getHelmet(), l.choose("Capacete", "Helmet"), l));
         v.setItem(20, this.armorSlot(target.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
         v.setItem(29, this.armorSlot(target.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
@@ -559,7 +560,7 @@ public final class SkillsMenuService {
         for (Map.Entry<Integer, SkillType> e : STATS_SKILL_SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.skillBonusItem(target, e.getValue(), l));
         }
-        v.setItem(45, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         this.open(viewer, v, new View(Type.STATS, 0, null, target.getUniqueId()));
     }
 

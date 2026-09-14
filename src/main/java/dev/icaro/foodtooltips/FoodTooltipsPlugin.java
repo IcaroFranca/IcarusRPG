@@ -186,7 +186,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
-        pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
+        pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives), (Plugin)this);

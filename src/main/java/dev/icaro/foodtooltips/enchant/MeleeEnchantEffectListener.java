@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.enchant;
 
+import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -48,6 +50,7 @@ public final class MeleeEnchantEffectListener implements Listener {
 
     private final Plugin plugin;
     private final EnchantService enchants;
+    private final MobVisualService visuals;
     private final NamespacedKey venomSlowKey;
     /** Thunderlord's own per-attacker hit counter, keyed by attacker and remembering which target it's counting against - see {@link #thunderlord}. Cleared on quit. */
     private final Map<UUID, ThunderlordState> thunderlordHits = new HashMap<>();
@@ -62,9 +65,10 @@ public final class MeleeEnchantEffectListener implements Listener {
     private record ThunderlordState(UUID target, int hits) {
     }
 
-    public MeleeEnchantEffectListener(Plugin plugin, EnchantService enchants) {
+    public MeleeEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals) {
         this.plugin = plugin;
         this.enchants = enchants;
+        this.visuals = visuals;
         this.venomSlowKey = new NamespacedKey(plugin, "venomous_slow");
     }
 
@@ -225,6 +229,9 @@ public final class MeleeEnchantEffectListener implements Listener {
             double perSecond = state.weaponBase() * (state.magnitudePercent() * state.stacks() / 100.0);
             if (perSecond > 0.0) {
                 target.damage(perSecond);
+                // Same dark green ElementalDamageListener gives real Poison damage - a
+                // DoT reads as "poison" at a glance regardless of which one dealt it.
+                this.visuals.damageNumber(target, perSecond, NamedTextColor.DARK_GREEN);
             }
         }, 20L, 20L);
     }
