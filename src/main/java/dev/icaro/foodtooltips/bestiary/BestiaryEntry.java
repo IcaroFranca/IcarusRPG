@@ -8,20 +8,37 @@ import org.bukkit.entity.EntityType;
 
 /**
  * {@code id} is the real identity used for progress-tracking (PDC kill keys) and
- * lookup - always {@code type.key().value()}, the raw EntityType's own key.
+ * lookup - always {@code type.key().value()}, the raw EntityType's own key, except
+ * for an id-explicit variant entry like "zombie_miner" (see {@code
+ * BestiaryCatalog#e(String, EntityType, Material, int, String, String...)}).
+ *
+ * <p>{@code headTexture} and {@code name} are both usually null - only a variant
+ * entry that shares its real {@link EntityType} with another entry (a Miner
+ * alongside the plain Zombie/Skeleton) needs its own menu icon (a custom head, same
+ * textures the mob itself wears - see {@code HeadTexture}) and display name to tell
+ * it apart, since {@link #displayName} and the menu's own spawn-egg icon lookup
+ * would otherwise resolve identically for both.
  */
-public record BestiaryEntry(String id, EntityType type, Material icon, int combatXp, String orbXp, List<String> drops) {
+public record BestiaryEntry(String id, EntityType type, Material icon, String headTexture, String name, int combatXp, String orbXp, List<String> drops) {
     public int awardedCombatXp() {
         return this.combatXp <= 0 ? 0 : Math.max(1, (int)Math.round((double)this.combatXp / 10.0));
     }
 
-    /** Display name humanized from the EntityType's own key - language-independent, since Minecraft's internal mob names don't otherwise differ between PT/EN. */
+    /** {@code name} if this entry pins its own (a variant like "zombie_miner"), otherwise humanized from the EntityType's own key - language-independent, since Minecraft's internal mob names don't otherwise differ between PT/EN. */
     public String displayName(Language l) {
+        if (this.name != null) {
+            return this.name;
+        }
         String v = this.type.key().value().replace('_', ' ');
         return Character.toUpperCase(v.charAt(0)) + v.substring(1);
     }
 
     public BestiaryCategory category() {
+        if (this.id.equals("zombie_miner") || this.id.equals("skeleton_miner")) {
+            // Both mine below Y0 in the Overworld, same as every other CAVES mob - unlike
+            // their base EntityType (ZOMBIE/SKELETON), which falls to TERRESTRIAL below.
+            return BestiaryCategory.CAVES;
+        }
         return switch (this.type) {
             case EntityType.DROWNED, EntityType.GUARDIAN, EntityType.ELDER_GUARDIAN, EntityType.DOLPHIN, EntityType.TURTLE, EntityType.COD, EntityType.SALMON, EntityType.SQUID, EntityType.GLOW_SQUID, EntityType.AXOLOTL -> BestiaryCategory.AQUATIC;
             case EntityType.CAVE_SPIDER, EntityType.SLIME, EntityType.WARDEN, EntityType.BREEZE, EntityType.BAT -> BestiaryCategory.CAVES;

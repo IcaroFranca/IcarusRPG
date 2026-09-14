@@ -133,8 +133,10 @@ Proteção V (do próprio plugin, aplica mesmo na cabeça), e um piso garantido 
 dano por golpe (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
 Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Cada variante tem sua
 própria entrada na Bestiary (`zombie_miner`/`skeleton_miner`, separada da entrada do
-Zumbi/Esqueleto comum mesmo os dois compartilhando o mesmo `EntityType` por baixo) —
-progresso, milestones e XP de Combate (24 por abate) contam à parte. O **Zombie Miner**
+Zumbi/Esqueleto comum mesmo os dois compartilhando o mesmo `EntityType` por baixo),
+com nome e ícone próprios (a mesma cabeça customizada que o mob usa) em vez de cair
+no ovo de spawn/nome do Zumbi/Esqueleto comum, e listada na aba **Cavernas**, não
+Superfície — progresso, milestones e XP de Combate (24 por abate) contam à parte. O **Zombie Miner**
 ainda tem **2,5% de chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de
 conseguir essa arma lendária sem ser pelo `/rpgitems` (admin-only).
 

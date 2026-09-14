@@ -189,9 +189,14 @@ public final class BestiaryMenuService {
         return out;
     }
 
-    /** The menu icon for {@code e} - the vanilla spawn egg, falling back to {@code e.icon()} for any EntityType with no matching spawn egg. */
+    /**
+     * The menu icon for {@code e} - its own custom head ({@code headTexture()}) if it has
+     * one, since a variant entry like "zombie_miner" would otherwise resolve to the exact
+     * same spawn egg as the base entry it shares an EntityType with; the vanilla spawn egg
+     * otherwise, falling back to {@code e.icon()} for any EntityType with no matching one.
+     */
     private ItemStack icon(BestiaryEntry e, String name, List<Component> lore) {
-        return this.item(this.spawnEgg(e), name, lore);
+        return e.headTexture() != null ? this.customHeadIcon(e.headTexture(), name, lore) : this.item(this.spawnEgg(e), name, lore);
     }
 
     private Material spawnEgg(BestiaryEntry e) {
