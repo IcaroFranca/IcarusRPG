@@ -290,6 +290,10 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   esquentada pela fornalha; não pode ser combinado com Toque de Seda). A desbloquear
   na Mesa de Encantamento em níveis 3/6/9/12 da skill de Encantamento respectivamente
   (Experience continua liberado desde o início, como sempre foi).
+- **Fortune e Efficiency não aparecem como opção na Mesa de Encantamento para enxada**
+  (continuam normais em picareta/machado/pá) — a Fortune vanilla é redundante com a
+  Fortune de Agricultura já dada pela skill, e Efficiency não tem efeito relevante numa
+  enxada.
 
 ## Bestiário (`/bestiary`)
 

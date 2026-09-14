@@ -512,7 +512,12 @@ public final class EnchantMenuService {
 
     private boolean appliesTo(EnchantEntry e, Material material) {
         if (e instanceof VanillaEnchantEntry v) {
-            return v.enchantment().canEnchantItem(ItemStack.of(material));
+            // Mirrors EnchantService#compatibleEntries' own hoe exception (see its
+            // HOE_EXCLUDED_VANILLA_KEYS doc) - otherwise this "Applies to:" list would
+            // still claim Fortune/Efficiency work on a hoe when the table itself won't
+            // actually offer either one there.
+            boolean hoe = material.name().endsWith("_HOE");
+            return v.enchantment().canEnchantItem(ItemStack.of(material)) && !(hoe && EnchantService.HOE_EXCLUDED_VANILLA_KEYS.contains(v.enchantment().getKey().getKey()));
         }
         return e instanceof CustomEnchantEntry c && c.enchant().canApplyTo(material);
     }

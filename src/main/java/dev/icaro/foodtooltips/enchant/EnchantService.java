@@ -68,6 +68,16 @@ public final class EnchantService {
             "feather_falling", "respiration", "thorns");
     /** Sharpness/Smite/Bane of Arthropods conflict with each other in real vanilla (you can't combine them via an anvil) - this table deliberately allows it. */
     private static final Set<String> NON_EXCLUSIVE_DAMAGE_FAMILY = Set.of("sharpness", "smite", "bane_of_arthropods");
+    /**
+     * Fortune and Efficiency both pass real vanilla's own {@code canEnchantItem} for a
+     * hoe (its {@code EnchantmentTarget} is the same broad "digger" category pickaxe/
+     * axe/shovel share), but neither belongs on the Enchanting Table's hoe options:
+     * Farming's own general-skill bonus already covers Fortune's drop-multiplying job
+     * for crops (see {@code GeneralSkillService#fortune}), and a hoe has no real
+     * mining speed of its own for Efficiency to raise. Pickaxe/axe/shovel are
+     * unaffected - only the hoe loses these two.
+     */
+    static final Set<String> HOE_EXCLUDED_VANILLA_KEYS = Set.of("fortune", "efficiency");
     /** Mutually exclusive with each other on the same piece - same real vanilla rule as Protection/Fire Protection/Blast Protection/Projectile Protection's own {@code conflictsWith}, re-implemented here since these are custom entries real vanilla's own conflict table never sees (see {@link #customBlockReason}). */
     private static final Set<IcarusEnchant> PROTECTION_FAMILY = EnumSet.of(IcarusEnchant.PROTECTION, IcarusEnchant.FIRE_PROTECTION, IcarusEnchant.BLAST_PROTECTION, IcarusEnchant.PROJECTILE_PROTECTION);
 
@@ -138,19 +148,20 @@ public final class EnchantService {
     /**
      * Every entry {@code item} could actually receive right now - vanilla entries
      * whose {@code Enchantment#canEnchantItem} accepts this item (matching vanilla's
-     * own Enchanting Table filtering), and custom entries whose {@link
-     * IcarusEnchant#canApplyTo} accepts this item's material. Empty for a null/empty
-     * item - the Enchanting Table screen shows nothing in its catalog until an item
-     * is placed.
+     * own Enchanting Table filtering, minus {@link #HOE_EXCLUDED_VANILLA_KEYS} on a
+     * hoe specifically), and custom entries whose {@link IcarusEnchant#canApplyTo}
+     * accepts this item's material. Empty for a null/empty item - the Enchanting
+     * Table screen shows nothing in its catalog until an item is placed.
      */
     public List<EnchantEntry> compatibleEntries(ItemStack item, boolean pt) {
         List<EnchantEntry> result = new ArrayList<>();
         if (item == null || item.isEmpty()) {
             return result;
         }
+        boolean hoe = item.getType().name().endsWith("_HOE");
         for (EnchantEntry e : this.allEntries(pt)) {
             if (e instanceof VanillaEnchantEntry v) {
-                if (v.enchantment().canEnchantItem(item)) {
+                if (v.enchantment().canEnchantItem(item) && !(hoe && HOE_EXCLUDED_VANILLA_KEYS.contains(v.enchantment().getKey().getKey()))) {
                     result.add(e);
                 }
             } else if (e instanceof CustomEnchantEntry c) {
