@@ -89,7 +89,9 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   Agricultura verde, Pesca azul, Mineração branca, Coleta amarela, Encantamento rosa,
   Alquimia roxa (Combate mantém a vermelha).
 - **Menu de Locais** (`/skills` → Locais): teleporte grátis e ilimitado pro Mundo
-  Padrão.
+  Padrão, ou pra sua própria cama/âncora de respawn mais recente (`Player#getRespawnLocation()`
+  - cobre tanto cama no Overworld quanto âncora de respawn no Nether). Sem cama/âncora
+  marcada, o clique só avisa que não há nenhuma.
 - **Habilidades Passivas** (`/skills`, slot 29): liga/desliga habilidades passivas
   individualmente — hoje só a Telecinese, separada em duas chaves independentes (drops
   de mobs e drops de blocos minerados). Continua exigindo o nível de desbloqueio normal
