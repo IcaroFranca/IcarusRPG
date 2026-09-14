@@ -163,7 +163,7 @@ extends JavaPlugin {
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
         menus.enchants(enchants);
-        MinerVariantService minerVariants = new MinerVariantService((Plugin)this, enchants, difficulty, this.visuals);
+        MinerVariantService minerVariants = new MinerVariantService((Plugin)this, enchants, difficulty, this.visuals, tiers);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));

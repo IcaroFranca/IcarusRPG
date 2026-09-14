@@ -172,9 +172,9 @@ public enum IcarusEnchant {
             case ENDER_SLAYER -> 8;
             case THUNDERLORD -> 9;
             case EXECUTE -> 10;
+            case FIRST_STRIKE -> 10;
             case VENOMOUS -> 11;
             case GIANT_KILLER -> 12;
-            case FIRST_STRIKE -> 13;
             case LETHALITY -> 14;
             case DELICATE -> 3;
             case HARVESTING -> 6;

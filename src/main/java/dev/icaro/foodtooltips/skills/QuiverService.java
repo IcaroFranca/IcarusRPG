@@ -66,6 +66,16 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * simplification: a player firing faster than the loop's own tick interval could
  * theoretically outrun the top-up and briefly find no arrow - not a concern at the
  * vanilla bow's own draw speed.
+ *
+ * <p>That one real arrow is tagged ({@link #virtualKey}) the moment it's pulled out of
+ * the Quiver so it's never mistaken for one the player actually owns: if it gets fired,
+ * vanilla consumes it and the tag goes with it (already subtracted from the Quiver back
+ * in {@link #takeOne}, so nothing else to do); if the player instead lowers/switches
+ * away from the bow without firing, {@link #topUp} notices there's no bow held anymore
+ * and hands the still-tagged stack straight back to the Quiver ({@link #reclaimVirtual})
+ * rather than letting it sit as a permanent, player-owned arrow - which is exactly the
+ * "arrow leaks from the Quiver into my inventory" behavior this tagging exists to
+ * prevent.
  */
 public final class QuiverService {
     /** The arrow-only storage area - the first {@value #STORAGE_SIZE} slots, the same as a single chest. */
@@ -94,6 +104,8 @@ public final class QuiverService {
      * caught - never written to going forward.
      */
     private final NamespacedKey legacyContentsKey;
+    /** Tags the single real arrow {@link #takeOne} pulls out of the Quiver for {@link #topUp} - see this class's own doc for why. */
+    private final NamespacedKey virtualKey;
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
@@ -103,6 +115,7 @@ public final class QuiverService {
         this.back = back;
         this.contentsKey = new NamespacedKey("foodtooltips", "quiver_contents");
         this.legacyContentsKey = new NamespacedKey(plugin, "quiver_contents");
+        this.virtualKey = new NamespacedKey("foodtooltips", "quiver_virtual_arrow");
     }
 
     public static boolean isArrow(Material m) {
@@ -210,13 +223,17 @@ public final class QuiverService {
         });
     }
 
-    /** See this class's own doc for why this exists at all. No-ops if {@code p} isn't holding a bow, already has an arrow somewhere, hasn't unlocked the Quiver yet, or has it open right now (its own contents shouldn't shift under them while they're looking at it). */
+    /** See this class's own doc for why this exists at all. No-ops (past reclaiming any stale top-up, see {@link #reclaimVirtual}) if {@code p} isn't holding a bow, hasn't unlocked the Quiver yet, or has it open right now (its own contents shouldn't shift under them while they're looking at it). */
     public void topUp(Player p) {
         if (!this.unlocked(p) || this.viewing(p)) {
             return;
         }
         PlayerInventory inv = p.getInventory();
-        if (inv.getItemInMainHand().getType() != Material.BOW && inv.getItemInOffHand().getType() != Material.BOW) {
+        boolean holdingBow = inv.getItemInMainHand().getType() == Material.BOW || inv.getItemInOffHand().getType() == Material.BOW;
+        if (!holdingBow) {
+            // Not drawing a bow (anymore) - if the last top-up went unfired, it doesn't
+            // belong sitting in their inventory as a permanent arrow; hand it back.
+            this.reclaimVirtual(p);
             return;
         }
         if (this.hasArrow(inv)) {
@@ -231,6 +248,40 @@ public final class QuiverService {
             // this is a silent top-up, not a player-initiated action.
             this.giveBack(p, overflow);
         }
+    }
+
+    /** Takes back whatever real arrow {@link #takeOne} last pulled out of the Quiver for {@link #topUp}, if it's still sitting untouched (tagged with {@link #virtualKey}) in {@code p}'s inventory - called once {@code p} stops holding a bow, so the Quiver stays the arrows' only real home rather than letting a topped-up arrow become a permanent, player-owned one just because it never got fired. */
+    private void reclaimVirtual(Player p) {
+        PlayerInventory inv = p.getInventory();
+        ItemStack[] contents = inv.getStorageContents();
+        for (int i = 0; i < contents.length; i++) {
+            if (this.isVirtual(contents[i])) {
+                ItemStack found = contents[i];
+                inv.setItem(i, null);
+                this.giveBack(p, this.stripVirtual(found));
+                return;
+            }
+        }
+        ItemStack off = inv.getItemInOffHand();
+        if (this.isVirtual(off)) {
+            inv.setItemInOffHand(null);
+            this.giveBack(p, this.stripVirtual(off));
+        }
+    }
+
+    private boolean isVirtual(ItemStack item) {
+        if (item == null || item.isEmpty() || !isArrow(item.getType())) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(this.virtualKey, PersistentDataType.BYTE);
+    }
+
+    private ItemStack stripVirtual(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().remove(this.virtualKey);
+        item.setItemMeta(meta);
+        return item;
     }
 
     private boolean hasArrow(PlayerInventory inv) {
@@ -250,6 +301,9 @@ public final class QuiverService {
             if (item != null && isArrow(item.getType())) {
                 ItemStack one = item.clone();
                 one.setAmount(1);
+                ItemMeta oneMeta = one.getItemMeta();
+                oneMeta.getPersistentDataContainer().set(this.virtualKey, PersistentDataType.BYTE, (byte) 1);
+                one.setItemMeta(oneMeta);
                 item.setAmount(item.getAmount() - 1);
                 quiver.setItem(i, item.getAmount() <= 0 ? null : item);
                 return one;

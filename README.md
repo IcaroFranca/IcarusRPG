@@ -66,7 +66,9 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
 - **Aljava** (`/skills`, a partir do Nível de Combate 5): armazenamento próprio de 27
   slots (o mesmo espaço de um baú simples), só aceita flechas (normais, tocadas ou
   espectrais). O arco puxa flechas direto de lá sempre que o inventário normal do
-  jogador estiver sem nenhuma — não precisa carregar flecha nenhuma no inventário.
+  jogador estiver sem nenhuma — não precisa carregar flecha nenhuma no inventário. Se o
+  jogador guardar o arco sem atirar, a flecha emprestada volta pra Aljava em vez de
+  ficar acumulada no inventário normal (ela só existe ali de fato no instante do tiro).
   Persiste entre sessões, independente do inventário do jogador.
 - **Árvore de Habilidades de Combate** (`/skills` → Árvore de Combate): 7 habilidades
   em 2 ramos de 3 nós cada — Fúria (Golpes Implacáveis → Berserker → Maestria Crítica)
@@ -99,7 +101,9 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   ficam ativadas (nada muda pra quem nunca abrir essa tela). O item vai direto pro
   inventário sem nunca chegar a aparecer caído no chão — incluindo as cópias extras
   que a Mining Fortune gera além de uma stack cheia, que antes escapavam da Telecinese
-  e ficavam visíveis no chão.
+  e ficavam visíveis no chão. Os orbes de XP são a única exceção: uma vez a Telecinese
+  desbloqueada, XP de abate sempre vai direto pro jogador, independente do estado das
+  duas chaves acima (que só afetam item físico/bloco).
 
 ## Vida, Defesa e Dano
 
@@ -153,7 +157,12 @@ os dois dropam **40 orbes de XP vanilla** fixos (bem acima do ~5 padrão do
 Zumbi/Esqueleto comum), sujeito aos mesmos bônus que qualquer outro mob (ex.: o
 encantamento Experience ainda pode dobrar). O **Zombie Miner** ainda tem **2,5% de
 chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de conseguir essa
-arma lendária sem ser pelo `/rpgitems` (admin-only).
+arma lendária sem ser pelo `/rpgitems` (admin-only). Cada peça da própria Miner's
+Armor também tem **1% de chance independente de dropar** (capacete, peitoral, calça e
+bota rolados separadamente — de nenhuma a todas as quatro no mesmo abate), sempre no
+**Tier A**, já com a Defesa dobrada, Proteção V e Unbreakable de quem a estava usando;
+o drop de equipamento aleatório do vanilla é totalmente desativado pra esses dois
+mobs, então essa é a única fonte.
 
 **Defesa por peça de armadura:**
 
@@ -268,7 +277,10 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   comércio com aldeão — qualquer coisa fora da Mesa de Encantamento reformulada) tem
   sua tooltip convertida pro mesmo formato colorido (nome + descrição) que a Mesa já
   usa, em vez de mostrar o texto cinza padrão do vanilla — aplicado ao spawnar no
-  mundo, ao abrir o baú, e por uma varredura periódica no inventário do jogador.
+  mundo, ao abrir o baú, e por uma varredura periódica no inventário do jogador. A
+  partir de 6 encantamentos aplicados no mesmo item, o bloco "Encantamentos:" passa a
+  listar dois nomes por linha (separados por vírgula) em vez de um só, pra não deixar
+  a tooltip gigante.
 - **Growth** (qualquer peça de armadura, até nível 5): +15 de Vida Máxima por nível,
   somando em cada peça equipada — igual à Proteção, mas concedendo Vida em vez de
   Defesa.
@@ -287,7 +299,8 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   (+dano contra mobs Cúbicos ⚂, do Fim ⊙ e Aquáticos ⚓ respectivamente — cada um com
   sua própria lista de `EntityType`), Execute (+dano por % de vida faltando no alvo),
   Giant Killer (+dano por % de vida extra que o alvo tiver acima da sua), First Strike
-  (+dano no primeiro golpe contra um alvo com vida cheia), Lethality (reduz a Defesa
+  (+dano no primeiro golpe contra um alvo com vida cheia — libera no nível 10 da skill
+  de Encantamento, junto com Execute), Lethality (reduz a Defesa
   do alvo por acerto, empilhando até 4 vezes por 4s), Life Steal (cura % da sua vida
   máxima por acerto), Vampirism (cura % da vida faltante ao matar), Thunderlord (raio
   a cada 3 acertos), Venomous (lentidão + dano contínuo empilhável por acerto),

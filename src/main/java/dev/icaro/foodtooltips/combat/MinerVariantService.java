@@ -5,6 +5,8 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.item.ItemTier;
+import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import java.util.UUID;
 import org.bukkit.Bukkit;
@@ -62,16 +64,18 @@ public final class MinerVariantService implements Listener {
     private final EnchantService enchants;
     private final MobDifficultyService difficulty;
     private final MobVisualService visuals;
+    private final ItemTierService tiers;
     private final boolean enabled;
     private final double belowY;
     private final double minHealth;
     private final double minDamage;
 
-    public MinerVariantService(Plugin p, EnchantService enchants, MobDifficultyService difficulty, MobVisualService visuals) {
+    public MinerVariantService(Plugin p, EnchantService enchants, MobDifficultyService difficulty, MobVisualService visuals, ItemTierService tiers) {
         this.plugin = p;
         this.enchants = enchants;
         this.difficulty = difficulty;
         this.visuals = visuals;
+        this.tiers = tiers;
         this.enabled = p.getConfig().getBoolean("miner-variants.enabled", true);
         this.belowY = p.getConfig().getDouble("miner-variants.below-y", 0.0);
         this.minHealth = p.getConfig().getDouble("miner-variants.min-health", 300.0);
@@ -116,6 +120,13 @@ public final class MinerVariantService implements Listener {
         eq.setChestplate(this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40));
         eq.setLeggings(this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30));
         eq.setBoots(this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15));
+        // Vanilla's own random equipment-drop chance is fully suppressed - CombatListener
+        // #rollMinerArmorDrops rolls each piece's 1% independently instead, so it's the
+        // only source of a dropped copy (no double-dropping, no odds outside its control).
+        eq.setHelmetDropChance(0.0f);
+        eq.setChestplateDropChance(0.0f);
+        eq.setLeggingsDropChance(0.0f);
+        eq.setBootsDropChance(0.0f);
     }
 
     /**
@@ -132,7 +143,11 @@ public final class MinerVariantService implements Listener {
      * ArmorEnchantEffectListener#armorLevel}), so both apply to the custom head
      * helmet too, not just the leather pieces - and {@code ArmorDefenseService}'s own
      * defenseMultiplier callback doubles both on top for any mob tagged {@link
-     * #VARIANT_KEY}, per the user's own request.
+     * #VARIANT_KEY}, per the user's own request. Also pinned to Tier A ({@code
+     * ItemTierService#forceTier}, same override idea as {@code
+     * ArmorDefenseService#forceDefense}) - matters once {@code CombatListener
+     * #rollMinerArmorDrops} hands a copy to a player, since a plain dyed-leather piece
+     * would otherwise resolve to a much lower Tier by Material alone.
      */
     private ItemStack minerPiece(ItemStack item, int diamondDefense) {
         ItemMeta meta = item.getItemMeta();
@@ -141,6 +156,7 @@ public final class MinerVariantService implements Listener {
         }
         meta.setUnbreakable(true);
         ArmorDefenseService.forceDefense(meta, diamondDefense);
+        this.tiers.forceTier(meta, ItemTier.A);
         item.setItemMeta(meta);
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
         return item;

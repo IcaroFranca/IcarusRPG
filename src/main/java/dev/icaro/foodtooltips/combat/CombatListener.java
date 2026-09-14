@@ -68,6 +68,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
@@ -117,6 +118,8 @@ public final class CombatListener implements Listener {
     private static final int LETHALITY_MAX_STACKS = 4;
     /** See {@link #rollMinerLegendaryDrop}. */
     private static final double UNDEAD_SWORD_DROP_CHANCE = 0.025;
+    /** See {@link #rollMinerArmorDrops}. */
+    private static final double MINER_ARMOR_DROP_CHANCE = 0.01;
 
     private final Plugin plugin;
     private final CombatSkillService combat;
@@ -597,6 +600,7 @@ public final class CombatListener implements Listener {
             }
         });
         this.rollMinerLegendaryDrop(e, p);
+        this.rollMinerArmorDrops(e);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
         // kill for valor/XP.
@@ -620,11 +624,17 @@ public final class CombatListener implements Listener {
                 this.levelUpMessage(p, oldLevel, newLevel, reward, bonusValor);
             }
         }
-        if (this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_MOB_DROPS)) {
-            this.collectDrops(p, e);
-            double radius = this.global.telekinesisRadius(p);
-            if (radius > 0.0) {
-                this.sweepNearbyDrops(p, e.getEntity().getLocation(), radius);
+        if (this.global.telekinesisUnlocked(p)) {
+            // XP orbs go straight to the player the moment Telekinesis is unlocked -
+            // unlike item drops, this is never gated behind either toggle (see the
+            // user's own spec: "independente da configuração ativa").
+            this.collectExp(p, e);
+            if (this.passives.enabled(p, PassiveToggle.TELEKINESIS_MOB_DROPS)) {
+                this.collectItemDrops(p, e);
+                double radius = this.global.telekinesisRadius(p);
+                if (radius > 0.0) {
+                    this.sweepNearbyDrops(p, e.getEntity().getLocation(), radius);
+                }
             }
         }
     }
@@ -857,6 +867,33 @@ public final class CombatListener implements Listener {
         }
     }
 
+    /**
+     * Either kind of Miner (Zombie or Skeleton) has an independent {@value
+     * #MINER_ARMOR_DROP_CHANCE} chance per equipped Miner's Armor piece (helmet,
+     * chestplate, leggings, boots - each rolled separately, so anywhere from none to
+     * all four can drop off the same kill) of dropping a real copy of that piece -
+     * vanilla's own random equipment-drop chance is zeroed for all four in {@code
+     * MinerVariantService#equip} specifically so this is the only source, at exactly
+     * these odds. Each drop is the mob's actual equipped {@link ItemStack} cloned, so
+     * it already carries the forced Diamond-equivalent Defense, Tier A, Protection V,
+     * and Unbreakable that {@code MinerVariantService#minerPiece} set up.
+     */
+    private void rollMinerArmorDrops(EntityDeathEvent e) {
+        LivingEntity mob = e.getEntity();
+        if (!mob.getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)) {
+            return;
+        }
+        EntityEquipment eq = mob.getEquipment();
+        if (eq == null) {
+            return;
+        }
+        for (ItemStack piece : new ItemStack[]{eq.getHelmet(), eq.getChestplate(), eq.getLeggings(), eq.getBoots()}) {
+            if (piece != null && !piece.isEmpty() && ThreadLocalRandom.current().nextDouble() < MINER_ARMOR_DROP_CHANCE) {
+                e.getDrops().add(piece.clone());
+            }
+        }
+    }
+
     private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {
         double bonus = this.bestiary.lootBonus(p, entry);
         if (bonus <= 0.0) {
@@ -875,13 +912,17 @@ public final class CombatListener implements Listener {
         }
     }
 
-    private void collectDrops(Player p, EntityDeathEvent e) {
+    private void collectItemDrops(Player p, EntityDeathEvent e) {
         for (ItemStack drop : new ArrayList<>(e.getDrops())) {
             for (ItemStack overflow : p.getInventory().addItem(drop).values()) {
                 p.getWorld().dropItemNaturally(p.getLocation(), overflow);
             }
         }
         e.getDrops().clear();
+    }
+
+    /** See this class's own {@code death} handler - unlike {@link #collectItemDrops}, always runs once Telekinesis is unlocked, regardless of either toggle. */
+    private void collectExp(Player p, EntityDeathEvent e) {
         int xp = e.getDroppedExp();
         if (xp > 0) {
             p.giveExp(xp, true);
