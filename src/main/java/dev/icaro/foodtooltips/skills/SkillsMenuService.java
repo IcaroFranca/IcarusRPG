@@ -62,10 +62,10 @@ public final class SkillsMenuService {
     private static final int STAT_LIST_BACK_SLOT = 45;
     /** The Damage stat's own formula constant - see {@code CombatListener}'s identical constant for why (matches real Hypixel SkyBlock's own bare-hands damage, per the user's own spec). Duplicated here rather than shared since this is purely a display-facing approximation, not the real combat calculation. */
     private static final double BASE_UNARMED_DAMAGE = 5.0;
-    /** The six custom melee-damage enchants {@link #damageItem} can't resolve without a real target - see {@code CombatListener#customMeleeDamagePercent}'s own doc for why each one is target-type/health-dependent. */
+    /** The five custom melee-damage enchants {@link #damageItem} can't resolve without a real target - see {@code CombatListener#customMeleeDamagePercent}'s own doc for why each one is target-type/health-dependent. First Strike used to be listed here too, but its condition (target still at full health) is exactly what this screen's own "baseline"/first-hit framing already assumes, so it's folded straight into the resolvable enchant percent instead - see {@link #damageItem}. */
     private static final IcarusEnchant[] TARGET_DEPENDENT_ENCHANTS = {
             IcarusEnchant.CUBISM, IcarusEnchant.ENDER_SLAYER, IcarusEnchant.IMPALING,
-            IcarusEnchant.EXECUTE, IcarusEnchant.GIANT_KILLER, IcarusEnchant.FIRST_STRIKE};
+            IcarusEnchant.EXECUTE, IcarusEnchant.GIANT_KILLER};
 
     private final CombatSkillService combat;
     private final GeneralSkillService general;
@@ -877,15 +877,20 @@ public final class SkillsMenuService {
      * Undead multiplier, since those genuinely depend on the actual target being hit.
      * Enchants, though, used to be shown outright as "(depends on target)" regardless -
      * wrong for Sharpness specifically, which (unlike Smite/Bane of Arthropods, or the
-     * six custom melee-damage enchants - Cubism/Ender Slayer/Impaling/Execute/Giant
-     * Killer/First Strike, all genuinely target-type/health-dependent, see {@code
+     * five custom melee-damage enchants - Cubism/Ender Slayer/Impaling/Execute/Giant
+     * Killer, all genuinely target-type/health-dependent, see {@code
      * CombatListener#customMeleeDamagePercent}) applies to every target the same way,
      * so it's resolvable right here from the weapon alone (mirrors {@code
      * CombatListener#vanillaDamageEnchantPercent}'s own Sharpness branch and {@code
-     * #linearCapped}'s shape). Now folded into the real computed Multiplier instead,
-     * with "(+ depends on target)" appended only when the weapon actually carries one
-     * of the genuinely target-dependent enchants above (so a weapon with only Sharpness,
-     * like the common case, shows its true baseline with no caveat at all). {@code
+     * #linearCapped}'s shape). First Strike gets the same treatment as Sharpness here,
+     * not the target-dependent list: its own condition (target still at full health)
+     * is exactly what this screen's "baseline"/first-hit framing already assumes, so
+     * its 25%/level (see {@code CombatListener#customMeleeDamagePercent}) is resolvable
+     * from the weapon alone too, same as Sharpness. Now folded into the real computed
+     * Multiplier instead, with "(+ depends on target)" appended only when the weapon
+     * actually carries one of the genuinely target-dependent enchants above (so a
+     * weapon with only Sharpness and/or First Strike, like the common case, shows its
+     * true baseline with no caveat at all). {@code
      * weaponDamage} is read straight from {@link Attribute#ATTACK_DAMAGE} (the real,
      * currently-held total - already includes whatever {@code SwordDamageService}/
      * {@code ToolDamageService}/{@code PolearmDamageService}/{@code
@@ -896,6 +901,11 @@ public final class SkillsMenuService {
         double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + (double) strength / 100.0);
         int sharpness = weapon.getEnchantmentLevel(Enchantment.SHARPNESS);
         double vanillaEnchantPercent = sharpness > 0 ? linearCapped(sharpness) : 0.0;
+        int firstStrikeLevel = this.enchants == null ? 0 : this.enchants.customLevel(weapon, IcarusEnchant.FIRST_STRIKE);
+        // Matches CombatListener#customMeleeDamagePercent's own First Strike formula
+        // (25%/level, no isAtFullHealth check here - see this method's own doc for why
+        // that condition is exactly this screen's baseline assumption already).
+        double enchantPercent = vanillaEnchantPercent + 25.0 * firstStrikeLevel;
         // Sharpness overrides Smite/Bane in CombatListener#vanillaDamageEnchantPercent
         // (real vanilla enchant-table rules never let a weapon carry more than one of
         // the three anyway), so Smite/Bane only matter here when Sharpness is absent.
@@ -909,7 +919,7 @@ public final class SkillsMenuService {
                 }
             }
         }
-        double damageMultiplier = 1.0 + combatLevelBonus + vanillaEnchantPercent / 100.0 + abilityTreeBonus;
+        double damageMultiplier = 1.0 + combatLevelBonus + enchantPercent / 100.0 + abilityTreeBonus;
         double baseline = initialDamage * damageMultiplier;
         List<Component> lore = new ArrayList<>();
         for (String part : LoreWrap.wrapText(l.choose("Dano Inicial = (5 + Dano da Arma) × (1 + Força/100)", "Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)"), LoreWrap.DEFAULT_WIDTH)) {
@@ -922,7 +932,7 @@ public final class SkillsMenuService {
             lore.add(this.text(part, NamedTextColor.GOLD));
         }
         lore.add(this.text("= 1 + " + String.format(Locale.US, "%.2f", combatLevelBonus) + " + "
-                + String.format(Locale.US, "%.2f", vanillaEnchantPercent / 100.0) + (targetDependent ? " " + l.choose("(+ depende do alvo)", "(+ depends on target)") : "")
+                + String.format(Locale.US, "%.2f", enchantPercent / 100.0) + (targetDependent ? " " + l.choose("(+ depende do alvo)", "(+ depends on target)") : "")
                 + " + " + String.format(Locale.US, "%.2f", abilityTreeBonus)
                 + " = " + String.format(Locale.US, "%.2f", damageMultiplier), NamedTextColor.GREEN));
         lore.add(Component.empty());

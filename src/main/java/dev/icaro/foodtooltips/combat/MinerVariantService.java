@@ -5,8 +5,10 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import java.util.UUID;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -18,6 +20,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -25,17 +29,20 @@ import org.bukkit.plugin.Plugin;
 /**
  * A natural Zombie or Skeleton (the plain vanilla type only - not Husk/Drowned/Stray/
  * Wither Skeleton/Zombie Villager) that spawns in the Overworld below {@code
- * miner-variants.below-y} becomes a "Zombie Miner"/"Skeleton Miner" instead: a custom
- * head ({@link HeadTexture#ZOMBIE_MINER}/{@link HeadTexture#SKELETON_MINER}) worn in
- * place of a plain Diamond Helmet, Diamond Chestplate/Leggings/Boots enchanted with
- * this plugin's own Protection V (real vanilla Diamond material Defense on the three
- * remaining pieces, {@code +4}/level/piece on top from Protection - see {@code
- * ArmorEnchantEffectListener#protectionDefenseBonus}, wired the same for every {@code
- * LivingEntity}, mobs included, and not gated on the helmet's own material, so it still
- * contributes even worn on a head with no material Defense of its own), and its own
- * guaranteed minimum ({@code miner-variants.min-health}/{@code min-damage}, 300/180 by
- * default) raised past whatever a plain Zombie/Skeleton's own Bestiary tier would
- * otherwise give it via {@link MobDifficultyService}.
+ * miner-variants.below-y} becomes a "Zombie Miner"/"Skeleton Miner" instead, wearing a
+ * full set of "Miner's Armor": a custom head ({@link HeadTexture#ZOMBIE_MINER}/{@link
+ * HeadTexture#SKELETON_MINER}) in the helmet slot, and gray-dyed leather chestplate/
+ * leggings/boots elsewhere - cosmetically cheap gear, but every piece's Defense is
+ * forced to Diamond's own per-piece numbers ({@code ArmorDefenseService#forceDefense})
+ * regardless of its real Material, then doubled on top (base and the Protection
+ * enchant bonus both - see {@code ArmorDefenseService#defenseMultiplier}, wired from
+ * {@code FoodTooltipsPlugin} to check {@link #VARIANT_KEY}) - every piece is also
+ * enchanted with this plugin's own Protection V ({@code +4}/level/piece on top, see
+ * {@code ArmorEnchantEffectListener#protectionDefenseBonus}, not gated on material so
+ * it still contributes even worn on the head) and unbreakable. Its own guaranteed
+ * minimum ({@code miner-variants.min-health}/{@code min-damage}, 300/180 by default)
+ * is raised past whatever a plain Zombie/Skeleton's own Bestiary tier would otherwise
+ * give it via {@link MobDifficultyService}.
  *
  * <p>Converts the mob in place rather than despawning it and spawning a different
  * EntityType - simpler, and keeps vanilla's own AI/pathfinding intact. {@link #spawn}
@@ -105,14 +112,36 @@ public final class MinerVariantService implements Listener {
             return;
         }
         String headTexture = type == EntityType.ZOMBIE ? HeadTexture.ZOMBIE_MINER : HeadTexture.SKELETON_MINER;
-        eq.setHelmet(this.protectedItem(this.customHead(headTexture)));
-        eq.setChestplate(this.protectedItem(new ItemStack(Material.DIAMOND_CHESTPLATE)));
-        eq.setLeggings(this.protectedItem(new ItemStack(Material.DIAMOND_LEGGINGS)));
-        eq.setBoots(this.protectedItem(new ItemStack(Material.DIAMOND_BOOTS)));
+        eq.setHelmet(this.minerPiece(this.customHead(headTexture), 15));
+        eq.setChestplate(this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40));
+        eq.setLeggings(this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30));
+        eq.setBoots(this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15));
     }
 
-    /** {@code item} enchanted with this plugin's own Protection V (a PDC-stored custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese lore by default, same as everything else spawned without a player context to read a language preference from. Not gated on the item's own material ({@link ArmorEnchantEffectListener#armorLevel} reads the PDC level straight off whatever's equipped), so this works on the custom head helmet too, not just real armor. */
-    private ItemStack protectedItem(ItemStack item) {
+    /**
+     * One piece of "Miner's Armor": dyed gray if it's leather (the custom head helmet
+     * has no dye slot, so it's left as-is), unbreakable, forced to Diamond's own
+     * per-piece Defense ({@code diamondDefense} - see {@code
+     * ArmorDefenseService#forceDefense}) regardless of being cosmetically leather/a
+     * player head, and enchanted with this plugin's own Protection V (a PDC-stored
+     * custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code
+     * IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese
+     * lore by default, same as everything else spawned without a player context to
+     * read a language preference from. Neither the forced Defense nor the Protection
+     * enchant is gated on the item's own material (see {@code
+     * ArmorEnchantEffectListener#armorLevel}), so both apply to the custom head
+     * helmet too, not just the leather pieces - and {@code ArmorDefenseService}'s own
+     * defenseMultiplier callback doubles both on top for any mob tagged {@link
+     * #VARIANT_KEY}, per the user's own request.
+     */
+    private ItemStack minerPiece(ItemStack item, int diamondDefense) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(Color.GRAY);
+        }
+        meta.setUnbreakable(true);
+        ArmorDefenseService.forceDefense(meta, diamondDefense);
+        item.setItemMeta(meta);
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
         return item;
     }
