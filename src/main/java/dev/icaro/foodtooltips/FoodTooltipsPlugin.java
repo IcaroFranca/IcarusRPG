@@ -97,6 +97,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -170,6 +171,7 @@ extends JavaPlugin {
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
+        armor.defenseMultiplier(e -> e.getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE) ? 2.0 : 1.0);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();

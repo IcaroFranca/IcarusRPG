@@ -132,10 +132,17 @@ golfinho/axolote...) nunca escalam.
 
 **Zombie Miner / Skeleton Miner** (`MinerVariantService`): um Zumbi ou Esqueleto
 normal (não Husk/Drowned/Stray/Wither Skeleton/Zombie Villager) que nasce no Overworld
-abaixo de Y0 vira essa variante em vez do mob comum — cabeça customizada própria no
-lugar do capacete (só visual) + peitoral/calça/bota de Diamante, tudo encantado com
-Proteção V (do próprio plugin, aplica mesmo na cabeça), e um piso garantido de 300 HP / 180 de
-dano por golpe (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
+abaixo de Y0 vira essa variante em vez do mob comum — veste um set completo de
+**"Miner's Armor"**: cabeça customizada própria no lugar do capacete (só visual) +
+peitoral/calça/bota de couro tingido de cinza (também só visual). Cada peça é forçada
+a ter a mesma Defesa base do Diamante (`ArmorDefenseService#forceDefense`, ignora o
+Material real do item) e vem encantada com Proteção V (do próprio plugin, aplica mesmo
+na cabeça) — e tanto a Defesa base quanto o bônus da Proteção são **dobrados**
+especificamente pra esse mob (`ArmorDefenseService#defenseMultiplier`). Toda peça é
+`Unbreakable`, e por já ser inquebrável o encantamento Unbreaking nunca aparece como
+opção na Mesa de Encantamento pra ela (nem pra qualquer outro item já inquebrável do
+plugin). Além da armadura, tem um piso garantido de 300 HP / 180 de dano por golpe
+(`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
 Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Cada variante tem sua
 própria entrada na Bestiary (`zombie_miner`/`skeleton_miner`, separada da entrada do
 Zumbi/Esqueleto comum mesmo os dois compartilhando o mesmo `EntityType` por baixo),

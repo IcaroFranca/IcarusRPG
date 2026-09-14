@@ -44,11 +44,15 @@ public final class ArmorDefenseService {
     private final NamespacedKey armorKey = new NamespacedKey("foodtooltips", "vanilla_armor_zero");
     private final NamespacedKey toughnessKey = new NamespacedKey("foodtooltips", "vanilla_armor_toughness_zero");
     private final NamespacedKey tooltipKey = new NamespacedKey("foodtooltips", "defense_tooltip_applied");
+    /** See {@link #forceDefense}/{@link #pieceDefense} - same per-item override idea as {@code ItemTierService#forceTier}. */
+    private static final NamespacedKey FORCED_DEFENSE_KEY = new NamespacedKey("foodtooltips", "forced_defense");
     private GeneralSkillService general;
     /** Extra Defense from the Protection enchant (see {@code ArmorEnchantEffectListener}) - wired in the same late-bound way as {@link #general}, as a plain functional callback rather than a direct type reference so this class (in {@code skills}) never has to depend on the {@code enchant} package. Defaults to always-0 so this class works before it's wired (or if it never is). */
     private java.util.function.ToIntFunction<LivingEntity> protectionBonus = e -> 0;
     /** Lethality's own Defense-reduction debuff (see {@code CombatListener}) - same late-bound callback idea as {@link #protectionBonus}, subtracted instead of added - see {@link #defense}. Defaults to always-0. */
     private java.util.function.ToIntFunction<LivingEntity> lethalityPenalty = e -> 0;
+    /** Multiplies armor + Protection Defense (not the general-skill bonus, and applied before Lethality's own subtraction) for a specific entity - late-bound the same way as {@link #protectionBonus}, used by the Zombie/Skeleton Miner's own Miner's Armor (doubled, per its own request). Defaults to always-1.0 (no change) for everyone else. */
+    private java.util.function.ToDoubleFunction<LivingEntity> defenseMultiplier = e -> 1.0;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
@@ -65,21 +69,33 @@ public final class ArmorDefenseService {
         this.lethalityPenalty = lethalityPenalty;
     }
 
+    /** Wired in after construction, same pattern as {@link #general} - see {@link #defenseMultiplier}. */
+    public void defenseMultiplier(java.util.function.ToDoubleFunction<LivingEntity> defenseMultiplier) {
+        this.defenseMultiplier = defenseMultiplier;
+    }
+
     /**
-     * Sum of the equipped helmet/chestplate/leggings/boots' Defense values, plus
-     * {@link GeneralSkillService#bonusDefense} (Mining, 1 per level) and the
-     * Protection enchant's own Defense (see {@link #protectionBonus}) for players,
-     * minus whatever Lethality's own debuff (see {@link #lethalityPenalty}) currently
-     * takes off - works for any player or mob, mobs just never have a skill/enchant
-     * bonus to add (the callbacks themselves handle that - see their own defaults).
-     * Never negative.
+     * Sum of the equipped helmet/chestplate/leggings/boots' Defense values plus the
+     * Protection enchant's own Defense (see {@link #protectionBonus}), both scaled by
+     * {@link #defenseMultiplier} (1.0 for everyone except the Zombie/Skeleton Miner),
+     * plus {@link GeneralSkillService#bonusDefense} (Mining, 1 per level, never
+     * scaled) for players, minus whatever Lethality's own debuff (see {@link
+     * #lethalityPenalty}) currently takes off - works for any player or mob, mobs
+     * just never have a skill bonus to add. Never negative.
      */
     public int defense(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
         int armorDefense = eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
         int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
-        int total = armorDefense + skillBonus + this.protectionBonus.applyAsInt(e) - this.lethalityPenalty.applyAsInt(e);
+        int protection = this.protectionBonus.applyAsInt(e);
+        double multiplier = this.defenseMultiplier.applyAsDouble(e);
+        int total = (int) Math.round((armorDefense + protection) * multiplier) + skillBonus - this.lethalityPenalty.applyAsInt(e);
         return Math.max(0, total);
+    }
+
+    /** Forces {@code item}'s Defense to {@code value} regardless of its own Material - same per-item override idea as {@code ItemTierService#forceTier}, used by an item whose Defense shouldn't come from its (often purely cosmetic) Material, e.g. the Zombie/Skeleton Miner's leather-dyed-gray Miner's Armor, which reads as Diamond's own numbers instead. */
+    public static void forceDefense(ItemMeta meta, int value) {
+        meta.getPersistentDataContainer().set(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER, value);
     }
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */
@@ -88,9 +104,14 @@ public final class ArmorDefenseService {
         return (double) defense / ((double) defense + 100.0);
     }
 
-    /** Defense contributed by a single equipped piece (0 for an empty slot) - exposed for a per-piece breakdown display. */
+    /** Defense contributed by a single equipped piece (0 for an empty slot) - {@link #forceDefense}'s override if the item carries one, else its Material's own value. Exposed for a per-piece breakdown display. */
     public static int pieceDefense(ItemStack item) {
-        return item == null ? 0 : defenseFor(item.getType());
+        if (item == null) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        Integer forced = meta == null ? null : meta.getPersistentDataContainer().get(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER);
+        return forced != null ? forced : defenseFor(item.getType());
     }
 
     /**
@@ -189,7 +210,7 @@ public final class ArmorDefenseService {
         if (item == null || item.getType().isAir()) {
             return null;
         }
-        int def = defenseFor(item.getType());
+        int def = pieceDefense(item);
         if (def <= 0) {
             return null;
         }

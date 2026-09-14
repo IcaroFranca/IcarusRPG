@@ -149,9 +149,12 @@ public final class EnchantService {
      * Every entry {@code item} could actually receive right now - vanilla entries
      * whose {@code Enchantment#canEnchantItem} accepts this item (matching vanilla's
      * own Enchanting Table filtering, minus {@link #HOE_EXCLUDED_VANILLA_KEYS} on a
-     * hoe specifically), and custom entries whose {@link IcarusEnchant#canApplyTo}
-     * accepts this item's material. Empty for a null/empty item - the Enchanting
-     * Table screen shows nothing in its catalog until an item is placed.
+     * hoe specifically, and minus Unbreaking on any item already flagged unbreakable -
+     * e.g. the Zombie/Skeleton Miner's own Miner's Armor, or this plugin's other
+     * one-off unbreakable items - since it would have nothing left to do), and custom
+     * entries whose {@link IcarusEnchant#canApplyTo} accepts this item's material.
+     * Empty for a null/empty item - the Enchanting Table screen shows nothing in its
+     * catalog until an item is placed.
      */
     public List<EnchantEntry> compatibleEntries(ItemStack item, boolean pt) {
         List<EnchantEntry> result = new ArrayList<>();
@@ -159,9 +162,13 @@ public final class EnchantService {
             return result;
         }
         boolean hoe = item.getType().name().endsWith("_HOE");
+        ItemMeta meta = item.getItemMeta();
+        boolean alreadyUnbreakable = meta != null && meta.isUnbreakable();
         for (EnchantEntry e : this.allEntries(pt)) {
             if (e instanceof VanillaEnchantEntry v) {
-                if (v.enchantment().canEnchantItem(item) && !(hoe && HOE_EXCLUDED_VANILLA_KEYS.contains(v.enchantment().getKey().getKey()))) {
+                boolean excludedHoe = hoe && HOE_EXCLUDED_VANILLA_KEYS.contains(v.enchantment().getKey().getKey());
+                boolean excludedUnbreaking = alreadyUnbreakable && v.enchantment().getKey().getKey().equals("unbreaking");
+                if (v.enchantment().canEnchantItem(item) && !excludedHoe && !excludedUnbreaking) {
                     result.add(e);
                 }
             } else if (e instanceof CustomEnchantEntry c) {
