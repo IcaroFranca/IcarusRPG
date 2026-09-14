@@ -136,9 +136,12 @@ própria entrada na Bestiary (`zombie_miner`/`skeleton_miner`, separada da entra
 Zumbi/Esqueleto comum mesmo os dois compartilhando o mesmo `EntityType` por baixo),
 com nome e ícone próprios (a mesma cabeça customizada que o mob usa) em vez de cair
 no ovo de spawn/nome do Zumbi/Esqueleto comum, e listada na aba **Cavernas**, não
-Superfície — progresso, milestones e XP de Combate (24 por abate) contam à parte. O **Zombie Miner**
-ainda tem **2,5% de chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de
-conseguir essa arma lendária sem ser pelo `/rpgitems` (admin-only).
+Superfície — progresso, milestones e XP de Combate (24 por abate) contam à parte, e
+os dois dropam **40 orbes de XP vanilla** fixos (bem acima do ~5 padrão do
+Zumbi/Esqueleto comum), sujeito aos mesmos bônus que qualquer outro mob (ex.: o
+encantamento Experience ainda pode dobrar). O **Zombie Miner** ainda tem **2,5% de
+chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de conseguir essa
+arma lendária sem ser pelo `/rpgitems` (admin-only).
 
 **Defesa por peça de armadura:**
 

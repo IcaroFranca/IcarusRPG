@@ -567,6 +567,21 @@ public final class CombatListener implements Listener {
                 && !p.hasPotionEffect(PotionEffectType.BLINDNESS);
     }
 
+    /**
+     * A Zombie Miner / Skeleton Miner drops a fixed 40 XP orbs on death, well above the
+     * plain Zombie/Skeleton's own vanilla ~5. HIGH (not MONITOR, same tier {@link #death}
+     * and {@code MeleeEnchantEffectListener#experienceOnKill} both sit at) so this fixed
+     * base is already in place before Experience's own on-kill doubling (MONITOR) reads
+     * {@link EntityDeathEvent#getDroppedExp()} - lets that enchant still apply on top of
+     * it exactly like it does for every other mob, instead of racing it.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void minerExp(EntityDeathEvent e) {
+        if (e.getEntity().getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)) {
+            e.setDroppedExp(40);
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void death(EntityDeathEvent e) {
         Player p = e.getEntity().getKiller();
