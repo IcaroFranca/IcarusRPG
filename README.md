@@ -82,6 +82,12 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   A bússola em si (aponta pro local da sua última morte) sempre foi dada no respawn,
   independente de nível — abaixo do nível 5 ela continua sendo só um ponteiro; a partir
   dele, clicar nela e clicar de novo em até 10s (pra confirmar) te teleporta pra lá.
+- **Cor do Nível** (`/levelcolor`): escolhe um tema de cor entre os desbloqueados pelo
+  Nível Global (do branco padrão até temas animados/gradiente como Prismático,
+  Netherite, Nexus...) — a cor escolhida tinge o nome do jogador inteiro (não só o
+  badge `[N]`), igual na tab list, no chat e no nametag acima da cabeça (esse último
+  limitado às 16 cores nomeadas do vanilla, já que o time do scoreboard não aceita RGB
+  livre — a cor mais próxima do tema é escolhida automaticamente).
 - **Skills gerais** (Mineração, Agricultura, Pesca, Coleta, Encantamento, Alquimia):
   cada uma dá Fortune e/ou um bônus de atributo por nível (Vida, Strength,
   Inteligência ou Defesa, dependendo da skill) — ver `/skills` → skill individual.

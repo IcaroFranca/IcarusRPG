@@ -50,9 +50,10 @@ implements Listener {
 
     public void refresh(Player subject) {
         Component badge = this.badge(subject);
-        subject.playerListName(badge.append((Component)Component.text((String)subject.getName(), (TextColor)NamedTextColor.WHITE)));
+        TextColor nameColor = this.cachedColor(subject.getUniqueId());
+        subject.playerListName(badge.append((Component)Component.text((String)subject.getName(), nameColor)));
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            this.syncTeam(viewer, subject, badge);
+            this.syncTeam(viewer, subject, badge, nameColor);
         }
     }
 
@@ -62,16 +63,29 @@ implements Listener {
         return this.renderer.frame(state.level(), state.theme(), this.tick);
     }
 
+    /** Same color {@link #badge} would tint the "[N]" badge with, for {@code player}'s own currently effective theme - lets {@code LevelColorMenuService}'s own preview head show the player's name the same way it'll actually look in the tab list/chat/nametag instead of staying plain white. */
+    public TextColor nameColor(Player player) {
+        BadgeState state = new BadgeState(this.global.snapshot(player).level(), this.colors.effective(player));
+        this.badgeCache.put(player.getUniqueId(), state);
+        return this.renderer.activeColor(state.theme(), this.tick);
+    }
+
     private Component cachedBadge(UUID id) {
         BadgeState state = this.badgeCache.getOrDefault(id, DEFAULT_STATE);
         return this.renderer.frame(state.level(), state.theme(), this.tick);
+    }
+
+    /** The exact same color {@link #cachedBadge}/{@link #badge} rendered the badge in, for the given player, right now - so the player's own name (tab list, chat, nametag) can match their level color instead of staying plain white. Reads {@link #badgeCache} rather than recomputing {@code global}/{@code colors} so this stays safe to call from {@link #chat}, which fires off the main thread. */
+    private TextColor cachedColor(UUID id) {
+        BadgeState state = this.badgeCache.getOrDefault(id, DEFAULT_STATE);
+        return this.renderer.activeColor(state.theme(), this.tick);
     }
 
     private String teamId(Player subject) {
         return "gl_" + subject.getUniqueId().toString().replace("-", "").substring(0, 12);
     }
 
-    private void syncTeam(Player viewer, Player subject, Component prefix) {
+    private void syncTeam(Player viewer, Player subject, Component prefix, TextColor nameColor) {
         String id;
         Scoreboard board = viewer.getScoreboard();
         Team team = board.getTeam(id = this.teamId(subject));
@@ -83,6 +97,11 @@ implements Listener {
             team.addEntry(subject.getName());
         }
         team.prefix(prefix);
+        // Team#color only takes a legacy NamedTextColor, not an arbitrary RGB TextColor -
+        // nearestTo maps this theme's real color to the closest one of those 16 so the
+        // floating nametag above the player's head matches the tab list/chat as closely
+        // as vanilla's own API allows.
+        team.color(NamedTextColor.nearestTo(nameColor));
     }
 
     private void clearTeam(Player subject) {
@@ -128,7 +147,8 @@ implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void chat(AsyncChatEvent e) {
         Component badge = this.cachedBadge(e.getPlayer().getUniqueId());
-        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), (TextColor)NamedTextColor.WHITE)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
+        TextColor nameColor = this.cachedColor(e.getPlayer().getUniqueId());
+        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), nameColor)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
     }
 
     private record BadgeState(long level, LevelColorTheme theme) {
