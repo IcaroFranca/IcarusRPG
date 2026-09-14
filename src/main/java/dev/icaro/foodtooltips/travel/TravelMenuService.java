@@ -66,6 +66,10 @@ public final class TravelMenuService {
                 List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                 event -> this.travel(p, this.defaultWorld)), 3, 1);
 
+        pane.addItem(new GuiItem(this.item(Material.RED_BED, l.choose("Respawn (Cama/Âncora)", "Bed/Anchor Spawn"),
+                List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                event -> this.travelToBedSpawn(p)), 5, 1);
+
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
@@ -80,10 +84,35 @@ public final class TravelMenuService {
             return;
         }
         p.closeInventory();
-        Location destination = world.getSpawnLocation();
+        this.teleportTo(p, world.getSpawnLocation());
+    }
+
+    /**
+     * {@code Player#getRespawnLocation()} - the player's own last-set bed or respawn
+     * anchor, whichever they most recently slept in/activated (Paper's modern
+     * replacement for the deprecated per-world {@code getBedSpawnLocation()}, so this
+     * already covers a Nether respawn anchor same as an Overworld bed). Null if
+     * they've never set one, or it's since become invalid (block broken, wrong
+     * dimension for a bed, etc. - same cases vanilla itself falls back to world spawn
+     * for on death).
+     */
+    private void travelToBedSpawn(Player p) {
+        Language l = Language.of(p);
+        Location destination = p.getRespawnLocation();
+        if (destination == null || destination.getWorld() == null) {
+            p.sendMessage(Component.text(l.choose("Você não tem uma cama ou âncora de respawn marcada.", "You don't have a bed or respawn anchor set."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /** Shared teleport plumbing both {@link #travel} and {@link #travelToBedSpawn} go through - chunk-loading and the passenger workaround apply the same way regardless of which destination was picked. */
+    private void teleportTo(Player p, Location destination) {
+        Language l = Language.of(p);
         // Force the destination chunk to be loaded before teleporting (harmless even
         // when it's already loaded, as it always is for a world's own spawn point).
-        world.getChunkAt(destination);
+        destination.getWorld().getChunkAt(destination);
         // Paper has a confirmed bug (github.com/PaperMC/Paper/issues/10168): a
         // cross-world teleport never even raises PlayerTeleportEvent - Entity#teleport
         // just returns false - if the player has any passenger riding them. Confirmed
