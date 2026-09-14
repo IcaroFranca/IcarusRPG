@@ -169,7 +169,7 @@ public final class SkillsMenuService {
                 passiveLore.add(this.text(part, NamedTextColor.GRAY));
             }
             passiveLore.add(this.click(l));
-            v.setItem(PASSIVE_ABILITIES_SLOT, this.customHead(HeadTexture.MUSHROOM_POWERUP, l.choose("Habilidades Passivas", "Passive Abilities"), passiveLore));
+            v.setItem(PASSIVE_ABILITIES_SLOT, this.customHead(HeadTexture.SUPER_MUSHROOM, l.choose("Habilidades Passivas", "Passive Abilities"), passiveLore));
         }
         if (this.quiver != null && this.quiver.unlocked(p)) {
             List<Component> quiverLore = new ArrayList<>();
