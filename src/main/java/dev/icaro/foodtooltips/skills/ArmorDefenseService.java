@@ -77,7 +77,9 @@ public final class ArmorDefenseService {
     /**
      * Sum of the equipped helmet/chestplate/leggings/boots' Defense values plus the
      * Protection enchant's own Defense (see {@link #protectionBonus}), both scaled by
-     * {@link #defenseMultiplier} (1.0 for everyone except the Zombie/Skeleton Miner),
+     * {@link #defenseMultiplier} (1.0 normally, 2.0 while wearing Miner's Armor at or
+     * below the "camadas negativas" threshold - see {@code MinerVariantService
+     * #minerArmorBonusActive}, wired from {@code FoodTooltipsPlugin}),
      * plus {@link GeneralSkillService#bonusDefense} (Mining, 1 per level, never
      * scaled) for players, minus whatever Lethality's own debuff (see {@link
      * #lethalityPenalty}) currently takes off - works for any player or mob, mobs
@@ -96,6 +98,15 @@ public final class ArmorDefenseService {
     /** Forces {@code item}'s Defense to {@code value} regardless of its own Material - same per-item override idea as {@code ItemTierService#forceTier}, used by an item whose Defense shouldn't come from its (often purely cosmetic) Material, e.g. the Zombie/Skeleton Miner's leather-dyed-gray Miner's Armor, which reads as Diamond's own numbers instead. */
     public static void forceDefense(ItemMeta meta, int value) {
         meta.getPersistentDataContainer().set(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER, value);
+    }
+
+    /** Whether {@code item} carries {@link #forceDefense}'s own override - in practice always a Miner's Armor piece, the only thing that ever calls it - exposed so {@code MinerVariantService} can tell whether an entity (mob or player alike) is wearing at least one, without needing this class's own private key. */
+    public static boolean isMinerPiece(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER);
     }
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */

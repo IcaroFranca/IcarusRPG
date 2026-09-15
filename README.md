@@ -152,8 +152,12 @@ abaixo de Y0 vira essa variante em vez do mob comum — veste um set completo de
 peitoral/calça/bota de couro tingido de cinza (também só visual). Cada peça é forçada
 a ter a mesma Defesa base do Diamante (`ArmorDefenseService#forceDefense`, ignora o
 Material real do item) e vem encantada com Proteção V (do próprio plugin, aplica mesmo
-na cabeça) — e tanto a Defesa base quanto o bônus da Proteção são **dobrados**
-especificamente pra esse mob (`ArmorDefenseService#defenseMultiplier`). Toda peça é
+na cabeça) — e tanto a Defesa base quanto o bônus da Proteção são **dobrados** pra
+quem estiver com pelo menos uma peça equipada E na camada Y0 pra baixo ("camadas
+negativas") — vale pro próprio mob (que só existe lá) e também pra um jogador que
+looter e vestir a armadura (`MinerVariantService#minerArmorBonusActive`, checado a
+cada tick, não uma tag permanente — sair da camada negativa tira o bônus até voltar).
+Toda peça é
 `Unbreakable`, e por já ser inquebrável o encantamento Unbreaking nunca aparece como
 opção na Mesa de Encantamento pra ela (nem pra qualquer outro item já inquebrável do
 plugin). Além da armadura, tem um piso garantido de 300 HP / 180 de dano por golpe
@@ -171,9 +175,10 @@ chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de conseguir e
 arma lendária sem ser pelo `/rpgitems` (admin-only). Cada peça da própria Miner's
 Armor também tem **1% de chance independente de dropar** (capacete, peitoral, calça e
 bota rolados separadamente — de nenhuma a todas as quatro no mesmo abate), sempre no
-**Tier A**, já com a Defesa dobrada, Proteção V e Unbreakable de quem a estava usando;
-o drop de equipamento aleatório do vanilla é totalmente desativado pra esses dois
-mobs, então essa é a única fonte.
+**Tier A**, já com a Defesa base de Diamante, Proteção V e Unbreakable de quem a
+estava usando (a Defesa dobrada volta a valer normalmente pro jogador que a vestir,
+enquanto estiver na camada negativa); o drop de equipamento aleatório do vanilla é
+totalmente desativado pra esses dois mobs, então essa é a única fonte.
 
 **Defesa por peça de armadura:**
 
