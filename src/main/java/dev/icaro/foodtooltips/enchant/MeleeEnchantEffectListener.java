@@ -228,10 +228,21 @@ public final class MeleeEnchantEffectListener implements Listener {
             }
             double perSecond = state.weaponBase() * (state.magnitudePercent() * state.stacks() / 100.0);
             if (perSecond > 0.0) {
+                // Read health before/after (rather than showing perSecond itself) since
+                // target.damage() here runs the real EntityDamageEvent pipeline to
+                // completion - ArmorDefenseListener's Defense mitigation included -
+                // before returning, so the theoretical perSecond amount and what the
+                // target's health bar actually drops by can diverge for anything with
+                // Defense (see MobVisualService#queueDamageNumber's own doc for the
+                // same divergence on the event-handler side of this bug).
+                double before = this.visuals.effectiveHealth(target);
                 target.damage(perSecond);
-                // Same dark green ElementalDamageListener gives real Poison damage - a
-                // DoT reads as "poison" at a glance regardless of which one dealt it.
-                this.visuals.damageNumber(target, perSecond, NamedTextColor.DARK_GREEN);
+                double actual = before - this.visuals.effectiveHealth(target);
+                if (actual > 0.0) {
+                    // Same dark green ElementalDamageListener gives real Poison damage -
+                    // a DoT reads as "poison" at a glance regardless of which one dealt it.
+                    this.visuals.damageNumber(target, actual, NamedTextColor.DARK_GREEN);
+                }
             }
         }, 20L, 20L);
     }

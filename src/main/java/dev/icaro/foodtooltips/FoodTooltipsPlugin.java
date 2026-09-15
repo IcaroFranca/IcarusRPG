@@ -179,6 +179,7 @@ extends JavaPlugin {
         });
         levelColors.onChange(p -> presentation.refreshAll());
         PluginManager pm = this.getServer().getPluginManager();
+        pm.registerEvents((Listener)this.visuals, (Plugin)this);
         pm.registerEvents((Listener)new GlobalPlayerListener(global), (Plugin)this);
         pm.registerEvents((Listener)presentation, (Plugin)this);
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);

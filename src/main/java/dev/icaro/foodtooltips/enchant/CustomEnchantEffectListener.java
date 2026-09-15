@@ -214,8 +214,19 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         target.getWorld().spawnParticle(Particle.FLAME, target.getLocation().add(0.0, 1.0, 0.0), 8, 0.3, 0.5, 0.3, 0.01);
+        // Read health before/after (rather than showing perTick itself) since
+        // target.damage() runs the real EntityDamageEvent pipeline to completion -
+        // ArmorDefenseListener's Defense mitigation included - before returning, so the
+        // theoretical perTick amount and what the target's health bar actually drops by
+        // can diverge for anything with Defense (see
+        // MobVisualService#queueDamageNumber's own doc for the same divergence on the
+        // event-handler side of this bug).
+        double before = this.visuals.effectiveHealth(target);
         target.damage(perTick);
-        this.visuals.damageNumber(target, perTick, FIRE_ORANGE);
+        double actual = before - this.visuals.effectiveHealth(target);
+        if (actual > 0.0) {
+            this.visuals.damageNumber(target, actual, FIRE_ORANGE);
+        }
     }
 
     /** Lure: shortens the fishing bobber's wait time by a percentage instead of vanilla's own flat-tick-per-level reduction. */

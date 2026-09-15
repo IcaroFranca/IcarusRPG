@@ -14,11 +14,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Exports every custom-head Base64 texture IcarusRPG currently uses (gems, the
- * Global Level icon) into a Geyser "custom skulls" mappings
- * file, so Bedrock players (via Geyser/Floodgate) see the actual configured
- * skin instead of a blank default head - same fix already shipped in
- * IcarusChests.
+ * Exports every custom-head Base64 texture IcarusRPG currently uses (every
+ * {@link HeadTexture} constant, plus gems and the Global Level icon, which
+ * are generated per-instance rather than fixed constants) into a Geyser
+ * "custom skulls" mappings file, so Bedrock players (via Geyser/Floodgate)
+ * see the actual configured skin instead of a blank default head - same fix
+ * already shipped in IcarusChests.
  *
  * <p>Without this, Geyser has no way to know these textures exist: it only
  * ever registers skulls it's told about up front, at its OWN startup (see
@@ -59,9 +60,11 @@ public final class GeyserSkullExport {
         if (!global.iconTexture().isBlank()) {
             textures.add(global.iconTexture());
         }
-        // The Locais/Locations "Planet" button reuses this shared constant instead of
-        // hardcoding its own copy - see HeadTexture's own javadoc.
-        textures.add(HeadTexture.PLANET);
+        // Every fixed custom-head icon this plugin uses anywhere (Locais, Trash Can,
+        // pagination arrows, Back/Close, Quiver, Passive Abilities, Zombie/Skeleton
+        // Miner's own helmet...) - see HeadTexture.ALL's own doc for why this is the
+        // one place that needs updating when a new constant is added there.
+        textures.addAll(HeadTexture.ALL);
         if (textures.isEmpty()) {
             return;
         }
