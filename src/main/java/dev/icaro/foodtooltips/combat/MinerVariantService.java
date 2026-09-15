@@ -76,8 +76,8 @@ public final class MinerVariantService implements Listener {
     private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_pt");
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
     /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localize}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
-    private static final String DESCRIPTION_PT = "Dobra seus status de Defesa (encantamentos incluídos) nas camadas negativas.";
-    private static final String DESCRIPTION_EN = "Doubles your Defense stats (enchantments included) in the negative layers.";
+    private static final String DESCRIPTION_PT = "Dobra seus status de Defesa nas camadas negativas.";
+    private static final String DESCRIPTION_EN = "Doubles your Defense stats in the negative layers.";
 
     private final Plugin plugin;
     private final EnchantService enchants;
