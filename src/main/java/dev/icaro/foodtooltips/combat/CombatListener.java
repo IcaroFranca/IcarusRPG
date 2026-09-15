@@ -601,7 +601,7 @@ public final class CombatListener implements Listener {
             }
         });
         this.rollMinerLegendaryDrop(e, p);
-        this.rollMinerArmorDrops(e);
+        this.rollMinerArmorDrops(e, p);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
         // kill for valor/XP.
@@ -879,7 +879,7 @@ public final class CombatListener implements Listener {
      * it already carries the forced Diamond-equivalent Defense, Tier A, Protection V,
      * and Unbreakable that {@code MinerVariantService#minerPiece} set up.
      */
-    private void rollMinerArmorDrops(EntityDeathEvent e) {
+    private void rollMinerArmorDrops(EntityDeathEvent e, Player killer) {
         LivingEntity mob = e.getEntity();
         if (!mob.getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)) {
             return;
@@ -890,7 +890,12 @@ public final class CombatListener implements Listener {
         }
         for (ItemStack piece : new ItemStack[]{eq.getHelmet(), eq.getChestplate(), eq.getLeggings(), eq.getBoots()}) {
             if (piece != null && !piece.isEmpty() && ThreadLocalRandom.current().nextDouble() < MINER_ARMOR_DROP_CHANCE) {
-                e.getDrops().add(piece.clone());
+                ItemStack drop = piece.clone();
+                // Same drop-time language resolution rollMinerLegendaryDrop already does
+                // for the Undead's Sword - the piece's name/description were built in
+                // Portuguese at spawn time (no real player to read a language from yet).
+                MinerVariantService.localizeDrop(drop, Language.of(killer));
+                e.getDrops().add(drop);
             }
         }
     }

@@ -4,11 +4,17 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
+import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -59,6 +65,11 @@ import org.bukkit.plugin.Plugin;
 public final class MinerVariantService implements Listener {
     /** Tags a mob as a Zombie/Skeleton Miner - checked by {@code CombatListener}'s own kill-XP branch (a Miner's own {@code combat-xp}, not whatever its underlying Zombie/Skeleton Bestiary entry would normally award) since it's still the same real {@code EntityType} under the hood, not a distinct Bestiary entry of its own. */
     public static final NamespacedKey VARIANT_KEY = new NamespacedKey("foodtooltips", "miner_variant");
+    /** Holds a piece's English name (see {@link #minerPiece}) so {@link #localizeDrop} can re-localize it once a real player - and their real language - is known, same idea as {@code CombatListener#rollMinerLegendaryDrop}'s own drop-time {@code Language.of(killer)} for the Undead's Sword. */
+    private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
+    /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localizeDrop}. */
+    private static final String DESCRIPTION_PT = "Armadura usada pelos Mineradores - Defesa equivalente a Diamante, encantada com Proteção V e inquebrável.";
+    private static final String DESCRIPTION_EN = "Armor worn by Miners - Diamond-equivalent Defense, enchanted with Protection V, and unbreakable.";
 
     private final Plugin plugin;
     private final EnchantService enchants;
@@ -116,10 +127,10 @@ public final class MinerVariantService implements Listener {
             return;
         }
         String headTexture = type == EntityType.ZOMBIE ? HeadTexture.ZOMBIE_MINER : HeadTexture.SKELETON_MINER;
-        eq.setHelmet(this.minerPiece(this.customHead(headTexture), 15));
-        eq.setChestplate(this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40));
-        eq.setLeggings(this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30));
-        eq.setBoots(this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15));
+        eq.setHelmet(this.minerPiece(this.customHead(headTexture), 15, "Capacete do Minerador", "Miner's Helmet"));
+        eq.setChestplate(this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40, "Peitoral do Minerador", "Miner's Chestplate"));
+        eq.setLeggings(this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30, "Calça do Minerador", "Miner's Leggings"));
+        eq.setBoots(this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15, "Bota do Minerador", "Miner's Boots"));
         // Vanilla's own random equipment-drop chance is fully suppressed - CombatListener
         // #rollMinerArmorDrops rolls each piece's 1% independently instead, so it's the
         // only source of a dropped copy (no double-dropping, no odds outside its control).
@@ -137,19 +148,23 @@ public final class MinerVariantService implements Listener {
      * player head, and enchanted with this plugin's own Protection V (a PDC-stored
      * custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code
      * IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese
-     * lore by default, same as everything else spawned without a player context to
-     * read a language preference from. Neither the forced Defense nor the Protection
+     * name/description by default, same as everything else spawned without a player
+     * context to read a language preference from ({@link #localizeDrop} fixes this up
+     * once a real player loots one). Neither the forced Defense nor the Protection
      * enchant is gated on the item's own material (see {@code
      * ArmorEnchantEffectListener#armorLevel}), so both apply to the custom head
      * helmet too, not just the leather pieces - and {@code ArmorDefenseService}'s own
      * defenseMultiplier callback doubles both on top for any mob tagged {@link
-     * #VARIANT_KEY}, per the user's own request. Also pinned to Tier A ({@code
+     * #VARIANT_KEY}, per the user's own request (that doubling is a Miner-mob-only
+     * effect, not something the item itself carries - see this class's own doc - so
+     * {@link #DESCRIPTION_PT}/{@link #DESCRIPTION_EN} describe what the piece actually
+     * grants once a player wears it instead). Also pinned to Tier A ({@code
      * ItemTierService#forceTier}, same override idea as {@code
      * ArmorDefenseService#forceDefense}) - matters once {@code CombatListener
      * #rollMinerArmorDrops} hands a copy to a player, since a plain dyed-leather piece
      * would otherwise resolve to a much lower Tier by Material alone.
      */
-    private ItemStack minerPiece(ItemStack item, int diamondDefense) {
+    private ItemStack minerPiece(ItemStack item, int diamondDefense, String namePt, String nameEn) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(Color.GRAY);
@@ -157,9 +172,43 @@ public final class MinerVariantService implements Listener {
         meta.setUnbreakable(true);
         ArmorDefenseService.forceDefense(meta, diamondDefense);
         this.tiers.forceTier(meta, ItemTier.A);
+        meta.displayName(Component.text(namePt, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(DESCRIPTION_PT, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
         item.setItemMeta(meta);
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
         return item;
+    }
+
+    /**
+     * Re-localizes a dropped Miner's Armor piece's name/description (Portuguese by
+     * default - see {@link #minerPiece}'s own doc) to {@code l}, once a real player
+     * actually loots one - same drop-time language resolution {@code CombatListener
+     * #rollMinerLegendaryDrop} already does for the Undead's Sword via {@code
+     * Language.of(killer)}, since spawn time never has a real player/language to read.
+     * A no-op for {@link Language#PT} (nothing to change) or an item this class never
+     * tagged (not one of its own pieces).
+     */
+    public static void localizeDrop(ItemStack piece, Language l) {
+        if (l == Language.PT || piece == null || piece.isEmpty()) {
+            return;
+        }
+        ItemMeta meta = piece.getItemMeta();
+        if (meta == null || !meta.getPersistentDataContainer().has(PIECE_NAME_EN_KEY, PersistentDataType.STRING)) {
+            return;
+        }
+        String nameEn = meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING);
+        meta.displayName(Component.text(nameEn, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        if (lore.isEmpty()) {
+            lore.add(Component.text(DESCRIPTION_EN, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        } else {
+            lore.set(0, Component.text(DESCRIPTION_EN, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        }
+        meta.lore(lore);
+        piece.setItemMeta(meta);
     }
 
     /** A custom player head worn as the Miner's own helmet in place of a plain Diamond Helmet - same {@code PlayerProfile}/{@code ProfileProperty} texture-setting shape every custom menu icon in this plugin already uses (see {@code SkillsMenuService#customHead}), just equipped instead of shown in a menu. */
