@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,6 +17,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
@@ -157,24 +159,37 @@ public final class EnchantService {
      * entries whose {@link IcarusEnchant#canApplyTo} accepts this item's material.
      * Empty for a null/empty item - the Enchanting Table screen shows nothing in its
      * catalog until an item is placed.
+     *
+     * <p>The Miner's Armor helmet is worn (and functions) as a real helmet, but it's
+     * cosmetically a {@code PLAYER_HEAD} - neither vanilla's own {@code
+     * canEnchantItem} nor {@link IcarusEnchant#canApplyTo}'s Material-suffix check
+     * would ever recognize it as one, so every helmet-only entry (Respiration,
+     * Growth, Protection...) would otherwise be missing from its own table. Both
+     * checks below run against a stand-in Diamond Helmet instead, only for this one
+     * specific item ({@link ArmorDefenseService#isMinerPiece} - the other three
+     * Miner's Armor pieces are real {@code *_CHESTPLATE}/{@code *_LEGGINGS}/{@code
+     * *_BOOTS} materials already and need no such swap).
      */
     public List<EnchantEntry> compatibleEntries(ItemStack item, boolean pt) {
         List<EnchantEntry> result = new ArrayList<>();
         if (item == null || item.isEmpty()) {
             return result;
         }
-        boolean hoe = item.getType().name().endsWith("_HOE");
+        boolean minerHelmet = item.getType() == Material.PLAYER_HEAD && ArmorDefenseService.isMinerPiece(item);
+        ItemStack vanillaTestItem = minerHelmet ? new ItemStack(Material.DIAMOND_HELMET) : item;
+        Material customTestType = minerHelmet ? Material.DIAMOND_HELMET : item.getType();
+        boolean hoe = customTestType.name().endsWith("_HOE");
         ItemMeta meta = item.getItemMeta();
         boolean alreadyUnbreakable = meta != null && meta.isUnbreakable();
         for (EnchantEntry e : this.allEntries(pt)) {
             if (e instanceof VanillaEnchantEntry v) {
                 boolean excludedHoe = hoe && HOE_EXCLUDED_VANILLA_KEYS.contains(v.enchantment().getKey().getKey());
                 boolean excludedUnbreaking = alreadyUnbreakable && v.enchantment().getKey().getKey().equals("unbreaking");
-                if (v.enchantment().canEnchantItem(item) && !excludedHoe && !excludedUnbreaking) {
+                if (v.enchantment().canEnchantItem(vanillaTestItem) && !excludedHoe && !excludedUnbreaking) {
                     result.add(e);
                 }
             } else if (e instanceof CustomEnchantEntry c) {
-                if (c.enchant().canApplyTo(item.getType())) {
+                if (c.enchant().canApplyTo(customTestType)) {
                     result.add(e);
                 }
             }

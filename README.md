@@ -160,7 +160,11 @@ cada tick, não uma tag permanente — sair da camada negativa tira o bônus at�
 Toda peça é
 `Unbreakable`, e por já ser inquebrável o encantamento Unbreaking nunca aparece como
 opção na Mesa de Encantamento pra ela (nem pra qualquer outro item já inquebrável do
-plugin). Além da armadura, tem um piso garantido de 300 HP / 180 de dano por golpe
+plugin). O capacete (a cabeça customizada) é reconhecido como um capacete de verdade
+na Mesa de Encantamento — mesmo sendo tecnicamente uma `PLAYER_HEAD` por baixo,
+`EnchantService#compatibleEntries` testa contra um Capacete de Diamante genérico só
+pra essa peça, então Respiração/Proteção/Crescimento etc. aparecem normalmente nela.
+Além da armadura, tem um piso garantido de 300 HP / 180 de dano por golpe
 (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
 Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Cada variante tem sua
 própria entrada na Bestiary (`zombie_miner`/`skeleton_miner`, separada da entrada do

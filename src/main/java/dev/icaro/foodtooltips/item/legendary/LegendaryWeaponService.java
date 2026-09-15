@@ -97,9 +97,9 @@ public final class LegendaryWeaponService {
     private static final Set<EntityType> UNDEAD_TYPES = Set.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
             EntityType.DROWNED, EntityType.SKELETON, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.ZOMBIFIED_PIGLIN,
             EntityType.PHANTOM, EntityType.ZOGLIN, EntityType.WITHER);
-    /** Same "colored icon + category name" styling {@code IcarusEnchant}'s own Cubic/Ender/Aquatic mob-category labels use (see its CUBIC_COLOR/ENDER_COLOR/AQUATIC_COLOR) - Undead's own standard color and icon. */
-    private static final NamedTextColor UNDEAD_COLOR = NamedTextColor.GREEN;
-    private static final String UNDEAD_ICON = "☠";
+    /** Same icon+color Smite's own real vanilla description already uses for "Undead" (see {@code VanillaEnchantEntry}'s own UNDEAD_COLOR/tokens("smite")), reused here so both read as the same category label. */
+    private static final NamedTextColor UNDEAD_COLOR = NamedTextColor.DARK_GREEN;
+    private static final String UNDEAD_ICON = "༕";
 
     /** Kasaka's Venom Fang's Paralyze and Bleed always proc together, off one shared roll - not two independent ones. */
     private static final int PROC_CHANCE = 30;
