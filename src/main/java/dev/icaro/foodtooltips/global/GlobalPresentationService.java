@@ -86,22 +86,35 @@ implements Listener {
     }
 
     private void syncTeam(Player viewer, Player subject, Component prefix, TextColor nameColor) {
-        String id;
+        String id = this.teamId(subject);
         Scoreboard board = viewer.getScoreboard();
-        Team team = board.getTeam(id = this.teamId(subject));
+        // Team#color only takes a legacy NamedTextColor, not an arbitrary RGB TextColor -
+        // nearestTo maps this theme's real color to the closest one of those 16 so the
+        // floating nametag above the player's head matches the tab list/chat as closely
+        // as vanilla's own API allows.
+        NamedTextColor resolved = NamedTextColor.nearestTo(nameColor);
+        Team team = board.getTeam(id);
+        if (team != null && team.color() != resolved) {
+            // Bedrock (via Geyser) only ever reads a team's color at the moment a player
+            // is (re)added to it - a later color-only update on the SAME team (what
+            // Team#color alone would send here) reaches real Java clients fine but never
+            // reaches Bedrock ones until they relog (a known Geyser limitation - it
+            // caches the color from the team's own creation/add-player packets, not from
+            // a plain "update team info" one). Recreating the team from scratch instead,
+            // whenever the color actually needs to change, forces a fresh "team created"
+            // sync that Geyser does pick up live.
+            team.unregister();
+            team = null;
+        }
         if (team == null) {
             team = board.registerNewTeam(id);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+            team.color(resolved);
         }
         if (!team.hasEntry(subject.getName())) {
             team.addEntry(subject.getName());
         }
         team.prefix(prefix);
-        // Team#color only takes a legacy NamedTextColor, not an arbitrary RGB TextColor -
-        // nearestTo maps this theme's real color to the closest one of those 16 so the
-        // floating nametag above the player's head matches the tab list/chat as closely
-        // as vanilla's own API allows.
-        team.color(NamedTextColor.nearestTo(nameColor));
     }
 
     private void clearTeam(Player subject) {
