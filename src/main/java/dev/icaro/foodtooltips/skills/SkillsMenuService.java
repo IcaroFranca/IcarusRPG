@@ -682,8 +682,8 @@ public final class SkillsMenuService {
 
     // ---- General skills' own StatInfo ----
     private static final StatInfo FORTUNE_INFO = new StatInfo(
-            "Aumenta a quantidade de itens que você recebe ao coletar (minério, colheita ou madeira/recursos, dependendo da skill).",
-            "Increases the amount of items you get when gathering (ore, crops, or wood/resources, depending on the skill).",
+            "Cada ponto é 1% de chance de dropar o dobro do item coletado (minério, colheita ou madeira/recursos, dependendo da skill). A cada 100 pontos completos essa cópia extra vira garantida e o excedente passa a ser a chance da PRÓXIMA cópia (ex.: 120 de Fortune = dobro garantido + 20% de chance de sair o triplo).",
+            "Each point is a 1% chance to drop double the gathered item (ore, crops, or wood/resources, depending on the skill). Every full 100 points makes that extra copy guaranteed and the remainder becomes the chance of the NEXT copy (e.g. 120 Fortune = guaranteed double + a 20% chance of tripling it).",
             "Sobe automaticamente com o nível dessa skill.",
             "Increases automatically with that skill's level.");
     private static final StatInfo SKILL_DEFENSE_INFO = new StatInfo(
