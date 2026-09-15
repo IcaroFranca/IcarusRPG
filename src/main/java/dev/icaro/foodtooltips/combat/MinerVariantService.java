@@ -135,10 +135,11 @@ public final class MinerVariantService implements Listener {
             return;
         }
         String headTexture = type == EntityType.ZOMBIE ? HeadTexture.ZOMBIE_MINER : HeadTexture.SKELETON_MINER;
-        eq.setHelmet(this.minerPiece(this.customHead(headTexture), 15, "Capacete do Minerador", "Miner's Helmet"));
-        eq.setChestplate(this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40, "Peitoral do Minerador", "Miner's Chestplate"));
-        eq.setLeggings(this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30, "Calça do Minerador", "Miner's Leggings"));
-        eq.setBoots(this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15, "Bota do Minerador", "Miner's Boots"));
+        ItemStack[] set = this.fullSet(headTexture);
+        eq.setHelmet(set[0]);
+        eq.setChestplate(set[1]);
+        eq.setLeggings(set[2]);
+        eq.setBoots(set[3]);
         // Vanilla's own random equipment-drop chance is fully suppressed - CombatListener
         // #rollMinerArmorDrops rolls each piece's 1% independently instead, so it's the
         // only source of a dropped copy (no double-dropping, no odds outside its control).
@@ -146,6 +147,33 @@ public final class MinerVariantService implements Listener {
         eq.setChestplateDropChance(0.0f);
         eq.setLeggingsDropChance(0.0f);
         eq.setBootsDropChance(0.0f);
+    }
+
+    /** Helmet/chestplate/leggings/boots, in that order, freshly built (Portuguese by default - see {@link #minerPiece}'s own doc) - shared by {@link #equip} and {@link #createArmorSet}, since both need the exact same 4 pieces, just for a mob's own equipment slots versus a standalone gift. */
+    private ItemStack[] fullSet(String headTexture) {
+        return new ItemStack[]{
+                this.minerPiece(this.customHead(headTexture), 15, "Capacete do Minerador", "Miner's Helmet"),
+                this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40, "Peitoral do Minerador", "Miner's Chestplate"),
+                this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30, "Calça do Minerador", "Miner's Leggings"),
+                this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15, "Bota do Minerador", "Miner's Boots")};
+    }
+
+    /**
+     * A fresh, standalone Miner's Armor set (helmet/chestplate/leggings/boots), already
+     * in {@code l} - for the {@code /rpgitems} admin menu ({@code
+     * LegendaryItemsMenuService}), independent of any mob ever existing. The exact same
+     * items (same stats, doubled-Defense-underground bonus, Tier A, Protection V,
+     * Unbreakable) a Zombie Miner itself wears and can drop - always the Zombie Miner's
+     * own helmet texture, since the two variants' armor is otherwise identical and the
+     * menu only has room for one tile.
+     */
+    public List<ItemStack> createArmorSet(Language l) {
+        List<ItemStack> set = new ArrayList<>();
+        for (ItemStack piece : this.fullSet(HeadTexture.ZOMBIE_MINER)) {
+            localize(piece, l);
+            set.add(piece);
+        }
+        return set;
     }
 
     /**

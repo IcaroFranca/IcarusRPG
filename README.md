@@ -182,7 +182,9 @@ bota rolados separadamente — de nenhuma a todas as quatro no mesmo abate), sem
 **Tier A**, já com a Defesa base de Diamante, Proteção V e Unbreakable de quem a
 estava usando (a Defesa dobrada volta a valer normalmente pro jogador que a vestir,
 enquanto estiver na camada negativa); o drop de equipamento aleatório do vanilla é
-totalmente desativado pra esses dois mobs, então essa é a única fonte.
+totalmente desativado pra esses dois mobs, então esse drop é a única fonte
+independente do `/rpgitems` — que também dá um set completo (4 peças) garantido, sem
+depender da sorte do drop.
 
 **Defesa por peça de armadura:**
 
@@ -267,6 +269,11 @@ Toda Adaga tem -1 de alcance e dobra o dano por trás; Espada Longa e Undead's S
 não têm gimmick de posicionamento. Todas são `Unbreakable`, ganham brilho se Tier S,
 e mostram Ataque/Velocidade de Ataque real na tooltip (a de Velocidade se atualiza
 com o Nível de Combate de quem segura).
+
+O menu tem também um slot separado (topo, fora das linhas de armas) que dá o set
+completo de **Miner's Armor** (4 peças) de uma vez, no idioma de quem clicou — as
+mesmas peças que um Zombie/Skeleton Miner veste e pode dropar (ver seção acima), só
+que garantidas em vez de depender do 1% de chance por peça.
 
 ## Encantamentos
 
