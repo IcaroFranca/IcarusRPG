@@ -91,6 +91,11 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
 - **Skills gerais** (Mineração, Agricultura, Pesca, Coleta, Encantamento, Alquimia):
   cada uma dá Fortune e/ou um bônus de atributo por nível (Vida, Strength,
   Inteligência ou Defesa, dependendo da skill) — ver `/skills` → skill individual.
+  Fortune (Mineração/Agricultura/Coleta) funciona em pontos percentuais: cada ponto é
+  1% de chance de dropar o dobro do item coletado; a cada 100 pontos completos essa
+  cópia extra vira garantida e o excedente passa a ser a chance da PRÓXIMA cópia (120
+  de Fortune = dobro garantido + 20% de chance de sair o triplo, 250 de Fortune =
+  triplo garantido + 50% de chance de sair o quádruplo, e assim por diante).
   Todas as skills (Combate incluído) compartilham a mesma curva de XP por nível
   (`SkillXpCurve`): tabela explícita para os níveis 1-30, fixa em 1.000.000 de XP a
   partir do 31. A barra de progresso (boss bar) de cada skill tem uma cor própria:
