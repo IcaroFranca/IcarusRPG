@@ -314,7 +314,7 @@ public final class CombatListener implements Listener {
             // extra hit itself roll more extra hits.
             if (!(target instanceof Player)) {
                 this.visuals.track(target);
-                this.visuals.damageNumber(target, e.getFinalDamage(), false);
+                this.visuals.queueDamageNumber(e, target, false);
             }
             return;
         }
@@ -380,7 +380,7 @@ public final class CombatListener implements Listener {
         this.legendary.onHit(p, target, weapon);
         if (!playerTarget) {
             this.visuals.track(target);
-            this.visuals.damageNumber(target, e.getFinalDamage(), critical);
+            this.visuals.queueDamageNumber(e, target, critical);
         }
         int extraHits = CombatTreeMath.extraHits(this.stats.stats(p).ferocity(), ThreadLocalRandom.current().nextDouble(100.0));
         Bukkit.getScheduler().runTask(this.plugin, () -> {
@@ -395,11 +395,12 @@ public final class CombatListener implements Listener {
                     // that used to bypass Defense (ArmorDefenseListener only reacts to a
                     // genuine EntityDamageEvent) and Second Wind entirely, so a tanky
                     // target took full, unmitigated damage from every extra Ferocity hit
-                    // regardless of its actual Defense stat.
+                    // regardless of its actual Defense stat. This also means the ability-
+                    // damage-in-flight branch above already queues (and, by the time this
+                    // call returns, resolves) this hit's own floating number from the
+                    // nested event's real getFinalDamage() - showing extraDamage here too
+                    // would just duplicate it with the pre-mitigation theoretical value.
                     this.abilities.dealAbilityDamage(p, target, extraDamage);
-                    if (!playerTarget) {
-                        this.visuals.damageNumber(target, extraDamage, false);
-                    }
                     this.visuals.ferocityHit(p, target);
                 }
             }

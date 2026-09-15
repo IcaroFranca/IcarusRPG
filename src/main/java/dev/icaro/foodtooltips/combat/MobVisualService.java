@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,10 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.WaterMob;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Transformation;
@@ -40,7 +45,7 @@ import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-public final class MobVisualService {
+public final class MobVisualService implements Listener {
     private static final String TAG = "foodtooltips_mob_label";
     /** Same keys {@code MobDifficultyService} writes at spawn - independently constructed here rather than threaded through the constructor, the same "same literal NamespacedKey, two classes" convention this plugin already uses elsewhere (e.g. {@code ResetStatsCommand}'s namespace wipe). */
     private static final NamespacedKey BONUS_MAX_HP_KEY = new NamespacedKey("foodtooltips", "mob_bonus_max_hp");
@@ -50,9 +55,14 @@ public final class MobVisualService {
     private final Map<UUID, TextDisplay> labels = new HashMap<UUID, TextDisplay>();
     private final Map<UUID, Long> renderState = new HashMap<UUID, Long>();
     private final Map<UUID, Set<UUID>> shownTo = new HashMap<UUID, Set<UUID>>();
-    /** Mobs with a per-viewer localized name (see {@link #setLocalizedName}) - one TextDisplay passenger per language, only one of which is shown to each viewer. Suppresses the generic translated-species name in {@link #update}. */
+    /** Mobs with a per-viewer localized name (see {@link #setLocalizedName}) - one TextDisplay passenger per language, only one of which is shown to each viewer. Suppresses the generic translated-species name in {@link #update}, which also folds the health line into whichever of these is shown (see that method's own doc) instead of leaving it on the separate {@link #labels} passenger. */
     private final Map<UUID, TextDisplay> namePt = new HashMap<UUID, TextDisplay>();
     private final Map<UUID, TextDisplay> nameEn = new HashMap<UUID, TextDisplay>();
+    /** The raw name strings behind {@link #namePt}/{@link #nameEn} - {@link #update} needs these every time health changes to rebuild each display's combined name+health text (see that method's own doc on why the two are folded together). */
+    private final Map<UUID, String> localizedPt = new HashMap<UUID, String>();
+    private final Map<UUID, String> localizedEn = new HashMap<UUID, String>();
+    /** See {@link #queueDamageNumber}/{@link #resolveDamageNumber} - keyed by the exact event instance (identity, not equals/hashCode) since Bukkit hands every priority tier the same object for one dispatch. */
+    private final Map<EntityDamageEvent, PendingNumber> pendingNumbers = new IdentityHashMap<EntityDamageEvent, PendingNumber>();
     private final Random random = new Random();
     private final float labelRange;
     private final float damageRange;
@@ -107,6 +117,8 @@ public final class MobVisualService {
         if (!this.labels.containsKey(id) || this.namePt.containsKey(id)) {
             return;
         }
+        this.localizedPt.put(id, pt);
+        this.localizedEn.put(id, en);
         this.namePt.put(id, this.spawnNameDisplay(entity, pt));
         this.nameEn.put(id, this.spawnNameDisplay(entity, en));
         this.update(entity);
@@ -168,6 +180,8 @@ public final class MobVisualService {
                 if (en != null && en.isValid()) {
                     en.remove();
                 }
+                this.localizedPt.remove(id);
+                this.localizedEn.remove(id);
                 continue;
             }
             if (!living.getPassengers().contains(d)) {
@@ -249,23 +263,48 @@ public final class MobVisualService {
     }
 
     public void update(LivingEntity e) {
-        TextDisplay d = this.labels.get(e.getUniqueId());
+        UUID id = e.getUniqueId();
+        TextDisplay d = this.labels.get(id);
         if (d == null) {
             return;
         }
+        boolean localized = this.namePt.containsKey(id);
         double max = this.effectiveMaxHealth(e);
-        boolean showName = !(e instanceof Player) && e.customName() == null && !this.namePt.containsKey(e.getUniqueId());
+        boolean showName = !(e instanceof Player) && e.customName() == null && !localized;
         long hp = Math.max(0L, Math.round(this.effectiveHealth(e)));
         long maxHp = Math.round(max);
         long key = (hp * 100000L + maxHp) * 2L + (long)(showName ? 1 : 0);
-        Long last = this.renderState.get(e.getUniqueId());
+        Long last = this.renderState.get(id);
         if (last != null && last == key) {
             return;
         }
-        this.renderState.put(e.getUniqueId(), key);
+        this.renderState.put(id, key);
         TextComponent prefix = e instanceof Enemy ? Component.text((String)("[Lv" + this.level(e) + "] "), (TextColor)NamedTextColor.GRAY) : Component.empty();
+        Component hpLine = Component.text((String)(hp + "/" + maxHp), (TextColor)NamedTextColor.GREEN).append((Component)Component.text((String)"\u2764", (TextColor)NamedTextColor.RED));
+        if (localized) {
+            // Two SEPARATE passengers here (this one name-only, the other health-only)
+            // stack fine on Java, but Geyser doesn't reliably translate a text display
+            // passenger's own Y offset once more than one is stacked (a known upstream
+            // limitation) - Bedrock players saw them rendered on top of each other
+            // instead. Folding both lines into whichever of namePt/nameEn is actually
+            // shown to each viewer (see #tick) means there's only ever one non-empty
+            // passenger visible at a time; this entity stays (emptied) since #tick's
+            // own iteration is keyed off it for tracking/reattachment/distance culling.
+            d.text(Component.empty());
+            TextDisplay pt = this.namePt.get(id);
+            String namePt = this.localizedPt.get(id);
+            if (pt != null && namePt != null) {
+                pt.text(prefix.append((Component)Component.text((String)namePt, (TextColor)NamedTextColor.RED)).append((Component)Component.text((String)"\n")).append(hpLine));
+            }
+            TextDisplay en = this.nameEn.get(id);
+            String nameEn = this.localizedEn.get(id);
+            if (en != null && nameEn != null) {
+                en.text(prefix.append((Component)Component.text((String)nameEn, (TextColor)NamedTextColor.RED)).append((Component)Component.text((String)"\n")).append(hpLine));
+            }
+            return;
+        }
         Component named = showName ? Component.translatable(e.getType().translationKey()).color(NamedTextColor.RED).append(Component.space()) : Component.empty();
-        d.text(prefix.append((Component)named).append((Component)Component.text((String)(hp + "/" + maxHp), (TextColor)NamedTextColor.GREEN)).append((Component)Component.text((String)"\u2764", (TextColor)NamedTextColor.RED)));
+        d.text(prefix.append((Component)named).append(hpLine));
     }
 
     public void damageNumber(LivingEntity e, double damage, boolean critical) {
@@ -276,6 +315,45 @@ public final class MobVisualService {
     /** Same floating number as {@link #damageNumber(LivingEntity, double, boolean)}, but in a fixed {@code color} instead of the melee red/rainbow-crit styling - see {@code ElementalDamageListener}. */
     public void damageNumber(LivingEntity e, double damage, TextColor color) {
         this.spawnDamageNumber(e, Component.text((String)this.number(damage), color));
+    }
+
+    /**
+     * Queues a melee-styled floating number for {@code target}, resolved once {@code e}
+     * finishes its own dispatch entirely (see {@link #resolveDamageNumber}) - a handler
+     * calling this at, say, {@link EventPriority#HIGH} (where {@code CombatListener}'s
+     * own melee formula runs) still reads a {@code getFinalDamage()} that hasn't been
+     * through {@code ArmorDefenseListener}'s Defense mitigation yet ({@link
+     * EventPriority#HIGHEST}), so the number it would show is the pre-mitigation
+     * theoretical damage, not what the target's health bar actually drops by - exactly
+     * the divergence reported against Miners and other Defense-carrying mobs. Deferring
+     * to {@link EventPriority#MONITOR} (guaranteed to run dead last) means every other
+     * plugin's own damage modifier - present or future - has already applied by the
+     * time the number is built.
+     */
+    public void queueDamageNumber(EntityDamageEvent e, LivingEntity target, boolean critical) {
+        this.pendingNumbers.put(e, new PendingNumber(target, null, critical));
+    }
+
+    /** Same deferred-to-{@link EventPriority#MONITOR} idea as {@link #queueDamageNumber(EntityDamageEvent, LivingEntity, boolean)}, for a fixed-color number instead of melee red/rainbow-crit - see {@code ElementalDamageListener}. */
+    public void queueDamageNumber(EntityDamageEvent e, LivingEntity target, TextColor color) {
+        this.pendingNumbers.put(e, new PendingNumber(target, color, false));
+    }
+
+    /** Fires last (see the two {@code queueDamageNumber} overloads' own doc) for every {@code EntityDamageEvent} this tick, whether or not anything actually queued a number for it - the lookup is a no-op the vast majority of the time, but still has to run unconditionally (not {@code ignoreCancelled}) so a request queued for an event some other plugin cancels later doesn't leak forever in {@link #pendingNumbers}. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void resolveDamageNumber(EntityDamageEvent e) {
+        PendingNumber pending = this.pendingNumbers.remove(e);
+        if (pending == null || e.isCancelled()) {
+            return;
+        }
+        if (pending.color() != null) {
+            this.damageNumber(pending.target(), e.getFinalDamage(), pending.color());
+        } else {
+            this.damageNumber(pending.target(), e.getFinalDamage(), pending.critical());
+        }
+    }
+
+    private record PendingNumber(LivingEntity target, TextColor color, boolean critical) {
     }
 
     private void spawnDamageNumber(LivingEntity e, Component text) {
