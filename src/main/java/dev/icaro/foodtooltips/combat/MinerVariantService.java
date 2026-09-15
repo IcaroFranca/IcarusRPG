@@ -9,6 +9,7 @@ import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -42,10 +43,13 @@ import org.bukkit.plugin.Plugin;
  * HeadTexture#SKELETON_MINER}) in the helmet slot, and gray-dyed leather chestplate/
  * leggings/boots elsewhere - cosmetically cheap gear, but every piece's Defense is
  * forced to Diamond's own per-piece numbers ({@code ArmorDefenseService#forceDefense})
- * regardless of its real Material, then doubled on top (base and the Protection
- * enchant bonus both - see {@code ArmorDefenseService#defenseMultiplier}, wired from
- * {@code FoodTooltipsPlugin} to check {@link #VARIANT_KEY}) - every piece is also
- * enchanted with this plugin's own Protection V ({@code +4}/level/piece on top, see
+ * regardless of its real Material. Whoever wears at least one piece - the Miner mob
+ * itself, or a player who looted one - gets both that base Defense and the Protection
+ * enchant bonus doubled while standing at or below {@code miner-variants.below-y} (see
+ * {@link #minerArmorBonusActive}, wired into {@code ArmorDefenseService#defenseMultiplier}
+ * from {@code FoodTooltipsPlugin}) - a live position check, not a permanent tag, so the
+ * bonus comes and goes with "camadas negativas" per the user's own spec. Every piece is
+ * also enchanted with this plugin's own Protection V ({@code +4}/level/piece on top, see
  * {@code ArmorEnchantEffectListener#protectionDefenseBonus}, not gated on material so
  * it still contributes even worn on the head) and unbreakable. Its own guaranteed
  * minimum ({@code miner-variants.min-health}/{@code min-damage}, 300/180 by default)
@@ -67,9 +71,9 @@ public final class MinerVariantService implements Listener {
     public static final NamespacedKey VARIANT_KEY = new NamespacedKey("foodtooltips", "miner_variant");
     /** Holds a piece's English name (see {@link #minerPiece}) so {@link #localizeDrop} can re-localize it once a real player - and their real language - is known, same idea as {@code CombatListener#rollMinerLegendaryDrop}'s own drop-time {@code Language.of(killer)} for the Undead's Sword. */
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
-    /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localizeDrop}. */
-    private static final String DESCRIPTION_PT = "Armadura usada pelos Mineradores - Defesa equivalente a Diamante, encantada com Proteção V e inquebrável.";
-    private static final String DESCRIPTION_EN = "Armor worn by Miners - Diamond-equivalent Defense, enchanted with Protection V, and unbreakable.";
+    /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localizeDrop}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
+    private static final String DESCRIPTION_PT = "Defesa equivalente a Diamante, encantada com Proteção V e inquebrável. Abaixo da camada Y0 (camadas negativas), dobra sua Defesa total - incluindo o bônus de encantamentos como Proteção.";
+    private static final String DESCRIPTION_EN = "Diamond-equivalent Defense, enchanted with Protection V, and unbreakable. Below Y0 (the negative layers), doubles your total Defense - enchantment bonuses like Protection included.";
 
     private final Plugin plugin;
     private final EnchantService enchants;
@@ -153,12 +157,9 @@ public final class MinerVariantService implements Listener {
      * once a real player loots one). Neither the forced Defense nor the Protection
      * enchant is gated on the item's own material (see {@code
      * ArmorEnchantEffectListener#armorLevel}), so both apply to the custom head
-     * helmet too, not just the leather pieces - and {@code ArmorDefenseService}'s own
-     * defenseMultiplier callback doubles both on top for any mob tagged {@link
-     * #VARIANT_KEY}, per the user's own request (that doubling is a Miner-mob-only
-     * effect, not something the item itself carries - see this class's own doc - so
-     * {@link #DESCRIPTION_PT}/{@link #DESCRIPTION_EN} describe what the piece actually
-     * grants once a player wears it instead). Also pinned to Tier A ({@code
+     * helmet too, not just the leather pieces - and {@link #minerArmorBonusActive}
+     * doubles both on top of whoever wears it (see this class's own doc, and {@link
+     * #DESCRIPTION_PT}/{@link #DESCRIPTION_EN} which state it). Also pinned to Tier A ({@code
      * ItemTierService#forceTier}, same override idea as {@code
      * ArmorDefenseService#forceDefense}) - matters once {@code CombatListener
      * #rollMinerArmorDrops} hands a copy to a player, since a plain dyed-leather piece
@@ -174,9 +175,7 @@ public final class MinerVariantService implements Listener {
         this.tiers.forceTier(meta, ItemTier.A);
         meta.displayName(Component.text(namePt, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(DESCRIPTION_PT, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        meta.lore(lore);
+        meta.lore(wrappedDescription(DESCRIPTION_PT));
         item.setItemMeta(meta);
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
         return item;
@@ -201,14 +200,47 @@ public final class MinerVariantService implements Listener {
         }
         String nameEn = meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING);
         meta.displayName(Component.text(nameEn, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-        if (lore.isEmpty()) {
-            lore.add(Component.text(DESCRIPTION_EN, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        } else {
-            lore.set(0, Component.text(DESCRIPTION_EN, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        }
-        meta.lore(lore);
+        // Wholesale replace, not a line-by-line patch - at drop time the lore only ever
+        // holds exactly this description block (see #minerPiece), nothing else has
+        // touched it yet, and PT/EN don't necessarily wrap to the same number of lines.
+        meta.lore(wrappedDescription(DESCRIPTION_EN));
         piece.setItemMeta(meta);
+    }
+
+    /** {@code text} word-wrapped into gray, non-italic lore lines - see {@link LoreWrap#wrapText}. */
+    private static List<Component> wrappedDescription(String text) {
+        List<Component> lore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(text, LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(Component.text(part, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        }
+        return lore;
+    }
+
+    /** Whether {@code e} has at least one Miner's Armor piece equipped - see {@code ArmorDefenseService#isMinerPiece}. */
+    private static boolean wearingAnyPiece(LivingEntity e) {
+        EntityEquipment eq = e.getEquipment();
+        if (eq == null) {
+            return false;
+        }
+        return ArmorDefenseService.isMinerPiece(eq.getHelmet()) || ArmorDefenseService.isMinerPiece(eq.getChestplate())
+                || ArmorDefenseService.isMinerPiece(eq.getLeggings()) || ArmorDefenseService.isMinerPiece(eq.getBoots());
+    }
+
+    /**
+     * Whether {@code e} - the Zombie/Skeleton Miner itself, or a player who looted and
+     * wears its gear - currently gets Miner's Armor's doubled Defense: wearing at least
+     * one piece ({@link #wearingAnyPiece}) AND standing at or below {@link #belowY}
+     * ("camadas negativas", the same threshold a Zombie/Skeleton has to spawn below to
+     * become a Miner in the first place) - per the user's own spec, the doubling
+     * (base Defense and the Protection enchant bonus both, applied by {@code
+     * ArmorDefenseService#defenseMultiplier}, wired from {@code FoodTooltipsPlugin} to
+     * call this) only holds underground, not just from owning the item. A Miner mob
+     * that somehow ends up above that line (pushed by water, teleported...) loses the
+     * bonus too - it was never a permanent tag on the wearer, only a live position
+     * check.
+     */
+    public boolean minerArmorBonusActive(LivingEntity e) {
+        return e.getLocation().getY() < this.belowY && wearingAnyPiece(e);
     }
 
     /** A custom player head worn as the Miner's own helmet in place of a plain Diamond Helmet - same {@code PlayerProfile}/{@code ProfileProperty} texture-setting shape every custom menu icon in this plugin already uses (see {@code SkillsMenuService#customHead}), just equipped instead of shown in a menu. */
