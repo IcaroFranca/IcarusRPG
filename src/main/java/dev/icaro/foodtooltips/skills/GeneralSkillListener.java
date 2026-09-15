@@ -282,7 +282,8 @@ implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void drops(BlockDropItemEvent e) {
-        ItemStack tool = e.getPlayer().getInventory().getItemInMainHand();
+        Player p = e.getPlayer();
+        ItemStack tool = p.getInventory().getItemInMainHand();
         boolean smeltingTouch = this.enchants.customLevel(tool, IcarusEnchant.SMELTING_TOUCH) > 0;
         if (smeltingTouch) {
             // Turns every dropped item into its own furnace-smelted form (when one
@@ -299,59 +300,64 @@ implements Listener {
                 }
             }
         }
+        // Telekinesis (block drops): applies to ANY block break with drops - dirt,
+        // wool, anything - not just a tracked Mining/Farming/Foraging target, matching
+        // what its own toggle name ("Telecinese: Drops de Blocos"/"Block Drops")
+        // already promised; the Fortune-copies pass right below is the one that stays
+        // scoped to a tracked target, since Fortune only ever makes sense for an
+        // actual resource block.
+        boolean telekinesis = this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_BLOCK_DROPS);
         Target t = this.targets.remove(this.key(e.getBlock().getLocation()));
-        if (t == null) {
-            return;
-        }
-        Material trackedDrop = t.drop;
-        if (smeltingTouch) {
-            Material smelted = SmeltingCatalog.smeltedForm(trackedDrop);
-            if (smelted != null) {
-                trackedDrop = smelted;
+        if (t != null) {
+            Material trackedDrop = t.drop;
+            if (smeltingTouch) {
+                Material smelted = SmeltingCatalog.smeltedForm(trackedDrop);
+                if (smelted != null) {
+                    trackedDrop = smelted;
+                }
             }
-        }
-        // The real vanilla Fortune enchant now feeds directly into the same "Mining
-        // Fortune" points pool the skill itself grants, matching its own catalog
-        // description (+10/level) - vanilla's own separate, unquantified ore-multiplier
-        // effect still applies underneath this on top (untouched), same relationship
-        // Sharpness/Smite/Bane of Arthropods have with their own real vanilla bonus.
-        // Harvesting adds its own 12.5/level on top of that, but only for Farming.
-        double enchantFortune = e.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.FORTUNE) * 10.0;
-        if (t.skill == SkillType.FARMING) {
-            enchantFortune += this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) * 12.5;
-        }
-        int fortune = this.skills.fortune(e.getPlayer(), t.skill) + (int) Math.round(enchantFortune);
-        int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
-        // Checked up front (not just below, right before the telekinesis sweep) so the
-        // Fortune-copies loop right below can route ITS OWN overflow (beyond one max
-        // stack) straight into the inventory too, instead of always spawning it as a
-        // real ground item that loop's own dropItemNaturally call used to leave behind
-        // - e.getItems() (what the sweep below reads) never included that overflow, so
-        // it never got swept and sat there fully visible even with Telekinesis on.
-        boolean telekinesis = t.skill == SkillType.MINING && this.global.telekinesisUnlocked(e.getPlayer()) && this.passives.enabled(e.getPlayer(), PassiveToggle.TELEKINESIS_BLOCK_DROPS);
-        for (Item entity : new ArrayList<>(e.getItems())) {
-            ItemStack base = entity.getItemStack();
-            if (base.getType() != trackedDrop) continue;
-            int extra = base.getAmount() * copies;
-            int max = base.getMaxStackSize();
-            int add = Math.min(extra, max - base.getAmount());
-            base.setAmount(base.getAmount() + add);
-            entity.setItemStack(base);
-            extra -= add;
-            while (extra > 0) {
-                ItemStack overflow = base.clone();
-                overflow.setAmount(Math.min(max, extra));
-                extra -= overflow.getAmount();
-                if (telekinesis) {
-                    this.give(e.getPlayer(), overflow);
-                } else {
-                    e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
+            // The real vanilla Fortune enchant now feeds directly into the same "Mining
+            // Fortune" points pool the skill itself grants, matching its own catalog
+            // description (+10/level) - vanilla's own separate, unquantified ore-multiplier
+            // effect still applies underneath this on top (untouched), same relationship
+            // Sharpness/Smite/Bane of Arthropods have with their own real vanilla bonus.
+            // Harvesting adds its own 12.5/level on top of that, but only for Farming.
+            double enchantFortune = tool.getEnchantmentLevel(Enchantment.FORTUNE) * 10.0;
+            if (t.skill == SkillType.FARMING) {
+                enchantFortune += this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) * 12.5;
+            }
+            int fortune = this.skills.fortune(p, t.skill) + (int) Math.round(enchantFortune);
+            int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
+            // Checked up front (not just below, right before the telekinesis sweep) so the
+            // Fortune-copies loop right below can route ITS OWN overflow (beyond one max
+            // stack) straight into the inventory too, instead of always spawning it as a
+            // real ground item that loop's own dropItemNaturally call used to leave behind
+            // - e.getItems() (what the sweep below reads) never included that overflow, so
+            // it never got swept and sat there fully visible even with Telekinesis on.
+            for (Item entity : new ArrayList<>(e.getItems())) {
+                ItemStack base = entity.getItemStack();
+                if (base.getType() != trackedDrop) continue;
+                int extra = base.getAmount() * copies;
+                int max = base.getMaxStackSize();
+                int add = Math.min(extra, max - base.getAmount());
+                base.setAmount(base.getAmount() + add);
+                entity.setItemStack(base);
+                extra -= add;
+                while (extra > 0) {
+                    ItemStack overflow = base.clone();
+                    overflow.setAmount(Math.min(max, extra));
+                    extra -= overflow.getAmount();
+                    if (telekinesis) {
+                        this.give(p, overflow);
+                    } else {
+                        e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
+                    }
                 }
             }
         }
         if (telekinesis) {
             for (Item item : new ArrayList<>(e.getItems())) {
-                this.give(e.getPlayer(), item.getItemStack());
+                this.give(p, item.getItemStack());
                 item.remove();
             }
         }
