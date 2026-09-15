@@ -72,8 +72,8 @@ public final class MinerVariantService implements Listener {
     /** Holds a piece's English name (see {@link #minerPiece}) so {@link #localizeDrop} can re-localize it once a real player - and their real language - is known, same idea as {@code CombatListener#rollMinerLegendaryDrop}'s own drop-time {@code Language.of(killer)} for the Undead's Sword. */
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
     /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localizeDrop}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
-    private static final String DESCRIPTION_PT = "Defesa equivalente a Diamante, encantada com Proteção V e inquebrável. Abaixo da camada Y0 (camadas negativas), dobra sua Defesa total - incluindo o bônus de encantamentos como Proteção.";
-    private static final String DESCRIPTION_EN = "Diamond-equivalent Defense, enchanted with Protection V, and unbreakable. Below Y0 (the negative layers), doubles your total Defense - enchantment bonuses like Protection included.";
+    private static final String DESCRIPTION_PT = "Dobra seus status de Defesa (encantamentos incluídos) nas camadas negativas.";
+    private static final String DESCRIPTION_EN = "Doubles your Defense stats (enchantments included) in the negative layers.";
 
     private final Plugin plugin;
     private final EnchantService enchants;
