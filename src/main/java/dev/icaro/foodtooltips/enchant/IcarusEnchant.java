@@ -99,11 +99,13 @@ public enum IcarusEnchant {
     DELICATE("Delicadeza", "Delicate", 1, Category.AXE_OR_HOE),
     HARVESTING("Colheita", "Harvesting", 5, Category.HOE),
     REPLENISH("Reabastecer", "Replenish", 1, Category.AXE_OR_HOE),
-    SMELTING_TOUCH("Toque Fundente", "Smelting Touch", 1, Category.PICKAXE_AXE_SHOVEL);
+    SMELTING_TOUCH("Toque Fundente", "Smelting Touch", 1, Category.PICKAXE_AXE_SHOVEL),
+    /** Pickaxe-only, brand new - not a leveled-up vanilla enchant, and not part of either family above. Lets a spawner be broken and picked up as an item that remembers its own mob type (vanilla never allows this, Silk Touch included) - see {@code SpawnerTouchListener}. */
+    SPAWNER_TOUCH("Toque de Spawner", "Spawner Touch", 1, Category.PICKAXE);
 
     /** An entry's item-type restriction - a single material for a held-item entry (a specific bow/rod), or a whole category otherwise, since one {@link Material} can't express "any sword"/"any armor piece". Kept as a nested enum (rather than e.g. a {@code Predicate<Material>} field) so the constant list above - which Java requires to come first in an enum body - never has to forward-reference a same-class static field. */
     private enum Category {
-        SINGLE, SWORD, ARMOR, BOOTS, HELMET, HOE, AXE_OR_HOE, PICKAXE_AXE_SHOVEL, SWORD_OR_PICKAXE
+        SINGLE, SWORD, ARMOR, BOOTS, HELMET, HOE, AXE_OR_HOE, PICKAXE_AXE_SHOVEL, SWORD_OR_PICKAXE, PICKAXE
     }
 
     /** Level 1's (duration seconds, damage % per second) pair; level 2's. Doesn't fit a "flat rate * level" formula, so it's a direct lookup instead. */
@@ -180,6 +182,7 @@ public enum IcarusEnchant {
             case HARVESTING -> 6;
             case REPLENISH -> 9;
             case SMELTING_TOUCH -> 12;
+            case SPAWNER_TOUCH -> 10;
             default -> 0;
         };
     }
@@ -197,6 +200,7 @@ public enum IcarusEnchant {
             case AXE_OR_HOE -> n.endsWith("_AXE") || n.endsWith("_HOE");
             case PICKAXE_AXE_SHOVEL -> n.endsWith("_PICKAXE") || n.endsWith("_AXE") || n.endsWith("_SHOVEL");
             case SWORD_OR_PICKAXE -> n.endsWith("_SWORD") || n.endsWith("_PICKAXE");
+            case PICKAXE -> n.endsWith("_PICKAXE");
         };
     }
 
@@ -218,6 +222,7 @@ public enum IcarusEnchant {
             case HARVESTING -> new int[]{10, 20, 30, 40, 50};
             case REPLENISH -> new int[]{20};
             case SMELTING_TOUCH -> new int[]{30};
+            case SPAWNER_TOUCH -> new int[]{50};
         };
         return costs[Math.max(1, Math.min(level, costs.length)) - 1];
     }
@@ -392,6 +397,9 @@ public enum IcarusEnchant {
             case SMELTING_TOUCH -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Blocos minerados dropam sua versão fundida em fornalha, como se tivessem sido esquentados. Não pode ser combinado com Toque de Seda."))
                     : List.of(EnchantText.Token.plain("Mined blocks drop their furnace-smelted form, as if they had been smelted. Cannot be combined with Silk Touch.")));
+            case SPAWNER_TOUCH -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Permite quebrar um spawner de mob e recolhê-lo como item. O mob que ele gera continua o mesmo ao recolocá-lo."))
+                    : List.of(EnchantText.Token.plain("Lets you break a mob spawner and pick it up as an item. The mob it spawns stays the same when you place it back down.")));
         };
     }
 

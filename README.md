@@ -316,11 +316,15 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   impede de quebrar plantações que ainda não cresceram totalmente e caules de abóbora/
   melancia), Harvesting (enxada, até nível 5 — +12,5 de Farming Fortune por nível),
   Replenish (machado e enxada — replanta automaticamente, usando materiais do
-  inventário, qualquer plantação quebrada, incluindo cacau e verruga do Nether) e
+  inventário, qualquer plantação quebrada, incluindo cacau e verruga do Nether),
   Smelting Touch (picareta, machado e pá — blocos minerados dropam sua versão
-  esquentada pela fornalha; não pode ser combinado com Toque de Seda). A desbloquear
-  na Mesa de Encantamento em níveis 3/6/9/12 da skill de Encantamento respectivamente
-  (Experience continua liberado desde o início, como sempre foi).
+  esquentada pela fornalha; não pode ser combinado com Toque de Seda) e Spawner Touch
+  (só picareta — permite quebrar um spawner de mob e recolhê-lo como item preservando
+  o mob que ele gera, algo que o vanilla nunca permite mesmo com Toque de Seda;
+  recolocar o item devolve o mesmo spawner funcionando igual). Delicate/Harvesting/
+  Replenish/Smelting Touch desbloqueiam nos níveis 3/6/9/12 da skill de Encantamento
+  respectivamente, Spawner Touch no nível 10 (custa 50 de XP) (Experience continua
+  liberado desde o início, como sempre foi).
 - **Fortune e Efficiency não aparecem como opção na Mesa de Encantamento para enxada**
   (continuam normais em picareta/machado/pá) — a Fortune vanilla é redundante com a
   Fortune de Agricultura já dada pela skill, e Efficiency não tem efeito relevante numa
