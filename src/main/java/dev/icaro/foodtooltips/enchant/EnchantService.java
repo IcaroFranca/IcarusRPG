@@ -175,9 +175,7 @@ public final class EnchantService {
         if (item == null || item.isEmpty()) {
             return result;
         }
-        boolean minerHelmet = item.getType() == Material.PLAYER_HEAD && ArmorDefenseService.isMinerPiece(item);
-        ItemStack vanillaTestItem = minerHelmet ? new ItemStack(Material.DIAMOND_HELMET) : item;
-        Material customTestType = minerHelmet ? Material.DIAMOND_HELMET : item.getType();
+        Material customTestType = effectiveType(item);
         boolean hoe = customTestType.name().endsWith("_HOE");
         ItemMeta meta = item.getItemMeta();
         boolean alreadyUnbreakable = meta != null && meta.isUnbreakable();
@@ -185,7 +183,7 @@ public final class EnchantService {
             if (e instanceof VanillaEnchantEntry v) {
                 boolean excludedHoe = hoe && HOE_EXCLUDED_VANILLA_KEYS.contains(v.enchantment().getKey().getKey());
                 boolean excludedUnbreaking = alreadyUnbreakable && v.enchantment().getKey().getKey().equals("unbreaking");
-                if (v.enchantment().canEnchantItem(vanillaTestItem) && !excludedHoe && !excludedUnbreaking) {
+                if (v.enchantment().canEnchantItem(effectiveVanillaTestItem(item)) && !excludedHoe && !excludedUnbreaking) {
                     result.add(e);
                 }
             } else if (e instanceof CustomEnchantEntry c) {
@@ -195,6 +193,28 @@ public final class EnchantService {
             }
         }
         return result;
+    }
+
+    /**
+     * {@code item}'s own Material, substituting a stand-in Diamond Helmet for the
+     * Miner's Armor helmet - a cosmetic {@code PLAYER_HEAD} that's worn (and
+     * functions) as a real helmet, but that neither vanilla's own {@code
+     * canEnchantItem} nor {@link IcarusEnchant#canApplyTo}'s Material-suffix check
+     * would ever recognize as one (see {@link #compatibleEntries}'s own doc). Shared
+     * by every enchant-compatibility check in this class ({@link #compatibleEntries},
+     * {@link #vanillaBlockReason}, {@link #customBlockReason}) so the catalog and the
+     * actual apply-time validation can never disagree about the same item - the other
+     * three Miner's Armor pieces are real {@code *_CHESTPLATE}/{@code *_LEGGINGS}/
+     * {@code *_BOOTS} materials already and need no such swap.
+     */
+    private static Material effectiveType(ItemStack item) {
+        return item.getType() == Material.PLAYER_HEAD && ArmorDefenseService.isMinerPiece(item) ? Material.DIAMOND_HELMET : item.getType();
+    }
+
+    /** Same substitution as {@link #effectiveType}, but as a full {@link ItemStack} for {@code Enchantment#canEnchantItem}, which needs a real item rather than just a {@link Material}. */
+    private static ItemStack effectiveVanillaTestItem(ItemStack item) {
+        Material type = effectiveType(item);
+        return type == item.getType() ? item : new ItemStack(type);
     }
 
     /** Every entry (custom or vanilla) currently on {@code item} with a level &gt; 0, custom entries first in {@link IcarusEnchant} declaration order, then vanilla ones. */
@@ -223,7 +243,7 @@ public final class EnchantService {
      * every other real vanilla conflict still applies.
      */
     public String vanillaBlockReason(ItemStack item, Enchantment enchantment, boolean pt) {
-        if (!enchantment.canEnchantItem(item)) {
+        if (!enchantment.canEnchantItem(effectiveVanillaTestItem(item))) {
             return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
         }
         boolean exempt = NON_EXCLUSIVE_DAMAGE_FAMILY.contains(enchantment.getKey().getKey());
@@ -248,7 +268,7 @@ public final class EnchantService {
 
     /** Why {@code enchant} can't go on {@code item} right now, or null if it's fine - the custom-entry counterpart to {@link #vanillaBlockReason}. */
     public String customBlockReason(ItemStack item, IcarusEnchant enchant, boolean pt) {
-        if (!enchant.canApplyTo(item.getType())) {
+        if (!enchant.canApplyTo(effectiveType(item))) {
             return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
         }
         if (enchant == IcarusEnchant.SMELTING_TOUCH && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0) {
