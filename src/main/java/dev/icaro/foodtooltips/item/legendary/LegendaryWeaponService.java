@@ -97,6 +97,9 @@ public final class LegendaryWeaponService {
     private static final Set<EntityType> UNDEAD_TYPES = Set.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
             EntityType.DROWNED, EntityType.SKELETON, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.ZOMBIFIED_PIGLIN,
             EntityType.PHANTOM, EntityType.ZOGLIN, EntityType.WITHER);
+    /** Same "colored icon + category name" styling {@code IcarusEnchant}'s own Cubic/Ender/Aquatic mob-category labels use (see its CUBIC_COLOR/ENDER_COLOR/AQUATIC_COLOR) - Undead's own standard color and icon. */
+    private static final NamedTextColor UNDEAD_COLOR = NamedTextColor.GREEN;
+    private static final String UNDEAD_ICON = "☠";
 
     /** Kasaka's Venom Fang's Paralyze and Bleed always proc together, off one shared roll - not two independent ones. */
     private static final int PROC_CHANCE = 30;
@@ -253,7 +256,8 @@ public final class LegendaryWeaponService {
             case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
             case DEMON_KING_DAGGERS, KAMISH_WRATH -> lines.add(this.strengthAbilityLine(w, pt, 0));
             case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
-            case UNDEAD_SWORD -> lines.add(this.line(pt ? "+100% de dano contra mortos-vivos" : "+100% damage vs undead", NamedTextColor.LIGHT_PURPLE));
+            case UNDEAD_SWORD -> lines.add(this.line(pt ? "+100% de dano contra " : "+100% damage vs ", NamedTextColor.LIGHT_PURPLE)
+                    .append(this.line(UNDEAD_ICON + (pt ? " Mortos-Vivos" : " Undead"), UNDEAD_COLOR)));
         }
         return lines;
     }
