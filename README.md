@@ -107,14 +107,19 @@ Os pacotes `shop` (loja/portais) e as mochilas extras (`BackpackService` e afins
   marcada, o clique só avisa que não há nenhuma.
 - **Habilidades Passivas** (`/skills`, slot 29): liga/desliga habilidades passivas
   individualmente — hoje só a Telecinese, separada em duas chaves independentes (drops
-  de mobs e drops de blocos minerados). Continua exigindo o nível de desbloqueio normal
+  de mobs e drops de blocos). Continua exigindo o nível de desbloqueio normal
   da Telecinese; a tela só aparece destrancada a partir dele, e por padrão as duas
   ficam ativadas (nada muda pra quem nunca abrir essa tela). O item vai direto pro
   inventário sem nunca chegar a aparecer caído no chão — incluindo as cópias extras
-  que a Mining Fortune gera além de uma stack cheia, que antes escapavam da Telecinese
-  e ficavam visíveis no chão. Os orbes de XP são a única exceção: uma vez a Telecinese
-  desbloqueada, XP de abate sempre vai direto pro jogador, independente do estado das
-  duas chaves acima (que só afetam item físico/bloco).
+  que a Mining/Farming/Foraging Fortune gera além de uma stack cheia, que antes
+  escapavam da Telecinese e ficavam visíveis no chão. Nenhuma das duas chaves depende
+  de arma/ferramenta específica (funciona até de mão vazia) nem do tipo de mob/bloco —
+  a de mobs vale pra qualquer abate, incluindo por arco e flecha; a de blocos vale pra
+  qualquer bloco quebrado, não só minério/tora/colheita rastreados (esses continuam
+  sendo os únicos que também recebem cópias extras de Fortune, já que Fortune só faz
+  sentido pra um recurso de verdade). Os orbes de XP são a única exceção completa: uma
+  vez a Telecinese desbloqueada, XP de abate sempre vai direto pro jogador,
+  independente do estado das duas chaves acima (que só afetam item físico/bloco).
 
 ## Vida, Defesa e Dano
 
