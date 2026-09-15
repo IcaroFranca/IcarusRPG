@@ -891,10 +891,13 @@ public final class CombatListener implements Listener {
         for (ItemStack piece : new ItemStack[]{eq.getHelmet(), eq.getChestplate(), eq.getLeggings(), eq.getBoots()}) {
             if (piece != null && !piece.isEmpty() && ThreadLocalRandom.current().nextDouble() < MINER_ARMOR_DROP_CHANCE) {
                 ItemStack drop = piece.clone();
-                // Same drop-time language resolution rollMinerLegendaryDrop already does
-                // for the Undead's Sword - the piece's name/description were built in
-                // Portuguese at spawn time (no real player to read a language from yet).
-                MinerVariantService.localizeDrop(drop, Language.of(killer));
+                // Best-effort immediate localization to the killer's current language -
+                // FoodTooltipsPlugin's own per-tick sweep (MinerVariantService
+                // #applyToInventory) re-checks this for whoever actually ends up holding
+                // it anyway, so a stale/wrong snapshot here (e.g. Player#locale() not
+                // yet settled right after joining) self-corrects within a tick instead
+                // of staying wrong forever.
+                MinerVariantService.localize(drop, Language.of(killer));
                 e.getDrops().add(drop);
             }
         }

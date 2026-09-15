@@ -16,6 +16,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -23,12 +24,14 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -69,9 +72,10 @@ import org.bukkit.plugin.Plugin;
 public final class MinerVariantService implements Listener {
     /** Tags a mob as a Zombie/Skeleton Miner - checked by {@code CombatListener}'s own kill-XP branch (a Miner's own {@code combat-xp}, not whatever its underlying Zombie/Skeleton Bestiary entry would normally award) since it's still the same real {@code EntityType} under the hood, not a distinct Bestiary entry of its own. */
     public static final NamespacedKey VARIANT_KEY = new NamespacedKey("foodtooltips", "miner_variant");
-    /** Holds a piece's English name (see {@link #minerPiece}) so {@link #localizeDrop} can re-localize it once a real player - and their real language - is known, same idea as {@code CombatListener#rollMinerLegendaryDrop}'s own drop-time {@code Language.of(killer)} for the Undead's Sword. */
+    /** Holds a piece's own name in each language (see {@link #minerPiece}) so {@link #localize} can render whichever one matches a given viewer's language - never derived from the item's own (mutable) display name, so switching back and forth is lossless no matter how many times it happens. */
+    private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_pt");
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
-    /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localizeDrop}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
+    /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localize}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
     private static final String DESCRIPTION_PT = "Dobra seus status de Defesa (encantamentos incluídos) nas camadas negativas.";
     private static final String DESCRIPTION_EN = "Doubles your Defense stats (enchantments included) in the negative layers.";
 
@@ -153,8 +157,9 @@ public final class MinerVariantService implements Listener {
      * custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code
      * IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese
      * name/description by default, same as everything else spawned without a player
-     * context to read a language preference from ({@link #localizeDrop} fixes this up
-     * once a real player loots one). Neither the forced Defense nor the Protection
+     * context to read a language preference from ({@link #localize}, called both at
+     * drop time and every tick thereafter via {@link #applyToInventory}, keeps this
+     * correct for whoever actually ends up holding it). Neither the forced Defense nor the Protection
      * enchant is gated on the item's own material (see {@code
      * ArmorEnchantEffectListener#armorLevel}), so both apply to the custom head
      * helmet too, not just the leather pieces - and {@link #minerArmorBonusActive}
@@ -173,8 +178,9 @@ public final class MinerVariantService implements Listener {
         meta.setUnbreakable(true);
         ArmorDefenseService.forceDefense(meta, diamondDefense);
         this.tiers.forceTier(meta, ItemTier.A);
-        meta.displayName(Component.text(namePt, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        meta.getPersistentDataContainer().set(PIECE_NAME_PT_KEY, PersistentDataType.STRING, namePt);
         meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
+        meta.displayName(Component.text(namePt, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         meta.lore(wrappedDescription(DESCRIPTION_PT));
         item.setItemMeta(meta);
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
@@ -182,29 +188,106 @@ public final class MinerVariantService implements Listener {
     }
 
     /**
-     * Re-localizes a dropped Miner's Armor piece's name/description (Portuguese by
-     * default - see {@link #minerPiece}'s own doc) to {@code l}, once a real player
-     * actually loots one - same drop-time language resolution {@code CombatListener
-     * #rollMinerLegendaryDrop} already does for the Undead's Sword via {@code
-     * Language.of(killer)}, since spawn time never has a real player/language to read.
-     * A no-op for {@link Language#PT} (nothing to change) or an item this class never
-     * tagged (not one of its own pieces).
+     * Renders {@code item}'s name/description in {@code l} if it's one of this class's
+     * own pieces, returning whether anything actually changed (same shape as {@code
+     * EnchantService#rebuildLore}/{@code ArmorDefenseService#tooltip}). Reads the PT/EN
+     * name pair straight from {@link #PIECE_NAME_PT_KEY}/{@link #PIECE_NAME_EN_KEY}
+     * rather than the item's own (already-set) display name, so this is safe to call
+     * repeatedly and in either direction - unlike a one-shot "PT by default, fix it up
+     * once at drop time" pass, which would stay wrong forever if that one snapshot of
+     * the killer's language (via {@code Player#locale()}) was itself stale (e.g. read
+     * right after they joined, before the client's real settings packet arrived) or the
+     * item later changes hands to a different-language player. {@code
+     * FoodTooltipsPlugin}'s own periodic inventory sweep calls {@link #applyToInventory}
+     * every tick for whoever's actually holding it, so a wrong snapshot self-corrects
+     * within a tick instead of needing a fix here at all.
      */
-    public static void localizeDrop(ItemStack piece, Language l) {
-        if (l == Language.PT || piece == null || piece.isEmpty()) {
-            return;
+    public static boolean localize(ItemStack item, Language l) {
+        if (item == null || item.isEmpty()) {
+            return false;
         }
-        ItemMeta meta = piece.getItemMeta();
-        if (meta == null || !meta.getPersistentDataContainer().has(PIECE_NAME_EN_KEY, PersistentDataType.STRING)) {
-            return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return false;
         }
-        String nameEn = meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING);
-        meta.displayName(Component.text(nameEn, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        // Wholesale replace, not a line-by-line patch - at drop time the lore only ever
-        // holds exactly this description block (see #minerPiece), nothing else has
-        // touched it yet, and PT/EN don't necessarily wrap to the same number of lines.
-        meta.lore(wrappedDescription(DESCRIPTION_EN));
-        piece.setItemMeta(meta);
+        String wantedName = meta.getPersistentDataContainer().get(l == Language.PT ? PIECE_NAME_PT_KEY : PIECE_NAME_EN_KEY, PersistentDataType.STRING);
+        if (wantedName == null) {
+            return false;
+        }
+        boolean changed = false;
+        // Compared as plain text, not a full Component - ItemTierService#applyTier
+        // recolors this same display name to the item's Tier color once it's picked up
+        // (keeping whatever text is already there), so comparing the whole styled
+        // Component would see a "mismatch" on color alone and rewrite a name that's
+        // already correct, undoing that recoloring every tick.
+        String currentNameText = meta.hasDisplayName() ? PlainTextComponentSerializer.plainText().serialize(meta.displayName()) : null;
+        if (!wantedName.equals(currentNameText)) {
+            meta.displayName(Component.text(wantedName, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+            changed = true;
+        }
+        // Surgical replace of just this block, wherever it currently sits - by the time
+        // a player holds this item, ArmorDefenseService/EnchantService/ItemTierService
+        // have already added their own Defense/Encantamentos/TIER lines around it (see
+        // FoodTooltipsPlugin's own per-tick sweep order), so overwriting the WHOLE lore
+        // here (like a naive "set it to just the description" pass would) destroys
+        // those - most permanently, since ArmorDefenseService's own "already applied"
+        // guard means it would never add its Defense line back.
+        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        List<Component> ptBlock = wrappedDescription(DESCRIPTION_PT);
+        List<Component> enBlock = wrappedDescription(DESCRIPTION_EN);
+        List<Component> wantedBlock = l == Language.PT ? ptBlock : enBlock;
+        int at = indexOfBlock(lore, ptBlock);
+        int size = ptBlock.size();
+        if (at < 0) {
+            at = indexOfBlock(lore, enBlock);
+            size = enBlock.size();
+        }
+        if (at >= 0 && !lore.subList(at, at + size).equals(wantedBlock)) {
+            lore.subList(at, at + size).clear();
+            lore.addAll(at, wantedBlock);
+            meta.lore(lore);
+            changed = true;
+        }
+        if (changed) {
+            item.setItemMeta(meta);
+        }
+        return changed;
+    }
+
+    /** The index of {@code block} as a contiguous run within {@code lore}, or -1 if it doesn't occur. */
+    private static int indexOfBlock(List<Component> lore, List<Component> block) {
+        outer:
+        for (int i = 0; i <= lore.size() - block.size(); i++) {
+            for (int j = 0; j < block.size(); j++) {
+                if (!lore.get(i + j).equals(block.get(j))) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
+
+    /** Same periodic "keep every held item's tooltip in the holder's own language" sweep {@code EnchantService#applyToInventory}/{@code ArmorDefenseService#applyDefenseTooltip}/{@code ItemTierService#applyItemTiers} already run - called from {@code FoodTooltipsPlugin}'s own per-tick loop. Storage and armor slots only - Miner's Armor is never held in the off hand. */
+    public void applyToInventory(Player p) {
+        Language l = Language.of(p);
+        PlayerInventory inv = p.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        boolean changed = false;
+        for (ItemStack item : storage) {
+            changed |= localize(item, l);
+        }
+        if (changed) {
+            inv.setStorageContents(storage);
+        }
+        ItemStack[] armor = inv.getArmorContents();
+        boolean armorChanged = false;
+        for (ItemStack item : armor) {
+            armorChanged |= localize(item, l);
+        }
+        if (armorChanged) {
+            inv.setArmorContents(armor);
+        }
     }
 
     /** {@code text} word-wrapped into gray, non-italic lore lines - see {@link LoreWrap#wrapText}. */
