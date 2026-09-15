@@ -2,9 +2,7 @@ package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -15,7 +13,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.entity.Enemy;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,7 +22,6 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -38,8 +34,10 @@ import org.bukkit.scheduler.BukkitTask;
  * they need to fold directly into that class's own outgoing-damage formula. This class
  * covers the rest: Life Steal, Vampirism, Thunderlord, Venomous (all triggered by a
  * genuine melee hit - {@code e.getDamager() instanceof Player}, which already excludes
- * arrows, same guard {@code CustomEnchantEffectListener#fireAspectHit} uses), Experience
- * (mob kills and ore breaks alike) and Luck (mob kills).
+ * arrows, same guard {@code CustomEnchantEffectListener#fireAspectHit} uses) and
+ * Experience (mob kills and ore breaks alike). Luck lives in {@code
+ * CombatListener#rollEquipmentDrops} instead, alongside real vanilla Looting, since
+ * both now scale the same per-slot equipped-gear drop-chance formula.
  */
 public final class MeleeEnchantEffectListener implements Listener {
     /** Thunderlord fires on every 3rd qualifying hit against the SAME target - see {@link #thunderlord}. */
@@ -274,47 +272,9 @@ public final class MeleeEnchantEffectListener implements Listener {
         e.setExpToDrop(e.getExpToDrop() * 2);
     }
 
-    /**
-     * Luck: a percentage chance (5%/level) for a hostile kill to also drop one extra
-     * copy of a piece of armor the mob was actually wearing (its helmet, chestplate,
-     * leggings or boots, exactly as equipped - enchants/durability/material and all,
-     * chosen at random if it has more than one piece on) - never a generated-from-
-     * nothing piece, and no bonus drop at all for a mob wearing no armor.
-     */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void luck(EntityDeathEvent e) {
-        if (!(e.getEntity() instanceof Enemy)) {
-            return;
-        }
-        Player p = e.getEntity().getKiller();
-        if (p == null) {
-            return;
-        }
-        int level = this.enchants.customLevel(p.getInventory().getItemInMainHand(), IcarusEnchant.LUCK);
-        if (level <= 0 || ThreadLocalRandom.current().nextDouble() >= level * 0.05) {
-            return;
-        }
-        List<ItemStack> worn = this.equippedArmor(e.getEntity());
-        if (worn.isEmpty()) {
-            return;
-        }
-        e.getDrops().add(worn.get(ThreadLocalRandom.current().nextInt(worn.size())).clone());
-    }
-
-    /** Every non-empty armor piece {@code entity} currently has equipped (helmet/chestplate/leggings/boots, in that order) - empty if it has no equipment at all or none of the four slots are filled. */
-    private List<ItemStack> equippedArmor(LivingEntity entity) {
-        EntityEquipment eq = entity.getEquipment();
-        if (eq == null) {
-            return List.of();
-        }
-        List<ItemStack> pieces = new ArrayList<>(4);
-        for (ItemStack piece : new ItemStack[]{eq.getHelmet(), eq.getChestplate(), eq.getLeggings(), eq.getBoots()}) {
-            if (piece != null && !piece.isEmpty()) {
-                pieces.add(piece);
-            }
-        }
-        return pieces;
-    }
+    // Luck moved to CombatListener#rollEquipmentDrops - it now scales every
+    // equipped slot's own drop chance (weapon included, not just armor) by the
+    // same Looting/Luck multiplier formula instead of a standalone bonus roll.
 
     @EventHandler
     public void quit(PlayerQuitEvent e) {

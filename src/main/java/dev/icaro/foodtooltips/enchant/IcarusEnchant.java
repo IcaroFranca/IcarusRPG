@@ -357,8 +357,8 @@ public enum IcarusEnchant {
             }
             case LUCK -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Aumenta em"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, true),
-                            EnchantText.Token.plain("a chance de mobs dropar uma peça de armadura."))
-                    : List.of(EnchantText.Token.plain("Increases the chance of mobs dropping an armor piece by"), EnchantText.Token.value(level, "%", l -> l * 5),
+                            EnchantText.Token.plain("a chance de mobs dropar sua arma e armadura equipadas."))
+                    : List.of(EnchantText.Token.plain("Increases the chance of mobs dropping their equipped weapon and armor by"), EnchantText.Token.value(level, "%", l -> l * 5),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
             case THUNDERLORD -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("A cada 3 acertos, cai um raio no alvo causando"), EnchantText.Token.value(level, "%", l -> l * 8),

@@ -118,8 +118,12 @@ public final class CombatListener implements Listener {
     private static final int LETHALITY_MAX_STACKS = 4;
     /** See {@link #rollMinerLegendaryDrop}. */
     private static final double UNDEAD_SWORD_DROP_CHANCE = 0.025;
-    /** See {@link #rollMinerArmorDrops}. */
+    /** See {@link #rollEquipmentDrops}. */
     private static final double MINER_ARMOR_DROP_CHANCE = 0.01;
+    /** Real vanilla Looting's own multiplier - see {@link #rollEquipmentDrops}. */
+    private static final double LOOTING_DROP_MULTIPLIER = 0.15;
+    /** The plugin's own Luck multiplier - see {@link #rollEquipmentDrops}. */
+    private static final double LUCK_DROP_MULTIPLIER = 0.05;
 
     private final Plugin plugin;
     private final CombatSkillService combat;
@@ -601,7 +605,7 @@ public final class CombatListener implements Listener {
             }
         });
         this.rollMinerLegendaryDrop(e, p);
-        this.rollMinerArmorDrops(e, p);
+        this.rollEquipmentDrops(e, p);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
         // kill for valor/XP.
@@ -869,38 +873,64 @@ public final class CombatListener implements Listener {
     }
 
     /**
-     * Either kind of Miner (Zombie or Skeleton) has an independent {@value
-     * #MINER_ARMOR_DROP_CHANCE} chance per equipped Miner's Armor piece (helmet,
-     * chestplate, leggings, boots - each rolled separately, so anywhere from none to
-     * all four can drop off the same kill) of dropping a real copy of that piece -
-     * vanilla's own random equipment-drop chance is zeroed for all four in {@code
-     * MinerVariantService#equip} specifically so this is the only source, at exactly
-     * these odds. Each drop is the mob's actual equipped {@link ItemStack} cloned, so
-     * it already carries the forced Diamond-equivalent Defense, Tier A, Protection V,
-     * and Unbreakable that {@code MinerVariantService#minerPiece} set up.
+     * Looting and Luck both scale a hostile mob's equipped gear the same way:
+     * {@code Chance Final = Chance Base * (1 + lootingLevel * 0.15) * (1 + luckLevel
+     * * 0.05)}, rolled independently for every piece the mob actually has on
+     * (mainhand weapon and all four armor slots) - not armor-only, and not a single
+     * random-pick bonus roll like Luck used to be before this. "Chance Base" is
+     * whatever vanilla itself already assigned that slot ({@link
+     * EntityEquipment#getHelmetDropChance()} and friends - 8.5% by default for a
+     * naturally-spawned piece, higher if the mob picked the item up from a player),
+     * except for a Miner's Armor piece, whose vanilla chance is permanently zeroed
+     * by {@code MinerVariantService#equip} - {@link #MINER_ARMOR_DROP_CHANCE} stands
+     * in for it there instead, same odds as before this rework.
+     *
+     * <p>Vanilla already resolved its own roll for this slot (using its own,
+     * uncontrolled Looting bonus) into {@link EntityDeathEvent#getDrops()} by the
+     * time this fires, so any copy of the equipped item vanilla already added is
+     * stripped back out first - this method's own roll is meant to be the sole
+     * source of that item dropping, not stacked on top of vanilla's.
      */
-    private void rollMinerArmorDrops(EntityDeathEvent e, Player killer) {
-        LivingEntity mob = e.getEntity();
-        if (!mob.getPersistentDataContainer().has(MinerVariantService.VARIANT_KEY, PersistentDataType.BYTE)) {
+    private void rollEquipmentDrops(EntityDeathEvent e, Player killer) {
+        if (!(e.getEntity() instanceof Enemy)) {
             return;
         }
-        EntityEquipment eq = mob.getEquipment();
+        EntityEquipment eq = e.getEntity().getEquipment();
         if (eq == null) {
             return;
         }
-        for (ItemStack piece : new ItemStack[]{eq.getHelmet(), eq.getChestplate(), eq.getLeggings(), eq.getBoots()}) {
-            if (piece != null && !piece.isEmpty() && ThreadLocalRandom.current().nextDouble() < MINER_ARMOR_DROP_CHANCE) {
-                ItemStack drop = piece.clone();
-                // Best-effort immediate localization to the killer's current language -
-                // FoodTooltipsPlugin's own per-tick sweep (MinerVariantService
-                // #applyToInventory) re-checks this for whoever actually ends up holding
-                // it anyway, so a stale/wrong snapshot here (e.g. Player#locale() not
-                // yet settled right after joining) self-corrects within a tick instead
-                // of staying wrong forever.
-                MinerVariantService.localize(drop, Language.of(killer));
-                e.getDrops().add(drop);
-            }
+        ItemStack weapon = killer.getInventory().getItemInMainHand();
+        double lootingMultiplier = 1.0 + weapon.getEnchantmentLevel(Enchantment.LOOTING) * LOOTING_DROP_MULTIPLIER;
+        double luckMultiplier = 1.0 + this.enchants.customLevel(weapon, IcarusEnchant.LUCK) * LUCK_DROP_MULTIPLIER;
+        this.rollEquipmentSlot(e, killer, eq.getItemInMainHand(), eq.getItemInMainHandDropChance(), lootingMultiplier, luckMultiplier);
+        this.rollEquipmentSlot(e, killer, eq.getHelmet(), eq.getHelmetDropChance(), lootingMultiplier, luckMultiplier);
+        this.rollEquipmentSlot(e, killer, eq.getChestplate(), eq.getChestplateDropChance(), lootingMultiplier, luckMultiplier);
+        this.rollEquipmentSlot(e, killer, eq.getLeggings(), eq.getLeggingsDropChance(), lootingMultiplier, luckMultiplier);
+        this.rollEquipmentSlot(e, killer, eq.getBoots(), eq.getBootsDropChance(), lootingMultiplier, luckMultiplier);
+    }
+
+    private void rollEquipmentSlot(EntityDeathEvent e, Player killer, ItemStack item, float vanillaDropChance, double lootingMultiplier, double luckMultiplier) {
+        if (item == null || item.isEmpty()) {
+            return;
         }
+        e.getDrops().removeIf(drop -> drop.isSimilar(item));
+        boolean minerPiece = ArmorDefenseService.isMinerPiece(item);
+        double baseChance = minerPiece ? MINER_ARMOR_DROP_CHANCE : Math.min(vanillaDropChance, 1.0);
+        double chance = Math.min(1.0, baseChance * lootingMultiplier * luckMultiplier);
+        if (ThreadLocalRandom.current().nextDouble() >= chance) {
+            return;
+        }
+        ItemStack drop = item.clone();
+        if (minerPiece) {
+            // Best-effort immediate localization to the killer's current language -
+            // FoodTooltipsPlugin's own per-tick sweep (MinerVariantService
+            // #applyToInventory) re-checks this for whoever actually ends up holding
+            // it anyway, so a stale/wrong snapshot here (e.g. Player#locale() not
+            // yet settled right after joining) self-corrects within a tick instead
+            // of staying wrong forever.
+            MinerVariantService.localize(drop, Language.of(killer));
+        }
+        e.getDrops().add(drop);
     }
 
     private void applyLootBonus(Player p, EntityDeathEvent e, BestiaryEntry entry) {
