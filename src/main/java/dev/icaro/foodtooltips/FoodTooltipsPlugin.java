@@ -349,6 +349,7 @@ extends JavaPlugin {
             customEnchants.applyBowDamageTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
             enchants.applyToInventory((Player)p);
+            minerVariants.applyToInventory((Player)p);
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
