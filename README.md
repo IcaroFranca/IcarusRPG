@@ -182,8 +182,9 @@ Zumbi/Esqueleto comum), sujeito aos mesmos bônus que qualquer outro mob (ex.: o
 encantamento Experience ainda pode dobrar). O **Zombie Miner** ainda tem **2,5% de
 chance de dropar a Espada dos Mortos-Vivos** — a primeira forma de conseguir essa
 arma lendária sem ser pelo `/rpgitems` (admin-only). Cada peça da própria Miner's
-Armor também tem **1% de chance independente de dropar** (capacete, peitoral, calça e
-bota rolados separadamente — de nenhuma a todas as quatro no mesmo abate), sempre no
+Armor também tem **1% de chance base independente de dropar** (capacete, peitoral,
+calça e bota rolados separadamente — de nenhuma a todas as quatro no mesmo abate),
+escalada pela mesma fórmula de Looting/Luck (ver seção de Encantamentos), sempre no
 **Tier A**, já com a Defesa base de Diamante, Proteção V e Unbreakable de quem a
 estava usando (a Defesa dobrada volta a valer normalmente pro jogador que a vestir,
 enquanto estiver na camada negativa); o drop de equipamento aleatório do vanilla é
@@ -327,6 +328,16 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   descrição corrigida pra bater com o efeito de verdade, e ganharam efeito real quando
   a descrição prometia algo que não existia (ex.: Efficiency agora aplica um bônus
   real de velocidade de mineração; Fortune agora soma na Mining Fortune de verdade).
+- **Looting e Luck** controlam a chance de um mob hostil dropar sua arma e cada peça
+  de armadura equipada com a mesma fórmula multiplicativa: `Chance Final = Chance
+  Base × (1 + Looting × 0,15) × (1 + Luck × 0,05)`, rolada separadamente pra cada
+  peça (arma na mão + capacete/peitoral/calça/bota), então de 0 a 5 itens podem
+  dropar da mesma morte. "Chance Base" é a chance de drop que o próprio mob já tinha
+  pra aquela peça (8,5% padrão do vanilla pra um mob que nasceu com o item, ou mais
+  se ele pegou de um jogador) — exceto peças da Armadura de Minerador, que usam sua
+  própria chance base fixa em vez da do vanilla (que fica zerada por design). O drop
+  nativo do vanilla pra essas peças é substituído por esse cálculo, então Looting e
+  Luck são as únicas fontes reais de chance extra.
 - **Família de encantamentos corpo a corpo** (apenas espadas): Critical (+dano crítico), Cubism/Ender Slayer/Impaling
   (+dano contra mobs Cúbicos ⚂, do Fim ⊙ e Aquáticos ⚓ respectivamente — cada um com
   sua própria lista de `EntityType`), Execute (+dano por % de vida faltando no alvo),
@@ -337,7 +348,8 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   máxima por acerto), Vampirism (cura % da vida faltante ao matar), Thunderlord (raio
   a cada 3 acertos), Venomous (lentidão + dano contínuo empilhável por acerto),
   Experience (chance de dobrar orbes de XP de mobs ou minérios, também aplicável à
-  picareta) e Luck (chance de mobs dropar uma peça de armadura extra).
+  picareta) e Luck (aumenta a chance de mobs dropar sua arma e armadura equipadas —
+  ver fórmula de Looting/Luck acima).
 - **Família de encantamentos de agricultura/mineração**: Delicate (machado e enxada —
   impede de quebrar plantações que ainda não cresceram totalmente e caules de abóbora/
   melancia), Harvesting (enxada, até nível 5 — +12,5 de Farming Fortune por nível),
