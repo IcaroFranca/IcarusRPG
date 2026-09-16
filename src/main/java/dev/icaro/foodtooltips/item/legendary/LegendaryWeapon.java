@@ -17,10 +17,9 @@ import org.bukkit.Material;
  * here, {@link LegendaryWeaponService#create} builds each weapon's short ability line
  * directly from a switch so it stays exactly as terse as every other item's lore.
  *
- * <p>Every {@link WeaponType#DAGGER} here also gets the universal -1 Swing Range
- * penalty and the backstab damage double, except {@link #KAMISH_WRATH} - its "alter
- * your weight however you please" flavor is implemented as a flat exemption from the
- * range penalty (see {@link LegendaryWeaponService#create}).
+ * <p>Every {@link WeaponType#DAGGER} here also gets the universal backstab damage
+ * double, at the same Swing Range as a plain sword (see {@link
+ * LegendaryWeaponService#create}).
  */
 public enum LegendaryWeapon {
     KASAKA_VENOM_FANG(WeaponType.DAGGER, ItemTier.C, Material.IRON_SWORD, 25.0, 0, "Presa de Veneno de Kasaka", "Kasaka's Venom Fang"),

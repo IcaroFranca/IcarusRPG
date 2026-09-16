@@ -642,8 +642,8 @@ public final class SkillsMenuService {
     private static final StatInfo SWING_RANGE_INFO = new StatInfo(
             "Alcance (em blocos) pra acertar golpes corpo a corpo.",
             "Reach (in blocks) for landing melee hits.",
-            "Base fixa (config); desbloquear a habilidade Arremesso de Espada (árvore de Combate) soma um bônus. Algumas Adagas Lendárias têm um -1 fixo próprio.",
-            "Fixed base (config); unlocking the Sword Throw ability (combat tree) adds a bonus. Some Legendary Daggers carry their own fixed -1 penalty.");
+            "Base fixa (config); desbloquear a habilidade Arremesso de Espada (árvore de Combate) soma um bônus. Espadas Longas Lendárias têm um +2 fixo próprio.",
+            "Fixed base (config); unlocking the Sword Throw ability (combat tree) adds a bonus. Legendary Longswords carry their own fixed +2 bonus.");
     private static final StatInfo INTELLIGENCE_INFO = new StatInfo(
             "Soma direto na sua Mana máxima e escala o dano de habilidades mágicas.",
             "Adds directly to your max Mana and scales magic-damage abilities.",

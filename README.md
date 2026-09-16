@@ -271,13 +271,17 @@ fixa em vez do multiplicador padrão.
 | Adaga de Baruka | Adaga | A | +110 | +50 Agilidade (+50% Velocidade, vale nas duas mãos) |
 | Adagas do Rei Demônio | Adaga | S | +220 | Two as One: +0,5 dano/Strength |
 | Espada Longa do Rei Demônio | Espada Longa | S | +350 | +2 alcance; Storm of White Flames (F, 40 Mana, 30s) |
-| Fúria de Kamish | Adaga | S | 1500 + 1/Strength | Sem penalidade de alcance |
+| Fúria de Kamish | Adaga | S | 1500 + 1/Strength | — |
 | Undead's Sword | Espada | C | +30 | +100% dano vs. mortos-vivos |
 
-Toda Adaga tem -1 de alcance e dobra o dano por trás; Espada Longa e Undead's Sword
-não têm gimmick de posicionamento. Todas são `Unbreakable`, ganham brilho se Tier S,
-e mostram Ataque/Velocidade de Ataque real na tooltip (a de Velocidade se atualiza
-com o Nível de Combate de quem segura).
+Toda Adaga dobra o dano por trás, no mesmo alcance de ataque de uma espada comum
+(sem penalidade); Espada Longa tem +2 de alcance; Undead's Sword não tem gimmick de
+posicionamento. Todas são `Unbreakable` (exceto a Undead's Sword, que tem durabilidade
+de verdade), ganham brilho se Tier S, e mostram Ataque/Velocidade de Ataque real na
+tooltip (a de Velocidade se atualiza com o Nível de Combate de quem segura). A
+Undead's Sword usa uma textura de item customizada própria do resource pack
+`IcarusTexture` (`icarus:undead_sword`, via componente `minecraft:item_model`) — sem
+o pack instalado, aparece com o ícone padrão de Espada de Ferro.
 
 O menu tem também um slot separado (topo, fora das linhas de armas) que dá o set
 completo de **Miner's Armor** (4 peças) de uma vez, no idioma de quem clicou — as
@@ -437,12 +441,14 @@ em updates são mescladas automaticamente num `config.yml` já existente no serv
   (`placeholder`), expondo `%icarusrpg_globallevel%` (Nível Global do jogador) pra
   outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
 - **[IcarusTexture](https://github.com/IcaroFranca/IcarusTexture)** (resource pack,
-  obrigatório neste servidor via `server.properties`) — não é uma dependência do
-  IcarusRPG hoje: o Miner's Helmet chegou a usar uma textura própria do pack
-  (`icarus:heads/miner_helmet`) por uma versão, mas isso quebrava por completo a
-  renderização do capacete equipado no Bedrock (via Geyser) - nada aparecia na cabeça,
-  não só uma textura errada. `MinerVariantService#retextureDroppedHelmet` voltou a usar
-  só uma cabeça Base64 normal (`HeadTexture#MINER_HELMET_DROP`), o mesmo mecanismo já
-  usado por todo o resto das cabeças customizadas do plugin (Zombie/Skeleton Miner
-  equipados, ícones de menu) e comprovadamente funcional nas duas plataformas via
-  `GeyserSkullExport`.
+  obrigatório neste servidor via `server.properties`) — usado hoje só pela Undead's
+  Sword (`icarus:undead_sword`, via componente `minecraft:item_model` em
+  `LegendaryWeaponService#create`); sem o pack instalado, o cliente só vê o ícone
+  padrão de Espada de Ferro por baixo, sem quebrar nada. O Miner's Helmet chegou a
+  usar uma textura própria do pack (`icarus:heads/miner_helmet`) por uma versão, mas
+  isso quebrava por completo a renderização do capacete equipado no Bedrock (via
+  Geyser) - nada aparecia na cabeça, não só uma textura errada.
+  `MinerVariantService#retextureDroppedHelmet` voltou a usar só uma cabeça Base64
+  normal (`HeadTexture#MINER_HELMET_DROP`), o mesmo mecanismo já usado por todo o
+  resto das cabeças customizadas do plugin (Zombie/Skeleton Miner equipados, ícones
+  de menu) e comprovadamente funcional nas duas plataformas via `GeyserSkullExport`.
