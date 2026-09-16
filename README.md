@@ -438,11 +438,14 @@ em updates são mescladas automaticamente num `config.yml` já existente no serv
   outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
 - **[IcarusTexture](https://github.com/IcaroFranca/IcarusTexture)** (resource pack,
   obrigatório neste servidor) — o Miner's Helmet (a versão que vira item de verdade,
-  dropada ou dada pelo `/rpgitems`) usa a textura própria do pack
-  (`icarus:heads/miner_helmet`, via `MinerVariantService#retextureDroppedHelmet`) em
-  vez de uma cabeça Base64 do minecraft-heads.com — sem o pack instalado no cliente,
-  esse item específico aparece sem a textura customizada. A obrigatoriedade em si é
-  configurada no servidor (`server.properties`: `require-resource-pack=true` +
-  `resource-pack`/`resource-pack-sha1`), não pelo IcarusRPG; o resto do plugin (cabeças
-  de menu, Zombie/Skeleton Miner equipados etc.) continua usando as texturas Base64
-  próprias, sem depender do pack.
+  dropada ou dada pelo `/rpgitems`) carrega DUAS texturas ao mesmo tempo
+  (`MinerVariantService#retextureDroppedHelmet`): a textura própria do pack
+  (`icarus:heads/miner_helmet`) por cima, e uma cabeça Base64 normal
+  (`HeadTexture#MINER_HELMET_DROP`) por baixo. Cliente Java com o pack instalado vê a
+  primeira; qualquer outro caso — Java sem o pack, ou Bedrock via Geyser, que só
+  enxerga a propriedade Base64 real de um `GameProfile` e não tem acesso nenhum a
+  resource pack Java — cai pra segunda, então ninguém fica vendo cabeça em branco. A
+  obrigatoriedade do pack em si é configurada no servidor (`server.properties`:
+  `require-resource-pack=true` + `resource-pack`/`resource-pack-sha1`), não pelo
+  IcarusRPG; o resto do plugin (cabeças de menu, Zombie/Skeleton Miner equipados etc.)
+  continua usando só texturas Base64, sem depender do pack.

@@ -362,18 +362,27 @@ public final class MinerVariantService implements Listener {
 
     /**
      * Re-skins a real Miner's Helmet item (a drop, or one of {@link #createArmorSet}'s
-     * own pieces) with the resource-pack texture {@code icarus:heads/miner_helmet}
-     * instead of whichever mob-worn Base64 texture it was cloned from. The mob itself
-     * (in {@link #equip}) always keeps wearing {@link HeadTexture#ZOMBIE_MINER}/{@link
-     * HeadTexture#SKELETON_MINER}; only the standalone item a player can actually hold
-     * gets the transparent texture. A no-op for anything that isn't a player head (the
-     * other three pieces), so callers can run this unconditionally over a whole set.
+     * own pieces) instead of whichever mob-worn Base64 texture it was cloned from. The
+     * mob itself (in {@link #equip}) always keeps wearing {@link HeadTexture#ZOMBIE_MINER}/
+     * {@link HeadTexture#SKELETON_MINER}; only the standalone item a player can actually
+     * hold looks different, and it carries TWO textures at once: a real {@code
+     * GameProfile} "textures" property ({@link HeadTexture#MINER_HELMET_DROP}, a normal
+     * Base64 skin) plus the resource-pack skin patch {@code icarus:heads/miner_helmet}
+     * on top. A Java client with the IcarusTexture pack installed renders the patch
+     * (nicer); everyone else - Java without the pack, and Bedrock via Geyser (whose own
+     * "custom skulls" system only ever matches a real Base64 property, never a
+     * resource-pack-only patch it has no way to see - see {@code GeyserSkullExport}) -
+     * falls back to the Base64 skin instead of a blank default head. A no-op for
+     * anything that isn't a player head (the other three pieces), so callers can run
+     * this unconditionally over a whole set instead of picking out the helmet by hand.
      */
     public static void retextureDroppedHelmet(ItemStack item) {
         if (item == null || item.getType() != Material.PLAYER_HEAD) {
             return;
         }
         item.setData(DataComponentTypes.PROFILE, ResolvableProfile.resolvableProfile()
+                .uuid(UUID.randomUUID())
+                .addProperty(new ProfileProperty("textures", HeadTexture.MINER_HELMET_DROP))
                 .skinPatch(patch -> patch.body(MINER_HELMET_TEXTURE)));
     }
 

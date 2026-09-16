@@ -915,9 +915,7 @@ public final class EnchantMenuService {
 
     /** The Enchanting Table's own pagination heads (Netherite Arrow Up/Down) - distinct from {@link HeadTexture#ARROW_LEFT}/{@link HeadTexture#ARROW_RIGHT} used elsewhere in the plugin, per this screen's original spec. */
     private ItemStack head(HeadKind kind, String name) {
-        String texture = kind == HeadKind.SCROLL_UP
-                ? "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGMzMGM0YWI3ZDAwZmI1NWUzOWIxY2RkM2NiYzkzNDJiMTYyYzc2MTY2ZDIyNDk3MmRlZmJiZjllYzdmZmZhOCJ9fX0="
-                : "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmNmMTBiYzEwNDg3YmVhZDY2NGY2N2I0N2U4YjVhMTcwNTQyZGNjNTc5YTRjZjdjOTFjYjc1NWYwY2FiMWU3MyJ9fX0=";
+        String texture = kind == HeadKind.SCROLL_UP ? HeadTexture.SCROLL_UP : HeadTexture.SCROLL_DOWN;
         return this.customHead(texture, name, List.of());
     }
 
