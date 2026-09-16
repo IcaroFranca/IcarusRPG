@@ -190,7 +190,10 @@ estava usando (a Defesa dobrada volta a valer normalmente pro jogador que a vest
 enquanto estiver na camada negativa); o drop de equipamento aleatório do vanilla é
 totalmente desativado pra esses dois mobs, então esse drop é a única fonte
 independente do `/rpgitems` — que também dá um set completo (4 peças) garantido, sem
-depender da sorte do drop.
+depender da sorte do drop. O capacete que o mob usa equipado continua com a cabeça
+própria de cada variante (Zombie Miner/Skeleton Miner), mas tanto o que dropa quanto
+o dado pelo `/rpgitems` mostra uma cabeça "Miner's Helmet" dedicada em vez disso — só
+cosmético, o resto do item (Defesa, Tier, encantamentos) é idêntico.
 
 **Defesa por peça de armadura:**
 

@@ -171,6 +171,7 @@ public final class MinerVariantService implements Listener {
         List<ItemStack> set = new ArrayList<>();
         for (ItemStack piece : this.fullSet(HeadTexture.ZOMBIE_MINER)) {
             localize(piece, l);
+            retextureDroppedHelmet(piece);
             set.add(piece);
         }
         return set;
@@ -352,6 +353,33 @@ public final class MinerVariantService implements Listener {
      */
     public boolean minerArmorBonusActive(LivingEntity e) {
         return e.getLocation().getY() < this.belowY && wearingAnyPiece(e);
+    }
+
+    /**
+     * Re-skins a real Miner's Helmet item (a drop, or one of {@link #createArmorSet}'s
+     * own pieces) to {@link HeadTexture#MINER_HELMET_DROP} instead of whichever mob-worn
+     * texture it was cloned from - the mob itself (in {@link #equip}) always keeps
+     * wearing {@link HeadTexture#ZOMBIE_MINER}/{@link HeadTexture#SKELETON_MINER}; only
+     * the standalone item a player can actually hold looks different. A no-op for
+     * anything that isn't a player head (the other three pieces), so callers can run
+     * this unconditionally over a whole set instead of picking out the helmet by hand.
+     */
+    public static void retextureDroppedHelmet(ItemStack item) {
+        if (item == null || item.getType() != Material.PLAYER_HEAD) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (!(meta instanceof SkullMeta skull)) {
+            return;
+        }
+        try {
+            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new ProfileProperty("textures", HeadTexture.MINER_HELMET_DROP));
+            skull.setPlayerProfile(profile);
+            item.setItemMeta(skull);
+        } catch (Exception ignored) {
+            // Bad texture value: leave the mob-worn texture in place rather than failing the drop.
+        }
     }
 
     /** A custom player head worn as the Miner's own helmet in place of a plain Diamond Helmet - same {@code PlayerProfile}/{@code ProfileProperty} texture-setting shape every custom menu icon in this plugin already uses (see {@code SkillsMenuService#customHead}), just equipped instead of shown in a menu. */

@@ -929,6 +929,10 @@ public final class CombatListener implements Listener {
             // yet settled right after joining) self-corrects within a tick instead
             // of staying wrong forever.
             MinerVariantService.localize(drop, Language.of(killer));
+            // Cosmetic-only: the dropped copy shows the dedicated Miner's Helmet head
+            // instead of whatever texture the mob itself was wearing (Zombie/Skeleton
+            // Miner keep their own distinct look) - a no-op for the other three pieces.
+            MinerVariantService.retextureDroppedHelmet(drop);
         }
         e.getDrops().add(drop);
     }
