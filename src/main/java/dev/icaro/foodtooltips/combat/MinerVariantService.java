@@ -10,9 +10,12 @@ import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.util.LoreWrap;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -75,6 +78,8 @@ public final class MinerVariantService implements Listener {
     /** Holds a piece's own name in each language (see {@link #minerPiece}) so {@link #localize} can render whichever one matches a given viewer's language - never derived from the item's own (mutable) display name, so switching back and forth is lossless no matter how many times it happens. */
     private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_pt");
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
+    /** Resource-pack texture used by every standalone Miner's Helmet item. */
+    private static final Key MINER_HELMET_TEXTURE = Key.key("icarus", "heads/miner_helmet");
     /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localize}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
     private static final String DESCRIPTION_PT = "Dobra seus status de Defesa nas camadas negativas.";
     private static final String DESCRIPTION_EN = "Doubles your Defense stats in the negative layers.";
@@ -357,29 +362,19 @@ public final class MinerVariantService implements Listener {
 
     /**
      * Re-skins a real Miner's Helmet item (a drop, or one of {@link #createArmorSet}'s
-     * own pieces) to {@link HeadTexture#MINER_HELMET_DROP} instead of whichever mob-worn
-     * texture it was cloned from - the mob itself (in {@link #equip}) always keeps
-     * wearing {@link HeadTexture#ZOMBIE_MINER}/{@link HeadTexture#SKELETON_MINER}; only
-     * the standalone item a player can actually hold looks different. A no-op for
-     * anything that isn't a player head (the other three pieces), so callers can run
-     * this unconditionally over a whole set instead of picking out the helmet by hand.
+     * own pieces) with the resource-pack texture {@code icarus:heads/miner_helmet}
+     * instead of whichever mob-worn Base64 texture it was cloned from. The mob itself
+     * (in {@link #equip}) always keeps wearing {@link HeadTexture#ZOMBIE_MINER}/{@link
+     * HeadTexture#SKELETON_MINER}; only the standalone item a player can actually hold
+     * gets the transparent texture. A no-op for anything that isn't a player head (the
+     * other three pieces), so callers can run this unconditionally over a whole set.
      */
     public static void retextureDroppedHelmet(ItemStack item) {
         if (item == null || item.getType() != Material.PLAYER_HEAD) {
             return;
         }
-        ItemMeta meta = item.getItemMeta();
-        if (!(meta instanceof SkullMeta skull)) {
-            return;
-        }
-        try {
-            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
-            profile.setProperty(new ProfileProperty("textures", HeadTexture.MINER_HELMET_DROP));
-            skull.setPlayerProfile(profile);
-            item.setItemMeta(skull);
-        } catch (Exception ignored) {
-            // Bad texture value: leave the mob-worn texture in place rather than failing the drop.
-        }
+        item.setData(DataComponentTypes.PROFILE, ResolvableProfile.resolvableProfile()
+                .skinPatch(patch -> patch.body(MINER_HELMET_TEXTURE)));
     }
 
     /** A custom player head worn as the Miner's own helmet in place of a plain Diamond Helmet - same {@code PlayerProfile}/{@code ProfileProperty} texture-setting shape every custom menu icon in this plugin already uses (see {@code SkillsMenuService#customHead}), just equipped instead of shown in a menu. */
