@@ -436,3 +436,10 @@ em updates são mescladas automaticamente num `config.yml` já existente no serv
 - **PlaceholderAPI** (opcional) — se instalado, registra `IcarusPlaceholders`
   (`placeholder`), expondo `%icarusrpg_globallevel%` (Nível Global do jogador) pra
   outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
+- **[IcarusTexture](https://github.com/IcaroFranca/IcarusTexture)** (resource pack,
+  obrigatório neste servidor) — retextura itens custom do plugin (ex.: a cabeça do
+  Miner's Helmet). Não é uma dependência do jar em si (o IcarusRPG funciona sem ela,
+  só com a aparência padrão do vanilla/cabeças do minecraft-heads.com) — a
+  obrigatoriedade é configurada no próprio servidor (`server.properties`:
+  `require-resource-pack=true` + `resource-pack`/`resource-pack-sha1`), não pelo
+  plugin.
