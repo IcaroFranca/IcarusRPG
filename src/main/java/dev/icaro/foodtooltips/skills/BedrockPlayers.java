@@ -20,11 +20,11 @@ import org.bukkit.entity.Player;
  * 3) GeyserApi#connectionByUuid, if the backend Geyser-Spigot plugin is installed here
  *    (works even without Floodgate, e.g. offline/cracked Geyser setups).
  */
-final class BedrockPlayers {
+public final class BedrockPlayers {
     private BedrockPlayers() {
     }
 
-    static boolean isBedrock(Player p) {
+    public static boolean isBedrock(Player p) {
         UUID id = p.getUniqueId();
         if (id.getMostSignificantBits() == 0L) {
             return true;

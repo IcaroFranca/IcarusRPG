@@ -441,14 +441,11 @@ em updates são mescladas automaticamente num `config.yml` já existente no serv
   (`placeholder`), expondo `%icarusrpg_globallevel%` (Nível Global do jogador) pra
   outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
 - **[IcarusTexture](https://github.com/IcaroFranca/IcarusTexture)** (resource pack,
-  obrigatório neste servidor via `server.properties`) — usado hoje só pela Undead's
-  Sword (`icarus:undead_sword`, via componente `minecraft:item_model` em
-  `LegendaryWeaponService#create`); sem o pack instalado, o cliente só vê o ícone
-  padrão de Espada de Ferro por baixo, sem quebrar nada. O Miner's Helmet chegou a
-  usar uma textura própria do pack (`icarus:heads/miner_helmet`) por uma versão, mas
-  isso quebrava por completo a renderização do capacete equipado no Bedrock (via
-  Geyser) - nada aparecia na cabeça, não só uma textura errada.
-  `MinerVariantService#retextureDroppedHelmet` voltou a usar só uma cabeça Base64
-  normal (`HeadTexture#MINER_HELMET_DROP`), o mesmo mecanismo já usado por todo o
-  resto das cabeças customizadas do plugin (Zombie/Skeleton Miner equipados, ícones
-  de menu) e comprovadamente funcional nas duas plataformas via `GeyserSkullExport`.
+  obrigatório neste servidor via `server.properties`) — fornece a Undead's Sword
+  (`icarus:undead_sword`) e o Miner's Helmet transparente no Java
+  (`icarus:heads/miner_helmet`). O capacete usa uma representação por plataforma:
+  Java recebe somente o `skinPatch` transparente do pack; Bedrock/Geyser recebe
+  somente a cabeça Base64 `HeadTexture#MINER_HELMET_DROP`. A varredura de inventário
+  ajusta automaticamente o item ao jogador atual, inclusive depois de trocas, sem
+  combinar os dois perfis no mesmo item — combinação que fazia o capacete desaparecer
+  no Bedrock. Sem o pack, a Undead's Sword mantém a Espada de Ferro como fallback.

@@ -42,15 +42,15 @@ public final class LegendaryItemsMenuService {
 
     private final LegendaryWeaponService weapons;
     private final Set<UUID> viewing = new HashSet<>();
-    /** {@code MinerVariantService::createArmorSet} - see {@link #MINER_ARMOR_SLOT}'s own doc for why this is a function reference rather than a direct dependency. Defaults to an empty set so the tile never NPEs if this is somehow never wired. */
-    private Function<Language, List<ItemStack>> minerArmor = l -> List.of();
+    /** {@code MinerVariantService::createArmorSet} - takes the viewer so the helmet can use the Java or Bedrock representation appropriate to that player. See {@link #MINER_ARMOR_SLOT}'s own doc for why this is a function reference rather than a direct dependency. Defaults to an empty set so the tile never NPEs if this is somehow never wired. */
+    private Function<Player, List<ItemStack>> minerArmor = p -> List.of();
 
     public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
         this.weapons = weapons;
     }
 
     /** Wired in after construction, same pattern as {@code ArmorDefenseService#defenseMultiplier} - see {@link #minerArmor}. */
-    public void minerArmor(Function<Language, List<ItemStack>> minerArmor) {
+    public void minerArmor(Function<Player, List<ItemStack>> minerArmor) {
         this.minerArmor = minerArmor;
     }
 
@@ -64,7 +64,7 @@ public final class LegendaryItemsMenuService {
         for (Map.Entry<Integer, LegendaryWeapon> e : SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.preview(e.getValue(), l));
         }
-        v.setItem(MINER_ARMOR_SLOT, this.minerArmorPreview(l));
+        v.setItem(MINER_ARMOR_SLOT, this.minerArmorPreview(p, l));
         p.openInventory(v);
         this.viewing.add(p.getUniqueId());
     }
@@ -80,7 +80,7 @@ public final class LegendaryItemsMenuService {
     public void handleClick(Player p, int slot) {
         Language l = Language.of(p);
         if (slot == MINER_ARMOR_SLOT) {
-            for (ItemStack piece : this.minerArmor.apply(l)) {
+            for (ItemStack piece : this.minerArmor.apply(p)) {
                 for (ItemStack overflow : p.getInventory().addItem(piece).values()) {
                     p.getWorld().dropItemNaturally(p.getLocation(), overflow);
                 }
@@ -112,8 +112,8 @@ public final class LegendaryItemsMenuService {
     }
 
     /** The Miner's Armor tile: the set's own helmet (its most recognizable piece) plus lines noting it's a full 4-piece set and the usual "click to receive". Falls back to a plain filler pane if {@link #minerArmor} was never wired (an empty set). */
-    private ItemStack minerArmorPreview(Language l) {
-        List<ItemStack> set = this.minerArmor.apply(l);
+    private ItemStack minerArmorPreview(Player p, Language l) {
+        List<ItemStack> set = this.minerArmor.apply(p);
         if (set.isEmpty()) {
             return this.filler();
         }
