@@ -29,14 +29,13 @@ public final class HeadTexture {
     /** "Skeleton Miner" (minecraft-heads.com ID 86234) - worn as the Skeleton Miner's own helmet in place of a plain Diamond Helmet. */
     public static final String SKELETON_MINER = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzhmNmMwNDRhMWI0ZGI2ZjgxMDJjYjUxZTJjMzZjNmIzMjc1MTEyOGFiYmQxOGE1ZDljOWM2N2E1NWIxOWFmYiJ9fX0=";
     /**
-     * "Miner Helmet" (minecraft-heads.com ID 26723) - the real {@code GameProfile}
-     * texture a standalone Miner's Helmet item (dropped, or given by /rpgitems) carries
-     * underneath {@code MinerVariantService}'s own resource-pack skin patch. A Java
-     * client with the IcarusTexture pack installed renders that patch instead (nicer,
-     * pack-native look); everyone else - a Java client without the pack, and every
-     * Bedrock client via Geyser (which only ever reads this real Base64 property, never
-     * the resource-pack-only patch - see {@code GeyserSkullExport}) - falls back to
-     * this Base64 skin, so nobody ends up looking at a blank default head.
+     * "Miner Helmet" (minecraft-heads.com ID 26723) - shown only on a real Miner's
+     * Helmet item (dropped by a Miner or given by /rpgitems), never on the mob's own
+     * worn instance, which keeps {@link #ZOMBIE_MINER}/{@link #SKELETON_MINER} - see
+     * {@code MinerVariantService#retextureDroppedHelmet}. Deliberately plain Base64,
+     * not layered with the IcarusTexture resource pack's own skin patch: combining both
+     * on one item broke worn-helmet rendering entirely on Bedrock (via Geyser) - not
+     * just an unregistered/default look, no headwear rendered at all.
      */
     public static final String MINER_HELMET_DROP = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmJiYTk4NWRjMGI0YTBhMzQ2ZDVkNDRlOWNmNjgwYmNkMzBkZjA1ZDIzOGYzNzRkZjM3MDYxMjUyYWNmOTZlNiJ9fX0=";
     /** "Netherite Arrow Up" (Enchanting Table's own pagination "scroll up" head - see {@code EnchantMenuService#head}). Previously inlined there, so {@code GeyserSkullExport} never saw it and Bedrock players got a blank head. */
