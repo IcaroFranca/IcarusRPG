@@ -437,9 +437,12 @@ em updates são mescladas automaticamente num `config.yml` já existente no serv
   (`placeholder`), expondo `%icarusrpg_globallevel%` (Nível Global do jogador) pra
   outros plugins (ex.: TAB, pra ordenar tab list/nametag por Nível Global).
 - **[IcarusTexture](https://github.com/IcaroFranca/IcarusTexture)** (resource pack,
-  obrigatório neste servidor) — retextura itens custom do plugin (ex.: a cabeça do
-  Miner's Helmet). Não é uma dependência do jar em si (o IcarusRPG funciona sem ela,
-  só com a aparência padrão do vanilla/cabeças do minecraft-heads.com) — a
-  obrigatoriedade é configurada no próprio servidor (`server.properties`:
-  `require-resource-pack=true` + `resource-pack`/`resource-pack-sha1`), não pelo
-  plugin.
+  obrigatório neste servidor) — o Miner's Helmet (a versão que vira item de verdade,
+  dropada ou dada pelo `/rpgitems`) usa a textura própria do pack
+  (`icarus:heads/miner_helmet`, via `MinerVariantService#retextureDroppedHelmet`) em
+  vez de uma cabeça Base64 do minecraft-heads.com — sem o pack instalado no cliente,
+  esse item específico aparece sem a textura customizada. A obrigatoriedade em si é
+  configurada no servidor (`server.properties`: `require-resource-pack=true` +
+  `resource-pack`/`resource-pack-sha1`), não pelo IcarusRPG; o resto do plugin (cabeças
+  de menu, Zombie/Skeleton Miner equipados etc.) continua usando as texturas Base64
+  próprias, sem depender do pack.
