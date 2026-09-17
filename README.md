@@ -222,8 +222,11 @@ implementada), `Unbreakable`, e mais forte que Diamante em quase toda peça:
 
 Cada peça equipada também soma, enquanto vestida: **+20 Mining Speed**, **+2 Mining
 Fortune** e **+50% de Orbes de XP de qualquer fonte** (empilha com o bônus de
-Encantamento — set completo = +200%, triplica os orbes) — os três bônus descritos na
-própria lore da peça. Craft: mesmo formato vanilla de cada peça, com Bloco de
+Encantamento — set completo = +200%, triplica os orbes) — os três bônus aparecem na
+lore da peça, um por linha, na cor dourada dos "named stats" (igual Mining Speed/
+Mining Fortune em `VanillaEnchantEntry`), abaixo da linha verde de Defesa e acima de
+uma frase descritiva (a única parte da lore que muda com o idioma — o nome da peça é
+sempre em inglês, nas duas línguas). Craft: mesmo formato vanilla de cada peça, com Bloco de
 Lápis-Lazúli no lugar do material normal, mas com a respectiva peça de **Diamante**
 no slot central (em vez do vão vazio do vanilla) — exige ter craftado o set de
 Diamante primeiro, então não é um substituto mais barato, é um upgrade em cima dele.

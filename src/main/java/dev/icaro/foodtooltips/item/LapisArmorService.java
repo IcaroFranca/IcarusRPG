@@ -8,7 +8,6 @@ import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -60,12 +59,11 @@ public final class LapisArmorService {
 
     /** Marks a piece as Lapis Lazuli Armor - see {@link #isLapisPiece}. */
     private static final NamespacedKey LAPIS_ARMOR_KEY = new NamespacedKey("foodtooltips", "lapis_armor_piece");
-    /** Holds a piece's own name in each language, same idea as {@code MinerVariantService#PIECE_NAME_PT_KEY} - see {@link #localize}. */
-    private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "lapis_piece_name_pt");
-    private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "lapis_piece_name_en");
-    /** States the bonus every piece grants while worn - the same summary in both languages, swapped by {@link #localize}. */
-    private static final String DESCRIPTION_PT = "Concede +" + MINING_SPEED_PER_PIECE + " Mining Speed, +" + MINING_FORTUNE_PER_PIECE + " Mining Fortune e +50% de Orbes de XP de qualquer fonte.";
-    private static final String DESCRIPTION_EN = "Grants +" + MINING_SPEED_PER_PIECE + " Mining Speed, +" + MINING_FORTUNE_PER_PIECE + " Mining Fortune, and +50% XP Orbs from any source.";
+    /** Vanilla's own gold - matches {@code VanillaEnchantEntry}'s own "named stat" color (Mining Speed, Mining Fortune...) - see {@link #attributeLines}. */
+    private static final NamedTextColor ATTRIBUTE_COLOR = NamedTextColor.GOLD;
+    /** Short explanatory line shown below the gold attribute lines ({@link #attributeLines}) - the only part of this piece's lore that's actually translated, swapped by {@link #localize}. */
+    private static final String DESCRIPTION_PT = "Concede esses bônus enquanto equipada.";
+    private static final String DESCRIPTION_EN = "Grants these bonuses while worn.";
 
     private final Plugin plugin;
     private final ItemTierService tiers;
@@ -78,23 +76,23 @@ public final class LapisArmorService {
     /** Helmet/chestplate/leggings/boots, in that order, freshly built - shared by {@link #registerRecipes}, since every recipe's own result needs the exact same fixed item. */
     private ItemStack[] fullSet() {
         return new ItemStack[]{
-                this.lapisPiece(new ItemStack(Material.LEATHER_HELMET), HELMET_DEFENSE, "Capacete de Lápis-Lazúli", "Lapis Lazuli Helmet"),
-                this.lapisPiece(new ItemStack(Material.LEATHER_CHESTPLATE), CHESTPLATE_DEFENSE, "Peitoral de Lápis-Lazúli", "Lapis Lazuli Chestplate"),
-                this.lapisPiece(new ItemStack(Material.LEATHER_LEGGINGS), LEGGINGS_DEFENSE, "Calça de Lápis-Lazúli", "Lapis Lazuli Leggings"),
-                this.lapisPiece(new ItemStack(Material.LEATHER_BOOTS), BOOTS_DEFENSE, "Bota de Lápis-Lazúli", "Lapis Lazuli Boots")};
+                this.lapisPiece(new ItemStack(Material.LEATHER_HELMET), HELMET_DEFENSE, "Lapis Lazuli Helmet"),
+                this.lapisPiece(new ItemStack(Material.LEATHER_CHESTPLATE), CHESTPLATE_DEFENSE, "Lapis Lazuli Chestplate"),
+                this.lapisPiece(new ItemStack(Material.LEATHER_LEGGINGS), LEGGINGS_DEFENSE, "Lapis Lazuli Leggings"),
+                this.lapisPiece(new ItemStack(Material.LEATHER_BOOTS), BOOTS_DEFENSE, "Lapis Lazuli Boots")};
     }
 
     /**
      * One piece of Lapis Lazuli Armor: dyed blue leather, unbreakable, forced Defense
      * ({@code ArmorDefenseService#forceDefense}) regardless of being cosmetically
      * leather, pinned to Tier C (same as Miner's Armor and plain Diamond gear, per
-     * explicit request - rarity here isn't meant to track power level) - Portuguese
-     * name/description by default, same as every other
-     * item spawned without a player context to read a language preference from ({@link
-     * #localize}, called via {@link #applyToInventory}, keeps this correct for whoever
-     * actually ends up holding it).
+     * explicit request - rarity here isn't meant to track power level). The name is
+     * always English, in both languages (per explicit request - unlike every other
+     * item in this plugin, which shows a translated name) - only the description line
+     * below the gold attribute lines ({@link #attributeLines}) is actually translated,
+     * swapped by {@link #localize} via {@link #applyToInventory}.
      */
-    private ItemStack lapisPiece(ItemStack item, int defense, String namePt, String nameEn) {
+    private ItemStack lapisPiece(ItemStack item, int defense, String name) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(ARMOR_COLOR);
@@ -103,12 +101,24 @@ public final class LapisArmorService {
         ArmorDefenseService.forceDefense(meta, defense);
         this.tiers.forceTier(meta, ItemTier.C);
         meta.getPersistentDataContainer().set(LAPIS_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
-        meta.getPersistentDataContainer().set(PIECE_NAME_PT_KEY, PersistentDataType.STRING, namePt);
-        meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
-        meta.displayName(Component.text(namePt, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        meta.lore(wrappedDescription(DESCRIPTION_PT));
+        meta.displayName(Component.text(name, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = new ArrayList<>(attributeLines());
+        lore.addAll(wrappedDescription(DESCRIPTION_PT));
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** The 3 gold "named stat" lines every piece shows, one per line, above the (translated) description - same vanilla-gold convention {@code VanillaEnchantEntry} uses for Mining Speed/Mining Fortune, and always in English regardless of language, same as those. */
+    private static List<Component> attributeLines() {
+        return List.of(
+                line("Mining Speed: +" + MINING_SPEED_PER_PIECE),
+                line("Mining Fortune: +" + MINING_FORTUNE_PER_PIECE),
+                line("XP Orbs: +" + Math.round(XP_ORB_BONUS_PER_PIECE * 100) + "%"));
+    }
+
+    private static Component line(String text) {
+        return Component.text(text, ATTRIBUTE_COLOR).decoration(TextDecoration.ITALIC, false);
     }
 
     /**
@@ -190,30 +200,20 @@ public final class LapisArmorService {
     }
 
     /**
-     * Renders {@code item}'s name/description in {@code l} if it's one of this class's
-     * own pieces, returning whether anything actually changed - same shape (and same
-     * reasoning) as {@code MinerVariantService#localize}: reads the PT/EN name pair from
-     * PDC rather than the item's own (already tier-recolored) display name, so this is
-     * safe to call repeatedly and in either direction.
+     * Renders {@code item}'s description line in {@code l} if it's one of this class's
+     * own pieces, returning whether anything actually changed - same shape as {@code
+     * MinerVariantService#localize}, minus the name swap (the name is always English -
+     * see {@link #lapisPiece}'s own doc - only the description line changes).
      */
     public static boolean localize(ItemStack item, Language l) {
-        if (item == null || item.isEmpty()) {
+        if (item == null || item.isEmpty() || !isLapisPiece(item)) {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return false;
         }
-        String wantedName = meta.getPersistentDataContainer().get(l == Language.PT ? PIECE_NAME_PT_KEY : PIECE_NAME_EN_KEY, PersistentDataType.STRING);
-        if (wantedName == null) {
-            return false;
-        }
         boolean changed = false;
-        String currentNameText = meta.hasDisplayName() ? PlainTextComponentSerializer.plainText().serialize(meta.displayName()) : null;
-        if (!wantedName.equals(currentNameText)) {
-            meta.displayName(Component.text(wantedName, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-            changed = true;
-        }
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         List<Component> ptBlock = wrappedDescription(DESCRIPTION_PT);
         List<Component> enBlock = wrappedDescription(DESCRIPTION_EN);
