@@ -375,11 +375,14 @@ public final class LegendaryWeaponService {
      * if it's not a legendary weapon or neither needed anything.
      */
     private ItemStack rewriteAttackSpeedLine(ItemStack item, Player p, Language l) {
-        if (of(item) == null) {
+        LegendaryWeapon weapon = of(item);
+        if (weapon == null) {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
         boolean changed = false;
+        boolean missingUndeadModel = weapon == LegendaryWeapon.UNDEAD_SWORD
+                && !UNDEAD_SWORD_MODEL.equals(item.getData(DataComponentTypes.ITEM_MODEL));
         if (!this.hasBaseZero(meta)) {
             // See SwordDamageService#rewrite's identical comment on why this needs to
             // live on the item itself.
@@ -401,10 +404,18 @@ public final class LegendaryWeaponService {
                 }
             }
         }
-        if (!changed) {
+        if (!changed && !missingUndeadModel) {
             return null;
         }
-        item.setItemMeta(meta);
+        if (changed) {
+            item.setItemMeta(meta);
+        }
+        // Apply this after ItemMeta: several tooltip/enchantment passes rewrite meta,
+        // and old Undead's Swords may predate the component entirely. Checking the
+        // actual component here makes the resource-pack binding self-healing.
+        if (missingUndeadModel) {
+            item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
+        }
         return item;
     }
 
