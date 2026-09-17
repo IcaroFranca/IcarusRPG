@@ -1000,7 +1000,7 @@ public final class CombatListener implements Listener {
             // Cosmetic-only: the dropped copy shows the dedicated Miner's Helmet head
             // instead of whatever texture the mob itself was wearing (Zombie/Skeleton
             // Miner keep their own distinct look) - a no-op for the other three pieces.
-            MinerVariantService.retextureDroppedHelmet(drop);
+            MinerVariantService.ensureMinerArmorVisual(drop);
         }
         e.getDrops().add(drop);
     }
