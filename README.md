@@ -239,6 +239,23 @@ craft).
 6 Lápis-Lazúli (o item cru, não o Bloco) ao redor de um Frasco de Vidro vira um Frasco
 de Experiência (`EXPERIENCE_BOTTLE`) comum.
 
+**Grand/Titanic Experience Bottle** (`LapisExperienceService`): dois tiers de Frasco de
+Experiência customizado, cada um travado atrás de já ter craftado o anterior:
+
+| Item de craft | Receita | Item final | XP ao arremessar |
+|---|---|---|---|
+| **Lapis Core** | 8 Blocos de Lápis-Lazúli + 1 Bloco de Diamante no centro | — | — |
+| Grand Experience Bottle | mesmo formato do Frasco de Experiência comum, com Lapis Core no lugar do Lápis-Lazúli cru | Grand Experience Bottle | 1.500 |
+| **True Lapis Core** | 8 Lapis Core + 1 Bloco de Netherite no centro | — | — |
+| Titanic Experience Bottle | mesmo formato, com True Lapis Core no lugar do Lapis Core | Titanic Experience Bottle | 250.000 |
+
+Lapis Core e True Lapis Core são cabeças customizadas (textura do minecraft-heads.com,
+como os ícones de menu já usados em todo o plugin), com Tier C e A respectivamente.
+Grand/Titanic Experience Bottle são o `Material.EXPERIENCE_BOTTLE` de verdade (arremessam
+e animam igual ao vanilla) só com a quantidade de XP sobrescrita ao quebrar (`ExpBottleEvent`),
+Tier B e S respectivamente — a quantidade aparece na lore em dourado ("XP Orbs: +N"), mesmo
+padrão visual da Armadura de Lápis-Lazúli.
+
 **Dano corpo a corpo por material** (espada, machado, picareta, pá e enxada batem
 igual dentro do mesmo material):
 

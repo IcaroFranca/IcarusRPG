@@ -46,6 +46,7 @@ import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
+import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageListener;
@@ -127,6 +128,8 @@ extends JavaPlugin {
         general.armorMiningFortuneBonus(lapisArmor::equippedMiningFortuneBonus);
         general.armorXpOrbBonus(lapisArmor::equippedXpOrbBonus);
         lapisArmor.registerRecipes();
+        LapisExperienceService lapisExperience = new LapisExperienceService((Plugin)this, tiers);
+        lapisExperience.registerRecipes();
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
@@ -199,6 +202,7 @@ extends JavaPlugin {
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals, abilities), (Plugin)this);
+        pm.registerEvents((Listener)lapisExperience, (Plugin)this);
         pm.registerEvents((Listener)new BowEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
@@ -367,6 +371,7 @@ extends JavaPlugin {
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             lapisArmor.applyToInventory((Player)p);
+            lapisExperience.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
             // other item service, so none can accidentally restore the Base64 profile
             // on Java (or the skin patch on Bedrock) until the next sweep.
