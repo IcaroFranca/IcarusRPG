@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -49,6 +50,7 @@ public final class MeleeEnchantEffectListener implements Listener {
     private final Plugin plugin;
     private final EnchantService enchants;
     private final MobVisualService visuals;
+    private final CombatAbilityService abilities;
     private final NamespacedKey venomSlowKey;
     /** Thunderlord's own per-attacker hit counter, keyed by attacker and remembering which target it's counting against - see {@link #thunderlord}. Cleared on quit. */
     private final Map<UUID, ThunderlordState> thunderlordHits = new HashMap<>();
@@ -63,10 +65,11 @@ public final class MeleeEnchantEffectListener implements Listener {
     private record ThunderlordState(UUID target, int hits) {
     }
 
-    public MeleeEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals) {
+    public MeleeEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals, CombatAbilityService abilities) {
         this.plugin = plugin;
         this.enchants = enchants;
         this.visuals = visuals;
+        this.abilities = abilities;
         this.venomSlowKey = new NamespacedKey(plugin, "venomous_slow");
     }
 
@@ -118,10 +121,19 @@ public final class MeleeEnchantEffectListener implements Listener {
      * target.damage} synchronously here would recursively fire (and fully resolve) a
      * second damage event on the same target before this hit's own event has even
      * finished applying its damage.
+     *
+     * <p>Ignores ability damage ({@link CombatAbilityService#isAbilityDamageInFlight})
+     * entirely - Storm of White Flames hits up to 6 different targets in one cast, which
+     * would otherwise reset/advance the SAME-target counter against whatever the player
+     * is actually meleeing and could trigger Thunderlord's own lightning off an ability
+     * hit that was never a real melee swing.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void thunderlord(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player attacker) || !(e.getEntity() instanceof LivingEntity target) || target instanceof Player) {
+            return;
+        }
+        if (this.abilities.isAbilityDamageInFlight(attacker)) {
             return;
         }
         int level = this.enchants.customLevel(attacker.getInventory().getItemInMainHand(), IcarusEnchant.THUNDERLORD);
