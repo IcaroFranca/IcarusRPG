@@ -73,7 +73,11 @@ public final class MinerVariantService implements Listener {
     /** Holds a piece's own name in each language (see {@link #minerPiece}) so {@link #localize} can render whichever one matches a given viewer's language - never derived from the item's own (mutable) display name, so switching back and forth is lossless no matter how many times it happens. */
     private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_pt");
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
+    private static final Key MINER_ARMOR_ASSET = Key.key("icarus", "miner_armor");
     private static final Key MINER_HELMET_MODEL = Key.key("icarus", "miner_helmet");
+    private static final Key MINER_CHESTPLATE_MODEL = Key.key("icarus", "miner_chestplate");
+    private static final Key MINER_LEGGINGS_MODEL = Key.key("icarus", "miner_leggings");
+    private static final Key MINER_BOOTS_MODEL = Key.key("icarus", "miner_boots");
     /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localize}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
     private static final String DESCRIPTION_PT = "Dobra seus status de Defesa nas camadas negativas.";
     private static final String DESCRIPTION_EN = "Doubles your Defense stats in the negative layers.";
@@ -170,7 +174,7 @@ public final class MinerVariantService implements Listener {
         List<ItemStack> set = new ArrayList<>();
         for (ItemStack piece : this.fullSet()) {
             localize(piece, l);
-            retextureDroppedHelmet(piece);
+            ensureMinerArmorVisual(piece);
             set.add(piece);
         }
         return set;
@@ -210,6 +214,7 @@ public final class MinerVariantService implements Listener {
         meta.lore(wrappedDescription(DESCRIPTION_PT));
         item.setItemMeta(meta);
         this.enchants.setCustomLevel(item, IcarusEnchant.PROTECTION, 5, true);
+        ensureMinerArmorVisual(item);
         return item;
     }
 
@@ -302,7 +307,7 @@ public final class MinerVariantService implements Listener {
         boolean changed = false;
         for (ItemStack item : storage) {
             changed |= localize(item, l);
-            changed |= retextureDroppedHelmet(item);
+            changed |= ensureMinerArmorVisual(item);
         }
         if (changed) {
             inv.setStorageContents(storage);
@@ -311,7 +316,7 @@ public final class MinerVariantService implements Listener {
         boolean armorChanged = false;
         for (ItemStack item : armor) {
             armorChanged |= localize(item, l);
-            armorChanged |= retextureDroppedHelmet(item);
+            armorChanged |= ensureMinerArmorVisual(item);
         }
         if (armorChanged) {
             inv.setArmorContents(armor);
@@ -355,25 +360,25 @@ public final class MinerVariantService implements Listener {
     }
 
     /**
-     * Ensures a Miner's Helmet uses a real leather helmet plus the pack-native item and
-     * equipment models. Existing player-head copies are migrated in place the next time
+     * Ensures every Miner's Armor piece uses its pack-native item model and the shared
+     * equipment asset. Existing player-head helmets are migrated in place the next time
      * they enter a player's inventory; all common metadata, PDC stats and enchantments
      * remain attached while the incompatible skull profile disappears with the material.
      * Bedrock can safely fall back to an ordinary leather helmet until its own Geyser
      * custom-item pack is installed.
      */
-    public static boolean retextureDroppedHelmet(ItemStack item) {
+    public static boolean ensureMinerArmorVisual(ItemStack item) {
         if (item == null || item.isEmpty()) {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
         if (meta == null
-                || !meta.getPersistentDataContainer().has(PIECE_NAME_PT_KEY, PersistentDataType.STRING)
-                || !"Miner's Helmet".equals(meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING))) {
+                || !meta.getPersistentDataContainer().has(PIECE_NAME_PT_KEY, PersistentDataType.STRING)) {
             return false;
         }
         boolean changed = false;
-        if (item.getType() != Material.LEATHER_HELMET) {
+        String englishName = meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING);
+        if (item.getType() == Material.PLAYER_HEAD && "Miner's Helmet".equals(englishName)) {
             ItemMeta converted = Bukkit.getItemFactory().asMetaFor(meta, Material.LEATHER_HELMET);
             if (converted instanceof LeatherArmorMeta leather) {
                 leather.setColor(Color.GRAY);
@@ -382,15 +387,38 @@ public final class MinerVariantService implements Listener {
             item.setItemMeta(converted);
             changed = true;
         }
+        Key wantedModel;
+        EquipmentSlot wantedSlot;
+        switch (item.getType()) {
+            case LEATHER_HELMET -> {
+                wantedModel = MINER_HELMET_MODEL;
+                wantedSlot = EquipmentSlot.HEAD;
+            }
+            case LEATHER_CHESTPLATE -> {
+                wantedModel = MINER_CHESTPLATE_MODEL;
+                wantedSlot = EquipmentSlot.CHEST;
+            }
+            case LEATHER_LEGGINGS -> {
+                wantedModel = MINER_LEGGINGS_MODEL;
+                wantedSlot = EquipmentSlot.LEGS;
+            }
+            case LEATHER_BOOTS -> {
+                wantedModel = MINER_BOOTS_MODEL;
+                wantedSlot = EquipmentSlot.FEET;
+            }
+            default -> {
+                return changed;
+            }
+        }
         Key model = item.getData(DataComponentTypes.ITEM_MODEL);
         Equippable equippable = item.getData(DataComponentTypes.EQUIPPABLE);
-        if (!MINER_HELMET_MODEL.equals(model)) {
-            item.setData(DataComponentTypes.ITEM_MODEL, MINER_HELMET_MODEL);
+        if (!wantedModel.equals(model)) {
+            item.setData(DataComponentTypes.ITEM_MODEL, wantedModel);
             changed = true;
         }
-        if (equippable == null || !MINER_HELMET_MODEL.equals(equippable.assetId())) {
-            item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(EquipmentSlot.HEAD)
-                    .assetId(MINER_HELMET_MODEL));
+        if (equippable == null || !MINER_ARMOR_ASSET.equals(equippable.assetId())) {
+            item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(wantedSlot)
+                    .assetId(MINER_ARMOR_ASSET));
             changed = true;
         }
         return changed;
