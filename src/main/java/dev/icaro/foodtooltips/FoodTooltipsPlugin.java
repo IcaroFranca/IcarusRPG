@@ -350,7 +350,6 @@ extends JavaPlugin {
             customEnchants.applyBowDamageTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
             enchants.applyToInventory((Player)p);
-            minerVariants.applyToInventory((Player)p);
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
@@ -358,6 +357,10 @@ extends JavaPlugin {
             general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
+            // Last metadata writer: validates the real PROFILE component after every
+            // other item service, so none can accidentally restore the Base64 profile
+            // on Java (or the skin patch on Bedrock) until the next sweep.
+            minerVariants.applyToInventory((Player)p);
             this.quiver.topUp((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);

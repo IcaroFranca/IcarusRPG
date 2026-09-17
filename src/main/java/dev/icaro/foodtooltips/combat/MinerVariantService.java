@@ -79,7 +79,6 @@ public final class MinerVariantService implements Listener {
     /** Holds a piece's own name in each language (see {@link #minerPiece}) so {@link #localize} can render whichever one matches a given viewer's language - never derived from the item's own (mutable) display name, so switching back and forth is lossless no matter how many times it happens. */
     private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_pt");
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
-    private static final NamespacedKey HELMET_VISUAL_KEY = new NamespacedKey("foodtooltips", "miner_helmet_visual");
     private static final Key MINER_HELMET_TEXTURE = Key.key("icarus", "heads/miner_helmet");
     /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localize}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
     private static final String DESCRIPTION_PT = "Dobra seus status de Defesa nas camadas negativas.";
@@ -394,9 +393,15 @@ public final class MinerVariantService implements Listener {
                 || !meta.getPersistentDataContainer().has(PIECE_NAME_PT_KEY, PersistentDataType.STRING)) {
             return false;
         }
-        String wanted = bedrock ? "bedrock" : "java";
-        String current = meta.getPersistentDataContainer().get(HELMET_VISUAL_KEY, PersistentDataType.STRING);
-        if (wanted.equals(current)) {
+        ResolvableProfile current = item.getData(DataComponentTypes.PROFILE);
+        boolean alreadyCorrect = bedrock
+                ? current != null && current.skinPatch().isEmpty()
+                        && current.properties().stream().anyMatch(property ->
+                                property.getName().equals("textures")
+                                        && property.getValue().equals(HeadTexture.MINER_HELMET_DROP))
+                : current != null && current.properties().isEmpty()
+                        && MINER_HELMET_TEXTURE.equals(current.skinPatch().body());
+        if (alreadyCorrect) {
             return false;
         }
         try {
@@ -405,14 +410,10 @@ public final class MinerVariantService implements Listener {
                 profile.setProperty(new ProfileProperty("textures", HeadTexture.MINER_HELMET_DROP));
                 SkullMeta skull = (SkullMeta) meta;
                 skull.setPlayerProfile(profile);
-                skull.getPersistentDataContainer().set(HELMET_VISUAL_KEY, PersistentDataType.STRING, wanted);
                 item.setItemMeta(skull);
             } else {
                 item.setData(DataComponentTypes.PROFILE, ResolvableProfile.resolvableProfile()
                         .skinPatch(patch -> patch.body(MINER_HELMET_TEXTURE)));
-                ItemMeta patched = item.getItemMeta();
-                patched.getPersistentDataContainer().set(HELMET_VISUAL_KEY, PersistentDataType.STRING, wanted);
-                item.setItemMeta(patched);
             }
             return true;
         } catch (Exception ignored) {
