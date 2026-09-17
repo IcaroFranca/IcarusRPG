@@ -235,6 +235,10 @@ não acompanha o quão forte o item é). Também disponível no `/rpgitems`, mes
 conveniência que a Miner's Armor já tinha (um set completo garantido, sem depender do
 craft).
 
+`LapisArmorService` também registra uma receita à parte, sem relação com a armadura:
+6 Lápis-Lazúli (o item cru, não o Bloco) ao redor de um Frasco de Vidro vira um Frasco
+de Experiência (`EXPERIENCE_BOTTLE`) comum.
+
 **Dano corpo a corpo por material** (espada, machado, picareta, pá e enxada batem
 igual dentro do mesmo material):
 

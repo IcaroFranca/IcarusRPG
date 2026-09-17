@@ -41,7 +41,10 @@ import org.bukkit.plugin.Plugin;
  * shape's own center slot - by design, so getting a set requires already having crafted
  * a full Diamond armor set first rather than being a straight cheaper alternative to it
  * (Lapis Lazuli is far more abundant than Diamond, so matching Diamond's own recipe
- * shape/cost 1:1 would have made this strictly better AND cheaper).
+ * shape/cost 1:1 would have made this strictly better AND cheaper). {@link
+ * #registerRecipes} also registers one unrelated Lapis Lazuli recipe - a plain vanilla
+ * Experience Bottle from raw Lapis Lazuli around a Glass Bottle (see {@link
+ * #registerExperienceBottleRecipe}) - kept here rather than in a class of its own.
  */
 public final class LapisArmorService {
     private static final int HELMET_DEFENSE = 25;
@@ -150,18 +153,37 @@ public final class LapisArmorService {
         this.addRecipe("lapis_lazuli_chestplate", set[1], new String[]{"L L", "LDL", "LLL"}, Material.DIAMOND_CHESTPLATE);
         this.addRecipe("lapis_lazuli_leggings", set[2], new String[]{"LLL", "LDL", "L L"}, Material.DIAMOND_LEGGINGS);
         this.addRecipe("lapis_lazuli_boots", set[3], new String[]{"L L", "LDL"}, Material.DIAMOND_BOOTS);
+        this.registerExperienceBottleRecipe();
     }
 
     private void addRecipe(String key, ItemStack result, String[] shape, Material diamondPiece) {
-        NamespacedKey recipeKey = new NamespacedKey(this.plugin, key);
-        // Removed first so a /reload (which re-runs onEnable, and so this method) re-registers
-        // cleanly instead of Bukkit silently rejecting the duplicate key.
-        Bukkit.removeRecipe(recipeKey);
-        ShapedRecipe recipe = new ShapedRecipe(recipeKey, result);
-        recipe.shape(shape);
+        ShapedRecipe recipe = this.newRecipe(key, result, shape);
         recipe.setIngredient('L', Material.LAPIS_BLOCK);
         recipe.setIngredient('D', diamondPiece);
         Bukkit.addRecipe(recipe);
+    }
+
+    /**
+     * Bottle o' Enchanting from 6 raw Lapis Lazuli (the real vanilla gem, not a Block -
+     * a much smaller ask than the armor recipes above) around a Glass Bottle: " L " /
+     * "LBL" / "LLL". Unrelated to the armor set itself (a plain vanilla Experience
+     * Bottle, no custom stats/lore) - registered here anyway rather than in a class of
+     * its own, since it's the only other Lapis Lazuli recipe this plugin has.
+     */
+    private void registerExperienceBottleRecipe() {
+        ShapedRecipe recipe = this.newRecipe("lapis_lazuli_experience_bottle", new ItemStack(Material.EXPERIENCE_BOTTLE), new String[]{" L ", "LBL", "LLL"});
+        recipe.setIngredient('L', Material.LAPIS_LAZULI);
+        recipe.setIngredient('B', Material.GLASS_BOTTLE);
+        Bukkit.addRecipe(recipe);
+    }
+
+    /** A fresh {@link ShapedRecipe} for {@code key}/{@code result}/{@code shape}, with any stale registration from a previous {@code /reload} removed first - Bukkit otherwise silently rejects a duplicate key instead of replacing it. Ingredients are the caller's own job (they differ per recipe). */
+    private ShapedRecipe newRecipe(String key, ItemStack result, String[] shape) {
+        NamespacedKey recipeKey = new NamespacedKey(this.plugin, key);
+        Bukkit.removeRecipe(recipeKey);
+        ShapedRecipe recipe = new ShapedRecipe(recipeKey, result);
+        recipe.shape(shape);
+        return recipe;
     }
 
     /** Whether {@code item} is a Lapis Lazuli Armor piece - see {@link #LAPIS_ARMOR_KEY}. */
