@@ -1,21 +1,16 @@
 package dev.icaro.foodtooltips.combat;
 
-import com.destroystokyo.paper.profile.PlayerProfile;
-import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.i18n.Language;
-import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
-import dev.icaro.foodtooltips.skills.BedrockPlayers;
 import dev.icaro.foodtooltips.util.LoreWrap;
 import io.papermc.paper.datacomponent.DataComponentTypes;
-import io.papermc.paper.datacomponent.item.ResolvableProfile;
+import io.papermc.paper.datacomponent.item.Equippable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -34,11 +29,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
@@ -46,9 +41,8 @@ import org.bukkit.plugin.Plugin;
  * A natural Zombie or Skeleton (the plain vanilla type only - not Husk/Drowned/Stray/
  * Wither Skeleton/Zombie Villager) that spawns in the Overworld below {@code
  * miner-variants.below-y} becomes a "Zombie Miner"/"Skeleton Miner" instead, wearing a
- * full set of "Miner's Armor": a custom head ({@link HeadTexture#ZOMBIE_MINER}/{@link
- * HeadTexture#SKELETON_MINER}) in the helmet slot, and gray-dyed leather chestplate/
- * leggings/boots elsewhere - cosmetically cheap gear, but every piece's Defense is
+ * full set of "Miner's Armor": a pack-native leather helmet and gray-dyed leather
+ * chestplate/leggings/boots - cosmetically cheap gear, but every piece's Defense is
  * forced to Diamond's own per-piece numbers ({@code ArmorDefenseService#forceDefense})
  * regardless of its real Material. Whoever wears at least one piece - the Miner mob
  * itself, or a player who looted one - gets both that base Defense and the Protection
@@ -79,7 +73,7 @@ public final class MinerVariantService implements Listener {
     /** Holds a piece's own name in each language (see {@link #minerPiece}) so {@link #localize} can render whichever one matches a given viewer's language - never derived from the item's own (mutable) display name, so switching back and forth is lossless no matter how many times it happens. */
     private static final NamespacedKey PIECE_NAME_PT_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_pt");
     private static final NamespacedKey PIECE_NAME_EN_KEY = new NamespacedKey("foodtooltips", "miner_piece_name_en");
-    private static final Key MINER_HELMET_TEXTURE = Key.key("icarus", "heads/miner_helmet");
+    private static final Key MINER_HELMET_MODEL = Key.key("icarus", "miner_helmet");
     /** States the bonus this armor grants once worn - the same summary in both languages, swapped by {@link #localize}. See {@link #minerArmorBonusActive} for the actual doubling condition this describes. */
     private static final String DESCRIPTION_PT = "Dobra seus status de Defesa nas camadas negativas.";
     private static final String DESCRIPTION_EN = "Doubles your Defense stats in the negative layers.";
@@ -139,8 +133,7 @@ public final class MinerVariantService implements Listener {
         if (eq == null) {
             return;
         }
-        String headTexture = type == EntityType.ZOMBIE ? HeadTexture.ZOMBIE_MINER : HeadTexture.SKELETON_MINER;
-        ItemStack[] set = this.fullSet(headTexture);
+        ItemStack[] set = this.fullSet();
         eq.setHelmet(set[0]);
         eq.setChestplate(set[1]);
         eq.setLeggings(set[2]);
@@ -155,9 +148,9 @@ public final class MinerVariantService implements Listener {
     }
 
     /** Helmet/chestplate/leggings/boots, in that order, freshly built (Portuguese by default - see {@link #minerPiece}'s own doc) - shared by {@link #equip} and {@link #createArmorSet}, since both need the exact same 4 pieces, just for a mob's own equipment slots versus a standalone gift. */
-    private ItemStack[] fullSet(String headTexture) {
+    private ItemStack[] fullSet() {
         return new ItemStack[]{
-                this.minerPiece(this.customHead(headTexture), 15, "Capacete do Minerador", "Miner's Helmet"),
+                this.minerPiece(new ItemStack(Material.LEATHER_HELMET), 15, "Capacete do Minerador", "Miner's Helmet"),
                 this.minerPiece(new ItemStack(Material.LEATHER_CHESTPLATE), 40, "Peitoral do Minerador", "Miner's Chestplate"),
                 this.minerPiece(new ItemStack(Material.LEATHER_LEGGINGS), 30, "Calça do Minerador", "Miner's Leggings"),
                 this.minerPiece(new ItemStack(Material.LEATHER_BOOTS), 15, "Bota do Minerador", "Miner's Boots")};
@@ -175,20 +168,19 @@ public final class MinerVariantService implements Listener {
     public List<ItemStack> createArmorSet(Player viewer) {
         Language l = Language.of(viewer);
         List<ItemStack> set = new ArrayList<>();
-        for (ItemStack piece : this.fullSet(HeadTexture.ZOMBIE_MINER)) {
+        for (ItemStack piece : this.fullSet()) {
             localize(piece, l);
-            retextureDroppedHelmet(piece, BedrockPlayers.isBedrock(viewer));
+            retextureDroppedHelmet(piece);
             set.add(piece);
         }
         return set;
     }
 
     /**
-     * One piece of "Miner's Armor": dyed gray if it's leather (the custom head helmet
-     * has no dye slot, so it's left as-is), unbreakable, forced to Diamond's own
+     * One piece of "Miner's Armor": dyed gray leather, unbreakable, forced to Diamond's own
      * per-piece Defense ({@code diamondDefense} - see {@code
-     * ArmorDefenseService#forceDefense}) regardless of being cosmetically leather/a
-     * player head, and enchanted with this plugin's own Protection V (a PDC-stored
+     * ArmorDefenseService#forceDefense}) regardless of being cosmetically leather,
+     * and enchanted with this plugin's own Protection V (a PDC-stored
      * custom entry, not real vanilla {@code Enchantment.PROTECTION} - see {@code
      * IcarusEnchant}'s own class doc for why Protection is custom here) - Portuguese
      * name/description by default, same as everything else spawned without a player
@@ -196,8 +188,7 @@ public final class MinerVariantService implements Listener {
      * drop time and every tick thereafter via {@link #applyToInventory}, keeps this
      * correct for whoever actually ends up holding it). Neither the forced Defense nor the Protection
      * enchant is gated on the item's own material (see {@code
-     * ArmorEnchantEffectListener#armorLevel}), so both apply to the custom head
-     * helmet too, not just the leather pieces - and {@link #minerArmorBonusActive}
+     * ArmorEnchantEffectListener#armorLevel}), so both apply to the helmet too - and {@link #minerArmorBonusActive}
      * doubles both on top of whoever wears it (see this class's own doc, and {@link
      * #DESCRIPTION_PT}/{@link #DESCRIPTION_EN} which state it). Also pinned to Tier A ({@code
      * ItemTierService#forceTier}, same override idea as {@code
@@ -306,13 +297,12 @@ public final class MinerVariantService implements Listener {
     /** Same periodic "keep every held item's tooltip in the holder's own language" sweep {@code EnchantService#applyToInventory}/{@code ArmorDefenseService#applyDefenseTooltip}/{@code ItemTierService#applyItemTiers} already run - called from {@code FoodTooltipsPlugin}'s own per-tick loop. Storage and armor slots only - Miner's Armor is never held in the off hand. */
     public void applyToInventory(Player p) {
         Language l = Language.of(p);
-        boolean bedrock = BedrockPlayers.isBedrock(p);
         PlayerInventory inv = p.getInventory();
         ItemStack[] storage = inv.getStorageContents();
         boolean changed = false;
         for (ItemStack item : storage) {
             changed |= localize(item, l);
-            changed |= retextureDroppedHelmet(item, bedrock);
+            changed |= retextureDroppedHelmet(item);
         }
         if (changed) {
             inv.setStorageContents(storage);
@@ -321,7 +311,7 @@ public final class MinerVariantService implements Listener {
         boolean armorChanged = false;
         for (ItemStack item : armor) {
             armorChanged |= localize(item, l);
-            armorChanged |= retextureDroppedHelmet(item, bedrock);
+            armorChanged |= retextureDroppedHelmet(item);
         }
         if (armorChanged) {
             inv.setArmorContents(armor);
@@ -365,75 +355,44 @@ public final class MinerVariantService implements Listener {
     }
 
     /**
-     * Re-skins a real Miner's Helmet item (a drop, or one of {@link #createArmorSet}'s
-     * own pieces) to {@link HeadTexture#MINER_HELMET_DROP} instead of whichever mob-worn
-     * texture it was cloned from - the mob itself (in {@link #equip}) always keeps
-     * wearing {@link HeadTexture#ZOMBIE_MINER}/{@link HeadTexture#SKELETON_MINER}; only
-     * the standalone item a player can actually hold looks different. A no-op for
-     * anything that isn't a player head (the other three pieces), so callers can run
-     * this unconditionally over a whole set instead of picking out the helmet by hand.
-     *
-     * <p>The stored profile is platform-specific. Java receives only the resource-pack
-     * skin patch ({@code icarus:heads/miner_helmet}), preserving alpha transparency;
-     * Bedrock/Geyser receives only the ordinary Base64 profile it translates reliably.
-     * {@link #applyToInventory} corrects traded items for their current holder without
-     * ever combining the two profile forms that broke worn rendering on Bedrock.
+     * Ensures a Miner's Helmet uses a real leather helmet plus the pack-native item and
+     * equipment models. Existing player-head copies are migrated in place the next time
+     * they enter a player's inventory; all common metadata, PDC stats and enchantments
+     * remain attached while the incompatible skull profile disappears with the material.
+     * Bedrock can safely fall back to an ordinary leather helmet until its own Geyser
+     * custom-item pack is installed.
      */
-    public static void retextureDroppedHelmet(ItemStack item) {
-        retextureDroppedHelmet(item, false);
-    }
-
-    /** Applies the standalone helmet visual required by the holder's client platform. */
-    public static boolean retextureDroppedHelmet(ItemStack item, boolean bedrock) {
-        if (item == null || item.getType() != Material.PLAYER_HEAD) {
+    public static boolean retextureDroppedHelmet(ItemStack item) {
+        if (item == null || item.isEmpty()) {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
-        if (!(meta instanceof SkullMeta)
-                || !meta.getPersistentDataContainer().has(PIECE_NAME_PT_KEY, PersistentDataType.STRING)) {
+        if (meta == null
+                || !meta.getPersistentDataContainer().has(PIECE_NAME_PT_KEY, PersistentDataType.STRING)
+                || !"Miner's Helmet".equals(meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING))) {
             return false;
         }
-        ResolvableProfile current = item.getData(DataComponentTypes.PROFILE);
-        boolean alreadyCorrect = bedrock
-                ? current != null && current.skinPatch().isEmpty()
-                        && current.properties().stream().anyMatch(property ->
-                                property.getName().equals("textures")
-                                        && property.getValue().equals(HeadTexture.MINER_HELMET_DROP))
-                : current != null && current.properties().isEmpty()
-                        && MINER_HELMET_TEXTURE.equals(current.skinPatch().body());
-        if (alreadyCorrect) {
-            return false;
-        }
-        try {
-            if (bedrock) {
-                PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
-                profile.setProperty(new ProfileProperty("textures", HeadTexture.MINER_HELMET_DROP));
-                SkullMeta skull = (SkullMeta) meta;
-                skull.setPlayerProfile(profile);
-                item.setItemMeta(skull);
-            } else {
-                item.setData(DataComponentTypes.PROFILE, ResolvableProfile.resolvableProfile()
-                        .skinPatch(patch -> patch.body(MINER_HELMET_TEXTURE)));
+        boolean changed = false;
+        if (item.getType() != Material.LEATHER_HELMET) {
+            ItemMeta converted = Bukkit.getItemFactory().asMetaFor(meta, Material.LEATHER_HELMET);
+            if (converted instanceof LeatherArmorMeta leather) {
+                leather.setColor(Color.GRAY);
             }
-            return true;
-        } catch (Exception ignored) {
-            // Bad texture value: leave the mob-worn texture in place rather than failing the drop.
-            return false;
+            item.setType(Material.LEATHER_HELMET);
+            item.setItemMeta(converted);
+            changed = true;
         }
-    }
-
-    /** A custom player head worn as the Miner's own helmet in place of a plain Diamond Helmet - same {@code PlayerProfile}/{@code ProfileProperty} texture-setting shape every custom menu icon in this plugin already uses (see {@code SkillsMenuService#customHead}), just equipped instead of shown in a menu. */
-    private ItemStack customHead(String texture) {
-        ItemStack item = ItemStack.of(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        try {
-            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
-            profile.setProperty(new ProfileProperty("textures", texture));
-            meta.setPlayerProfile(profile);
-        } catch (Exception ignored) {
-            // Bad texture value: fall back to a plain player head rather than failing the spawn.
+        Key model = item.getData(DataComponentTypes.ITEM_MODEL);
+        Equippable equippable = item.getData(DataComponentTypes.EQUIPPABLE);
+        if (!MINER_HELMET_MODEL.equals(model)) {
+            item.setData(DataComponentTypes.ITEM_MODEL, MINER_HELMET_MODEL);
+            changed = true;
         }
-        item.setItemMeta(meta);
-        return item;
+        if (equippable == null || !MINER_HELMET_MODEL.equals(equippable.assetId())) {
+            item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(EquipmentSlot.HEAD)
+                    .assetId(MINER_HELMET_MODEL));
+            changed = true;
+        }
+        return changed;
     }
 }

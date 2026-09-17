@@ -153,7 +153,7 @@ golfinho/axolote...) nunca escalam.
 **Zombie Miner / Skeleton Miner** (`MinerVariantService`): um Zumbi ou Esqueleto
 normal (não Husk/Drowned/Stray/Wither Skeleton/Zombie Villager) que nasce no Overworld
 abaixo de Y0 vira essa variante em vez do mob comum — veste um set completo de
-**"Miner's Armor"**: cabeça customizada própria no lugar do capacete (só visual) +
+**"Miner's Armor"**: capacete de couro com modelo próprio do resource pack +
 peitoral/calça/bota de couro tingido de cinza (também só visual). Cada peça é forçada
 a ter a mesma Defesa base do Diamante (`ArmorDefenseService#forceDefense`, ignora o
 Material real do item) e vem encantada com Proteção V (do próprio plugin, aplica mesmo
@@ -165,10 +165,8 @@ cada tick, não uma tag permanente — sair da camada negativa tira o bônus at�
 Toda peça é
 `Unbreakable`, e por já ser inquebrável o encantamento Unbreaking nunca aparece como
 opção na Mesa de Encantamento pra ela (nem pra qualquer outro item já inquebrável do
-plugin). O capacete (a cabeça customizada) é reconhecido como um capacete de verdade
-na Mesa de Encantamento — mesmo sendo tecnicamente uma `PLAYER_HEAD` por baixo,
-`EnchantService#compatibleEntries` testa contra um Capacete de Diamante genérico só
-pra essa peça, então Respiração/Proteção/Crescimento etc. aparecem normalmente nela.
+plugin). O capacete é um `LEATHER_HELMET` real e aceita normalmente
+Respiração/Proteção/Crescimento etc. na Mesa de Encantamento.
 Além da armadura, tem um piso garantido de 300 HP / 180 de dano por golpe
 (`miner-variants.below-y`/`min-health`/`min-damage`), por cima do que o
 Zumbi/Esqueleto normal já teria pelo tier+profundidade acima. Cada variante tem sua
@@ -443,9 +441,7 @@ em updates são mescladas automaticamente num `config.yml` já existente no serv
 - **[IcarusTexture](https://github.com/IcaroFranca/IcarusTexture)** (resource pack,
   obrigatório neste servidor via `server.properties`) — fornece a Undead's Sword
   (`icarus:undead_sword`) e o Miner's Helmet transparente no Java
-  (`icarus:heads/miner_helmet`). O capacete usa uma representação por plataforma:
-  Java recebe somente o `skinPatch` transparente do pack; Bedrock/Geyser recebe
-  somente a cabeça Base64 `HeadTexture#MINER_HELMET_DROP`. A varredura de inventário
-  ajusta automaticamente o item ao jogador atual, inclusive depois de trocas, sem
-  combinar os dois perfis no mesmo item — combinação que fazia o capacete desaparecer
-  no Bedrock. Sem o pack, a Undead's Sword mantém a Espada de Ferro como fallback.
+  (`icarus:miner_helmet`). O capacete usa `LEATHER_HELMET`, `item_model` e um equipment
+  asset próprios, sem perfil de cabeça, Base64 ou `skinPatch`; no Bedrock ele cai com
+  segurança para o capacete de couro normal até existir um pack Bedrock mapeado no
+  Geyser. Sem o pack, os dois itens mantêm seus materiais-base.
