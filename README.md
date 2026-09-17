@@ -333,28 +333,43 @@ encantamento já aplicado é feito numa tela separada, no Amolador (`Grindstone`
   descrição corrigida pra bater com o efeito de verdade, e ganharam efeito real quando
   a descrição prometia algo que não existia (ex.: Efficiency agora aplica um bônus
   real de velocidade de mineração; Fortune agora soma na Mining Fortune de verdade).
-- **Looting e Luck** controlam a chance de um mob hostil dropar sua arma e cada peça
-  de armadura equipada com a mesma fórmula multiplicativa: `Chance Final = Chance
-  Base × (1 + Looting × 0,15) × (1 + Luck × 0,05)`, rolada separadamente pra cada
-  peça (arma na mão + capacete/peitoral/calça/bota), então de 0 a 5 itens podem
+- **Looting, Luck e Chance** controlam a chance de um mob hostil dropar sua arma e
+  cada peça de armadura equipada com a mesma fórmula multiplicativa: `Chance Final =
+  Chance Base × (1 + Looting × 0,15) × (1 + Luck × 0,05)`, rolada separadamente pra
+  cada peça (arma na mão + capacete/peitoral/calça/bota), então de 0 a 5 itens podem
   dropar da mesma morte. "Chance Base" é a chance de drop que o próprio mob já tinha
   pra aquela peça (8,5% padrão do vanilla pra um mob que nasceu com o item, ou mais
   se ele pegou de um jogador) — exceto peças da Armadura de Minerador, que usam sua
   própria chance base fixa em vez da do vanilla (que fica zerada por design). O drop
   nativo do vanilla pra essas peças é substituído por esse cálculo, então Looting e
-  Luck são as únicas fontes reais de chance extra.
-- **Família de encantamentos corpo a corpo** (apenas espadas): Critical (+dano crítico), Cubism/Ender Slayer/Impaling
-  (+dano contra mobs Cúbicos ⚂, do Fim ⊙ e Aquáticos ⚓ respectivamente — cada um com
-  sua própria lista de `EntityType`), Execute (+dano por % de vida faltando no alvo),
-  Giant Killer (+dano por % de vida extra que o alvo tiver acima da sua), First Strike
-  (+dano no primeiro golpe contra um alvo com vida cheia — libera no nível 10 da skill
-  de Encantamento, junto com Execute), Lethality (reduz a Defesa
-  do alvo por acerto, empilhando até 4 vezes por 4s), Life Steal (cura % da sua vida
-  máxima por acerto), Vampirism (cura % da vida faltante ao matar), Thunderlord (raio
-  a cada 3 acertos), Venomous (lentidão + dano contínuo empilhável por acerto),
-  Experience (chance de dobrar orbes de XP de mobs ou minérios, também aplicável à
-  picareta) e Luck (aumenta a chance de mobs dropar sua arma e armadura equipadas —
-  ver fórmula de Looting/Luck acima).
+  Luck são as únicas fontes reais de chance extra. Chance (até nível 3, arco) é o
+  equivalente do Looting pro arco — real Looting nunca pode ir num arco (o
+  `canEnchantItem` vanilla recusa) — e soma no mesmo termo, mesma taxa de 15%/nível.
+- **Família de encantamentos corpo a corpo**: Critical (espada — +dano crítico),
+  Cubism/Ender Slayer/Impaling (espada **e arco** — +dano contra mobs Cúbicos ⚂, do
+  Fim ⊙ e Aquáticos ⚓ respectivamente — cada um com sua própria lista de
+  `EntityType`; no arco, o nível é lido do arco que disparou a flecha no momento do
+  tiro, não da mão no momento do impacto), Execute (espada — +dano por % de vida
+  faltando no alvo), Giant Killer (espada — +dano por % de vida extra que o alvo
+  tiver acima da sua), First Strike (espada — +dano no primeiro golpe contra um alvo
+  com vida cheia — libera no nível 10 da skill de Encantamento, junto com Execute),
+  Lethality (espada — reduz a Defesa do alvo por acerto, empilhando até 4 vezes por
+  4s), Life Steal (espada — cura % da sua vida máxima por acerto), Vampirism (espada
+  — cura % da vida faltante ao matar), Thunderlord (espada — raio a cada 3 acertos),
+  Venomous (espada — lentidão + dano contínuo empilhável por acerto), Experience
+  (espada — chance de dobrar orbes de XP de mobs ou minérios, também aplicável à
+  picareta) e Luck (espada — aumenta a chance de mobs dropar sua arma e armadura
+  equipadas — ver fórmula de Looting/Luck/Chance acima).
+- **Família de encantamentos de arco**: Flame (incendeia o alvo por alguns segundos),
+  Infinite Quiver (chance de economizar a flecha), Aiming (até nível 5 — flechas
+  perseguem o inimigo hostil mais próximo dentro de um raio de 2 blocos/nível,
+  redirecionando a velocidade a cada tick sem alterar sua velocidade atual), Piercing
+  (só nível 1 — flecha atravessa múltiplos inimigos de verdade, via
+  `AbstractArrow#setPierceLevel`; cada alvo além do primeiro leva só 25% do dano) e
+  Snipe (até nível 5 — +1% de dano por nível a cada 10 blocos que a flecha percorreu
+  desde o disparo, medido em linha reta do ponto de disparo até o impacto). Cubism/
+  Ender Slayer/Impaling/Piercing/Snipe precisam sobreviver do disparo até o impacto,
+  então ficam marcados na própria flecha (não na mão do atirador) no momento do tiro.
 - **Família de encantamentos de agricultura/mineração**: Delicate (machado e enxada —
   impede de quebrar plantações que ainda não cresceram totalmente e caules de abóbora/
   melancia), Harvesting (enxada, até nível 5 — +12,5 de Farming Fortune por nível),

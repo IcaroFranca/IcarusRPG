@@ -6,6 +6,7 @@ import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
 import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
+import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
@@ -46,6 +47,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -73,6 +75,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -280,10 +283,13 @@ public final class CombatListener implements Listener {
      * named terms in the user's own formula - they're this plugin's own extras, kept
      * exactly as before, multiplied on top of the whole result.
      *
-     * <p>The projectile (arrow) half is untouched - the user's spec was specifically
-     * about melee weapons (their own example is a sword), and arrows already have
-     * their own separate flat-damage-plus-Power pipeline in {@code
-     * CustomEnchantEffectListener#bowShoot}.
+     * <p>The projectile (arrow) half's own base formula is untouched by the above -
+     * the user's spec was specifically about melee weapons (their own example is a
+     * sword), and arrows already have their own separate flat-damage-plus-Power
+     * pipeline in {@code CustomEnchantEffectListener#bowShoot}. It does get its own
+     * percentage bonus on top, though - {@link #arrowEnchantPercent}, the bow-side
+     * equivalent of {@link #customMeleeDamagePercent} (Cubism/Ender Slayer/Impaling
+     * when the bow that fired had one, Snipe's distance bonus).
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void damage(EntityDamageByEntityEvent e) {
@@ -377,7 +383,8 @@ public final class CombatListener implements Listener {
             damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead;
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
-            damage = (e.getDamage() + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
+            double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
+            damage = (e.getDamage() * (1.0 + arrowEnchantPercent / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                     * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead;
         }
         e.setDamage(damage);
@@ -510,6 +517,61 @@ public final class CombatListener implements Listener {
             percent += 25.0 * firstStrikeLevel;
         }
         return percent;
+    }
+
+    /**
+     * The projectile-side twin of {@link #customMeleeDamagePercent}: Cubism/Ender
+     * Slayer/Impaling's own target-type-gated bonus (same {@link #linearCapped}
+     * shape) plus Snipe's distance-traveled bonus, for an arrow shot by a bow that
+     * had the relevant enchant AT SHOOT TIME - read off the arrow's own PDC ({@link
+     * BowEnchantEffectListener} writes these in its own {@code bowShoot}), not the
+     * shooter's current main hand, since by the time an arrow lands the player could
+     * easily be holding something else entirely (same reasoning {@link #damage}'s
+     * own melee/projectile split already documents for why the projectile branch
+     * never reads the main hand for anything else either).
+     */
+    private double arrowEnchantPercent(Entity damager, LivingEntity target) {
+        if (!(damager instanceof AbstractArrow arrow)) {
+            return 0.0;
+        }
+        double percent = 0.0;
+        EntityType type = target.getType();
+        if (CUBIC_TYPES.contains(type)) {
+            percent += linearCapped(arrowEnchantLevel(arrow, BowEnchantEffectListener.CUBISM_LEVEL_KEY));
+        }
+        if (ENDER_TYPES.contains(type)) {
+            percent += linearCapped(arrowEnchantLevel(arrow, BowEnchantEffectListener.ENDER_SLAYER_LEVEL_KEY));
+        }
+        if (AQUATIC_TYPES.contains(type)) {
+            percent += linearCapped(arrowEnchantLevel(arrow, BowEnchantEffectListener.IMPALING_LEVEL_KEY));
+        }
+        percent += snipeBonus(arrow);
+        return percent;
+    }
+
+    private static int arrowEnchantLevel(AbstractArrow arrow, NamespacedKey key) {
+        return arrow.getPersistentDataContainer().getOrDefault(key, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Snipe: {@code level}% extra damage for every 10 blocks the arrow traveled from where it was fired ({@link BowEnchantEffectListener#ORIGIN_X_KEY} and friends), 0 if the bow had no Snipe (or the origin was somehow never recorded). */
+    private static double snipeBonus(AbstractArrow arrow) {
+        int level = arrowEnchantLevel(arrow, BowEnchantEffectListener.SNIPE_LEVEL_KEY);
+        if (level <= 0) {
+            return 0.0;
+        }
+        PersistentDataContainer pdc = arrow.getPersistentDataContainer();
+        Double originX = pdc.get(BowEnchantEffectListener.ORIGIN_X_KEY, PersistentDataType.DOUBLE);
+        Double originY = pdc.get(BowEnchantEffectListener.ORIGIN_Y_KEY, PersistentDataType.DOUBLE);
+        Double originZ = pdc.get(BowEnchantEffectListener.ORIGIN_Z_KEY, PersistentDataType.DOUBLE);
+        if (originX == null || originY == null || originZ == null) {
+            return 0.0;
+        }
+        Location current = arrow.getLocation();
+        double dx = current.getX() - originX;
+        double dy = current.getY() - originY;
+        double dz = current.getZ() - originZ;
+        double traveled = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return level * (traveled / 10.0);
     }
 
     /** {@code target}'s current missing health, as a percentage of its own max health (0 if it's already at or above max, or has no measurable max). */
@@ -873,7 +935,9 @@ public final class CombatListener implements Listener {
     }
 
     /**
-     * Looting and Luck both scale a hostile mob's equipped gear the same way:
+     * Looting (real vanilla, plus the custom bow-only Chance enchant folded into the
+     * exact same term - see {@link IcarusEnchant#CHANCE}'s own doc) and Luck both
+     * scale a hostile mob's equipped gear the same way:
      * {@code Chance Final = Chance Base * (1 + lootingLevel * 0.15) * (1 + luckLevel
      * * 0.05)}, rolled independently for every piece the mob actually has on
      * (mainhand weapon and all four armor slots) - not armor-only, and not a single
@@ -900,7 +964,11 @@ public final class CombatListener implements Listener {
             return;
         }
         ItemStack weapon = killer.getInventory().getItemInMainHand();
-        double lootingMultiplier = 1.0 + weapon.getEnchantmentLevel(Enchantment.LOOTING) * LOOTING_DROP_MULTIPLIER;
+        // Chance is Looting's bow-usable equivalent (real vanilla Looting's own
+        // canEnchantItem rejects a bow outright) - same 15%/level rate, folded into
+        // the exact same multiplier rather than a separate term.
+        int lootingLevel = weapon.getEnchantmentLevel(Enchantment.LOOTING) + this.enchants.customLevel(weapon, IcarusEnchant.CHANCE);
+        double lootingMultiplier = 1.0 + lootingLevel * LOOTING_DROP_MULTIPLIER;
         double luckMultiplier = 1.0 + this.enchants.customLevel(weapon, IcarusEnchant.LUCK) * LUCK_DROP_MULTIPLIER;
         this.rollEquipmentSlot(e, killer, eq.getItemInMainHand(), eq.getItemInMainHandDropChance(), lootingMultiplier, luckMultiplier);
         this.rollEquipmentSlot(e, killer, eq.getHelmet(), eq.getHelmetDropChance(), lootingMultiplier, luckMultiplier);

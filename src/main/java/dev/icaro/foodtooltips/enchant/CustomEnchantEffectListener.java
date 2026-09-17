@@ -119,7 +119,7 @@ public final class CustomEnchantEffectListener implements Listener {
 
     /** Returns the mutated item if it needed the lore line, or null if it's not a bow or already has it. */
     private ItemStack bowTooltip(ItemStack item, Language l) {
-        if (item == null || item.getType() != Material.BOW) {
+        if (item == null || !IcarusEnchant.isBow(item.getType())) {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
@@ -138,7 +138,7 @@ public final class CustomEnchantEffectListener implements Listener {
     /** Sets every arrow's base damage to {@link #BASE_BOW_DAMAGE} plus real Power (the usual combat multiplier pipeline in CombatListener still applies on top at hit time) and rolls Infinite Quiver's arrow-save chance, exactly the way vanilla's own Infinity sets this same flag. Player shots only - {@link EntityShootBowEvent} also fires for any mob shooting a real BOW item (skeletons in particular), which this used to silently overwrite with the player's own flat total, well above vanilla's own (much lower, difficulty-scaled) skeleton arrow damage. */
     @EventHandler
     public void bowShoot(EntityShootBowEvent e) {
-        if (!(e.getEntity() instanceof Player) || e.getBow() == null || e.getBow().getType() != Material.BOW || !(e.getProjectile() instanceof AbstractArrow arrow)) {
+        if (!(e.getEntity() instanceof Player) || e.getBow() == null || !IcarusEnchant.isBow(e.getBow().getType()) || !(e.getProjectile() instanceof AbstractArrow arrow)) {
             return;
         }
         // Power's own real vanilla damage bonus would otherwise apply to the arrow's
@@ -167,10 +167,10 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         ItemStack bow = shooter.getInventory().getItemInMainHand();
-        if (bow.getType() != Material.BOW) {
+        if (!IcarusEnchant.isBow(bow.getType())) {
             bow = shooter.getInventory().getItemInOffHand();
         }
-        if (bow.getType() != Material.BOW) {
+        if (!IcarusEnchant.isBow(bow.getType())) {
             return;
         }
         int level = this.enchants.levelOf(bow, new CustomEnchantEntry(IcarusEnchant.FLAME));

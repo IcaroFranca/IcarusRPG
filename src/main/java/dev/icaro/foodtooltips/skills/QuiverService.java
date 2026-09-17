@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.skills;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import java.io.ByteArrayInputStream;
@@ -229,7 +230,7 @@ public final class QuiverService {
             return;
         }
         PlayerInventory inv = p.getInventory();
-        boolean holdingBow = inv.getItemInMainHand().getType() == Material.BOW || inv.getItemInOffHand().getType() == Material.BOW;
+        boolean holdingBow = IcarusEnchant.isBow(inv.getItemInMainHand().getType()) || IcarusEnchant.isBow(inv.getItemInOffHand().getType());
         if (!holdingBow) {
             // Not drawing a bow (anymore) - if the last top-up went unfired, it doesn't
             // belong sitting in their inventory as a permanent arrow; hand it back.

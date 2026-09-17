@@ -31,11 +31,11 @@ import org.bukkit.Material;
  */
 public enum IcarusEnchant {
     /** Replaces vanilla Flame (capped at level 1) - see CustomEnchantEffectListener#arrowHit. */
-    FLAME("Chama", "Flame", 2, Material.BOW),
+    FLAME("Chama", "Flame", 2, Category.BOW),
     /** Replaces vanilla Lure (capped at level 3) - see CustomEnchantEffectListener#fish. */
     LURE("Chamariz", "Lure", 5, Material.FISHING_ROD),
     /** Replaces vanilla Infinity (capped at level 1, and a plain on/off rather than a chance) - see CustomEnchantEffectListener#bowShoot. */
-    INFINITE_QUIVER("Aljava Infinita", "Infinite Quiver", 5, Material.BOW),
+    INFINITE_QUIVER("Aljava Infinita", "Infinite Quiver", 5, Category.BOW),
     /** Replaces vanilla Luck of the Sea (capped at level 3) - see CustomEnchantEffectListener#fishCatch. */
     LUCK_OF_THE_SEA("Sorte do Mar", "Luck of the Sea", 5, Material.FISHING_ROD),
     /** Replaces vanilla Fire Aspect (capped at level 2) - see CustomEnchantEffectListener#fireAspectHit. */
@@ -61,29 +61,54 @@ public enum IcarusEnchant {
      * The plugin's own melee-weapon enchant family (Critical through Venomous below) -
      * entirely new mechanics, not a leveled-up vanilla enchant like most of the entries
      * above. All fourteen are sword-only ({@link Category#SWORD}, same as Fire Aspect
-     * above - explicitly NOT axes/pickaxes/shovels/hoes, per the user's own correction)
-     * and are wired up across {@code CombatListener} (the damage-percentage ones:
-     * Critical, Cubism, Ender Slayer, Execute, First Strike, Giant Killer, Impaling,
-     * plus Lethality's Defense-reduction debuff) and {@code MeleeEnchantEffectListener}
-     * (the on-hit/on-kill ones: Life Steal, Vampirism, Thunderlord, Venomous,
-     * Experience, Luck). Cubism/Ender Slayer/Impaling target three new mob categories
-     * the plugin didn't have before - {@code CombatListener}'s own {@code CUBIC_TYPES}/
-     * {@code ENDER_TYPES}/{@code AQUATIC_TYPES}.
+     * above - explicitly NOT axes/pickaxes/shovels/hoes, per the user's own correction),
+     * except Cubism/Ender Slayer/Impaling, which also apply to bows ({@link
+     * Category#SWORD_OR_BOW}) per the user's own later request - see the bow enchant
+     * family block below for the rest of that request. Wired up across {@code
+     * CombatListener} (the damage-percentage ones: Critical, Cubism, Ender Slayer,
+     * Execute, First Strike, Giant Killer, Impaling, plus Lethality's Defense-reduction
+     * debuff - Cubism/Ender Slayer/Impaling's bow-side damage lives there too, off the
+     * arrow's own PDC rather than the shooter's current main hand) and {@code
+     * MeleeEnchantEffectListener} (the on-hit/on-kill ones: Life Steal, Vampirism,
+     * Thunderlord, Venomous, Experience, Luck). Cubism/Ender Slayer/Impaling target
+     * three new mob categories the plugin didn't have before - {@code CombatListener}'s
+     * own {@code CUBIC_TYPES}/{@code ENDER_TYPES}/{@code AQUATIC_TYPES}.
      */
     CRITICAL("Crítico", "Critical", 5, Category.SWORD),
-    CUBISM("Cubismo", "Cubism", 5, Category.SWORD),
-    ENDER_SLAYER("Matador do Fim", "Ender Slayer", 5, Category.SWORD),
+    CUBISM("Cubismo", "Cubism", 5, Category.SWORD_OR_BOW),
+    ENDER_SLAYER("Matador do Fim", "Ender Slayer", 5, Category.SWORD_OR_BOW),
     EXECUTE("Execução", "Execute", 5, Category.SWORD),
     EXPERIENCE("Experiência", "Experience", 4, Category.SWORD_OR_PICKAXE),
     FIRST_STRIKE("Primeiro Golpe", "First Strike", 4, Category.SWORD),
     GIANT_KILLER("Matador de Gigantes", "Giant Killer", 5, Category.SWORD),
-    IMPALING("Perfurante", "Impaling", 5, Category.SWORD),
+    IMPALING("Perfurante", "Impaling", 5, Category.SWORD_OR_BOW),
     LETHALITY("Letalidade", "Lethality", 5, Category.SWORD),
     LIFE_STEAL("Roubo de Vida", "Life Steal", 3, Category.SWORD),
     LUCK("Sorte", "Luck", 5, Category.SWORD),
     THUNDERLORD("Senhor do Trovão", "Thunderlord", 5, Category.SWORD),
     VAMPIRISM("Vampirismo", "Vampirism", 5, Category.SWORD),
     VENOMOUS("Venenoso", "Venomous", 5, Category.SWORD),
+
+    /**
+     * The plugin's own bow enchant family - genuinely new mechanics, none of them a
+     * leveled-up vanilla enchant (vanilla's own real Piercing is untouched - see
+     * {@code EnchantService#EXCLUDED_VANILLA_KEYS}'s own doc - this Piercing is a
+     * separate bow-only entry with its own, deliberately different, mechanic). {@link
+     * Category#BOW} means literally {@link Material#BOW} today (see {@link #isBow}) -
+     * the one spot to extend once new bow/shortbow item types exist. Wired up in
+     * {@code BowEnchantEffectListener} (Aiming's per-tick homing task, started at
+     * shoot time; Piercing's real vanilla pass-through - {@code
+     * AbstractArrow#setPierceLevel} - plus its own extra-target damage reduction) and
+     * {@code CombatListener} (Snipe's distance-based bonus, folded into the same
+     * projectile damage branch the bow-side Cubism/Ender Slayer/Impaling percentage
+     * above uses; Chance folded into {@code #rollEquipmentDrops}'s own Looting
+     * multiplier, since it's meant to be Looting's bow-usable equivalent - real vanilla
+     * Looting's own {@code canEnchantItem} rejects a bow outright).
+     */
+    AIMING("Mira", "Aiming", 5, Category.BOW),
+    CHANCE("Chance", "Chance", 3, Category.BOW),
+    PIERCING("Penetrante", "Piercing", 1, Category.BOW),
+    SNIPE("Tiro Longo", "Snipe", 5, Category.BOW),
 
     /**
      * A second, smaller farming/mining family - unrelated tools/materials from the
@@ -105,7 +130,7 @@ public enum IcarusEnchant {
 
     /** An entry's item-type restriction - a single material for a held-item entry (a specific bow/rod), or a whole category otherwise, since one {@link Material} can't express "any sword"/"any armor piece". Kept as a nested enum (rather than e.g. a {@code Predicate<Material>} field) so the constant list above - which Java requires to come first in an enum body - never has to forward-reference a same-class static field. */
     private enum Category {
-        SINGLE, SWORD, ARMOR, BOOTS, HELMET, HOE, AXE_OR_HOE, PICKAXE_AXE_SHOVEL, SWORD_OR_PICKAXE, PICKAXE
+        SINGLE, SWORD, BOW, SWORD_OR_BOW, ARMOR, BOOTS, HELMET, HOE, AXE_OR_HOE, PICKAXE_AXE_SHOVEL, SWORD_OR_PICKAXE, PICKAXE
     }
 
     /** Level 1's (duration seconds, damage % per second) pair; level 2's. Doesn't fit a "flat rate * level" formula, so it's a direct lookup instead. */
@@ -187,12 +212,19 @@ public enum IcarusEnchant {
         };
     }
 
+    /** Whether {@code item} counts as "a bow" for {@link Category#BOW}/{@link Category#SWORD_OR_BOW} - literally {@link Material#BOW} today, the only bow-class item the game has. The one place to extend once new bow/shortbow materials exist (see the bow enchant family's own class doc above). */
+    public static boolean isBow(Material item) {
+        return item == Material.BOW;
+    }
+
     /** Whether {@code item} is in this entry's item category - unlike vanilla entries, which delegate this straight to {@code Enchantment#canEnchantItem}. */
     public boolean canApplyTo(Material item) {
         String n = item.name();
         return switch (this.category) {
             case SINGLE -> item == this.singleMaterial;
             case SWORD -> n.endsWith("_SWORD");
+            case BOW -> isBow(item);
+            case SWORD_OR_BOW -> n.endsWith("_SWORD") || isBow(item);
             case ARMOR -> n.endsWith("_HELMET") || n.endsWith("_CHESTPLATE") || n.endsWith("_LEGGINGS") || n.endsWith("_BOOTS");
             case BOOTS -> n.endsWith("_BOOTS");
             case HELMET -> n.endsWith("_HELMET");
@@ -213,6 +245,9 @@ public enum IcarusEnchant {
             case PROTECTION, FIRE_PROTECTION, BLAST_PROTECTION, PROJECTILE_PROTECTION, FEATHER_FALLING, GROWTH -> new int[]{10, 15, 20, 25, 30};
             case RESPIRATION -> new int[]{10, 20, 30};
             case CRITICAL, CUBISM, ENDER_SLAYER, EXECUTE, GIANT_KILLER, IMPALING, LETHALITY, LUCK, THUNDERLORD, VAMPIRISM, VENOMOUS -> new int[]{10, 20, 30, 40, 50};
+            case AIMING, SNIPE -> new int[]{10, 20, 30, 40, 50};
+            case CHANCE -> new int[]{15, 30, 45};
+            case PIERCING -> new int[]{25};
             case EXPERIENCE -> new int[]{10, 20, 30, 40};
             // Rebalanced per the user's own request: level IV (max) costs exactly 75,
             // levels I-III scaled up to match instead of the usual flat +10/level shape.
@@ -380,6 +415,24 @@ public enum IcarusEnchant {
                                 EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("of your damage per second, stacking globally up to 40 times for 5 seconds.")));
             }
+            case AIMING -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Flechas perseguem o inimigo mais próximo a até"), EnchantText.Token.value(level, " blocos", l -> l * 2),
+                            EnchantText.perLevel(level, true), EnchantText.Token.plain("de distância."))
+                    : List.of(EnchantText.Token.plain("Arrows chase the nearest enemy within"), EnchantText.Token.value(level, " blocks", l -> l * 2),
+                            EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case CHANCE -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Aumenta a chance de um mob dropar um item em"), EnchantText.Token.value(level, "%", l -> l * 15),
+                            EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
+                    : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> l * 15),
+                            EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case PIERCING -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Flechas atravessam inimigos; alvos extras recebem"), EnchantText.Token.colored("25%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("do dano."))
+                    : List.of(EnchantText.Token.plain("Arrows pierce through enemies; extra targets take"), EnchantText.Token.colored("25%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("of the damage.")));
+            case SNIPE -> EnchantText.wrap(pt
+                    ? List.of(EnchantText.Token.plain("Flechas causam"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, true),
+                            EnchantText.Token.plain("de dano a mais a cada 10 blocos percorridos."))
+                    : List.of(EnchantText.Token.plain("Arrows deal"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
+                            EnchantText.Token.plain("more damage for every 10 blocks traveled.")));
             case DELICATE -> EnchantText.wrap(pt
                     ? List.of(EnchantText.Token.plain("Impede de quebrar plantações que ainda não cresceram totalmente e caules."))
                     : List.of(EnchantText.Token.plain("Prevents breaking crops that haven't fully grown yet, and stems.")));

@@ -20,6 +20,7 @@ import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
 import dev.icaro.foodtooltips.enchant.ArmorEnchantEffectListener;
+import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.SpawnerTouchListener;
 import dev.icaro.foodtooltips.enchant.MeleeEnchantEffectListener;
@@ -191,6 +192,7 @@ extends JavaPlugin {
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals), (Plugin)this);
+        pm.registerEvents((Listener)new BowEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
