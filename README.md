@@ -183,7 +183,7 @@ arma lendária sem ser pelo `/rpgitems` (admin-only). Cada peça da própria Min
 Armor também tem **1% de chance base independente de dropar** (capacete, peitoral,
 calça e bota rolados separadamente — de nenhuma a todas as quatro no mesmo abate),
 escalada pela mesma fórmula de Looting/Luck (ver seção de Encantamentos), sempre no
-**Tier A**, já com a Defesa base de Diamante, Proteção V e Unbreakable de quem a
+**Tier C**, já com a Defesa base de Diamante, Proteção V e Unbreakable de quem a
 estava usando (a Defesa dobrada volta a valer normalmente pro jogador que a vestir,
 enquanto estiver na camada negativa); o drop de equipamento aleatório do vanilla é
 totalmente desativado pra esses dois mobs, então esse drop é a única fonte
@@ -227,6 +227,10 @@ própria lore da peça. Craft: mesmo formato vanilla de cada peça, com Bloco de
 Lápis-Lazúli no lugar do material normal, mas com a respectiva peça de **Diamante**
 no slot central (em vez do vão vazio do vanilla) — exige ter craftado o set de
 Diamante primeiro, então não é um substituto mais barato, é um upgrade em cima dele.
+Sempre **Tier C** (mesma raridade de Miner's Armor e do Diamante puro — aqui o Tier
+não acompanha o quão forte o item é). Também disponível no `/rpgitems`, mesmo slot de
+conveniência que a Miner's Armor já tinha (um set completo garantido, sem depender do
+craft).
 
 **Dano corpo a corpo por material** (espada, machado, picareta, pá e enxada batem
 igual dentro do mesmo material):

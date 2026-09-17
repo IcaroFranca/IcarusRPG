@@ -87,8 +87,9 @@ public final class LapisArmorService {
     /**
      * One piece of Lapis Lazuli Armor: dyed blue leather, unbreakable, forced Defense
      * ({@code ArmorDefenseService#forceDefense}) regardless of being cosmetically
-     * leather, pinned to Tier S (stronger than Diamond's own Tier C, and above Miner's
-     * Armor's Tier A) - Portuguese name/description by default, same as every other
+     * leather, pinned to Tier C (same as Miner's Armor and plain Diamond gear, per
+     * explicit request - rarity here isn't meant to track power level) - Portuguese
+     * name/description by default, same as every other
      * item spawned without a player context to read a language preference from ({@link
      * #localize}, called via {@link #applyToInventory}, keeps this correct for whoever
      * actually ends up holding it).
@@ -100,7 +101,7 @@ public final class LapisArmorService {
         }
         meta.setUnbreakable(true);
         ArmorDefenseService.forceDefense(meta, defense);
-        this.tiers.forceTier(meta, ItemTier.S);
+        this.tiers.forceTier(meta, ItemTier.C);
         meta.getPersistentDataContainer().set(LAPIS_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.getPersistentDataContainer().set(PIECE_NAME_PT_KEY, PersistentDataType.STRING, namePt);
         meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
@@ -108,6 +109,23 @@ public final class LapisArmorService {
         meta.lore(wrappedDescription(DESCRIPTION_PT));
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * A fresh, standalone Lapis Lazuli Armor set (helmet/chestplate/leggings/boots),
+     * already localized to {@code viewer} - for the {@code /rpgitems} admin menu
+     * ({@code LegendaryItemsMenuService}), independent of ever crafting one. The exact
+     * same items (same stats, Tier, Unbreakable) the crafting recipes themselves
+     * produce - same idea as {@code MinerVariantService#createArmorSet}.
+     */
+    public List<ItemStack> createArmorSet(Player viewer) {
+        Language l = Language.of(viewer);
+        List<ItemStack> set = new ArrayList<>();
+        for (ItemStack piece : this.fullSet()) {
+            localize(piece, l);
+            set.add(piece);
+        }
+        return set;
     }
 
     /**

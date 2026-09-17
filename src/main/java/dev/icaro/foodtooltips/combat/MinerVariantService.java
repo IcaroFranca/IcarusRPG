@@ -164,7 +164,7 @@ public final class MinerVariantService implements Listener {
      * A fresh, standalone Miner's Armor set (helmet/chestplate/leggings/boots), already
      * in {@code l} - for the {@code /rpgitems} admin menu ({@code
      * LegendaryItemsMenuService}), independent of any mob ever existing. The exact same
-     * items (same stats, doubled-Defense-underground bonus, Tier A, Protection V,
+     * items (same stats, doubled-Defense-underground bonus, Tier C, Protection V,
      * Unbreakable) a Zombie Miner itself wears and can drop - always the Zombie Miner's
      * own helmet texture, since the two variants' armor is otherwise identical and the
      * menu only has room for one tile.
@@ -194,11 +194,13 @@ public final class MinerVariantService implements Listener {
      * enchant is gated on the item's own material (see {@code
      * ArmorEnchantEffectListener#armorLevel}), so both apply to the helmet too - and {@link #minerArmorBonusActive}
      * doubles both on top of whoever wears it (see this class's own doc, and {@link
-     * #DESCRIPTION_PT}/{@link #DESCRIPTION_EN} which state it). Also pinned to Tier A ({@code
+     * #DESCRIPTION_PT}/{@link #DESCRIPTION_EN} which state it). Also pinned to Tier C ({@code
      * ItemTierService#forceTier}, same override idea as {@code
-     * ArmorDefenseService#forceDefense}) - matters once {@code CombatListener
-     * #rollMinerArmorDrops} hands a copy to a player, since a plain dyed-leather piece
-     * would otherwise resolve to a much lower Tier by Material alone.
+     * ArmorDefenseService#forceDefense}, same Tier plain Diamond gear and Lapis Lazuli
+     * Armor both get too - per explicit request, rarity here doesn't track power level)
+     * - matters once {@code CombatListener#rollMinerArmorDrops} hands a copy to a
+     * player, since a plain dyed-leather piece would otherwise resolve to a much lower
+     * Tier by Material alone.
      */
     private ItemStack minerPiece(ItemStack item, int diamondDefense, String namePt, String nameEn) {
         ItemMeta meta = item.getItemMeta();
@@ -207,7 +209,7 @@ public final class MinerVariantService implements Listener {
         }
         meta.setUnbreakable(true);
         ArmorDefenseService.forceDefense(meta, diamondDefense);
-        this.tiers.forceTier(meta, ItemTier.A);
+        this.tiers.forceTier(meta, ItemTier.C);
         meta.getPersistentDataContainer().set(PIECE_NAME_PT_KEY, PersistentDataType.STRING, namePt);
         meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
         meta.displayName(Component.text(namePt, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));

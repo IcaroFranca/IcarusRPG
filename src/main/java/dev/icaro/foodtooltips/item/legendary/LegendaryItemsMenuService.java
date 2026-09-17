@@ -21,12 +21,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 /**
  * The {@code /rpgitems} admin-only menu: one tile per {@link LegendaryWeapon} plus one
- * for the Miner's Armor set ({@link #MINER_ARMOR_SLOT}), click to receive a copy in
- * your own inventory (per-player decision - no target-player picker for now). Every
- * {@link LegendaryWeapon} is not craftable, dropped, or sold anywhere else - this menu
- * is the only way one enters the game. Miner's Armor is the one exception: a Zombie
- * Miner already wears (and can drop) the same items - this menu is just a second,
- * guaranteed way to get a full set instead of relying on its 1%-per-piece drop chance.
+ * each for the Miner's Armor ({@link #MINER_ARMOR_SLOT}) and Lapis Lazuli Armor ({@link
+ * #LAPIS_ARMOR_SLOT}) sets, click to receive a copy in your own inventory (per-player
+ * decision - no target-player picker for now). Every {@link LegendaryWeapon} is not
+ * craftable, dropped, or sold anywhere else - this menu is the only way one enters the
+ * game. Miner's Armor and Lapis Lazuli Armor are the exceptions: a Zombie/Skeleton
+ * Miner already wears (and can drop) Miner's Armor, and Lapis Lazuli Armor has its own
+ * crafting recipes ({@code LapisArmorService#registerRecipes}) - this menu is just a
+ * second, guaranteed way to get a full set of either instead of relying on a drop
+ * chance or gathering the crafting materials.
  */
 public final class LegendaryItemsMenuService {
     private static final Map<Integer, LegendaryWeapon> SLOTS = Map.of(
@@ -39,11 +42,15 @@ public final class LegendaryItemsMenuService {
             33, LegendaryWeapon.UNDEAD_SWORD);
     /** Top-center, apart from the weapon rows below - Miner's Armor is a full 4-piece set, not a single {@link LegendaryWeapon}, so it isn't part of {@link #SLOTS} at all (see {@link #minerArmor}, wired in from {@code FoodTooltipsPlugin} as a plain function to avoid this package depending on {@code combat} - {@code combat} already depends on this one). */
     private static final int MINER_ARMOR_SLOT = 4;
+    /** Center of the grid, between the two weapon rows - see {@link #lapisArmor}, wired in from {@code FoodTooltipsPlugin} the same function-reference way as {@link #minerArmor} to avoid this package depending on {@code item} directly for it. */
+    private static final int LAPIS_ARMOR_SLOT = 22;
 
     private final LegendaryWeaponService weapons;
     private final Set<UUID> viewing = new HashSet<>();
     /** {@code MinerVariantService::createArmorSet} - takes the viewer so the helmet can use the Java or Bedrock representation appropriate to that player. See {@link #MINER_ARMOR_SLOT}'s own doc for why this is a function reference rather than a direct dependency. Defaults to an empty set so the tile never NPEs if this is somehow never wired. */
     private Function<Player, List<ItemStack>> minerArmor = p -> List.of();
+    /** {@code LapisArmorService::createArmorSet} - same idea as {@link #minerArmor}, see {@link #LAPIS_ARMOR_SLOT}. */
+    private Function<Player, List<ItemStack>> lapisArmor = p -> List.of();
 
     public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
         this.weapons = weapons;
@@ -52,6 +59,11 @@ public final class LegendaryItemsMenuService {
     /** Wired in after construction, same pattern as {@code ArmorDefenseService#defenseMultiplier} - see {@link #minerArmor}. */
     public void minerArmor(Function<Player, List<ItemStack>> minerArmor) {
         this.minerArmor = minerArmor;
+    }
+
+    /** Wired in after construction - see {@link #lapisArmor}. */
+    public void lapisArmor(Function<Player, List<ItemStack>> lapisArmor) {
+        this.lapisArmor = lapisArmor;
     }
 
     public void open(Player p) {
@@ -64,7 +76,8 @@ public final class LegendaryItemsMenuService {
         for (Map.Entry<Integer, LegendaryWeapon> e : SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.preview(e.getValue(), l));
         }
-        v.setItem(MINER_ARMOR_SLOT, this.minerArmorPreview(p, l));
+        v.setItem(MINER_ARMOR_SLOT, this.armorSetPreview(this.minerArmor.apply(p), l));
+        v.setItem(LAPIS_ARMOR_SLOT, this.armorSetPreview(this.lapisArmor.apply(p), l));
         p.openInventory(v);
         this.viewing.add(p.getUniqueId());
     }
@@ -80,12 +93,11 @@ public final class LegendaryItemsMenuService {
     public void handleClick(Player p, int slot) {
         Language l = Language.of(p);
         if (slot == MINER_ARMOR_SLOT) {
-            for (ItemStack piece : this.minerArmor.apply(p)) {
-                for (ItemStack overflow : p.getInventory().addItem(piece).values()) {
-                    p.getWorld().dropItemNaturally(p.getLocation(), overflow);
-                }
-            }
-            p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ") + "Miner's Armor", NamedTextColor.GREEN));
+            this.giveSet(p, this.minerArmor.apply(p), l, "Miner's Armor");
+            return;
+        }
+        if (slot == LAPIS_ARMOR_SLOT) {
+            this.giveSet(p, this.lapisArmor.apply(p), l, "Lapis Lazuli Armor");
             return;
         }
         LegendaryWeapon w = SLOTS.get(slot);
@@ -97,6 +109,16 @@ public final class LegendaryItemsMenuService {
             p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
         p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ") + w.name(l == Language.PT), NamedTextColor.GREEN));
+    }
+
+    /** Hands every piece of {@code set} to {@code p} (overflow drops on the ground), then announces {@code label} - shared by both {@link #MINER_ARMOR_SLOT} and {@link #LAPIS_ARMOR_SLOT}. */
+    private void giveSet(Player p, List<ItemStack> set, Language l, String label) {
+        for (ItemStack piece : set) {
+            for (ItemStack overflow : p.getInventory().addItem(piece).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+            }
+        }
+        p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ") + label, NamedTextColor.GREEN));
     }
 
     /** The menu tile: {@code w}'s real item plus one extra "click to receive" line. */
@@ -111,9 +133,8 @@ public final class LegendaryItemsMenuService {
         return item;
     }
 
-    /** The Miner's Armor tile: the set's own helmet (its most recognizable piece) plus lines noting it's a full 4-piece set and the usual "click to receive". Falls back to a plain filler pane if {@link #minerArmor} was never wired (an empty set). */
-    private ItemStack minerArmorPreview(Player p, Language l) {
-        List<ItemStack> set = this.minerArmor.apply(p);
+    /** An armor-set tile: the set's own first piece (its most recognizable one) plus lines noting it's a full 4-piece set and the usual "click to receive". Falls back to a plain filler pane if {@code set} is empty (its own supplier - {@link #minerArmor}/{@link #lapisArmor} - was never wired). */
+    private ItemStack armorSetPreview(List<ItemStack> set, Language l) {
         if (set.isEmpty()) {
             return this.filler();
         }

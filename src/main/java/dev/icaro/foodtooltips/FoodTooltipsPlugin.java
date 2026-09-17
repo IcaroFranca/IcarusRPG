@@ -172,6 +172,7 @@ extends JavaPlugin {
         menus.enchants(enchants);
         MinerVariantService minerVariants = new MinerVariantService((Plugin)this, enchants, difficulty, this.visuals, tiers);
         legendaryItemsMenu.minerArmor(minerVariants::createArmorSet);
+        legendaryItemsMenu.lapisArmor(lapisArmor::createArmorSet);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
