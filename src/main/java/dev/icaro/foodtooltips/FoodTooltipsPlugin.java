@@ -45,6 +45,7 @@ import dev.icaro.foodtooltips.item.DurabilityListener;
 import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageListener;
@@ -121,6 +122,11 @@ extends JavaPlugin {
         ArmorDefenseService armor = new ArmorDefenseService();
         armor.general(general);
         ItemTierService tiers = new ItemTierService((Plugin)this);
+        LapisArmorService lapisArmor = new LapisArmorService((Plugin)this, tiers);
+        general.armorMiningSpeedBonus(lapisArmor::equippedMiningSpeedBonus);
+        general.armorMiningFortuneBonus(lapisArmor::equippedMiningFortuneBonus);
+        general.armorXpOrbBonus(lapisArmor::equippedXpOrbBonus);
+        lapisArmor.registerRecipes();
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
@@ -359,6 +365,7 @@ extends JavaPlugin {
             general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
+            lapisArmor.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
             // other item service, so none can accidentally restore the Base64 profile
             // on Java (or the skin patch on Bedrock) until the next sweep.

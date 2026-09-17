@@ -208,6 +208,26 @@ cosmético, o resto do item (Defesa, Tier, encantamentos) é idêntico.
 O encantamento Protection soma +4 de Defesa por nível (até nível V), por peça,
 empilhando em cima da tabela acima.
 
+**Armadura de Lápis-Lazúli** (`LapisArmorService`): a primeira armadura/arma craftável
+de verdade do plugin (tudo mais é drop de mob ou `/rpgitems`, admin-only) — couro
+tingido de azul (textura de verdade fica por conta de outra etapa, ainda não
+implementada), `Unbreakable`, e mais forte que Diamante em quase toda peça:
+
+| Peça | Defesa |
+|---|---|
+| Capacete | 25 |
+| Peitoral | 40 |
+| Calça | 35 |
+| Bota | 20 |
+
+Cada peça equipada também soma, enquanto vestida: **+20 Mining Speed**, **+2 Mining
+Fortune** e **+50% de Orbes de XP de qualquer fonte** (empilha com o bônus de
+Encantamento — set completo = +200%, triplica os orbes) — os três bônus descritos na
+própria lore da peça. Craft: mesmo formato vanilla de cada peça, com Bloco de
+Lápis-Lazúli no lugar do material normal, mas com a respectiva peça de **Diamante**
+no slot central (em vez do vão vazio do vanilla) — exige ter craftado o set de
+Diamante primeiro, então não é um substituto mais barato, é um upgrade em cima dele.
+
 **Dano corpo a corpo por material** (espada, machado, picareta, pá e enxada batem
 igual dentro do mesmo material):
 

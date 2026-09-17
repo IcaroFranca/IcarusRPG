@@ -55,6 +55,27 @@ public final class GeneralSkillService {
     private static final double INSTA_MINE_MAX_HARDNESS = 6.0;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
     private final NamespacedKey miningSpeedKey = new NamespacedKey("foodtooltips", "general_skill_mining_speed");
+    /** Lapis Lazuli Armor's own Mining Speed bonus (see {@code LapisArmorService#equippedMiningSpeedBonus}) - late-bound the same way as {@code ArmorDefenseService#protectionBonus}, since this class (in {@code skills}) never needs to depend on the {@code item} package directly. Defaults to always-0 so this class works before it's wired (or if it never is). */
+    private java.util.function.ToIntFunction<Player> armorMiningSpeedBonus = p -> 0;
+    /** Lapis Lazuli Armor's own Mining Fortune bonus (see {@code LapisArmorService#equippedMiningFortuneBonus}) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
+    private java.util.function.ToIntFunction<Player> armorMiningFortuneBonus = p -> 0;
+    /** Lapis Lazuli Armor's own XP orb bonus, already expressed as the fraction {@link #xpOrbMultiplier} adds directly (0.5 per piece) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
+    private java.util.function.ToDoubleFunction<Player> armorXpOrbBonus = p -> 0.0;
+
+    /** Wired in after construction, same pattern as {@code ArmorDefenseService#protectionBonus} - see {@link #armorMiningSpeedBonus}. */
+    public void armorMiningSpeedBonus(java.util.function.ToIntFunction<Player> armorMiningSpeedBonus) {
+        this.armorMiningSpeedBonus = armorMiningSpeedBonus;
+    }
+
+    /** Wired in after construction - see {@link #armorMiningFortuneBonus}. */
+    public void armorMiningFortuneBonus(java.util.function.ToIntFunction<Player> armorMiningFortuneBonus) {
+        this.armorMiningFortuneBonus = armorMiningFortuneBonus;
+    }
+
+    /** Wired in after construction - see {@link #armorXpOrbBonus}. */
+    public void armorXpOrbBonus(java.util.function.ToDoubleFunction<Player> armorXpOrbBonus) {
+        this.armorXpOrbBonus = armorXpOrbBonus;
+    }
 
     public SkillProgress progress(Player p, SkillType type) {
         int level = (Integer)p.getPersistentDataContainer().getOrDefault(this.key(type, "level"), PersistentDataType.INTEGER, 0);
@@ -101,10 +122,11 @@ public final class GeneralSkillService {
     }
 
     public int fortune(Player player, SkillType type) {
-        return switch (type) {
+        int base = switch (type) {
             case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
+        return type == SkillType.MINING ? base + this.armorMiningFortuneBonus.applyAsInt(player) : base;
     }
 
     /** Farming and Fishing each grant {@value #HEALTH_PER_LEVEL} Max Health per level, on top of Farming's Fortune. */
@@ -127,9 +149,9 @@ public final class GeneralSkillService {
         return this.progress(player, SkillType.MINING).level() * DEFENSE_PER_LEVEL;
     }
 
-    /** Enchanting grants {@value #XP_ORB_PERCENT_PER_LEVEL}% more vanilla XP orbs (any source) per level, on top of its own Intelligence - see {@code GeneralSkillListener#xpOrb}. */
+    /** Enchanting grants {@value #XP_ORB_PERCENT_PER_LEVEL}% more vanilla XP orbs (any source) per level, on top of its own Intelligence, plus Lapis Lazuli Armor's own flat +50%-per-piece (see {@link #armorXpOrbBonus}) - see {@code GeneralSkillListener#xpOrb}. */
     public double xpOrbMultiplier(Player player) {
-        return 1.0 + 0.01 * XP_ORB_PERCENT_PER_LEVEL * this.progress(player, SkillType.ENCHANTING).level();
+        return 1.0 + 0.01 * XP_ORB_PERCENT_PER_LEVEL * this.progress(player, SkillType.ENCHANTING).level() + this.armorXpOrbBonus.applyAsDouble(player);
     }
 
     /** Alchemy grants {@value #POTION_DURATION_PERCENT_PER_LEVEL}% longer potion effects per level, on top of its own Intelligence - see {@code GeneralSkillListener#potionDuration}. */
@@ -215,7 +237,10 @@ public final class GeneralSkillService {
      * Actually applies "Mining Speed" as a real, in-game mining-speed boost - until now
      * the number shown on a pickaxe's tooltip (base tool speed + Efficiency) had no
      * gameplay effect behind it at all, real vanilla Efficiency's own small native
-     * bonus aside. Sets (or clears, while not holding a pickaxe) a transient {@link
+     * bonus aside. Also folds in Lapis Lazuli Armor's own flat +20-per-piece (see
+     * {@link #armorMiningSpeedBonus}) - still gated on holding a pickaxe, same as the
+     * tool's own points, since "Mining Speed" is this plugin's own pickaxe-time stat.
+     * Sets (or clears, while not holding a pickaxe) a transient {@link
      * Attribute#MINING_EFFICIENCY} modifier on the player - same real attribute
      * vanilla's own Efficiency enchant feeds into internally, only additive and gated
      * on holding the "correct" tool the exact same way, so this stacks with (rather
@@ -235,7 +260,7 @@ public final class GeneralSkillService {
             attribute.removeModifier(old);
         }
         ItemStack tool = player.getInventory().getItemInMainHand();
-        if (tool.getType().name().endsWith("_PICKAXE") && (amount = this.miningSpeed(tool) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
+        if (tool.getType().name().endsWith("_PICKAXE") && (amount = (this.miningSpeed(tool) + this.armorMiningSpeedBonus.applyAsInt(player)) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
             attribute.addTransientModifier(new AttributeModifier(this.miningSpeedKey, amount, AttributeModifier.Operation.ADD_NUMBER));
         }
     }
