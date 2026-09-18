@@ -50,9 +50,10 @@ implements Listener {
 
     public void refresh(Player subject) {
         Component badge = this.badge(subject);
-        subject.playerListName(badge.append((Component)Component.text((String)subject.getName(), (TextColor)NamedTextColor.WHITE)));
+        TextColor nameColor = this.cachedColor(subject.getUniqueId());
+        subject.playerListName(badge.append((Component)Component.text((String)subject.getName(), nameColor)));
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            this.syncTeam(viewer, subject, badge);
+            this.syncTeam(viewer, subject, badge, nameColor);
         }
     }
 
@@ -62,22 +63,53 @@ implements Listener {
         return this.renderer.frame(state.level(), state.theme(), this.tick);
     }
 
+    /** Same color {@link #badge} would tint the "[N]" badge with, for {@code player}'s own currently effective theme - lets {@code LevelColorMenuService}'s own preview head show the player's name the same way it'll actually look in the tab list/chat/nametag instead of staying plain white. */
+    public TextColor nameColor(Player player) {
+        BadgeState state = new BadgeState(this.global.snapshot(player).level(), this.colors.effective(player));
+        this.badgeCache.put(player.getUniqueId(), state);
+        return this.renderer.activeColor(state.theme(), this.tick);
+    }
+
     private Component cachedBadge(UUID id) {
         BadgeState state = this.badgeCache.getOrDefault(id, DEFAULT_STATE);
         return this.renderer.frame(state.level(), state.theme(), this.tick);
+    }
+
+    /** The exact same color {@link #cachedBadge}/{@link #badge} rendered the badge in, for the given player, right now - so the player's own name (tab list, chat, nametag) can match their level color instead of staying plain white. Reads {@link #badgeCache} rather than recomputing {@code global}/{@code colors} so this stays safe to call from {@link #chat}, which fires off the main thread. */
+    private TextColor cachedColor(UUID id) {
+        BadgeState state = this.badgeCache.getOrDefault(id, DEFAULT_STATE);
+        return this.renderer.activeColor(state.theme(), this.tick);
     }
 
     private String teamId(Player subject) {
         return "gl_" + subject.getUniqueId().toString().replace("-", "").substring(0, 12);
     }
 
-    private void syncTeam(Player viewer, Player subject, Component prefix) {
-        String id;
+    private void syncTeam(Player viewer, Player subject, Component prefix, TextColor nameColor) {
+        String id = this.teamId(subject);
         Scoreboard board = viewer.getScoreboard();
-        Team team = board.getTeam(id = this.teamId(subject));
+        // Team#color only takes a legacy NamedTextColor, not an arbitrary RGB TextColor -
+        // nearestTo maps this theme's real color to the closest one of those 16 so the
+        // floating nametag above the player's head matches the tab list/chat as closely
+        // as vanilla's own API allows.
+        NamedTextColor resolved = NamedTextColor.nearestTo(nameColor);
+        Team team = board.getTeam(id);
+        if (team != null && team.color() != resolved) {
+            // Bedrock (via Geyser) only ever reads a team's color at the moment a player
+            // is (re)added to it - a later color-only update on the SAME team (what
+            // Team#color alone would send here) reaches real Java clients fine but never
+            // reaches Bedrock ones until they relog (a known Geyser limitation - it
+            // caches the color from the team's own creation/add-player packets, not from
+            // a plain "update team info" one). Recreating the team from scratch instead,
+            // whenever the color actually needs to change, forces a fresh "team created"
+            // sync that Geyser does pick up live.
+            team.unregister();
+            team = null;
+        }
         if (team == null) {
             team = board.registerNewTeam(id);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+            team.color(resolved);
         }
         if (!team.hasEntry(subject.getName())) {
             team.addEntry(subject.getName());

@@ -80,9 +80,13 @@ public final class CraftingMenuListener implements Listener {
 
     @EventHandler
     public void close(InventoryCloseEvent e) {
-        if (e.getPlayer() instanceof Player p) {
-            this.menu.close(p);
+        if (!(e.getPlayer() instanceof Player p)) {
+            return;
         }
+        if (this.menu.viewing(p)) {
+            this.menu.returnGridItems(p, e.getInventory());
+        }
+        this.menu.close(p);
     }
 
     private boolean isMatrixSlot(int raw) {

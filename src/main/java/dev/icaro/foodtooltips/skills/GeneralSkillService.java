@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.skills.SkillType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
@@ -14,7 +15,9 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -26,7 +29,53 @@ public final class GeneralSkillService {
     private static final int STRENGTH_PER_LEVEL = 1;
     private static final int INTELLIGENCE_PER_LEVEL = 1;
     private static final int DEFENSE_PER_LEVEL = 1;
+    private static final int XP_ORB_PERCENT_PER_LEVEL = 5;
+    private static final int POTION_DURATION_PERCENT_PER_LEVEL = 1;
+    /** Efficiency enchant's own "Mining Speed" points, matching its catalog description (10 + 20/level) - see {@link #efficiencyBonus}. */
+    private static final int EFFICIENCY_BASE = 10;
+    private static final int EFFICIENCY_PER_LEVEL = 20;
+    /**
+     * Converts the plugin's own "Mining Speed" points (a bigger scale - base tool speed
+     * 70-250, up to +110 from Efficiency) down to {@link Attribute#MINING_EFFICIENCY}'s
+     * real, comparatively small additive scale (vanilla's own Efficiency V is worth +26
+     * there) - see {@link #applyMiningSpeedAttribute}. An initial calibration, easy to
+     * retune if mining ends up feeling too fast/slow in practice.
+     */
+    private static final double MINING_SPEED_ATTRIBUTE_DIVISOR = 15.0;
+    /** Real vanilla Netherite pickaxe/axe/shovel - see {@link #instaMines}. */
+    private static final Set<Material> INSTA_MINE_TOOLS = Set.of(Material.NETHERITE_PICKAXE, Material.NETHERITE_AXE, Material.NETHERITE_SHOVEL);
+    /**
+     * Above this real vanilla block hardness, {@link #instaMines} stays false even for
+     * a qualifying tool - keeps deliberately-slow vanilla outliers (Obsidian 50,
+     * Ancient Debris 30, Crying Obsidian 50, Respawn Anchor 50...) exactly as slow as
+     * they've always been; every ordinary stone/ore/wood/dirt-family block a pickaxe,
+     * axe or shovel normally breaks sits well under this (Deepslate is the hardest at
+     * 4.5) so none of them are excluded by it in practice.
+     */
+    private static final double INSTA_MINE_MAX_HARDNESS = 6.0;
     private final NamespacedKey healthKey = new NamespacedKey("foodtooltips", "general_skill_health");
+    private final NamespacedKey miningSpeedKey = new NamespacedKey("foodtooltips", "general_skill_mining_speed");
+    /** Lapis Lazuli Armor's own Mining Speed bonus (see {@code LapisArmorService#equippedMiningSpeedBonus}) - late-bound the same way as {@code ArmorDefenseService#protectionBonus}, since this class (in {@code skills}) never needs to depend on the {@code item} package directly. Defaults to always-0 so this class works before it's wired (or if it never is). */
+    private java.util.function.ToIntFunction<Player> armorMiningSpeedBonus = p -> 0;
+    /** Lapis Lazuli Armor's own Mining Fortune bonus (see {@code LapisArmorService#equippedMiningFortuneBonus}) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
+    private java.util.function.ToIntFunction<Player> armorMiningFortuneBonus = p -> 0;
+    /** Lapis Lazuli Armor's own XP orb bonus, already expressed as the fraction {@link #xpOrbMultiplier} adds directly (0.5 per piece) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
+    private java.util.function.ToDoubleFunction<Player> armorXpOrbBonus = p -> 0.0;
+
+    /** Wired in after construction, same pattern as {@code ArmorDefenseService#protectionBonus} - see {@link #armorMiningSpeedBonus}. */
+    public void armorMiningSpeedBonus(java.util.function.ToIntFunction<Player> armorMiningSpeedBonus) {
+        this.armorMiningSpeedBonus = armorMiningSpeedBonus;
+    }
+
+    /** Wired in after construction - see {@link #armorMiningFortuneBonus}. */
+    public void armorMiningFortuneBonus(java.util.function.ToIntFunction<Player> armorMiningFortuneBonus) {
+        this.armorMiningFortuneBonus = armorMiningFortuneBonus;
+    }
+
+    /** Wired in after construction - see {@link #armorXpOrbBonus}. */
+    public void armorXpOrbBonus(java.util.function.ToDoubleFunction<Player> armorXpOrbBonus) {
+        this.armorXpOrbBonus = armorXpOrbBonus;
+    }
 
     public SkillProgress progress(Player p, SkillType type) {
         int level = (Integer)p.getPersistentDataContainer().getOrDefault(this.key(type, "level"), PersistentDataType.INTEGER, 0);
@@ -63,8 +112,9 @@ public final class GeneralSkillService {
         }
     }
 
+    /** The shared per-level XP curve every skill uses - see {@link SkillXpCurve}. */
     public double required(int level) {
-        return Math.max(50L, Math.round(50.0 * Math.pow(level, 1.55)));
+        return SkillXpCurve.required(level);
     }
 
     public int maxLevel() {
@@ -72,10 +122,11 @@ public final class GeneralSkillService {
     }
 
     public int fortune(Player player, SkillType type) {
-        return switch (type) {
+        int base = switch (type) {
             case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
+        return type == SkillType.MINING ? base + this.armorMiningFortuneBonus.applyAsInt(player) : base;
     }
 
     /** Farming and Fishing each grant {@value #HEALTH_PER_LEVEL} Max Health per level, on top of Farming's Fortune. */
@@ -96,6 +147,16 @@ public final class GeneralSkillService {
     /** Mining grants {@value #DEFENSE_PER_LEVEL} Defense per level, on top of its own Fortune - see {@code ArmorDefenseService#defense}. */
     public int bonusDefense(Player player) {
         return this.progress(player, SkillType.MINING).level() * DEFENSE_PER_LEVEL;
+    }
+
+    /** Enchanting grants {@value #XP_ORB_PERCENT_PER_LEVEL}% more vanilla XP orbs (any source) per level, on top of its own Intelligence, plus Lapis Lazuli Armor's own flat +50%-per-piece (see {@link #armorXpOrbBonus}) - see {@code GeneralSkillListener#xpOrb}. */
+    public double xpOrbMultiplier(Player player) {
+        return 1.0 + 0.01 * XP_ORB_PERCENT_PER_LEVEL * this.progress(player, SkillType.ENCHANTING).level() + this.armorXpOrbBonus.applyAsDouble(player);
+    }
+
+    /** Alchemy grants {@value #POTION_DURATION_PERCENT_PER_LEVEL}% longer potion effects per level, on top of its own Intelligence - see {@code GeneralSkillListener#potionDuration}. */
+    public double potionDurationMultiplier(Player player) {
+        return 1.0 + 0.01 * POTION_DURATION_PERCENT_PER_LEVEL * this.progress(player, SkillType.ALCHEMY).level();
     }
 
     /** How much {@link #fortune} grows per level (Mining/Farming/Foraging). Exposed so menu/level-up messages don't hardcode the number separately. */
@@ -123,6 +184,16 @@ public final class GeneralSkillService {
         return INTELLIGENCE_PER_LEVEL;
     }
 
+    /** How much {@link #xpOrbMultiplier} grows per Enchanting level. */
+    public int xpOrbPercentPerLevel() {
+        return XP_ORB_PERCENT_PER_LEVEL;
+    }
+
+    /** How much {@link #potionDurationMultiplier} grows per Alchemy level. */
+    public int potionDurationPercentPerLevel() {
+        return POTION_DURATION_PERCENT_PER_LEVEL;
+    }
+
     /**
      * Applies {@link #bonusHealth} as a Max Health attribute modifier - same pattern as
      * {@code BestiaryProgressService#applyBonusHealth} and {@code GlobalLevelService#applyHealth}.
@@ -144,8 +215,70 @@ public final class GeneralSkillService {
         }
     }
 
-    public int miningSpeed(Player player, Material tool) {
-        return this.baseMiningSpeed(tool) + this.progress(player, SkillType.MINING).level();
+    /**
+     * Total "Mining Speed" points shown on a pickaxe's tooltip - base tool speed and
+     * the pickaxe's own real Efficiency enchant level (see {@link #efficiencyBonus})
+     * folded in, then actually applied in-game by {@link #applyMiningSpeedAttribute}.
+     * Deliberately NOT influenced by Mining skill level - purely a gear stat, per
+     * explicit correction (leveling Mining used to add +1/level here, which read as
+     * Mining Speed increasing just from leveling up rather than from gear).
+     */
+    public int miningSpeed(ItemStack tool) {
+        return this.baseMiningSpeed(tool.getType()) + this.efficiencyBonus(tool);
+    }
+
+    /** The real Efficiency enchant's own contribution to {@link #miningSpeed} - matches the enchant's own catalog description ({@value #EFFICIENCY_BASE} + {@value #EFFICIENCY_PER_LEVEL}/level). 0 if unenchanted. */
+    public int efficiencyBonus(ItemStack tool) {
+        int level = tool.getEnchantmentLevel(Enchantment.EFFICIENCY);
+        return level <= 0 ? 0 : EFFICIENCY_BASE + EFFICIENCY_PER_LEVEL * level;
+    }
+
+    /**
+     * Actually applies "Mining Speed" as a real, in-game mining-speed boost - until now
+     * the number shown on a pickaxe's tooltip (base tool speed + Efficiency) had no
+     * gameplay effect behind it at all, real vanilla Efficiency's own small native
+     * bonus aside. Also folds in Lapis Lazuli Armor's own flat +20-per-piece (see
+     * {@link #armorMiningSpeedBonus}) - still gated on holding a pickaxe, same as the
+     * tool's own points, since "Mining Speed" is this plugin's own pickaxe-time stat.
+     * Sets (or clears, while not holding a pickaxe) a transient {@link
+     * Attribute#MINING_EFFICIENCY} modifier on the player - same real attribute
+     * vanilla's own Efficiency enchant feeds into internally, only additive and gated
+     * on holding the "correct" tool the exact same way, so this stacks with (rather
+     * than replaces) Efficiency's own small vanilla-native bonus instead of fighting it.
+     * Called every refresh, same as {@code SwordDamageService}/{@code ToolDamageService}'s
+     * own per-tick reapplication - it depends on the currently-held item, which can change
+     * at any time.
+     */
+    public void applyMiningSpeedAttribute(Player player) {
+        double amount;
+        AttributeInstance attribute = player.getAttribute(Attribute.MINING_EFFICIENCY);
+        if (attribute == null) {
+            return;
+        }
+        AttributeModifier old = attribute.getModifier(Key.key(this.miningSpeedKey.getNamespace(), this.miningSpeedKey.getKey()));
+        if (old != null) {
+            attribute.removeModifier(old);
+        }
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        if (tool.getType().name().endsWith("_PICKAXE") && (amount = (this.miningSpeed(tool) + this.armorMiningSpeedBonus.applyAsInt(player)) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
+            attribute.addTransientModifier(new AttributeModifier(this.miningSpeedKey, amount, AttributeModifier.Operation.ADD_NUMBER));
+        }
+    }
+
+    /**
+     * Whether {@code tool} insta-mines {@code block} - the real Netherite pickaxe/axe/
+     * shovel with real vanilla Efficiency V, on any block at or under {@link
+     * #INSTA_MINE_MAX_HARDNESS} (see its own doc for what that excludes). Gear-gated
+     * only, deliberately independent of Mining skill level or {@link #miningSpeed}'s
+     * own points - Gold tools stay off this list entirely (their own {@link
+     * #baseMiningSpeed} bonus is untouched, just never a guaranteed insta-mine).
+     */
+    public boolean instaMines(ItemStack tool, Material block) {
+        if (!INSTA_MINE_TOOLS.contains(tool.getType()) || tool.getEnchantmentLevel(Enchantment.EFFICIENCY) < 5) {
+            return false;
+        }
+        double hardness = block.getHardness();
+        return hardness >= 0.0 && hardness <= INSTA_MINE_MAX_HARDNESS;
     }
 
     public int baseMiningSpeed(Material tool) {

@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.builder;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -97,8 +98,12 @@ public final class BuilderWandService {
         List<Component> lore = new ArrayList<>();
         lore.add(this.line(l.choose("Clique direito num bloco pra estender", "Right-click a block to extend"), NamedTextColor.GRAY));
         lore.add(this.line(l.choose("na direção da face clicada.", "in the clicked face's direction."), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Clique esquerdo abre o menu de configurações.", "Left-click opens the settings menu."), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Shift + clique esquerdo desfaz a última ação.", "Shift + left-click undoes the last action."), NamedTextColor.GRAY));
+        for (String part : LoreWrap.wrapText(l.choose("Clique esquerdo abre o menu de configurações.", "Left-click opens the settings menu."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.line(part, NamedTextColor.GRAY));
+        }
+        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última ação.", "Shift + left-click undoes the last action."), LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.line(part, NamedTextColor.GRAY));
+        }
         lore.add(Component.empty());
         lore.add(this.line(l.choose("Modo: ", "Mode: ") + (mode == FillMode.LINE
                         ? l.choose("Linha/Coluna", "Line/Column")
@@ -193,6 +198,7 @@ public final class BuilderWandService {
         Inventory v = Bukkit.createInventory(null, 27, l.choose("Varinha: Configurações", "Wand: Settings"));
         this.renderMenu(v, item, l);
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewingMenu.add(p.getUniqueId());
     }
 
@@ -305,7 +311,9 @@ public final class BuilderWandService {
         lore.add(Component.empty());
         lore.add(this.line(l.choose("Máximo do servidor: " + this.maxLength, "Server max: " + this.maxLength), NamedTextColor.DARK_GRAY));
         if (current == UNLIMITED) {
-            lore.add(this.line(l.choose("Sem teto - cuidado em áreas muito grandes.", "No cap - be careful in very large areas."), NamedTextColor.RED));
+            for (String part : LoreWrap.wrapText(l.choose("Sem teto - cuidado em áreas muito grandes.", "No cap - be careful in very large areas."), LoreWrap.DEFAULT_WIDTH)) {
+                lore.add(this.line(part, NamedTextColor.RED));
+            }
         }
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);

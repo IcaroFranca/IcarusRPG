@@ -44,6 +44,7 @@ public final class GlobalLevelService {
     private final long[] skillRewards;
     private final int telekinesisLevel;
     private final double telekinesisRadiusBlocks;
+    private final int deathTeleportLevel;
     private final String iconTexture;
     private Consumer<Player> changeListener = p -> {};
 
@@ -64,6 +65,7 @@ public final class GlobalLevelService {
         this.skillRewards = new long[]{this.reward("level-1-10", 5L), this.reward("level-11-25", 10L), this.reward("level-26-50", 20L), this.reward("level-51-60", 30L), this.reward("level-61-100", 40L), this.reward("level-101-150", 50L), this.reward("level-151-200", 60L)};
         this.telekinesisLevel = Math.max(1, plugin.getConfig().getInt("global-level.telekinesis-level", 3));
         this.telekinesisRadiusBlocks = Math.max(0.0, plugin.getConfig().getDouble("global-level.telekinesis-radius", 3.0));
+        this.deathTeleportLevel = Math.max(1, plugin.getConfig().getInt("global-level.death-teleport-level", 5));
         this.iconTexture = plugin.getConfig().getString("global-level.icon-texture", "");
     }
 
@@ -112,6 +114,15 @@ public final class GlobalLevelService {
     /** Blocks swept for nearby loose drops once Telekinesis is unlocked; 0 if not yet unlocked. */
     public double telekinesisRadius(Player p) {
         return this.telekinesisUnlocked(p) ? this.telekinesisRadiusBlocks : 0.0;
+    }
+
+    /** Global Level required to unlock the death compass' own teleport (see {@code CombatListener#useDeathCompass}) - the compass itself (a plain pointer, no teleport) is already handed out on every respawn regardless of level. */
+    public int deathTeleportRequiredLevel() {
+        return this.deathTeleportLevel;
+    }
+
+    public boolean deathTeleportUnlocked(Player p) {
+        return this.snapshot(p).level() >= this.deathTeleportLevel;
     }
 
     /** Max HP granted per Global Level (flat, every level). */

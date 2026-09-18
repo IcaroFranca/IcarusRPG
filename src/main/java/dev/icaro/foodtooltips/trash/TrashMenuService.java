@@ -57,6 +57,7 @@ public final class TrashMenuService {
         v.setItem(TRASH_SLOT, this.trashIcon(l));
         v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
     }
 

@@ -17,15 +17,31 @@ import org.bukkit.util.Vector;
  * happens, not prevent it every frame.
  */
 public final class AnimalSeparationService {
-    /** Any two animals of the same type closer than this (blocks) get nudged apart - smaller than a full block, since some overlap is normal and expected; only genuine stacking should trigger this. */
-    private static final double MIN_DISTANCE = 0.7;
-    /** Max velocity added per animal per {@link #separateAll} call - small and divided across every overlapping neighbor, so a big cluster settles apart gradually instead of scattering violently. */
-    private static final double PUSH_STRENGTH = 0.06;
+    /**
+     * Any two animals of the same type closer than this (blocks) get nudged apart -
+     * a full grown animal's own hitbox is already ~0.9 blocks wide (cow, sheep, pig...),
+     * so anything smaller than that as a threshold only ever kicks in once they're
+     * already well inside each other, and even a "successful" push only settles them
+     * just past the threshold - still visibly overlapping. Comfortably above hitbox
+     * width instead, so they end up genuinely apart, not just technically past a too-
+     * tight number.
+     */
+    private static final double MIN_DISTANCE = 1.0;
+    /** Max velocity added per animal per {@link #separateAll} call - divided across every overlapping neighbor, so a big cluster settles apart gradually instead of scattering violently. */
+    private static final double PUSH_STRENGTH = 0.18;
 
+    /**
+     * {@code World#getEntitiesByClass} (rather than {@code getEntities()} filtered
+     * down to {@link Animals} afterward) lets the server skip every non-animal entity
+     * up front - players, mobs, dropped items, projectiles, XP orbs... - instead of
+     * building a list of literally everything loaded in the world just to throw most
+     * of it away one {@code instanceof} check later, every half-second, on a server
+     * with a lot of loaded entities.
+     */
     public void separateAll() {
         for (World world : Bukkit.getWorlds()) {
-            for (Entity e : world.getEntities()) {
-                if (e instanceof Animals animal && animal.isValid()) {
+            for (Animals animal : world.getEntitiesByClass(Animals.class)) {
+                if (animal.isValid()) {
                     this.separate(animal);
                 }
             }

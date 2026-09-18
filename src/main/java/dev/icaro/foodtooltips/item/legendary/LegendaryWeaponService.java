@@ -6,6 +6,7 @@ import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -43,7 +45,7 @@ import org.bukkit.util.Vector;
  * Knight Killer's armored bonus, Two as One / Kamish's Wrath's Strength-scaling damage,
  * and Kasaka's Venom Fang's on-hit Paralyze/Bleed procs. {@code CombatListener#damage}
  * calls into this right alongside its own level/crit/Strength multiplier stack -
- * everything static (base Attack Damage, the dagger -1/longsword +2 Swing Range delta,
+ * everything static (base Attack Damage, the longsword's own +2 Swing Range delta,
  * Baruka's Agility) is instead a plain {@link EquipmentSlotGroup#MAINHAND} attribute
  * modifier on the item itself, exactly like {@code SwordDamageService} does for plain
  * swords - Attack Speed is the one exception, since like a plain sword's it depends on
@@ -65,8 +67,6 @@ public final class LegendaryWeaponService {
     /** Which lore line is the live Attack Speed line - see {@link #refreshAttackSpeedLore}. Every legendary weapon has one. */
     private static final NamespacedKey SPEED_LINE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_speed_line");
 
-    /** Daggers swing 1 block shorter than a normal sword - Kamish's Wrath is exempt (see its class doc). */
-    private static final double DAGGER_RANGE_PENALTY = -1.0;
     /** A longsword swings 2 blocks farther than a normal sword. */
     private static final double LONGSWORD_RANGE_BONUS = 2.0;
     /**
@@ -93,10 +93,15 @@ public final class LegendaryWeaponService {
     private static final int UNDEAD_SWORD_MAX_DAMAGE = 5000;
     /** Same idempotency marker {@link dev.icaro.foodtooltips.item.DurabilityService} uses - keeps its generic per-Material sweep from overwriting {@link #UNDEAD_SWORD_MAX_DAMAGE}'s deliberate fixed value. */
     private static final String DURABILITY_MULTIPLIED_KEY = "durability_multiplied";
+    /** The IcarusTexture resource pack's own item model for the Undead's Sword ({@code assets/icarus/items/undead_sword.json}) - a Java client with the pack installed renders this instead of the plain {@link LegendaryWeapon#material()} icon; everyone else just sees the underlying material (Iron Sword) unaffected, same graceful-fallback shape every other resource-pack-only cosmetic in this plugin uses. */
+    private static final Key UNDEAD_SWORD_MODEL = Key.key("icarus", "undead_sword");
     /** Every vanilla EntityType the game itself treats as "undead" (same set Smite and Instant Health/Harming target). */
     private static final Set<EntityType> UNDEAD_TYPES = Set.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
             EntityType.DROWNED, EntityType.SKELETON, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.ZOMBIFIED_PIGLIN,
             EntityType.PHANTOM, EntityType.ZOGLIN, EntityType.WITHER);
+    /** Same icon+color Smite's own real vanilla description already uses for "Undead" (see {@code VanillaEnchantEntry}'s own UNDEAD_COLOR/tokens("smite")), reused here so both read as the same category label. */
+    private static final NamedTextColor UNDEAD_COLOR = NamedTextColor.DARK_GREEN;
+    private static final String UNDEAD_ICON = "༕";
 
     /** Kasaka's Venom Fang's Paralyze and Bleed always proc together, off one shared roll - not two independent ones. */
     private static final int PROC_CHANCE = 30;
@@ -176,12 +181,9 @@ public final class LegendaryWeaponService {
                 new AttributeModifier(BASE_ZERO_KEY, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         meta.addAttributeModifier(Attribute.ATTACK_SPEED,
                 new AttributeModifier(SPEED_KEY, SwordDamageService.ATTACK_SPEED_DELTA, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
-        boolean dagger = w.type() == WeaponType.DAGGER;
-        boolean rangeExempt = w == LegendaryWeapon.KAMISH_WRATH;
         double rangeDelta = switch (w.type()) {
-            case DAGGER -> rangeExempt ? 0.0 : DAGGER_RANGE_PENALTY;
             case LONGSWORD -> LONGSWORD_RANGE_BONUS;
-            case SWORD -> 0.0;
+            case DAGGER, SWORD -> 0.0;
         };
         Attribute rangeAttribute = rangeDelta != 0.0 ? PlayerStatsService.resolveEntityInteractionRangeAttribute() : null;
         if (rangeAttribute != null) {
@@ -229,10 +231,7 @@ public final class LegendaryWeaponService {
         }
         lore.addAll(this.abilityLines(w, pt));
         switch (w.type()) {
-            case DAGGER -> lore.add(this.line(rangeExempt
-                            ? (pt ? "Alcance normal, dobra o dano por trás." : "Normal range, doubles damage from behind.")
-                            : (pt ? "-1 alcance, dobra o dano por trás." : "-1 range, doubles damage from behind."),
-                    NamedTextColor.DARK_GRAY));
+            case DAGGER -> lore.add(this.line(pt ? "Dobra o dano por trás." : "Doubles damage from behind.", NamedTextColor.DARK_GRAY));
             case LONGSWORD -> lore.add(this.line(pt ? "+2 alcance de ataque." : "+2 attack range.", NamedTextColor.DARK_GRAY));
             case SWORD -> {
                 // No range/backstab gimmick - this weapon type's whole identity is its
@@ -241,6 +240,9 @@ public final class LegendaryWeaponService {
         }
         meta.lore(lore);
         item.setItemMeta(meta);
+        if (w == LegendaryWeapon.UNDEAD_SWORD) {
+            item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
+        }
         ItemStack tiered = this.tiers.applyTier(item, l);
         return tiered != null ? tiered : item;
     }
@@ -253,7 +255,8 @@ public final class LegendaryWeaponService {
             case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
             case DEMON_KING_DAGGERS, KAMISH_WRATH -> lines.add(this.strengthAbilityLine(w, pt, 0));
             case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
-            case UNDEAD_SWORD -> lines.add(this.line(pt ? "+100% de dano contra mortos-vivos" : "+100% damage vs undead", NamedTextColor.LIGHT_PURPLE));
+            case UNDEAD_SWORD -> lines.add(this.line(pt ? "+100% de dano contra " : "+100% damage vs ", NamedTextColor.LIGHT_PURPLE)
+                    .append(this.line(UNDEAD_ICON + (pt ? " Mortos-Vivos" : " Undead"), UNDEAD_COLOR)));
         }
         return lines;
     }
@@ -372,11 +375,14 @@ public final class LegendaryWeaponService {
      * if it's not a legendary weapon or neither needed anything.
      */
     private ItemStack rewriteAttackSpeedLine(ItemStack item, Player p, Language l) {
-        if (of(item) == null) {
+        LegendaryWeapon weapon = of(item);
+        if (weapon == null) {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
         boolean changed = false;
+        boolean missingUndeadModel = weapon == LegendaryWeapon.UNDEAD_SWORD
+                && !UNDEAD_SWORD_MODEL.equals(item.getData(DataComponentTypes.ITEM_MODEL));
         if (!this.hasBaseZero(meta)) {
             // See SwordDamageService#rewrite's identical comment on why this needs to
             // live on the item itself.
@@ -398,10 +404,18 @@ public final class LegendaryWeaponService {
                 }
             }
         }
-        if (!changed) {
+        if (!changed && !missingUndeadModel) {
             return null;
         }
-        item.setItemMeta(meta);
+        if (changed) {
+            item.setItemMeta(meta);
+        }
+        // Apply this after ItemMeta: several tooltip/enchantment passes rewrite meta,
+        // and old Undead's Swords may predate the component entirely. Checking the
+        // actual component here makes the resource-pack binding self-healing.
+        if (missingUndeadModel) {
+            item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
+        }
         return item;
     }
 

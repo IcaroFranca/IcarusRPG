@@ -57,11 +57,23 @@ public final class SkillProgressBarService {
         if (!bar.getPlayers().contains(p)) {
             bar.addPlayer(p);
         }
-        bar.setColor(type == SkillType.MINING ? BarColor.BLUE : (type == SkillType.ALCHEMY ? BarColor.PURPLE : BarColor.GREEN));
+        bar.setColor(this.barColor(type));
         String state = progress.level() >= maxLevel ? "MAX" : Math.round(progress.xp()) + "/" + Math.round(progress.requiredXp()) + " XP";
         bar.setTitle(String.valueOf(ChatColor.GOLD) + type.name(l == Language.PT) + " " + progress.level() + String.valueOf(ChatColor.GRAY) + " \u2022 " + String.valueOf(ChatColor.GREEN) + "+" + Math.round(gained) + " XP " + String.valueOf(ChatColor.GRAY) + "\u2022 " + state);
         bar.setProgress(progress.level() >= maxLevel ? 1.0 : Math.max(0.0, Math.min(1.0, progress.xp() / Math.max(1.0, progress.requiredXp()))));
         this.showTemporarily(p, bar);
+    }
+
+    /** Each {@link SkillType} gets its own distinct boss bar color - Combat's own bar (see {@link #showCombat}) keeps RED for itself, so these six are every other {@link BarColor} Bukkit's boss bar API offers. */
+    private BarColor barColor(SkillType type) {
+        return switch (type) {
+            case FARMING -> BarColor.GREEN;
+            case FISHING -> BarColor.BLUE;
+            case MINING -> BarColor.WHITE;
+            case FORAGING -> BarColor.YELLOW;
+            case ENCHANTING -> BarColor.PINK;
+            case ALCHEMY -> BarColor.PURPLE;
+        };
     }
 
     private void showTemporarily(Player p, BossBar bar) {

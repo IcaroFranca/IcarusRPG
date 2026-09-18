@@ -8,6 +8,8 @@ import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -15,6 +17,8 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 public final class ProtectionService {
+    private static final Logger LOGGER = Logger.getLogger(ProtectionService.class.getName());
+
     private final boolean worldGuard = Bukkit.getPluginManager().getPlugin("WorldGuard") != null;
     private final boolean griefPrevention = Bukkit.getPluginManager().getPlugin("GriefPrevention") != null;
 
@@ -22,15 +26,28 @@ public final class ProtectionService {
         return this.canBuild(player, block.getLocation());
     }
 
+    /**
+     * Fails CLOSED (denies) whenever a hook throws, rather than silently skipping it
+     * and continuing to allow - the previous empty {@code catch (Throwable) {}}
+     * swallowed a broken reflection call (a WorldGuard/GriefPrevention API version
+     * mismatch, say) with no log line at all, so a region's protection could stop
+     * working entirely with nothing in the console to say why: griefing went through
+     * in a "protected" area as if nothing were wrong. Logged at SEVERE (with the full
+     * stack trace) every time, deliberately not deduplicated/rate-limited - an admin
+     * seeing this at all means the integration needs attention regardless of how
+     * often it repeats, and it should never repeat quietly for long once someone's
+     * watching the console.
+     */
     public boolean canBuild(Player player, Location location) {
         if (this.worldGuard) {
             try {
                 if (!WorldGuardHook.canBuild(player, location)) {
                     return false;
                 }
-            }
-            catch (Throwable throwable) {
-                // empty catch block
+            } catch (Throwable throwable) {
+                LOGGER.log(Level.SEVERE, "WorldGuard build-permission check failed - denying "
+                        + player.getName() + " at " + location + " until this is fixed.", throwable);
+                return false;
             }
         }
         if (this.griefPrevention) {
@@ -38,9 +55,10 @@ public final class ProtectionService {
                 if (!GriefPreventionHook.canBuild(player, location)) {
                     return false;
                 }
-            }
-            catch (Throwable throwable) {
-                // empty catch block
+            } catch (Throwable throwable) {
+                LOGGER.log(Level.SEVERE, "GriefPrevention build-permission check failed - denying "
+                        + player.getName() + " at " + location + " until this is fixed.", throwable);
+                return false;
             }
         }
         return true;

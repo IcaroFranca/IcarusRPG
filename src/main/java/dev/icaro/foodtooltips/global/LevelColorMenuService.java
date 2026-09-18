@@ -8,6 +8,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -57,7 +58,18 @@ public final class LevelColorMenuService {
 
         GlobalLevelSnapshot snapshot = this.global.snapshot(p);
         LevelColorTheme selected = this.colors.selected(p);
-        ItemStack head = this.item(Material.PLAYER_HEAD, l.choose("Preview do Nível", "Level Preview"), List.of(this.presentation.badge(p).append(Component.text(p.getName(), NamedTextColor.WHITE)), this.text(l.choose("Nível Global: ", "Global Level: ") + snapshot.level(), NamedTextColor.GOLD), this.text(l.choose("Selecionado: ", "Selected: ") + selected.name(), NamedTextColor.YELLOW), !this.colors.unlocked(p, selected) ? this.text(l.choose("Temporariamente suspenso: nível insuficiente", "Temporarily suspended: insufficient level"), NamedTextColor.RED) : Component.empty()), false);
+        List<Component> headLore = new ArrayList<>();
+        headLore.add(this.presentation.badge(p).append(Component.text(p.getName(), this.presentation.nameColor(p))));
+        headLore.add(this.text(l.choose("Nível Global: ", "Global Level: ") + snapshot.level(), NamedTextColor.GOLD));
+        headLore.add(this.text(l.choose("Selecionado: ", "Selected: ") + selected.name(), NamedTextColor.YELLOW));
+        if (!this.colors.unlocked(p, selected)) {
+            for (String part : LoreWrap.wrapText(l.choose("Temporariamente suspenso: nível insuficiente", "Temporarily suspended: insufficient level"), LoreWrap.DEFAULT_WIDTH)) {
+                headLore.add(this.text(part, NamedTextColor.RED));
+            }
+        } else {
+            headLore.add(Component.empty());
+        }
+        ItemStack head = this.item(Material.PLAYER_HEAD, l.choose("Preview do Nível", "Level Preview"), headLore, false);
         SkullMeta skull = (SkullMeta) head.getItemMeta();
         skull.setOwningPlayer((OfflinePlayer) p);
         head.setItemMeta(skull);
@@ -82,6 +94,7 @@ public final class LevelColorMenuService {
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
     }
 
     private void select(Player p, LevelColorTheme theme) {

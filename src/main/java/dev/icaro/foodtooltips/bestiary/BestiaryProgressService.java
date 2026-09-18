@@ -89,8 +89,15 @@ public final class BestiaryProgressService {
         for (i = 0; i < Math.min(achieved, steps.length); ++i) {
             total += steps[i];
         }
-        if (achieved > STEP_KILLS.length) {
-            for (i = STEP_KILLS.length; i < achieved; ++i) {
+        // steps.length, not the always-15 STEP_KILLS.length: entry.type() can also
+        // resolve to the 5-element BOSS_STEP_KILLS (see #steps/#isBoss), and this
+        // needs to match whichever array it actually got, same as #nextStepKills'
+        // own bound check right above. Harmless today only because a boss's kills
+        // are capped at 50 (BOSS_STEP_KILLS' own sum) by #recordKill, so achieved
+        // for a boss never gets anywhere near 15 to begin with - fragile the moment
+        // either of those assumptions changes.
+        if (achieved > steps.length) {
+            for (i = steps.length; i < achieved; ++i) {
                 total += this.nextStepKills(entry, i);
             }
         }
