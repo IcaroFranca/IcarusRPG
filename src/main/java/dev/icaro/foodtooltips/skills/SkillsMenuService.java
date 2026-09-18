@@ -44,7 +44,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 public final class SkillsMenuService {
     private static final Key MENU_BACKGROUND_MODEL = Key.key("icarus", "menu_background");
-    private static final Key MENU_FONT = Key.key("icarus", "menu");
     private static final Key DEFAULT_FONT = Key.key("minecraft", "default");
     private static final int[] N = new int[]{9, 18, 27, 28, 29, 20, 11, 2, 3, 4, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8, 17, 26, 35, 44, 53};
     private static final Map<Integer, SkillType> S = Map.of(21, SkillType.FARMING, 22, SkillType.MINING, 23, SkillType.FISHING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING);
@@ -447,8 +446,8 @@ public final class SkillsMenuService {
 
     private Inventory mainInv(String title) {
         Component decoratedTitle = Component.empty()
-                .append(Component.text("\uE001\uE000\uE002").font(MENU_FONT))
-                .append(Component.text(title).font(DEFAULT_FONT));
+                .append(Component.text("\uE001\uE000\uE002", NamedTextColor.WHITE).font(DEFAULT_FONT))
+                .append(Component.text(title, NamedTextColor.DARK_GRAY).font(DEFAULT_FONT));
         Inventory v = Bukkit.createInventory(null, 54, decoratedTitle);
         ItemStack f = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         f.setData(DataComponentTypes.ITEM_MODEL, MENU_BACKGROUND_MODEL);
