@@ -1,6 +1,9 @@
 package dev.icaro.foodtooltips.menu;
 
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -30,6 +33,11 @@ public final class MenuBackground {
      * redrawn with the continuous background and only occupied controls keep a slot.
      */
     public static void apply(Player player) {
+        apply(player, new int[0]);
+    }
+
+    /** Keeps interactive empty slots visible in menus such as the virtual crafting table. */
+    public static void apply(Player player, int... persistentSlots) {
         InventoryView view = player.getOpenInventory();
         Inventory inventory = view.getTopInventory();
         int rows = inventory.getSize() / 9;
@@ -38,6 +46,7 @@ public final class MenuBackground {
         }
 
         String plainTitle = view.getTitle();
+        Set<Integer> forced = IntStream.of(persistentSlots).boxed().collect(Collectors.toSet());
         StringBuilder title = new StringBuilder(plainTitle.length() + 192);
         title.append('\u00A7').append('f')
                 .append(LEAD_SHIFT)
@@ -46,7 +55,7 @@ public final class MenuBackground {
 
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack item = inventory.getItem(slot);
-            if (isVisibleControl(item)) {
+            if (forced.contains(slot) || isVisibleControl(item)) {
                 int row = slot / 9;
                 int column = slot % 9;
                 title.append((char) (FIRST_COLUMN_SHIFT + column))

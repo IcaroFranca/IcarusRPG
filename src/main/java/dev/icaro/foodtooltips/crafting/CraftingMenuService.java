@@ -45,6 +45,7 @@ public final class CraftingMenuService {
     public static final int OUTPUT_SLOT = 25;
     public static final int BACK_SLOT = 45;
     private static final int ARROW_SLOT = 24;
+    private static final int[] VISIBLE_WORK_SLOTS = {11, 12, 13, 20, 21, 22, 29, 30, 31, OUTPUT_SLOT};
 
     private final Consumer<Player> back;
     private final Set<UUID> viewing = new HashSet<>();
@@ -67,7 +68,7 @@ public final class CraftingMenuService {
         v.setItem(OUTPUT_SLOT, null);
         v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         p.openInventory(v);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, VISIBLE_WORK_SLOTS);
         this.viewing.add(p.getUniqueId());
     }
 
