@@ -242,10 +242,11 @@ public final class EnchantMenuService {
     private void renderMainCatalog(Inventory v, Player p, int page) {
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
-        List<EnchantEntry> all = this.compatibleAndUnlocked(p, v.getItem(ITEM_SLOT), pt);
+        ItemStack currentItem = v.getItem(ITEM_SLOT);
+        List<EnchantEntry> all = this.compatibleAndUnlocked(p, currentItem, pt);
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             int index = page * CATALOG_SLOTS.length + i;
-            v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.catalogIcon(all.get(index), l, pt) : this.filler());
+            v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.catalogIcon(all.get(index), currentItem, l, pt) : this.filler());
         }
         v.setItem(SCROLL_UP_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
         v.setItem(SCROLL_DOWN_SLOT, (page + 1) * CATALOG_SLOTS.length < all.size() ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
@@ -305,7 +306,7 @@ public final class EnchantMenuService {
         v.setItem(LEVEL_PREVIEW_SLOT, item == null ? this.item(Material.BARRIER, l.choose("Nenhum item", "No item"), List.of()) : item.clone());
         int current = item == null ? 0 : this.enchants.levelOf(item, enchant);
         for (int level = 1; level <= enchant.maxLevel() && level <= LEVEL_SLOTS.length; level++) {
-            v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(p, enchant, level, current, l, pt));
+            v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(p, enchant, level, current, item, l, pt));
         }
         v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar", "Back"), List.of()));
         this.openScreen(p, v);
@@ -816,9 +817,9 @@ public final class EnchantMenuService {
         return Math.min(BOOKSHELF_POWER_CAP, count);
     }
 
-    private ItemStack catalogIcon(EnchantEntry e, Language l, boolean pt) {
+    private ItemStack catalogIcon(EnchantEntry e, ItemStack item, Language l, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        List<Component> desc = e.genericDescription(pt);
+        List<Component> desc = e.genericDescription(pt, item == null ? null : item.getType());
         if (!desc.isEmpty()) {
             lore.addAll(desc);
             lore.add(Component.empty());
@@ -828,13 +829,13 @@ public final class EnchantMenuService {
     }
 
     private ItemStack guideIcon(EnchantEntry e, boolean pt) {
-        List<Component> lore = new ArrayList<>(e.genericDescription(pt));
+        List<Component> lore = new ArrayList<>(e.genericDescription(pt, null));
         return this.enchantedBook(e.catalogName(pt), lore);
     }
 
-    private ItemStack levelIcon(Player p, EnchantEntry e, int level, int current, Language l, boolean pt) {
+    private ItemStack levelIcon(Player p, EnchantEntry e, int level, int current, ItemStack item, Language l, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        List<Component> desc = e.resolvedDescription(pt, level);
+        List<Component> desc = e.resolvedDescription(pt, level, item == null ? null : item.getType());
         if (!desc.isEmpty()) {
             lore.addAll(desc);
             lore.add(Component.empty());

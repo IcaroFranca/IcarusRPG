@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 
 /**
@@ -122,13 +123,13 @@ final class VanillaEnchantEntry implements EnchantEntry {
     }
 
     @Override
-    public List<Component> genericDescription(boolean pt) {
-        return description(this.enchantment.getKey().getKey(), pt, null);
+    public List<Component> genericDescription(boolean pt, Material item) {
+        return description(this.enchantment.getKey().getKey(), pt, null, item);
     }
 
     @Override
-    public List<Component> resolvedDescription(boolean pt, int level) {
-        return description(this.enchantment.getKey().getKey(), pt, level);
+    public List<Component> resolvedDescription(boolean pt, int level, Material item) {
+        return description(this.enchantment.getKey().getKey(), pt, level, item);
     }
 
     @Override
@@ -156,12 +157,12 @@ final class VanillaEnchantEntry implements EnchantEntry {
         return level == maxLevel ? capValue : perLevel * level;
     }
 
-    private static List<Component> description(String key, boolean pt, Integer level) {
-        List<EnchantText.Token> tokens = tokens(key, pt, level);
+    private static List<Component> description(String key, boolean pt, Integer level, Material item) {
+        List<EnchantText.Token> tokens = tokens(key, pt, level, item);
         return tokens == null ? List.of() : EnchantText.wrap(tokens);
     }
 
-    private static List<EnchantText.Token> tokens(String key, boolean pt, Integer level) {
+    private static List<EnchantText.Token> tokens(String key, boolean pt, Integer level, Material item) {
         return switch (key) {
             case "bane_of_arthropods" -> pt
                     ? List.of(EnchantText.Token.plain("Aumenta o dano causado a mobs"), EnchantText.Token.colored("Ж Artrópodes", ARTHROPOD_COLOR),
@@ -195,9 +196,18 @@ final class VanillaEnchantEntry implements EnchantEntry {
             case "efficiency" -> pt
                     ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> 10 + 20 * l), EnchantText.Token.colored("⸕ Velocidade de Mineração", LABEL_COLOR), EnchantText.Token.plain("."))
                     : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> 10 + 20 * l), EnchantText.Token.colored("⸕ Mining Speed", LABEL_COLOR), EnchantText.Token.plain("."));
-            case "fortune" -> pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Sorte de Mineração", LABEL_COLOR), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Mining Fortune", LABEL_COLOR), EnchantText.Token.plain("."));
+            // Fortune's own +10/level bonus feeds into whichever skill's Fortune stat
+            // actually applies to the block being broken (GeneralSkillListener#broken
+            // reads it off the real vanilla enchant directly, keyed by the tracked
+            // Target's own skill) - Mining for a pickaxe/shovel, Foraging for an axe.
+            // The label here just needs to match that at a glance.
+            case "fortune" -> item != null && item.name().endsWith("_AXE")
+                    ? (pt
+                            ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Fortuna de Coleta", LABEL_COLOR), EnchantText.Token.plain("."))
+                            : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Foraging Fortune", LABEL_COLOR), EnchantText.Token.plain(".")))
+                    : (pt
+                            ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Sorte de Mineração", LABEL_COLOR), EnchantText.Token.plain("."))
+                            : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 10), EnchantText.Token.colored("☘ Mining Fortune", LABEL_COLOR), EnchantText.Token.plain(".")));
             case "silk_touch" -> pt
                     ? List.of(EnchantText.Token.plain("Blocos minerados caem como eles mesmos, em vez de seus drops normais."))
                     : List.of(EnchantText.Token.plain("Mined blocks drop themselves instead of their normal drops."));

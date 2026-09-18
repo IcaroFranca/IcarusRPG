@@ -70,10 +70,12 @@ public final class GrindstoneMenuService {
     /** Rebuilds just the catalog grid + scroll arrows, from whatever item is currently sitting in {@link #ITEM_SLOT} - shared by {@link #open} and {@link #scheduleCatalogRefresh}. */
     private void renderCatalog(Inventory v, Player p, int page) {
         boolean pt = Language.of(p) == Language.PT;
-        List<Map.Entry<EnchantEntry, Integer>> entries = new ArrayList<>(this.enchants.levelsOf(v.getItem(ITEM_SLOT)).entrySet());
+        ItemStack currentItem = v.getItem(ITEM_SLOT);
+        List<Map.Entry<EnchantEntry, Integer>> entries = new ArrayList<>(this.enchants.levelsOf(currentItem).entrySet());
+        Material itemType = currentItem == null ? null : currentItem.getType();
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
             int index = page * CATALOG_SLOTS.length + i;
-            v.setItem(CATALOG_SLOTS[i], index < entries.size() ? this.entryIcon(p, entries.get(index), pt) : this.filler());
+            v.setItem(CATALOG_SLOTS[i], index < entries.size() ? this.entryIcon(p, entries.get(index), itemType, pt) : this.filler());
         }
         Language l = Language.of(p);
         v.setItem(SCROLL_UP_SLOT, page > 0 ? this.arrowIcon(l.choose("Página anterior", "Previous page")) : this.filler());
@@ -180,11 +182,11 @@ public final class GrindstoneMenuService {
         this.removeConfirm.remove(p.getUniqueId());
     }
 
-    private ItemStack entryIcon(Player p, Map.Entry<EnchantEntry, Integer> entry, boolean pt) {
+    private ItemStack entryIcon(Player p, Map.Entry<EnchantEntry, Integer> entry, Material item, boolean pt) {
         EnchantEntry e = entry.getKey();
         int level = entry.getValue();
         Language l = Language.of(p);
-        List<Component> lore = new ArrayList<>(e.resolvedDescription(pt, level));
+        List<Component> lore = new ArrayList<>(e.resolvedDescription(pt, level, item));
         if (!lore.isEmpty()) {
             lore.add(Component.empty());
         }

@@ -374,7 +374,7 @@ public final class EnchantService {
         List<Component> original = new ArrayList<>(lore);
         this.stripLoreBlock(lore);
         if (!levels.isEmpty()) {
-            List<Component> block = this.loreBlock(levels, pt);
+            List<Component> block = this.loreBlock(levels, pt, item.getType());
             this.insertBeforeTier(lore, block);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             meta.setEnchantmentGlintOverride(true);
@@ -429,7 +429,7 @@ public final class EnchantService {
     }
 
     /** The "Encantamentos:"/list block only, no surrounding blank lines - {@link #insertBeforeTier} decides those dynamically based on what's actually adjacent once inserted. */
-    private List<Component> loreBlock(Map<EnchantEntry, Integer> levels, boolean pt) {
+    private List<Component> loreBlock(Map<EnchantEntry, Integer> levels, boolean pt, Material item) {
         List<Component> block = new ArrayList<>();
         block.add(this.line(pt ? LORE_HEADER_PT : LORE_HEADER_EN, NamedTextColor.GOLD));
         if (levels.size() >= COLUMN_CUTOFF) {
@@ -443,7 +443,7 @@ public final class EnchantService {
             TextColor nameColor = level >= e.maxLevel() ? MAX_LEVEL_NAME_COLOR : NAME_COLOR;
             block.add(Component.text(e.leveledName(pt, level), nameColor).decoration(TextDecoration.ITALIC, false));
             if (showDescriptions) {
-                for (Component descLine : e.resolvedDescription(pt, level)) {
+                for (Component descLine : e.resolvedDescription(pt, level, item)) {
                     block.add(Component.text("  ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false).append(descLine));
                 }
             }

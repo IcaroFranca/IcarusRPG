@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.enchant;
 
 import java.util.List;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 
 /** Wraps one of the plugin's own {@link IcarusEnchant} constants as an {@link EnchantEntry}. */
 final class CustomEnchantEntry implements EnchantEntry {
@@ -45,13 +46,14 @@ final class CustomEnchantEntry implements EnchantEntry {
         return this.enchant.costAtLevel(level);
     }
 
+    /** No {@link IcarusEnchant} entry's description depends on which item it's applied to - {@code item} is only ever read by {@code VanillaEnchantEntry}'s own Fortune entry. */
     @Override
-    public List<Component> genericDescription(boolean pt) {
+    public List<Component> genericDescription(boolean pt, Material item) {
         return this.enchant.description(pt, null);
     }
 
     @Override
-    public List<Component> resolvedDescription(boolean pt, int level) {
+    public List<Component> resolvedDescription(boolean pt, int level, Material item) {
         return this.enchant.description(pt, level);
     }
 

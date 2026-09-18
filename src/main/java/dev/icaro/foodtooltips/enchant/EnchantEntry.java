@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.enchant;
 
 import java.util.List;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 
 /**
  * One catalog entry the Enchanting Table screen can offer - either one of the
@@ -61,14 +62,18 @@ public sealed interface EnchantEntry permits CustomEnchantEntry, VanillaEnchantE
      * Word-wrapped lore lines explaining what this entry does, with any numeric
      * value shown as level 1's own real number (in bright green) rather than a
      * placeholder letter - shown in the catalog and Guide, where no specific level is
-     * selected yet. Empty (never null) if there isn't one.
+     * selected yet. Empty (never null) if there isn't one. {@code item} is the
+     * Material this description is being shown for (the Guide screen, tied to no
+     * item, passes null) - only {@link VanillaEnchantEntry}'s own Fortune entry reads
+     * it, to show "Foraging Fortune" instead of "Mining Fortune" on an axe.
      */
-    List<Component> genericDescription(boolean pt);
+    List<Component> genericDescription(boolean pt, Material item);
 
     /**
      * Same description as {@link #genericDescription}, but with {@code level}'s own
      * real value in place of level 1's - shown on the level-select screen and in an
-     * applied item's own lore. Empty (never null) if there isn't one.
+     * applied item's own lore. Empty (never null) if there isn't one. See {@link
+     * #genericDescription} for what {@code item} is used for.
      */
-    List<Component> resolvedDescription(boolean pt, int level);
+    List<Component> resolvedDescription(boolean pt, int level, Material item);
 }
