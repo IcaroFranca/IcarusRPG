@@ -44,6 +44,8 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 public final class SkillsMenuService {
     private static final Key MENU_BACKGROUND_MODEL = Key.key("icarus", "menu_background");
+    private static final Key MENU_FONT = Key.key("icarus", "menu");
+    private static final Key DEFAULT_FONT = Key.key("minecraft", "default");
     private static final int[] N = new int[]{9, 18, 27, 28, 29, 20, 11, 2, 3, 4, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8, 17, 26, 35, 44, 53};
     private static final Map<Integer, SkillType> S = Map.of(21, SkillType.FARMING, 22, SkillType.MINING, 23, SkillType.FISHING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING);
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
@@ -144,7 +146,7 @@ public final class SkillsMenuService {
      */
     public void openMain(Player p) {
         Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Habilidades", "Skills"));
+        Inventory v = this.mainInv(l.choose("Habilidades", "Skills"));
         v.setItem(4, this.head(p, l));
         v.setItem(20, this.item(Material.IRON_SWORD, l.choose("Combate", "Combat"), List.of(this.combatLine(p, l), this.click(l))));
         for (Map.Entry<Integer, SkillType> e : S.entrySet()) {
@@ -435,6 +437,19 @@ public final class SkillsMenuService {
 
     private Inventory inv(String title) {
         Inventory v = Bukkit.createInventory(null, 54, title);
+        ItemStack f = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
+        f.setData(DataComponentTypes.ITEM_MODEL, MENU_BACKGROUND_MODEL);
+        for (int i = 0; i < 54; ++i) {
+            v.setItem(i, f);
+        }
+        return v;
+    }
+
+    private Inventory mainInv(String title) {
+        Component decoratedTitle = Component.empty()
+                .append(Component.text("\uE001\uE000\uE002").font(MENU_FONT))
+                .append(Component.text(title).font(DEFAULT_FONT));
+        Inventory v = Bukkit.createInventory(null, 54, decoratedTitle);
         ItemStack f = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         f.setData(DataComponentTypes.ITEM_MODEL, MENU_BACKGROUND_MODEL);
         for (int i = 0; i < 54; ++i) {
