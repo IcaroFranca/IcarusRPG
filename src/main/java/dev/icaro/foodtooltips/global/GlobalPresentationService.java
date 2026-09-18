@@ -160,8 +160,7 @@ implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void chat(AsyncChatEvent e) {
         Component badge = this.cachedBadge(e.getPlayer().getUniqueId());
-        TextColor nameColor = this.cachedColor(e.getPlayer().getUniqueId());
-        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), nameColor)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
+        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), (TextColor)NamedTextColor.WHITE)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
     }
 
     private record BadgeState(long level, LevelColorTheme theme) {
