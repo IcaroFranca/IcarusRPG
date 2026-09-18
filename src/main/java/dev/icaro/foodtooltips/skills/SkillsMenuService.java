@@ -18,6 +18,7 @@ import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import dev.icaro.foodtooltips.travel.TravelMenuService;
 import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.util.LoreWrap;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -41,6 +43,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 public final class SkillsMenuService {
+    private static final Key MENU_BACKGROUND_MODEL = Key.key("icarus", "menu_background");
     private static final int[] N = new int[]{9, 18, 27, 28, 29, 20, 11, 2, 3, 4, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8, 17, 26, 35, 44, 53};
     private static final Map<Integer, SkillType> S = Map.of(21, SkillType.FARMING, 22, SkillType.MINING, 23, SkillType.FISHING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING);
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
@@ -433,6 +436,7 @@ public final class SkillsMenuService {
     private Inventory inv(String title) {
         Inventory v = Bukkit.createInventory(null, 54, title);
         ItemStack f = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
+        f.setData(DataComponentTypes.ITEM_MODEL, MENU_BACKGROUND_MODEL);
         for (int i = 0; i < 54; ++i) {
             v.setItem(i, f);
         }
