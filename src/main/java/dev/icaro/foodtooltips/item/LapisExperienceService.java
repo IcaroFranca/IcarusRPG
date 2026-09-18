@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -20,6 +21,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ExpBottleEvent;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.RecipeChoice;
@@ -48,7 +50,9 @@ import org.bukkit.plugin.Plugin;
  * Grand/Titanic Experience Bottles are plain {@code Material.EXPERIENCE_BOTTLE} (so they
  * throw and animate exactly like the vanilla item) tagged with their own XP amount via
  * PDC ({@link #EXPERIENCE_AMOUNT_KEY}), overriding vanilla's small random payout on
- * landing - see {@link #expBottle}.
+ * landing - see {@link #expBottle}. Also independently fishable - see {@link #fish} - and
+ * both giveable from the {@code /rpgitems} admin menu ({@link #grandBottleGift}/{@link
+ * #titanicBottleGift}).
  *
  * <p>Both custom heads use a fixed (not random) profile UUID ({@link #LAPIS_CORE_PROFILE}/
  * {@link #TRUE_LAPIS_CORE_PROFILE}) - unlike every other custom head in this plugin (menu-
@@ -81,6 +85,11 @@ public final class LapisExperienceService implements Listener {
     private static final String BOTTLE_DESCRIPTION_PT = "Arremessada como um Frasco de Experiência comum.";
     private static final String BOTTLE_DESCRIPTION_EN = "Thrown like a regular Experience Bottle.";
 
+    /** See {@link #fish} - independent of {@link #TITANIC_FISH_CHANCE}, so (astronomically rarely) both can hit on the same catch. */
+    private static final double GRAND_FISH_CHANCE = 0.01;
+    /** See {@link #fish}. */
+    private static final double TITANIC_FISH_CHANCE = 0.001;
+
     private final Plugin plugin;
     private final ItemTierService tiers;
 
@@ -107,6 +116,48 @@ public final class LapisExperienceService implements Listener {
         if (amount != null) {
             e.setExperience(amount);
         }
+    }
+
+    /**
+     * A real catch (not junk pulled in early, a splash with nothing on the hook, or the
+     * bobber just landing) has an independent {@value #TITANIC_FISH_CHANCE} chance of
+     * also handing the player a Titanic Experience Bottle and, separately, an
+     * independent {@value #GRAND_FISH_CHANCE} chance of a Grand one - on top of
+     * whatever vanilla's own catch already gave, same "extra roll on top" shape as
+     * {@code CombatListener}'s own Undead's Sword drop chance.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void fish(PlayerFishEvent e) {
+        if (e.getState() != PlayerFishEvent.State.CAUGHT_FISH) {
+            return;
+        }
+        Player p = e.getPlayer();
+        if (ThreadLocalRandom.current().nextDouble() < TITANIC_FISH_CHANCE) {
+            this.give(p, this.titanicBottle());
+        }
+        if (ThreadLocalRandom.current().nextDouble() < GRAND_FISH_CHANCE) {
+            this.give(p, this.grandBottle());
+        }
+    }
+
+    private void give(Player p, ItemStack item) {
+        for (ItemStack overflow : p.getInventory().addItem(item).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+        }
+    }
+
+    /** A fresh, standalone Grand Experience Bottle, already localized to {@code viewer} - for the {@code /rpgitems} admin menu ({@code LegendaryItemsMenuService}). */
+    public List<ItemStack> grandBottleGift(Player viewer) {
+        ItemStack item = this.grandBottle();
+        localize(item, Language.of(viewer));
+        return List.of(item);
+    }
+
+    /** A fresh, standalone Titanic Experience Bottle, already localized to {@code viewer} - for the {@code /rpgitems} admin menu ({@code LegendaryItemsMenuService}). */
+    public List<ItemStack> titanicBottleGift(Player viewer) {
+        ItemStack item = this.titanicBottle();
+        localize(item, Language.of(viewer));
+        return List.of(item);
     }
 
     /** Registers all 4 recipes - see this class's own doc for the shapes/gating. */

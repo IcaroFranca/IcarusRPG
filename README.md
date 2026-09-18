@@ -254,7 +254,10 @@ como os ícones de menu já usados em todo o plugin), com Tier C e A respectivam
 Grand/Titanic Experience Bottle são o `Material.EXPERIENCE_BOTTLE` de verdade (arremessam
 e animam igual ao vanilla) só com a quantidade de XP sobrescrita ao quebrar (`ExpBottleEvent`),
 Tier B e S respectivamente — a quantidade aparece na lore em dourado ("XP Orbs: +N"), mesmo
-padrão visual da Armadura de Lápis-Lazúli.
+padrão visual da Armadura de Lápis-Lazúli. Cada pescaria bem-sucedida tem uma chance
+independente extra (em cima do que a pesca já dá normalmente) de também render um: 1%
+pro Grand, 0,1% pro Titanic — os dois também disponíveis (dados avulsos, sem craft) no
+`/rpgitems`, mesmo slot de conveniência das armaduras.
 
 **Dano corpo a corpo por material** (espada, machado, picareta, pá e enxada batem
 igual dentro do mesmo material):
