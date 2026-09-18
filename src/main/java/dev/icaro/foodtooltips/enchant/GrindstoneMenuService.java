@@ -65,6 +65,7 @@ public final class GrindstoneMenuService {
         this.viewing.add(p.getUniqueId());
         this.pages.put(p.getUniqueId(), 0);
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
     }
 
     /** Rebuilds just the catalog grid + scroll arrows, from whatever item is currently sitting in {@link #ITEM_SLOT} - shared by {@link #open} and {@link #scheduleCatalogRefresh}. */

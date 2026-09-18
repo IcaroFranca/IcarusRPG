@@ -59,6 +59,7 @@ public final class BestiaryMenuService {
         }
         inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar \u00e0s Skills", "Back to Skills"), List.of()));
         p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.categories(buttons));
     }
 
@@ -87,6 +88,7 @@ public final class BestiaryMenuService {
             inv.setItem(51, this.customHeadIcon(HeadTexture.ARROW_RIGHT, l.choose("Pr\u00f3xima p\u00e1gina", "Next Page"), List.of()));
         }
         p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.category(cat, page, buttons));
     }
 
@@ -108,6 +110,7 @@ public final class BestiaryMenuService {
         }
         inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.detail(back, page, e));
     }
 

@@ -67,6 +67,7 @@ public final class CraftingMenuService {
         v.setItem(OUTPUT_SLOT, null);
         v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
     }
 

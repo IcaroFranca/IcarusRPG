@@ -168,6 +168,7 @@ public final class BiomeWandService {
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Varinha de Biomas", "Biome's Wand"));
         this.renderMenu(v, item, l);
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewingMenu.add(p.getUniqueId());
     }
 

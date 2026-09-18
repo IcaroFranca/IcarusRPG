@@ -198,6 +198,7 @@ public final class BuilderWandService {
         Inventory v = Bukkit.createInventory(null, 27, l.choose("Varinha: Configurações", "Wand: Settings"));
         this.renderMenu(v, item, l);
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewingMenu.add(p.getUniqueId());
     }
 

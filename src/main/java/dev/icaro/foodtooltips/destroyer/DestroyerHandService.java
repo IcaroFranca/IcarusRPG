@@ -204,6 +204,7 @@ public final class DestroyerHandService {
         Inventory v = Bukkit.createInventory(null, 27, l.choose("Mão do Destruidor: Configurações", "Destroyer's Hand: Settings"));
         this.renderMenu(v, item, l);
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewingMenu.add(p.getUniqueId());
     }
 

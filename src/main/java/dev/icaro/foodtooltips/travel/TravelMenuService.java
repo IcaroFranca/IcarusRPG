@@ -74,6 +74,7 @@ public final class TravelMenuService {
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
     }
 
     private void travel(Player p, String worldName) {

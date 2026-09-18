@@ -94,6 +94,7 @@ public final class LevelColorMenuService {
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
     }
 
     private void select(Player p, LevelColorTheme theme) {

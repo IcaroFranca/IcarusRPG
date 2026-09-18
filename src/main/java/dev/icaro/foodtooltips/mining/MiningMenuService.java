@@ -69,6 +69,7 @@ public final class MiningMenuService {
         inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text((String)l.choose("P\u00f3 Mineral", "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE), mineralDustLore));
         inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar", "Back"), (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.add(p.getUniqueId());
         this.details.remove(p.getUniqueId());
     }
@@ -89,6 +90,7 @@ public final class MiningMenuService {
         }
         inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.add(p.getUniqueId());
         this.details.add(p.getUniqueId());
     }

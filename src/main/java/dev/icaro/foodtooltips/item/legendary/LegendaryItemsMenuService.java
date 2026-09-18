@@ -100,6 +100,7 @@ public final class LegendaryItemsMenuService {
         v.setItem(GRAND_BOTTLE_SLOT, this.armorSetPreview(this.grandBottle.apply(p), l));
         v.setItem(TITANIC_BOTTLE_SLOT, this.armorSetPreview(this.titanicBottle.apply(p), l));
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
     }
 

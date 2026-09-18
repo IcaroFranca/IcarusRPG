@@ -158,6 +158,7 @@ public final class QuiverService {
 
     public void open(Player p) {
         p.openInventory(this.inventoryFor(p));
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
     }
 

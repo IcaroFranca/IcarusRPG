@@ -66,6 +66,7 @@ public final class PassiveAbilityMenuService {
                         "Automatically brings a mined block's own drops into your inventory.")));
         v.setItem(BACK_SLOT, this.backButton(l));
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
     }
 

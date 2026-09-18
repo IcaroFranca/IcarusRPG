@@ -648,6 +648,7 @@ public final class EnchantMenuService {
     private void openScreen(Player p, Inventory v) {
         this.transitioning.add(p.getUniqueId());
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.transitioning.remove(p.getUniqueId());
     }
 
