@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -56,6 +57,12 @@ public final class DemonKingStormListener implements Listener {
         this.plugin = plugin;
         this.stats = stats;
         this.abilities = abilities;
+    }
+
+    /** Same as every other per-player cooldown map in the plugin - not cleared, this grows by one stale entry per player who's ever cast Storm of White Flames for as long as the server runs. */
+    @EventHandler
+    public void quit(PlayerQuitEvent e) {
+        this.cooldowns.remove(e.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

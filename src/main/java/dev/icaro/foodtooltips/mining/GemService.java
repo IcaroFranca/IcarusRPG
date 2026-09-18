@@ -254,6 +254,7 @@ implements Listener {
         }
         inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), List.of()));
         p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.menus.put(p.getUniqueId(), inv);
     }
 

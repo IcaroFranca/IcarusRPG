@@ -4,10 +4,8 @@ import dev.icaro.foodtooltips.i18n.Language;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -21,21 +19,23 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Universal item rarity ({@link ItemTier}) for every item in the plugin, not just
- * combat gear. Every {@link Material} resolves to a tier — a curated table for
- * equipment (by tool/armor material family) and for a set of notable items, a
- * curated "junk" set for plain naturally-occurring blocks (bottom {@link
- * ItemTier#E}), and Common ({@link ItemTier#D}) as the default for everything
- * else, so nothing is left untagged. Server owners can override any single
- * Material's tier via {@code item-tiers} in config.yml without recompiling.
+ * Item rarity ({@link ItemTier}) for the plugin's weapons, tools and armor - drops,
+ * ores and other plain items don't get one. Every taggable {@link Material} resolves
+ * to a tier by tool/armor material family (see {@link #equipmentTier}), unless a
+ * server owner overrides it for a specific Material via {@code item-tiers} in
+ * config.yml (works for any item, equipment or not - that's still an explicit,
+ * per-item admin choice, not the automatic default) or the item was pinned in code
+ * via {@link #forceTier} (same idea, for one-off items like the Builder's Wand).
  *
  * <p>Tooltip rewriting follows the same one-shot pattern as {@code
  * ArmorDefenseService#applyDefenseTooltip}: idempotent via a PDC marker on the
- * item's own {@link ItemMeta}, so each item is only rewritten once. Equipment
- * (tools/weapons/armor) gets a bold "TIER {X} {KIND}" line appended at the very
- * end of its lore (e.g. "TIER C PICKAXE"); everything else gets just the bare
- * "TIER {X}" label, matching the reference tooltips (a fully-decorated item vs.
- * a plain block like Dirt showing only its tier).
+ * item's own {@link ItemMeta}, so each item is only rewritten once. A taggable item
+ * gets a bold "TIER {X} {KIND}" line appended at the very end of its lore (e.g.
+ * "TIER C PICKAXE"), or just the bare "TIER {X}" for an override/forced item with no
+ * equipment "kind" of its own (e.g. a config-overridden Totem of Undying). An
+ * already-tagged item that turns out not to be taggable (tagged before this
+ * equipment-only restriction existed) gets its tier lore and name color stripped
+ * back off the next time it's swept - see {@link #stripTier}.
  */
 public final class ItemTierService {
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
@@ -95,15 +95,22 @@ public final class ItemTierService {
             return override;
         }
         String kind = kindOf(m);
-        if (kind != null) {
-            return equipmentTier(m, kind);
-        }
-        if (S_ITEMS.contains(m)) return ItemTier.S;
-        if (A_ITEMS.contains(m)) return ItemTier.A;
-        if (B_ITEMS.contains(m)) return ItemTier.B;
-        if (C_ITEMS.contains(m)) return ItemTier.C;
-        if (JUNK_ITEMS.contains(m)) return ItemTier.E;
-        return ItemTier.D;
+        // Only reached for a taggable non-equipment item (an override already returned
+        // above) or a caller outside the taggable() gate entirely - Common is as
+        // reasonable a default as any for something with no curated tier of its own.
+        return kind != null ? equipmentTier(m, kind) : ItemTier.D;
+    }
+
+    /**
+     * Whether {@code m} gets a tier tag at all: a weapon/tool/armor piece ({@link
+     * #kindOf} says so), or an item a server owner or the plugin's own code explicitly
+     * opted in for (a config {@code item-tiers} override, or {@link #forceTier} pinned
+     * on this exact item) - drops, ores and other plain items get neither by default.
+     */
+    private boolean taggable(Material m, ItemMeta meta) {
+        return kindOf(m) != null
+                || this.overrides.containsKey(m)
+                || meta.getPersistentDataContainer().has(this.forcedTierKey, PersistentDataType.STRING);
     }
 
     private static ItemTier equipmentTier(Material m, String kind) {
@@ -150,46 +157,6 @@ public final class ItemTierService {
             default -> null;
         };
     }
-
-    private static final Set<Material> S_ITEMS = EnumSet.of(
-            Material.NETHERITE_INGOT, Material.NETHERITE_BLOCK, Material.NETHERITE_SCRAP,
-            Material.ANCIENT_DEBRIS, Material.NETHER_STAR, Material.DRAGON_EGG,
-            Material.DRAGON_HEAD, Material.ELYTRA, Material.TOTEM_OF_UNDYING,
-            Material.ENCHANTED_GOLDEN_APPLE, Material.BEACON, Material.WITHER_SKELETON_SKULL,
-            Material.HEART_OF_THE_SEA);
-
-    private static final Set<Material> A_ITEMS = EnumSet.of(
-            Material.DIAMOND, Material.DIAMOND_BLOCK, Material.DIAMOND_ORE, Material.DEEPSLATE_DIAMOND_ORE,
-            Material.EMERALD, Material.EMERALD_BLOCK, Material.EMERALD_ORE, Material.DEEPSLATE_EMERALD_ORE,
-            Material.GOLDEN_APPLE, Material.ENCHANTED_BOOK, Material.EXPERIENCE_BOTTLE,
-            Material.SHULKER_SHELL, Material.CONDUIT, Material.NAUTILUS_SHELL);
-
-    private static final Set<Material> B_ITEMS = EnumSet.of(
-            Material.IRON_INGOT, Material.IRON_BLOCK, Material.IRON_ORE, Material.DEEPSLATE_IRON_ORE,
-            Material.GOLD_INGOT, Material.GOLD_BLOCK, Material.GOLD_ORE, Material.DEEPSLATE_GOLD_ORE,
-            Material.COPPER_INGOT, Material.COPPER_BLOCK, Material.COPPER_ORE, Material.DEEPSLATE_COPPER_ORE,
-            Material.LAPIS_LAZULI, Material.LAPIS_BLOCK, Material.LAPIS_ORE, Material.DEEPSLATE_LAPIS_ORE,
-            Material.REDSTONE, Material.REDSTONE_BLOCK, Material.REDSTONE_ORE, Material.DEEPSLATE_REDSTONE_ORE,
-            Material.AMETHYST_SHARD, Material.AMETHYST_BLOCK, Material.QUARTZ, Material.QUARTZ_BLOCK,
-            Material.OBSIDIAN, Material.CRYING_OBSIDIAN, Material.RESPAWN_ANCHOR,
-            Material.BLAZE_ROD, Material.BLAZE_POWDER, Material.GHAST_TEAR,
-            Material.ENDER_PEARL, Material.ENDER_EYE, Material.SADDLE, Material.NAME_TAG);
-
-    private static final Set<Material> C_ITEMS = EnumSet.of(
-            Material.COAL, Material.COAL_BLOCK, Material.COAL_ORE, Material.DEEPSLATE_COAL_ORE,
-            Material.RAW_IRON, Material.RAW_GOLD, Material.RAW_COPPER,
-            Material.RAW_IRON_BLOCK, Material.RAW_GOLD_BLOCK, Material.RAW_COPPER_BLOCK,
-            Material.STRING, Material.LEATHER, Material.BONE, Material.GUNPOWDER,
-            Material.SLIME_BALL, Material.MAGMA_CREAM, Material.SPIDER_EYE);
-
-    private static final Set<Material> JUNK_ITEMS = EnumSet.of(
-            Material.DIRT, Material.COARSE_DIRT, Material.GRASS_BLOCK, Material.PODZOL, Material.MYCELIUM,
-            Material.SAND, Material.RED_SAND, Material.GRAVEL, Material.CLAY,
-            Material.STONE, Material.COBBLESTONE, Material.COBBLED_DEEPSLATE, Material.DEEPSLATE,
-            Material.NETHERRACK, Material.BASALT, Material.TUFF, Material.ANDESITE, Material.DIORITE, Material.GRANITE,
-            Material.ROTTEN_FLESH, Material.STICK, Material.OAK_SAPLING, Material.SPRUCE_SAPLING,
-            Material.BIRCH_SAPLING, Material.JUNGLE_SAPLING, Material.ACACIA_SAPLING, Material.DARK_OAK_SAPLING,
-            Material.WHEAT_SEEDS, Material.POISONOUS_POTATO, Material.FLINT);
 
     // ----- Tooltip rewrite --------------------------------------------------
 
@@ -254,7 +221,17 @@ public final class ItemTierService {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
-        if (meta == null || meta.getPersistentDataContainer().has(this.tierKey, PersistentDataType.BYTE)) {
+        if (meta == null) {
+            return null;
+        }
+        boolean alreadyTagged = meta.getPersistentDataContainer().has(this.tierKey, PersistentDataType.BYTE);
+        if (!this.taggable(item.getType(), meta)) {
+            // Not a weapon/tool/armor piece and no explicit override/forceTier - if it
+            // was tagged before this restriction existed, strip that back off; otherwise
+            // there's nothing to do.
+            return alreadyTagged ? this.stripTier(item, meta) : null;
+        }
+        if (alreadyTagged) {
             return null;
         }
         ItemTier tier = this.tierOf(meta, item.getType());
@@ -282,6 +259,42 @@ public final class ItemTierService {
         meta.getPersistentDataContainer().set(this.tierKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Un-tags an item that {@link #applyTier} already tagged before it stopped being
+     * taggable (either the equipment-only restriction landed after this exact item was
+     * tagged, or a config {@code item-tiers} override/{@link #forceTier} pin was
+     * removed since) - drops its "TIER ..." lore line (plus the blank separator right
+     * before it, since that line always sits last in the lore, see {@link #applyTier})
+     * and clears {@link #tierKey} so it's never revisited. The recolored/bolded display
+     * name is reset to vanilla's own (null) too - nothing else in the plugin names a
+     * plain drop/ore, so this can't clobber another system's name, only a player's own
+     * anvil rename on the rare item this applies to and was also renamed.
+     */
+    private ItemStack stripTier(ItemStack item, ItemMeta meta) {
+        if (meta.hasLore()) {
+            List<Component> lore = new ArrayList<>(meta.lore());
+            for (int i = lore.size() - 1; i >= 0; i--) {
+                if (PLAIN.serialize(lore.get(i)).startsWith("TIER ")) {
+                    lore.remove(i);
+                    if (i > 0 && i - 1 == lore.size() - 1 && this.isBlank(lore.get(i - 1))) {
+                        lore.remove(i - 1);
+                    }
+                    break;
+                }
+            }
+            meta.lore(lore.isEmpty() ? null : lore);
+        }
+        meta.displayName(null);
+        meta.getPersistentDataContainer().remove(this.tierKey);
+        meta.getPersistentDataContainer().remove(this.spacingRepairedKey);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private boolean isBlank(Component c) {
+        return PLAIN.serialize(c).isEmpty();
     }
 
     /**

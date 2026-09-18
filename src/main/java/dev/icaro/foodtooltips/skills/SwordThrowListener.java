@@ -23,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -42,6 +43,12 @@ implements Listener {
     public SwordThrowListener(Plugin p, CombatAbilityService a) {
         this.plugin = p;
         this.abilities = a;
+    }
+
+    /** Same as every other per-player cooldown map in the plugin - not cleared, this grows by one stale entry per player who's ever thrown a sword for as long as the server runs. */
+    @EventHandler
+    public void quit(PlayerQuitEvent e) {
+        this.cooldowns.remove(e.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)

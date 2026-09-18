@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
 import java.util.List;
@@ -125,7 +126,15 @@ public final class ToolDamageService {
      * SwordDamageService#rewrite}.
      */
     private ItemStack rewrite(ItemStack item, Player p, Language l) {
-        if (item == null || item.isEmpty()) {
+        if (item == null || item.isEmpty() || LegendaryWeaponService.isLegendary(item)) {
+            // No legendary weapon is built on a tool material today (see LegendaryWeapon -
+            // every one is a _SWORD), so this guard is currently a no-op in practice, but
+            // SwordDamageService#rewrite and PolearmDamageService#rewrite both already
+            // have it (see their own identical comment) - this class was the one that
+            // didn't get it replicated, exactly the near-clone drift these three classes'
+            // own docs warn about. Without it, a future tool-material legendary weapon
+            // would silently get its Attack Damage/Speed and lore overwritten by this
+            // class's generic per-material formula the instant this HUD tick runs.
             return null;
         }
         Double total = totalDamage(item.getType());

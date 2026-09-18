@@ -1,5 +1,7 @@
 package dev.icaro.foodtooltips.skills;
 
+import dev.icaro.foodtooltips.enchant.EnchantService;
+import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
@@ -7,6 +9,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.mining.BuriedTreasureService;
 import dev.icaro.foodtooltips.mining.MiningCatalog;
 import dev.icaro.foodtooltips.mining.MiningEntry;
+import dev.icaro.foodtooltips.mining.SmeltingCatalog;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillProgress;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
@@ -27,11 +30,14 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
@@ -40,12 +46,21 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.BrewerInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -59,22 +74,80 @@ implements Listener {
     private final SkillProgressBarService bars;
     private final BuriedTreasureService treasures;
     private final GlobalLevelService global;
+    private final EnchantService enchants;
+    private final PassiveAbilityService passives;
     private final Set<String> placed = new HashSet<String>();
     private final Set<UUID> veinActive = new HashSet<UUID>();
+    /** Reentrancy guard for {@link #potionDuration} - reapplying an extended effect fires this same event again, and this stops that from being treated as a new drink to extend a second time. */
+    private final Set<UUID> extendingPotion = new HashSet<UUID>();
     private final Map<String, Target> targets = new HashMap<String, Target>();
     private final Map<UUID, Combo> combos = new HashMap<UUID, Combo>();
 
-    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g) {
+    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants, PassiveAbilityService passives) {
         this.plugin = p;
         this.skills = s;
         this.bars = b;
         this.global = g;
+        this.enchants = enchants;
+        this.passives = passives;
         this.treasures = new BuriedTreasureService(p, s);
     }
 
     @EventHandler(ignoreCancelled=true)
     public void place(BlockPlaceEvent e) {
         this.placed.add(this.key(e.getBlock().getLocation()));
+    }
+
+    /**
+     * {@link #placed} only ever shrinks in {@link #broken} (a genuine {@link
+     * BlockBreakEvent}) - a placed block destroyed any other way (an explosion, fire,
+     * a piston pushing/pulling it away, an external plugin like WorldEdit) left its
+     * entry behind forever, since nothing else ever removed it. Over a long-running
+     * server's lifetime that's an unbounded leak - every block anyone has ever placed
+     * and lost some other way, kept in memory permanently. These four handlers untrack
+     * a placed block the moment it's gone (or, for a piston, simply relocated) instead
+     * of only on a direct break - a piston-pushed block isn't specially re-tracked at
+     * its new location (accepting that a placed block deliberately piston-shuffled
+     * away and later broken there won't be recognized as player-placed anymore) since
+     * that's a minor, rare edge case next to an unbounded memory leak.
+     */
+    @EventHandler(ignoreCancelled=true)
+    public void explodedByEntity(EntityExplodeEvent e) {
+        for (Block b : e.blockList()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void explodedByBlock(BlockExplodeEvent e) {
+        for (Block b : e.blockList()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void burned(BlockBurnEvent e) {
+        this.placed.remove(this.key(e.getBlock().getLocation()));
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void pistonExtend(BlockPistonExtendEvent e) {
+        for (Block b : e.getBlocks()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    public void pistonRetract(BlockPistonRetractEvent e) {
+        for (Block b : e.getBlocks()) {
+            this.placed.remove(this.key(b.getLocation()));
+        }
+    }
+
+    /** {@link #combos} is keyed by player, never trimmed anywhere else - every other per-UUID collection in this class (veinActive, extendingPotion) is cleared in its own try/finally right after use, but a combo streak has no such natural end point (it just goes stale after 3s), so without this it grows forever, one entry per player who's ever mined anything. */
+    @EventHandler
+    public void quit(PlayerQuitEvent e) {
+        this.combos.remove(e.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
@@ -101,14 +174,48 @@ implements Listener {
         });
     }
 
+    /** Netherite pickaxe/axe/shovel with real vanilla Efficiency V insta-mines - see {@link GeneralSkillService#instaMines}. Runs on the very first damage tick a block takes, same as creative mode's own instant break. */
+    @EventHandler(ignoreCancelled=true)
+    public void instaMine(BlockDamageEvent e) {
+        if (this.skills.instaMines(e.getPlayer().getInventory().getItemInMainHand(), e.getBlock().getType())) {
+            e.setInstaBreak(true);
+        }
+    }
+
+    /**
+     * Delicate: cancels breaking a crop that hasn't fully grown yet, or a pumpkin/
+     * melon stem at all (mature or not - the stem itself is never a useful drop, and
+     * breaking it kills the plant it's still growing) - runs well before {@link
+     * #broken}'s own MONITOR-priority XP logic, since a cancelled event never reaches
+     * it (matches Bukkit's normal event order: the block itself is still intact at
+     * this point, only actually removed after every handler has run).
+     */
+    @EventHandler(priority=EventPriority.NORMAL, ignoreCancelled=true)
+    public void delicate(BlockBreakEvent e) {
+        Block block = e.getBlock();
+        if (!this.isDelicateProtected(block, block.getType())) {
+            return;
+        }
+        if (this.enchants.customLevel(e.getPlayer().getInventory().getItemInMainHand(), IcarusEnchant.DELICATE) > 0) {
+            e.setCancelled(true);
+        }
+    }
+
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void broken(BlockBreakEvent e) {
         String k = this.key(e.getBlock().getLocation());
-        if (this.placed.remove(k)) {
+        Material m = e.getBlock().getType();
+        // this.placed exists to stop a place-then-immediately-break Mining/Foraging XP
+        // exploit (an ore/log obtained some other way, placed and re-mined for free) -
+        // but planting a seed is a BlockPlaceEvent too, so without this exception a
+        // crop the player planted and legitimately grew to full maturity themselves
+        // (the entire point of the Farming skill) was silently giving zero XP, since
+        // this used to return here unconditionally for anything ever placed. A mature
+        // crop/cane is never what this guard was meant to block.
+        if (this.placed.remove(k) && !this.isHarvestableCrop(e.getBlock(), m)) {
             return;
         }
         Player p = e.getPlayer();
-        Material m = e.getBlock().getType();
         MiningCatalog.find(m).ifPresent(x -> {
             int haste;
             int before = this.skills.miningMilestones(p, m);
@@ -128,12 +235,12 @@ implements Listener {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 60, haste - 1, false, false, false));
             }
             if (MiningCatalog.isOre(m) && !p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
-                this.targets.put(k, new Target(SkillType.MINING, x.drop()));
+                this.track(k, new Target(SkillType.MINING, x.drop()), p);
             }
         });
         if (this.isLog(m)) {
             this.gain(p, SkillType.FORAGING, this.logXp(m));
-            this.targets.put(k, new Target(SkillType.FORAGING, m));
+            this.track(k, new Target(SkillType.FORAGING, m), p);
         } else if (m == Material.SUGAR_CANE) {
             // Sugar cane's own Ageable#getAge() is an internal 0-15 "ticks until the next
             // segment grows" counter, not a wheat-style maturity gate - it resets to 0 the
@@ -141,49 +248,125 @@ implements Listener {
             // (anything below the still-growing top one) are essentially never caught at
             // max age. Every placed-and-grown cane segment is already the finished product
             // (no immature visual/functional state the way wheat has), so it always counts.
-            this.gain(p, SkillType.FARMING, this.cropXp(m));
-            this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
+            //
+            // Breaking a cane segment also knocks off every segment stacked on top of it
+            // (cane can't float unsupported) - vanilla just drops those as a physics side
+            // effect with no BlockBreakEvent of their own, so without this they'd give no
+            // XP at all. Counted here (while they're still real blocks, right before this
+            // break resolves) and folded into one gain call.
+            this.gain(p, SkillType.FARMING, this.cropXp(m) * (1 + this.caneSegmentsAbove(e.getBlock())));
+            this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
             if (blockData instanceof Ageable && (a = (Ageable)blockData).getAge() == a.getMaximumAge()) {
                 this.gain(p, SkillType.FARMING, this.cropXp(m));
-                this.targets.put(k, new Target(SkillType.FARMING, this.cropDrop(m)));
+                this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
+                this.tryReplenish(p, e.getBlock(), m);
             }
+        }
+    }
+
+    /**
+     * Registers {@code t} for {@code k} so the next {@link BlockDropItemEvent} at that
+     * location applies Fortune/Smelting Touch - except in Creative mode, which never
+     * fires that event (nothing actually drops there), so an entry registered anyway
+     * would sit in {@link #targets} forever with nothing left to ever remove it - an
+     * unbounded leak keyed by every block position a Creative player has ever broken.
+     */
+    private void track(String k, Target t, Player p) {
+        if (p.getGameMode() != GameMode.CREATIVE) {
+            this.targets.put(k, t);
         }
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void drops(BlockDropItemEvent e) {
-        Target t = this.targets.remove(this.key(e.getBlock().getLocation()));
-        if (t == null) {
-            return;
-        }
-        int fortune = this.skills.fortune(e.getPlayer(), t.skill);
-        int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
-        for (Item entity : new ArrayList<>(e.getItems())) {
-            ItemStack base = entity.getItemStack();
-            if (base.getType() != t.drop) continue;
-            int extra = base.getAmount() * copies;
-            int max = base.getMaxStackSize();
-            int add = Math.min(extra, max - base.getAmount());
-            base.setAmount(base.getAmount() + add);
-            entity.setItemStack(base);
-            extra -= add;
-            while (extra > 0) {
-                ItemStack overflow = base.clone();
-                overflow.setAmount(Math.min(max, extra));
-                e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
-                extra -= overflow.getAmount();
+        Player p = e.getPlayer();
+        ItemStack tool = p.getInventory().getItemInMainHand();
+        boolean smeltingTouch = this.enchants.customLevel(tool, IcarusEnchant.SMELTING_TOUCH) > 0;
+        if (smeltingTouch) {
+            // Turns every dropped item into its own furnace-smelted form (when one
+            // exists - see SmeltingCatalog) right here, before the tracked-target
+            // stacking pass below reads item types, so that pass still recognizes the
+            // (now smelted) material instead of missing it - see the trackedDrop swap
+            // just below for the other half of that coordination.
+            for (Item entity : e.getItems()) {
+                ItemStack stack = entity.getItemStack();
+                Material smelted = SmeltingCatalog.smeltedForm(stack.getType());
+                if (smelted != null) {
+                    stack.setType(smelted);
+                    entity.setItemStack(stack);
+                }
             }
         }
-        if (t.skill == SkillType.MINING && this.global.telekinesisUnlocked(e.getPlayer())) {
-            for (Item item : new ArrayList<>(e.getItems())) {
-                for (ItemStack overflow : e.getPlayer().getInventory().addItem(new ItemStack[]{item.getItemStack()}).values()) {
-                    e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
+        // Telekinesis (block drops): applies to ANY block break with drops - dirt,
+        // wool, anything - not just a tracked Mining/Farming/Foraging target, matching
+        // what its own toggle name ("Telecinese: Drops de Blocos"/"Block Drops")
+        // already promised; the Fortune-copies pass right below is the one that stays
+        // scoped to a tracked target, since Fortune only ever makes sense for an
+        // actual resource block.
+        boolean telekinesis = this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_BLOCK_DROPS);
+        Target t = this.targets.remove(this.key(e.getBlock().getLocation()));
+        if (t != null) {
+            Material trackedDrop = t.drop;
+            if (smeltingTouch) {
+                Material smelted = SmeltingCatalog.smeltedForm(trackedDrop);
+                if (smelted != null) {
+                    trackedDrop = smelted;
                 }
+            }
+            // The real vanilla Fortune enchant now feeds directly into the same "Mining
+            // Fortune" points pool the skill itself grants, matching its own catalog
+            // description (+10/level) - vanilla's own separate, unquantified ore-multiplier
+            // effect still applies underneath this on top (untouched), same relationship
+            // Sharpness/Smite/Bane of Arthropods have with their own real vanilla bonus.
+            // Harvesting adds its own 12.5/level on top of that, but only for Farming.
+            double enchantFortune = tool.getEnchantmentLevel(Enchantment.FORTUNE) * 10.0;
+            if (t.skill == SkillType.FARMING) {
+                enchantFortune += this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) * 12.5;
+            }
+            int fortune = this.skills.fortune(p, t.skill) + (int) Math.round(enchantFortune);
+            int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
+            // Checked up front (not just below, right before the telekinesis sweep) so the
+            // Fortune-copies loop right below can route ITS OWN overflow (beyond one max
+            // stack) straight into the inventory too, instead of always spawning it as a
+            // real ground item that loop's own dropItemNaturally call used to leave behind
+            // - e.getItems() (what the sweep below reads) never included that overflow, so
+            // it never got swept and sat there fully visible even with Telekinesis on.
+            for (Item entity : new ArrayList<>(e.getItems())) {
+                ItemStack base = entity.getItemStack();
+                if (base.getType() != trackedDrop) continue;
+                int extra = base.getAmount() * copies;
+                int max = base.getMaxStackSize();
+                int add = Math.min(extra, max - base.getAmount());
+                base.setAmount(base.getAmount() + add);
+                entity.setItemStack(base);
+                extra -= add;
+                while (extra > 0) {
+                    ItemStack overflow = base.clone();
+                    overflow.setAmount(Math.min(max, extra));
+                    extra -= overflow.getAmount();
+                    if (telekinesis) {
+                        this.give(p, overflow);
+                    } else {
+                        e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
+                    }
+                }
+            }
+        }
+        if (telekinesis) {
+            for (Item item : new ArrayList<>(e.getItems())) {
+                this.give(p, item.getItemStack());
                 item.remove();
             }
+        }
+    }
+
+    /** Adds {@code stack} straight to {@code p}'s inventory, dropping naturally at their feet only whatever doesn't fit - the shared "give, don't spawn on the ground" half of Telekinesis' block-drop path (see {@link #drops}). */
+    private void give(Player p, ItemStack stack) {
+        for (ItemStack overflow : p.getInventory().addItem(stack).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
     }
 
@@ -204,9 +387,42 @@ implements Listener {
         }
     }
 
+    /** Enchanting's +5%-per-level bonus to vanilla XP orbs (any source: mob kills, mining, fishing, the vanilla enchanting table...) - {@link PlayerExpChangeEvent} fires for every vanilla experience gain, not just orb pickup, so this is the one place that catches all of them without duplicating the multiplier at each individual source. */
+    @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
+    public void xpOrb(PlayerExpChangeEvent e) {
+        double multiplier = this.skills.xpOrbMultiplier(e.getPlayer());
+        if (multiplier > 1.0) {
+            e.setAmount((int) Math.round(e.getAmount() * multiplier));
+        }
+    }
+
+    /** Alchemy's +1%-per-level bonus to potion effect duration, from drinking a potion specifically (not splash/lingering/beacon/other environmental effects). Cancel-and-reapply rather than mutating the event in place, since {@link EntityPotionEffectEvent} doesn't expose a setter for the effect itself - the reapply fires this same event again, guarded by {@link #extendingPotion} so it isn't extended a second time. */
+    @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
+    public void potionDuration(EntityPotionEffectEvent e) {
+        if (!(e.getEntity() instanceof Player p) || this.extendingPotion.contains(p.getUniqueId())
+                || e.getCause() != EntityPotionEffectEvent.Cause.POTION_DRINK
+                || e.getAction() != EntityPotionEffectEvent.Action.ADDED || e.getNewEffect() == null) {
+            return;
+        }
+        double multiplier = this.skills.potionDurationMultiplier(p);
+        if (multiplier <= 1.0) {
+            return;
+        }
+        PotionEffect original = e.getNewEffect();
+        PotionEffect extended = new PotionEffect(original.getType(), (int) Math.round(original.getDuration() * multiplier),
+                original.getAmplifier(), original.isAmbient(), original.hasParticles(), original.hasIcon());
+        this.extendingPotion.add(p.getUniqueId());
+        try {
+            p.addPotionEffect(extended);
+        } finally {
+            this.extendingPotion.remove(p.getUniqueId());
+        }
+    }
+
+    /** Real vanilla's own Enchanting XP curve (Enchantment Table/Anvil): XP = 3.5 * X^1.5 for X levels spent - same formula {@code EnchantMenuService#gainEnchantingXp} uses for the reworked table's own applications. */
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void enchant(EnchantItemEvent e) {
-        this.gain(e.getEnchanter(), SkillType.ENCHANTING, Math.max(5, e.getExpLevelCost() * 4));
+        this.gain(e.getEnchanter(), SkillType.ENCHANTING, 3.5 * Math.pow(e.getExpLevelCost(), 1.5));
     }
 
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
@@ -316,6 +532,12 @@ implements Listener {
             case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.intelligencePerLevel()) + " " + l.choose("Intelig\u00eancia", "Intelligence"));
             default -> {}
         }
+        if (t == SkillType.ENCHANTING) {
+            parts.add("+" + (levelsGained * this.skills.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"));
+        }
+        if (t == SkillType.ALCHEMY) {
+            parts.add("+" + (levelsGained * this.skills.potionDurationPercentPerLevel()) + "% " + l.choose("Dura\u00e7\u00e3o de Po\u00e7\u00f5es", "Potion Duration"));
+        }
         return String.join(" \u2022 ", parts);
     }
 
@@ -323,8 +545,102 @@ implements Listener {
         return m.name().endsWith("_LOG") || m.name().endsWith("_STEM") || m.name().endsWith("_HYPHAE");
     }
 
+    /**
+     * Whether breaking {@code m} at its current block state is Farming's own harvest -
+     * a crop at full maturity, or any sugar cane segment (see the SUGAR_CANE branch's
+     * own doc in {@link #broken} for why cane has no separate maturity gate) - the one
+     * case {@link #placed} deliberately doesn't block XP for (see {@link #broken}'s own
+     * doc): planting a seed and growing it to harvest is the entire point of the
+     * Farming skill, not the place-then-immediately-break exploit {@link #placed}
+     * exists to guard Mining/Foraging XP against.
+     */
+    private boolean isHarvestableCrop(Block block, Material m) {
+        if (m == Material.SUGAR_CANE) {
+            return true;
+        }
+        BlockData blockData = block.getBlockData();
+        return blockData instanceof Ageable a && a.getAge() == a.getMaximumAge();
+    }
+
+    /**
+     * Whether Delicate protects {@code m} at {@code block}'s current state - a pumpkin/
+     * melon stem in either its {@link Ageable} (not yet attached to a fruit) or {@link
+     * org.bukkit.block.data.type.Cocoa}-less attached form (always, regardless of age -
+     * breaking it kills the plant, so there's no "mature stem" worth letting through),
+     * or any other {@link Ageable} crop below its own maximum age. Does NOT cover
+     * sugar cane (see {@link #isHarvestableCrop}'s own doc on why cane has no
+     * immaturity concept to protect in the first place).
+     */
+    private boolean isDelicateProtected(Block block, Material m) {
+        if (m == Material.PUMPKIN_STEM || m == Material.MELON_STEM
+                || m == Material.ATTACHED_PUMPKIN_STEM || m == Material.ATTACHED_MELON_STEM) {
+            return true;
+        }
+        BlockData blockData = block.getBlockData();
+        return blockData instanceof Ageable a && a.getAge() < a.getMaximumAge();
+    }
+
+    /** Replenish's own seed material - what has to be consumed from the player's inventory to replant {@code m} - separate from {@link #cropDrop}, since a crop's own drop item isn't always what plants it back (wheat drops wheat but replants from wheat seeds; beetroot the same). Null for anything Replenish doesn't cover. */
+    private Material seedFor(Material m) {
+        return switch (m) {
+            case Material.WHEAT -> Material.WHEAT_SEEDS;
+            case Material.CARROTS -> Material.CARROT;
+            case Material.POTATOES -> Material.POTATO;
+            case Material.BEETROOTS -> Material.BEETROOT_SEEDS;
+            case Material.NETHER_WART -> Material.NETHER_WART;
+            case Material.COCOA -> Material.COCOA_BEANS;
+            case Material.SWEET_BERRY_BUSH -> Material.SWEET_BERRIES;
+            default -> null;
+        };
+    }
+
+    /**
+     * Replenish: replants {@code m} at {@code block} one tick after it's actually
+     * removed - {@code broken} (like this method's own caller) still reads the block
+     * intact at MONITOR priority, since Bukkit only removes it after every handler has
+     * finished with the event, so the actual replant has to wait a tick. Cocoa's own
+     * facing (which log side it was attached to) is captured before that removal so
+     * the replant lands back on the same side instead of defaulting to one fixed
+     * facing. No-ops silently (checked again a tick later, since either can have
+     * changed by then) if the tool doesn't carry Replenish, the player runs out of the
+     * needed {@link #seedFor} material, or something else already occupies the block.
+     */
+    private void tryReplenish(Player p, Block block, Material m) {
+        Material seed = this.seedFor(m);
+        if (seed == null || this.enchants.customLevel(p.getInventory().getItemInMainHand(), IcarusEnchant.REPLENISH) == 0) {
+            return;
+        }
+        Location loc = block.getLocation();
+        BlockFace cocoaFacing = block.getBlockData() instanceof Directional dir ? dir.getFacing() : null;
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            Block b = loc.getBlock();
+            if (!b.getType().isAir() || !this.consumeSeed(p, seed)) {
+                return;
+            }
+            b.setType(m);
+            if (cocoaFacing != null && b.getBlockData() instanceof Directional dir) {
+                dir.setFacing(cocoaFacing);
+                b.setBlockData(dir);
+            }
+        });
+    }
+
+    /** Removes one {@code seed} from {@code p}'s inventory (first matching slot, regardless of stack meta), returning whether one was actually found and removed. */
+    private boolean consumeSeed(Player p, Material seed) {
+        int slot = p.getInventory().first(seed);
+        if (slot < 0) {
+            return false;
+        }
+        ItemStack item = p.getInventory().getItem(slot);
+        item.setAmount(item.getAmount() - 1);
+        if (item.getAmount() <= 0) {
+            p.getInventory().setItem(slot, null);
+        }
+        return true;
+    }
+
     private double logXp(Material m) {
-        return m.name().contains("CRIMSON") || m.name().contains("WARPED") ? 8.0 : 5.0;
+        return m.name().contains("CRIMSON") || m.name().contains("WARPED") ? 8.0 : 6.0;
     }
 
     private double cropXp(Material m) {
@@ -347,6 +663,17 @@ implements Listener {
             case Material.SWEET_BERRY_BUSH -> Material.SWEET_BERRIES;
             default -> m;
         };
+    }
+
+    /** How many more SUGAR_CANE blocks sit directly stacked on top of {@code base} (itself not counted) - see the {@link #broken} SUGAR_CANE branch. */
+    private int caneSegmentsAbove(Block base) {
+        int count = 0;
+        Block above = base.getRelative(0, 1, 0);
+        while (above.getType() == Material.SUGAR_CANE) {
+            count++;
+            above = above.getRelative(0, 1, 0);
+        }
+        return count;
     }
 
     private String key(Location l) {

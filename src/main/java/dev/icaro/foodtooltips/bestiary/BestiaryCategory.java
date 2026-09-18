@@ -1,7 +1,6 @@
 package dev.icaro.foodtooltips.bestiary;
 
 import dev.icaro.foodtooltips.i18n.Language;
-import dev.icaro.foodtooltips.item.HeadTexture;
 import org.bukkit.Material;
 
 public enum BestiaryCategory {
@@ -11,9 +10,7 @@ public enum BestiaryCategory {
     AQUATIC(Material.WATER_BUCKET, "Aquáticos", "Aquatic", null),
     CAVES(Material.DEEPSLATE, "Cavernas", "Caves", null),
     NETHER(Material.NETHERRACK, "Nether", "Nether", null),
-    THE_END(Material.END_STONE, "The End", "The End", null),
-    /** Custom mobs from the combat island (dev.icaro.foodtooltips.island) - never mixed into TERRESTRIAL just because they share a vanilla EntityType (Zombie, Skeleton...) with real Overworld mobs. */
-    COMBAT_ISLAND(Material.PLAYER_HEAD, "Ilha de Combate", "Combat Island", HeadTexture.ALIEN_GRASS);
+    THE_END(Material.END_STONE, "The End", "The End", null);
 
     private final Material icon;
     private final String pt;

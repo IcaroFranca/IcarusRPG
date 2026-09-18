@@ -49,6 +49,11 @@ public final class ElementalDamageListener implements Listener {
             return;
         }
         e.setDamage(e.getDamage() * MULTIPLIER);
-        this.visuals.damageNumber(target, e.getDamage(), color);
+        // Deferred to MONITOR (see MobVisualService#queueDamageNumber's own doc) - this
+        // runs at LOW, well before ArmorDefenseListener's Defense mitigation at HIGHEST,
+        // so reading e.getDamage()/getFinalDamage() straight here would show the
+        // pre-mitigation multiplied amount instead of what the target's health bar
+        // actually drops by.
+        this.visuals.queueDamageNumber(e, target, color);
     }
 }

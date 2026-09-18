@@ -44,8 +44,8 @@ combat:
   attack-speed-level-0: 4.0
   attack-speed-level-25: 8.0
   attack-speed-level-50: 20.0
-  xp-base: 100.0
-  xp-exponent: 1.65
+  # XP required per Combat level now follows the same shared curve every other skill
+  # uses (see SkillXpCurve) - no longer configurable here.
   hostile-xp-health-multiplier: 2.0
   hostile-xp-level-multiplier: 3.0
   # Whether PvP damage gets the same multiplier stack PvE does (Combat level %,
@@ -74,9 +74,41 @@ combat-tree:
   # not just farming currency. Tiers beyond this list extrapolate using the last step.
   tier-level-requirements: [0, 15, 35, 60, 90, 130]
 mob-visuals:
-  # First step toward the planned mob level scaling: multiplies every mob's Max Health
-  # (applied once per mob, tracked via a PDC flag so reloads never re-multiply).
+  # Flat baseline every hostile mob's Max Health is multiplied by (applied once per
+  # mob, tracked via a PDC flag so reloads never re-multiply) - this alone is still
+  # exactly what a surface/tier-0 mob ends up at; everything below only adds on top,
+  # never below this baseline. See MobDifficultyService.
   health-multiplier: 5.0
+  # --- Mob difficulty scaling (MobDifficultyService) ---
+  # Extra Max Health multiplier per point of a mob's own Bestiary tier (combatXp -
+  # Zombie=50 up to Ender Dragon=2500, see BestiaryCatalog). Stacks with the flat
+  # health-multiplier above, not instead of it.
+  health-multiplier-per-xp: 0.006
+  # Extra Max Health multiplier per block a mob spawns below its dimension's own
+  # depth-reference-y - the deeper, the tougher, in every dimension.
+  health-multiplier-per-depth-block: 0.03
+  depth-reference-y-overworld: 64
+  depth-reference-y-nether: 128
+  depth-reference-y-end: 64
+  # Hard floors on a scaled mob's TOTAL effective Max Health, regardless of what the
+  # multipliers above land on - 0 = no floor. The Nether's is the one non-zero by
+  # default, matching how much more dangerous that dimension is meant to feel.
+  min-health-overworld: 0.0
+  min-health-nether: 4500.0
+  min-health-end: 0.0
+  # Vanilla's own Max Health attribute hard-caps at 1024 no matter what's set on it -
+  # everything above this cap is tracked as a separate bonus HP pool instead (absorbs
+  # damage first, same idea as vanilla's own Absorption effect - see
+  # MobDifficultyService#scale's own doc). Kept comfortably under 1024 as a margin.
+  real-health-cap: 1000.0
+  # Same "extra on top, plus a floor" shape as HP, for the damage a mob deals TO the
+  # player (100% vanilla otherwise) - deliberately smaller coefficients than HP's own,
+  # so Defense/True Defense investment still meaningfully counters it.
+  damage-multiplier-per-xp: 0.0025
+  damage-multiplier-per-depth-block: 0.01
+  min-damage-overworld: 0.0
+  min-damage-nether: 500.0
+  min-damage-end: 0.0
   # Text Display view range uses 64-block units: 0.25 = approximately 16 blocks.
   label-view-range: 0.12
   damage-view-range: 0.25
@@ -84,6 +116,20 @@ mob-visuals:
   # How often (in server ticks) mob name/HP labels re-check their text and viewer visibility.
   # The HP text also updates instantly on every hit regardless of this value. Higher = cheaper.
   update-ticks: 3
+miner-variants:
+  # A plain Zombie/Skeleton (not Husk/Drowned/Stray/Wither Skeleton/Zombie Villager)
+  # naturally spawning in the Overworld below this Y becomes a "Zombie Miner"/
+  # "Skeleton Miner" instead - full Diamond armor enchanted with this plugin's own
+  # Protection V, and its own guaranteed minimum below (raised past whatever a plain
+  # Zombie/Skeleton's own Bestiary tier would otherwise give it - see
+  # MobDifficultyService#raiseFloor). See MinerVariantService. Combat XP, milestones,
+  # and drops (including the Zombie Miner's own Undead's Sword chance) come from their
+  # own dedicated Bestiary entries ("zombie_miner"/"skeleton_miner" in BestiaryCatalog,
+  # a hardcoded Java list like every other mob - not config-driven here).
+  enabled: true
+  below-y: 0
+  min-health: 300.0
+  min-damage: 180.0
 global-level:
   xp-per-level: 100
   # How often (in server ticks, 20 = 1s) the level-number color animation advances a frame.
@@ -110,6 +156,13 @@ global-level:
   # items within telekinesis-radius blocks get swept in too.
   telekinesis-level: 3
   telekinesis-radius: 3.0
+  # Global Level required to unlock the death compass' own teleport (see
+  # CombatListener#useDeathCompass) - the compass itself (a plain pointer) is still
+  # handed out on every respawn regardless of level.
+  death-teleport-level: 5
+  # How long (in milliseconds) a right-click on the death compass stays "armed" waiting
+  # for the confirming second right-click before it expires and has to be re-armed.
+  death-teleport-confirm-window-millis: 10000
   strength-damage-percent-per-point: 1.0
   # Custom player-head texture for the Global Level icon in /skills. Leave blank to use
   # the default fallback icon (an experience bottle). To set a custom head: find one on
@@ -141,78 +194,14 @@ biome-wand:
   # Max radius (in blocks) the Biome's Wand's brush can be set to via its left-click
   # menu - minimum is always 1 (no "just the clicked block" mode).
   max-radius: 10
-island-mobs:
-  # Custom combat mobs (see island-mobs.mobs below - full vanilla combat AI, already
-  # aggressive toward players out of the box, no external plugin needed) for wherever
-  # the ground has the Shadowed Graveyard biome (painted with the Biome's Wand) in the
-  # world below - not a fixed area, so the population follows however much of the
-  # island is actually painted. Natural mob spawns are suppressed on that same biome.
-  enabled: true
-  world: combat_island
-  # Blocks anyone not in Creative mode from placing/breaking blocks anywhere in
-  # island-mobs.world (OPs always bypass, for quick admin fixes without switching
-  # gamemode) - protects the hand-built graveyard from survival players.
-  protect-blocks: true
-  # Just a "look for the biome somewhere in here" hint for picking spawn points -
-  # not a strict boundary. Make it generous enough to cover the whole painted area.
-  min-x: -29
-  max-x: 30
-  min-z: -29
-  max-z: 30
-  suppress-natural-spawns: true
-  # Every kind of custom island mob - adding a new one only takes a new entry here (id
-  # becomes both its Bestiary entry and its internal tag), no code changes needed.
-  # entity-type is any vanilla EntityType name (ZOMBIE, SKELETON, ...); weapon is the
-  # plain Material held in its main hand, used only when legendary-weapon is blank;
-  # legendary-weapon (optional) is a LegendaryWeapon enum name (see item.legendary) -
-  # when set, the mob holds a real copy of that item instead of weapon, and
-  # drop-chance-percent is its independent chance (0-100) to drop one on death;
-  # armored adds a full iron chestplate/leggings/boots; head-texture is an optional
-  # base64 "Value" custom player-head texture (same kind of string used in /give ...
-  # player_head[profile={properties:[{name:"textures", value:"..."}]}] commands, e.g.
-  # from minecraft-heads.com) - every mob wears SOME helmet regardless (a plain iron
-  # one if head-texture is blank), since headgear is what stops an undead mob from
-  # catching fire in daylight, not just looks. display-name is shown to Portuguese
-  # clients, display-name-en to everyone else (falls back to display-name if omitted).
-  mobs:
-    dealt:
-      display-name: "Dealt"
-      display-name-en: "Dealt"
-      entity-type: ZOMBIE
-      health: 200.0
-      damage: 12.0
-      speed-multiplier: 1.2
-      weapon: IRON_SWORD
-      legendary-weapon: UNDEAD_SWORD
-      drop-chance-percent: 2.5
-      armored: true
-      head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvY2IwNGZhY2YyZDY2OWRhM2Y1MDAxZjdiMDdmODI5OTExNzQ5Y2Y0OWM5ODY1MWQ2ZTUwMzNiNWNmMTQ0ODhiYSJ9fX0="
-      respawn-ticks: 200
-      count: 8
-    bony_specter:
-      display-name: "Espectro Ossudo"
-      display-name-en: "Bony Specter"
-      entity-type: SKELETON
-      health: 200.0
-      damage: 12.0
-      speed-multiplier: 1.2
-      weapon: IRON_SWORD
-      legendary-weapon: UNDEAD_SWORD
-      drop-chance-percent: 2.5
-      armored: false
-      head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTI1ODlhNzI1MWQ4MTA1NWRhYjQ1MThiNDA5MGQ3NzU3NGNmNDE4OGY2NmU3ZTZlN2I0MjA1MTdmNWI3ZmUzYSJ9fX0="
-      respawn-ticks: 200
-      count: 8
 travel:
   # /skills' "Locais"/"Locations" button - free, unlimited teleports (no item needed).
   # World names are shown to players as human-readable labels, never their raw config
   # value below. default-world is the hub/spawn destination - leave blank to
   # auto-detect the server's actual primary world (server.properties' level-name)
   # instead of guessing a name like "world", which Multiverse/similar setups often
-  # rename. The combat island itself reuses island-mobs.world, gated by this minimum
-  # Combat Level.
+  # rename.
   default-world: ""
-  combat-island-min-level: 5
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
   # only care about relative wear, so a bigger number just means more uses before it
