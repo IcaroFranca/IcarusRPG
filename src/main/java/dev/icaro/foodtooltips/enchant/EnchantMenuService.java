@@ -234,7 +234,7 @@ public final class EnchantMenuService {
                 l.choose("Guia de Encantamentos", "Enchantment Guide"),
                 List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW))));
         this.renderMainCatalog(v, p, page);
-        this.openScreen(p, v);
+        this.openScreen(p, v, ITEM_SLOT);
         this.views.put(p.getUniqueId(), new View(Type.MAIN, page, null));
     }
 
@@ -266,6 +266,7 @@ public final class EnchantMenuService {
     private void turnMainPage(Player p, int page) {
         Inventory v = p.getOpenInventory().getTopInventory();
         this.renderMainCatalog(v, p, page);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, ITEM_SLOT);
         this.views.put(p.getUniqueId(), new View(Type.MAIN, page, null));
     }
 
@@ -287,6 +288,7 @@ public final class EnchantMenuService {
                 return;
             }
             this.renderMainCatalog(v, p, 0);
+            dev.icaro.foodtooltips.menu.MenuBackground.apply(p, ITEM_SLOT);
             this.views.put(p.getUniqueId(), new View(Type.MAIN, 0, null));
         });
     }
@@ -646,9 +648,13 @@ public final class EnchantMenuService {
 
     /** Opens {@code v} for {@code p} while marking the implicit close of whatever screen of ours is currently open as an internal transition, not a real close - see {@link #transitioning}. */
     private void openScreen(Player p, Inventory v) {
+        this.openScreen(p, v, new int[0]);
+    }
+
+    private void openScreen(Player p, Inventory v, int... persistentSlots) {
         this.transitioning.add(p.getUniqueId());
         p.openInventory(v);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, persistentSlots);
         this.transitioning.remove(p.getUniqueId());
     }
 

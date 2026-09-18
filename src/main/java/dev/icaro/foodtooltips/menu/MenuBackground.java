@@ -45,7 +45,7 @@ public final class MenuBackground {
             return;
         }
 
-        String plainTitle = view.getTitle();
+        String plainTitle = undecoratedTitle(view.getTitle());
         Set<Integer> forced = IntStream.of(persistentSlots).boxed().collect(Collectors.toSet());
         StringBuilder title = new StringBuilder(plainTitle.length() + 192);
         title.append('\u00A7').append('f')
@@ -71,6 +71,14 @@ public final class MenuBackground {
 
         title.append('\u00A7').append('8').append(plainTitle);
         view.setTitle(title.toString());
+    }
+
+    private static String undecoratedTitle(String title) {
+        int textMarker = title.lastIndexOf("\u00A78");
+        if (title.indexOf(LEAD_SHIFT) >= 0 && textMarker >= 0) {
+            return title.substring(textMarker + 2);
+        }
+        return title;
     }
 
     private static boolean isVisibleControl(ItemStack item) {
