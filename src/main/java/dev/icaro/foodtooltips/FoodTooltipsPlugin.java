@@ -15,6 +15,8 @@ import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuListener;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
+import dev.icaro.foodtooltips.crafting.RecipeBookListener;
+import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.trash.TrashMenuListener;
 import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
@@ -179,6 +181,8 @@ extends JavaPlugin {
         menus.travel(travelMenu);
         CraftingMenuService craftingMenu = new CraftingMenuService(menus::openMain);
         menus.crafting(craftingMenu);
+        RecipeBookMenuService recipeBook = new RecipeBookMenuService((Plugin)this, menus::openMain);
+        menus.recipeBook(recipeBook);
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
@@ -210,6 +214,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new SkillsListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new PlayerStatsViewListener(menus), (Plugin)this);
         pm.registerEvents((Listener)new CraftingMenuListener(craftingMenu, (Plugin)this), (Plugin)this);
+        pm.registerEvents((Listener)new RecipeBookListener(recipeBook), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);

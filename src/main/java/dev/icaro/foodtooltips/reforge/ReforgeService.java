@@ -76,9 +76,27 @@ public final class ReforgeService {
     private static final NamespacedKey LORE_COUNT_KEY = new NamespacedKey("foodtooltips", "reforge_lore_count");
     private static final NamespacedKey ARMOR_PREFIX_KEY = new NamespacedKey("foodtooltips", "armor_reforge_prefix");
     private static final NamespacedKey ARMOR_TIER_KEY = new NamespacedKey("foodtooltips", "armor_reforge_tier");
-    private static final NamespacedKey ARMOR_HEALTH_KEY = new NamespacedKey("foodtooltips", "armor_reforge_health");
-    private static final NamespacedKey ARMOR_AGILITY_KEY = new NamespacedKey("foodtooltips", "armor_reforge_agility");
-    private static final NamespacedKey ARMOR_SPEED_KEY = new NamespacedKey("foodtooltips", "armor_reforge_attack_speed");
+    /**
+     * Health/Agility/Attack Speed modifier keys below are per-slot, not one shared key
+     * for every armor piece - a player can have, say, both a Health-granting helmet AND
+     * chestplate reforge active at once (unlike a sword's own reforge key, which only
+     * ever needs to represent the single currently-held weapon), so each of the four
+     * slots needs its own distinct key per attribute to be summed as four independent
+     * contributions rather than the same key being (re)written by whichever piece last
+     * touched it.
+     */
+    private static final NamespacedKey ARMOR_HEALTH_HEAD_KEY = new NamespacedKey("foodtooltips", "armor_reforge_health_head");
+    private static final NamespacedKey ARMOR_HEALTH_CHEST_KEY = new NamespacedKey("foodtooltips", "armor_reforge_health_chest");
+    private static final NamespacedKey ARMOR_HEALTH_LEGS_KEY = new NamespacedKey("foodtooltips", "armor_reforge_health_legs");
+    private static final NamespacedKey ARMOR_HEALTH_FEET_KEY = new NamespacedKey("foodtooltips", "armor_reforge_health_feet");
+    private static final NamespacedKey ARMOR_AGILITY_HEAD_KEY = new NamespacedKey("foodtooltips", "armor_reforge_agility_head");
+    private static final NamespacedKey ARMOR_AGILITY_CHEST_KEY = new NamespacedKey("foodtooltips", "armor_reforge_agility_chest");
+    private static final NamespacedKey ARMOR_AGILITY_LEGS_KEY = new NamespacedKey("foodtooltips", "armor_reforge_agility_legs");
+    private static final NamespacedKey ARMOR_AGILITY_FEET_KEY = new NamespacedKey("foodtooltips", "armor_reforge_agility_feet");
+    private static final NamespacedKey ARMOR_SPEED_HEAD_KEY = new NamespacedKey("foodtooltips", "armor_reforge_attack_speed_head");
+    private static final NamespacedKey ARMOR_SPEED_CHEST_KEY = new NamespacedKey("foodtooltips", "armor_reforge_attack_speed_chest");
+    private static final NamespacedKey ARMOR_SPEED_LEGS_KEY = new NamespacedKey("foodtooltips", "armor_reforge_attack_speed_legs");
+    private static final NamespacedKey ARMOR_SPEED_FEET_KEY = new NamespacedKey("foodtooltips", "armor_reforge_attack_speed_feet");
 
     private final ItemTierService tiers;
     private final CombatSkillService combat;
@@ -413,15 +431,38 @@ public final class ReforgeService {
         if (slot == null) {
             return;
         }
-        this.removeModifier(meta, Attribute.MAX_HEALTH, ARMOR_HEALTH_KEY);
+        NamespacedKey healthKey = healthKeyFor(slot);
+        this.removeModifier(meta, Attribute.MAX_HEALTH, healthKey);
         if (stats.health() != 0) {
-            meta.addAttributeModifier(Attribute.MAX_HEALTH, new AttributeModifier(ARMOR_HEALTH_KEY, stats.health(), AttributeModifier.Operation.ADD_NUMBER, slot));
+            meta.addAttributeModifier(Attribute.MAX_HEALTH, new AttributeModifier(healthKey, stats.health(), AttributeModifier.Operation.ADD_NUMBER, slot));
         }
-        this.removeModifier(meta, Attribute.MOVEMENT_SPEED, ARMOR_AGILITY_KEY);
+        NamespacedKey agilityKey = agilityKeyFor(slot);
+        this.removeModifier(meta, Attribute.MOVEMENT_SPEED, agilityKey);
         if (stats.agility() != 0) {
             meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
-                    new AttributeModifier(ARMOR_AGILITY_KEY, stats.agility() * AGILITY_SPEED_PER_POINT, AttributeModifier.Operation.ADD_NUMBER, slot));
+                    new AttributeModifier(agilityKey, stats.agility() * AGILITY_SPEED_PER_POINT, AttributeModifier.Operation.ADD_NUMBER, slot));
         }
+    }
+
+    private static NamespacedKey healthKeyFor(EquipmentSlotGroup slot) {
+        if (slot == EquipmentSlotGroup.HEAD) return ARMOR_HEALTH_HEAD_KEY;
+        if (slot == EquipmentSlotGroup.CHEST) return ARMOR_HEALTH_CHEST_KEY;
+        if (slot == EquipmentSlotGroup.LEGS) return ARMOR_HEALTH_LEGS_KEY;
+        return ARMOR_HEALTH_FEET_KEY;
+    }
+
+    private static NamespacedKey agilityKeyFor(EquipmentSlotGroup slot) {
+        if (slot == EquipmentSlotGroup.HEAD) return ARMOR_AGILITY_HEAD_KEY;
+        if (slot == EquipmentSlotGroup.CHEST) return ARMOR_AGILITY_CHEST_KEY;
+        if (slot == EquipmentSlotGroup.LEGS) return ARMOR_AGILITY_LEGS_KEY;
+        return ARMOR_AGILITY_FEET_KEY;
+    }
+
+    private static NamespacedKey speedKeyFor(EquipmentSlotGroup slot) {
+        if (slot == EquipmentSlotGroup.HEAD) return ARMOR_SPEED_HEAD_KEY;
+        if (slot == EquipmentSlotGroup.CHEST) return ARMOR_SPEED_CHEST_KEY;
+        if (slot == EquipmentSlotGroup.LEGS) return ARMOR_SPEED_LEGS_KEY;
+        return ARMOR_SPEED_FEET_KEY;
     }
 
     private void removeModifier(ItemMeta meta, Attribute attribute, NamespacedKey key) {
@@ -459,12 +500,13 @@ public final class ReforgeService {
         if (meta == null) {
             return;
         }
+        NamespacedKey speedKey = speedKeyFor(slot);
         double bonusPercent = this.armorStatsOf(item).attackSpeed();
         double delta = base * bonusPercent / 100.0;
         AttributeModifier existing = null;
         if (meta.hasAttributeModifiers()) {
             for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_SPEED)) {
-                if (m.getKey().equals(ARMOR_SPEED_KEY)) {
+                if (m.getKey().equals(speedKey)) {
                     existing = m;
                     break;
                 }
@@ -478,7 +520,7 @@ public final class ReforgeService {
             meta.removeAttributeModifier(Attribute.ATTACK_SPEED, existing);
         }
         if (Math.abs(delta) > 1.0E-4) {
-            meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(ARMOR_SPEED_KEY, delta, AttributeModifier.Operation.ADD_NUMBER, slot));
+            meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(speedKey, delta, AttributeModifier.Operation.ADD_NUMBER, slot));
         }
         item.setItemMeta(meta);
     }

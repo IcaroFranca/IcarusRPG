@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
+import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
@@ -89,6 +90,7 @@ public final class SkillsMenuService {
     private EnchantMenuService enchantMenu;
     private QuiverService quiver;
     private PassiveAbilityMenuService passiveAbilities;
+    private RecipeBookMenuService recipeBook;
     private ReforgeService reforge;
     private final Map<UUID, View> views = new HashMap<>();
 
@@ -145,6 +147,10 @@ public final class SkillsMenuService {
         this.reforge = reforge;
     }
 
+    public void recipeBook(RecipeBookMenuService recipeBook) {
+        this.recipeBook = recipeBook;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -168,6 +174,16 @@ public final class SkillsMenuService {
         }
         if (this.crafting != null) {
             v.setItem(31, this.item(Material.CRAFTING_TABLE, l.choose("Mesa de Trabalho", "Crafting Table"), List.of(this.click(l))));
+        }
+        if (this.recipeBook != null) {
+            List<Component> bookLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Veja todos os itens que podem ser craftados no IcarusRPG e suas receitas.",
+                    "See every item craftable in IcarusRPG and its recipe."), LoreWrap.DEFAULT_WIDTH)) {
+                bookLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            bookLore.add(this.click(l));
+            v.setItem(25, this.item(Material.WRITTEN_BOOK, l.choose("Livro de Receitas", "Recipe Book"), bookLore));
         }
         if (this.trash != null) {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
@@ -347,6 +363,9 @@ public final class SkillsMenuService {
                 } else if (slot == 31 && this.crafting != null) {
                     this.views.remove(p.getUniqueId());
                     this.crafting.open(p);
+                } else if (slot == 25 && this.recipeBook != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.recipeBook.open(p, 0);
                 } else if (slot == TRASH_BUTTON_SLOT && this.trash != null) {
                     this.views.remove(p.getUniqueId());
                     this.trash.open(p);
