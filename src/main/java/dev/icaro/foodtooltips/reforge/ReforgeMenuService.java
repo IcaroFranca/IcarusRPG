@@ -25,19 +25,17 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 /**
- * The Blacksmith's reforge screen. A player deposits a sword ({@link #ITEM_SLOT}), picks
- * which tier to pay for ({@link #TIER_SLOTS}, one {@link ReforgeService#costMaterial} each)
- * and clicks the anvil ({@link #REFORGE_SLOT}) to roll a random {@link ReforgePrefix} at
- * that tier - see {@link ReforgeService} for the actual cost/attempts/roll logic, kept
- * entirely out of this class (screen plumbing only, same split {@code EnchantMenuService}/
- * {@code EnchantService} already use).
+ * The Blacksmith's reforge screen. A player deposits a sword ({@link #ITEM_SLOT}),
+ * right-clicks the anvil ({@link #REFORGE_SLOT}) to cycle which tier to pay for (its own
+ * lore shows the current pick and cost, see {@link #refreshReforgeIcon}) and left-clicks it
+ * to roll a random {@link ReforgePrefix} at that tier - see {@link ReforgeService} for the
+ * actual cost/attempts/roll logic, kept entirely out of this class (screen plumbing only,
+ * same split {@code EnchantMenuService}/{@code EnchantService} already use).
  */
 public final class ReforgeMenuService {
     public static final int ITEM_SLOT = 13;
     public static final int REFORGE_SLOT = 22;
     public static final int CLOSE_SLOT = 40;
-    /** Left-to-right, cheapest to priciest - see {@link #TIER_ORDER}. */
-    public static final int[] TIER_SLOTS = {29, 30, 31, 32, 33};
     private static final ItemTier[] TIER_ORDER = {ItemTier.D, ItemTier.C, ItemTier.B, ItemTier.A, ItemTier.S};
 
     private final ReforgeService reforge;
@@ -57,7 +55,6 @@ public final class ReforgeMenuService {
         Language language = Language.of(player);
         inventory.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE,
                 language.choose("Fechar", "Close"), List.of()));
-        this.refreshTierIcons(inventory, player);
         this.refreshReforgeIcon(inventory, player);
 
         this.viewing.add(player.getUniqueId());
@@ -85,22 +82,12 @@ public final class ReforgeMenuService {
         }
     }
 
-    /** Which {@link ItemTier} the given raw top-inventory slot picks, or null if it isn't one of {@link #TIER_SLOTS}. */
-    public static ItemTier tierForSlot(int slot) {
-        for (int i = 0; i < TIER_SLOTS.length; i++) {
-            if (TIER_SLOTS[i] == slot) {
-                return TIER_ORDER[i];
-            }
-        }
-        return null;
-    }
-
-    /** A tier icon (see {@link #TIER_SLOTS}) was clicked - just changes the player's selection and refreshes the icons, no cost yet. */
-    public void selectTier(Player player, ItemTier tier) {
-        this.reforge.selectTier(player, tier);
-        Inventory inventory = player.getOpenInventory().getTopInventory();
-        this.refreshTierIcons(inventory, player);
-        this.refreshReforgeIcon(inventory, player);
+    /** Right-clicking the anvil ({@link #REFORGE_SLOT}) cycles D -&gt; C -&gt; B -&gt; A -&gt; S -&gt; D..., just changing the player's selection - no cost yet. */
+    public void cycleTier(Player player) {
+        ItemTier current = this.reforge.selectedTier(player);
+        int next = (java.util.Arrays.asList(TIER_ORDER).indexOf(current) + 1) % TIER_ORDER.length;
+        this.reforge.selectTier(player, TIER_ORDER[next]);
+        this.refreshReforgeIcon(player.getOpenInventory().getTopInventory(), player);
         MenuBackground.apply(player, ITEM_SLOT);
     }
 
@@ -140,26 +127,6 @@ public final class ReforgeMenuService {
         MenuBackground.apply(player, ITEM_SLOT);
     }
 
-    private void refreshTierIcons(Inventory inventory, Player player) {
-        Language language = Language.of(player);
-        ItemTier selected = this.reforge.selectedTier(player);
-        for (int i = 0; i < TIER_ORDER.length; i++) {
-            ItemTier tier = TIER_ORDER[i];
-            Material material = this.reforge.costMaterial(tier);
-            boolean isSelected = tier == selected;
-            List<Component> lore = new ArrayList<>();
-            lore.add(this.text(language.choose("Custo: 1x ", "Cost: 1x ") + this.materialName(material, language), NamedTextColor.GRAY));
-            lore.add(isSelected
-                    ? this.text(language.choose("✓ Selecionado", "✓ Selected"), NamedTextColor.GREEN)
-                    : this.text(language.choose("Clique para selecionar", "Click to select"), NamedTextColor.YELLOW));
-            ItemStack icon = this.item(material, tier.label(), lore);
-            ItemMeta meta = icon.getItemMeta();
-            meta.displayName(this.text(tier.label(), tier.color()).decoration(TextDecoration.BOLD, isSelected).decoration(TextDecoration.ITALIC, false));
-            icon.setItemMeta(meta);
-            inventory.setItem(TIER_SLOTS[i], icon);
-        }
-    }
-
     private void refreshReforgeIcon(Inventory inventory, Player player) {
         Language language = Language.of(player);
         ItemTier tier = this.reforge.selectedTier(player);
@@ -174,6 +141,7 @@ public final class ReforgeMenuService {
         } else {
             lore.add(this.text(language.choose("Custo: 1x ", "Cost: 1x ") + this.materialName(this.reforge.costMaterial(tier), language), NamedTextColor.GRAY));
         }
+        lore.add(this.text(language.choose("Clique direito para trocar de tier.", "Right-click to change tier."), NamedTextColor.GRAY));
         lore.add(this.text(language.choose("Clique para reforjar.", "Click to reforge."), NamedTextColor.YELLOW));
         inventory.setItem(REFORGE_SLOT, this.item(Material.ANVIL, language.choose("Reforjar item", "Reforge Item"), lore));
     }
