@@ -58,6 +58,9 @@ public final class AnvilMenuService {
     public static final int PREVIEW_SLOT = 13;
     public static final int LABEL_SLOT = 22;
     public static final int CLOSE_SLOT = 49;
+    private static final int[] VISIBLE_WORK_SLOTS = {
+            MAIN_ITEM_SLOT, SECONDARY_ITEM_SLOT, PREVIEW_SLOT, LABEL_SLOT, CLOSE_SLOT
+    };
 
     private final Plugin plugin;
     private final EnchantService enchants;
@@ -78,6 +81,7 @@ public final class AnvilMenuService {
         v.setItem(CLOSE_SLOT, this.closeIcon(p));
         this.refreshPreview(p, v);
         p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, VISIBLE_WORK_SLOTS);
         this.viewing.add(p.getUniqueId());
     }
 
@@ -102,6 +106,7 @@ public final class AnvilMenuService {
                 return;
             }
             this.refreshPreview(p, v);
+            dev.icaro.foodtooltips.menu.MenuBackground.apply(p, VISIBLE_WORK_SLOTS);
         });
     }
 
@@ -119,6 +124,7 @@ public final class AnvilMenuService {
         v.setItem(SECONDARY_ITEM_SLOT, null);
         this.giveOrDrop(p, outcome.preview());
         this.refreshPreview(p, v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, VISIBLE_WORK_SLOTS);
     }
 
     /** Hands back whatever's sitting in the two input slots (overflow drops on the ground), then clears them - the only way an in-progress combination can be abandoned, since there's no second mode to switch away to anymore. */
