@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.skills;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import java.util.ArrayList;
 import java.util.List;
 import net.kyori.adventure.key.Key;
@@ -47,6 +48,7 @@ public final class ArmorDefenseService {
     /** See {@link #forceDefense}/{@link #pieceDefense} - same per-item override idea as {@code ItemTierService#forceTier}. */
     private static final NamespacedKey FORCED_DEFENSE_KEY = new NamespacedKey("foodtooltips", "forced_defense");
     private GeneralSkillService general;
+    private ReforgeService reforge;
     /** Extra Defense from the Protection enchant (see {@code ArmorEnchantEffectListener}) - wired in the same late-bound way as {@link #general}, as a plain functional callback rather than a direct type reference so this class (in {@code skills}) never has to depend on the {@code enchant} package. Defaults to always-0 so this class works before it's wired (or if it never is). */
     private java.util.function.ToIntFunction<LivingEntity> protectionBonus = e -> 0;
     /** Lethality's own Defense-reduction debuff (see {@code CombatListener}) - same late-bound callback idea as {@link #protectionBonus}, subtracted instead of added - see {@link #defense}. Defaults to always-0. */
@@ -57,6 +59,11 @@ public final class ArmorDefenseService {
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
         this.general = general;
+    }
+
+    /** Wired in after construction, same pattern as {@link #general} - lets {@link #defense} count each equipped armor piece's own reforge Defense bonus (see {@link ReforgeService}) alongside its base per-material value. */
+    public void reforge(ReforgeService reforge) {
+        this.reforge = reforge;
     }
 
     /** Wired in after construction, same pattern as {@link #general} - see {@link #protectionBonus}. */
@@ -88,6 +95,9 @@ public final class ArmorDefenseService {
     public int defense(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
         int armorDefense = eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
+        if (e instanceof Player p && this.reforge != null) {
+            armorDefense += (int) Math.round(this.reforge.totalArmorStats(p).defense());
+        }
         int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
         int protection = this.protectionBonus.applyAsInt(e);
         double multiplier = this.defenseMultiplier.applyAsDouble(e);

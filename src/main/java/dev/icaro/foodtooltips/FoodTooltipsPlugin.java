@@ -128,8 +128,9 @@ extends JavaPlugin {
         ArmorDefenseService armor = new ArmorDefenseService();
         armor.general(general);
         ItemTierService tiers = new ItemTierService((Plugin)this);
-        ReforgeService reforgeService = new ReforgeService((Plugin)this, tiers);
+        ReforgeService reforgeService = new ReforgeService((Plugin)this, tiers, combat);
         stats.reforge(reforgeService);
+        armor.reforge(reforgeService);
         LapisArmorService lapisArmor = new LapisArmorService((Plugin)this, tiers);
         general.armorMiningSpeedBonus(lapisArmor::equippedMiningSpeedBonus);
         general.armorMiningFortuneBonus(lapisArmor::equippedMiningFortuneBonus);
@@ -387,6 +388,7 @@ extends JavaPlugin {
             general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
+            reforgeService.applyArmorAttackSpeedModifiers((Player)p);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
@@ -427,6 +429,7 @@ extends JavaPlugin {
             general.applyMiningSpeedAttribute((Player)p);
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
+            reforgeService.applyArmorAttackSpeedModifiers((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             general.applyBonusHealth((Player)p);
             skillsStar.ensure((Player)p);

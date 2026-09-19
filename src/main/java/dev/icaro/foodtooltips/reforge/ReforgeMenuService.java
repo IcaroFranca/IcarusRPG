@@ -94,7 +94,7 @@ public final class ReforgeMenuService {
         }
         if (!this.reforge.isReforgeable(deposited)) {
             player.sendActionBar(this.text(
-                    language.choose("Por enquanto só é possível reforjar espadas.", "Only swords can be reforged for now."),
+                    language.choose("Só é possível reforjar espadas ou armaduras.", "Only swords or armor can be reforged."),
                     NamedTextColor.RED));
             return;
         }
@@ -110,7 +110,7 @@ public final class ReforgeMenuService {
         inventory.setItem(ITEM_SLOT, deposited);
         this.refreshReforgeIcon(inventory, player);
         player.sendActionBar(this.text(
-                language.choose("Reforjado: ", "Reforged: ") + result.prefix().displayWord()
+                language.choose("Reforjado: ", "Reforged: ") + result.prefixWord()
                         + " (" + result.tier().label() + ") - " + result.attemptsRemaining()
                         + language.choose(" tentativas restantes", " attempts left"),
                 NamedTextColor.GREEN));

@@ -151,15 +151,17 @@ public final class PlayerStatsService {
         return this.get(p, this.maxMana, this.base) + this.effectiveIntelligence(p);
     }
 
-    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon reforge grants (see {@link ReforgeService}) - same "held item bonus" pairing {@link #effectiveAgility} uses for Agility. */
+    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon and equipped armor reforges grant (see {@link ReforgeService}) - same "held/worn item bonus" pairing {@link #effectiveAgility} uses for Agility. */
     private double effectiveIntelligence(Player p) {
-        double reforgeBonus = this.reforge == null ? 0.0 : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence();
+        double reforgeBonus = this.reforge == null ? 0.0
+                : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence() + this.reforge.totalArmorStats(p).intelligence();
         return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus;
     }
 
-    /** Base Agility plus whatever the player's currently-held weapon grants (e.g. Baruka's Dagger, +10 while wielded) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
+    /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
     public double effectiveAgility(Player p) {
-        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p));
+        double reforgeArmorAgility = this.reforge == null ? 0.0 : this.reforge.totalArmorStats(p).agility();
+        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p)) + reforgeArmorAgility;
     }
 
     public void init(Player p) {
