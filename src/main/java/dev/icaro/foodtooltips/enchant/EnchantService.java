@@ -132,6 +132,11 @@ public final class EnchantService {
         this.setLevel(item, new CustomEnchantEntry(enchant), level, pt);
     }
 
+    /** Whether {@code enchantment} is actually offered anywhere in this plugin's own catalog - false for anything in {@link #EXCLUDED_VANILLA_KEYS} (Mending, the curses, and every real vanilla entry this table replaces with a leveled custom one). Lets a caller outside this package (see {@code AnvilMenuService}'s Combine mode) reject transferring one of those off an enchanted book without duplicating this set. */
+    public boolean isOfferable(Enchantment enchantment) {
+        return !EXCLUDED_VANILLA_KEYS.contains(enchantment.getKey().getKey());
+    }
+
     /** {@code item}'s current level of {@code entry}, or 0 if it doesn't have it. */
     public int levelOf(ItemStack item, EnchantEntry entry) {
         if (item == null || item.isEmpty()) {
