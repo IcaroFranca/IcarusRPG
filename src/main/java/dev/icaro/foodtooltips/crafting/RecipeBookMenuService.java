@@ -67,13 +67,29 @@ public final class RecipeBookMenuService {
     private record View(int page, NamespacedKey detail) {
     }
 
+    /** Whether {@code viewer} has met a gated recipe's own unlock condition, plus the human-readable requirement text (see {@link #requirementCheck}) - {@code met} true still gets a lore line ("requirement already met"), matching the player's own spec that a gated recipe stays visible either way, just with a requirement notice attached. */
+    public record Requirement(boolean met, String labelPt, String labelEn) {
+    }
+
+    /** Late-bound, same "no direct dependency on the gating feature" shape {@code skills.ArmorDefenseService}'s own {@code protectionBonus}/{@code lethalityPenalty} callbacks use - lets {@code collections.CollectionsService} gate a recipe without this class ever depending on the {@code collections} package. Returns {@code null} for a recipe nothing gates (the default, and the only behavior before this is ever wired). */
+    @FunctionalInterface
+    public interface RequirementCheck {
+        Requirement check(Player viewer, NamespacedKey recipeKey);
+    }
+
     private final Plugin plugin;
     private final Consumer<Player> back;
     private final Map<UUID, View> views = new HashMap<>();
+    private RequirementCheck requirementCheck = (viewer, key) -> null;
 
     public RecipeBookMenuService(Plugin plugin, Consumer<Player> back) {
         this.plugin = plugin;
         this.back = back;
+    }
+
+    /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link RequirementCheck}'s own doc. */
+    public void requirementCheck(RequirementCheck requirementCheck) {
+        this.requirementCheck = requirementCheck;
     }
 
     public boolean viewing(Player p) {
@@ -97,7 +113,7 @@ public final class RecipeBookMenuService {
         Inventory v = this.blank(l.choose("Livro de Receitas", "Recipe Book"));
         int start = page * LIST_SLOTS.length;
         for (int i = 0; i < LIST_SLOTS.length && start + i < recipes.size(); i++) {
-            v.setItem(LIST_SLOTS[i], this.resultIcon(recipes.get(start + i), l));
+            v.setItem(LIST_SLOTS[i], this.resultIcon(p, recipes.get(start + i), l));
         }
         v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         if (page > 0) {
@@ -190,12 +206,21 @@ public final class RecipeBookMenuService {
         return new NamespacedKey(this.plugin, "recipe_book_probe").getNamespace();
     }
 
-    /** The list icon for one recipe: its result, with a short ingredient summary appended to whatever lore it already has. */
-    private ItemStack resultIcon(CraftingRecipe recipe, Language l) {
+    /** The list icon for one recipe: its result, with a short ingredient summary (and, for a gated recipe, its requirement's own status - see {@link RequirementCheck}) appended to whatever lore it already has. */
+    private ItemStack resultIcon(Player p, CraftingRecipe recipe, Language l) {
         ItemStack icon = recipe.getResult().clone();
         ItemMeta meta = icon.getItemMeta();
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         if (!lore.isEmpty()) {
+            lore.add(Component.empty());
+        }
+        Requirement requirement = this.requirementCheck.check(p, recipe.getKey());
+        if (requirement != null) {
+            lore.add(this.text(l.choose("Requisito: ", "Requirement: ")
+                    + l.choose(requirement.labelPt(), requirement.labelEn()), requirement.met() ? NamedTextColor.GREEN : NamedTextColor.RED));
+            lore.add(this.text(requirement.met()
+                    ? l.choose("Requisito cumprido!", "Requirement met!")
+                    : l.choose("Requisito não cumprido.", "Requirement not met."), requirement.met() ? NamedTextColor.GREEN : NamedTextColor.RED));
             lore.add(Component.empty());
         }
         lore.add(this.text(l.choose("Ingredientes:", "Ingredients:"), NamedTextColor.GRAY));

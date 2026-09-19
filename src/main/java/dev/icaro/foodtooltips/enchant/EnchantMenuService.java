@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.enchant;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.collections.CollectionsService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalSkill;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
@@ -176,6 +177,8 @@ public final class EnchantMenuService {
      * doesn't return/drop the in-progress item or clear state mid-transition.
      */
     private final Set<UUID> transitioning = new HashSet<>();
+    /** Wired after construction, same reason as every other late-bound setter in this codebase ({@code collections} isn't built until after this service is) - see {@link #discountedCost}. */
+    private CollectionsService collections;
 
     public EnchantMenuService(Plugin plugin, EnchantService enchants, GeneralSkillService general, SkillProgressBarService bars, GlobalLevelService global, EnchantMilestoneService milestones, java.util.function.Consumer<Player> skillsBack) {
         this.plugin = plugin;
@@ -185,6 +188,10 @@ public final class EnchantMenuService {
         this.global = global;
         this.milestones = milestones;
         this.skillsBack = skillsBack;
+    }
+
+    public void collections(CollectionsService collections) {
+        this.collections = collections;
     }
 
     /** Whether {@code p} has a real table backing the current menu session - see {@link #open}/{@link #close} - vs. having entered the Guide or Milestones screens straight from the Enchanting skill screen in /skills, with no table involved at all. */
@@ -346,7 +353,7 @@ public final class EnchantMenuService {
             // right below: the level's own icon already shows this in red lore.
             return;
         }
-        int cost = this.discountedCost(enchant, current, level);
+        int cost = this.discountedCost(p, enchant, current, level);
         if (p.getLevel() < cost) {
             // No chat message here on purpose - the level's own icon already shows this
             // in red lore (see #levelIcon) before the player even clicks it.
@@ -859,7 +866,7 @@ public final class EnchantMenuService {
         // any order would. No slot limit either - an item can carry as many distinct
         // entries as you want.
         int originalCost = e.costAtLevel(level);
-        int cost = this.discountedCost(e, current, level);
+        int cost = this.discountedCost(p, e, current, level);
         if (cost != originalCost) {
             // Reapplication discount (see #discountedCost) - the more of this entry's
             // own level range already applied, the bigger the cut on everything still
@@ -889,15 +896,22 @@ public final class EnchantMenuService {
      * how far into the entry's own level range the player already is ({@code
      * current / maxLevel}), so owning a higher level already cuts more off every
      * level still above it than owning a low one would (owning level 1 of 5 cuts
-     * 20% off levels 2-5; owning level 3 of 5 cuts 60% off levels 4-5).
+     * 20% off levels 2-5; owning level 3 of 5 cuts 60% off levels 4-5). On top of that,
+     * a Collections discount (see {@link CollectionsService#enchantDiscountPercent} -
+     * today only Piercing/Thorns, from the Cactus collection) multiplies the remainder
+     * further, additively with itself but multiplicatively with the level-progress
+     * discount above (a Collections-only discount still applies at level 1, when the
+     * level-progress discount alone would be 0).
      */
-    private int discountedCost(EnchantEntry e, int current, int level) {
+    private int discountedCost(Player p, EnchantEntry e, int current, int level) {
         int original = e.costAtLevel(level);
-        if (current <= 0) {
-            return original;
+        double levelDiscount = current <= 0 ? 0.0 : (double) current / e.maxLevel();
+        double collectionsDiscount = 0.0;
+        if (this.collections != null && e instanceof CustomEnchantEntry c) {
+            collectionsDiscount = this.collections.enchantDiscountPercent(p, c.enchant()) / 100.0;
         }
-        double discount = (double) current / e.maxLevel();
-        return (int) Math.round(original * (1.0 - discount));
+        double remaining = Math.max(0.0, (1.0 - levelDiscount) * (1.0 - collectionsDiscount));
+        return (int) Math.round(original * remaining);
     }
 
     private ItemStack enchantedBook(String name, List<Component> lore) {

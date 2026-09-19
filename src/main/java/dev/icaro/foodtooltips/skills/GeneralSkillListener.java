@@ -1,5 +1,8 @@
 package dev.icaro.foodtooltips.skills;
 
+import dev.icaro.foodtooltips.collections.CollectionsMilestone;
+import dev.icaro.foodtooltips.collections.CollectionsService;
+import dev.icaro.foodtooltips.collections.RewardKind;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
@@ -76,6 +79,7 @@ implements Listener {
     private final GlobalLevelService global;
     private final EnchantService enchants;
     private final PassiveAbilityService passives;
+    private final CollectionsService collections;
     private final Set<String> placed = new HashSet<String>();
     private final Set<UUID> veinActive = new HashSet<UUID>();
     /** Reentrancy guard for {@link #potionDuration} - reapplying an extended effect fires this same event again, and this stops that from being treated as a new drink to extend a second time. */
@@ -83,13 +87,14 @@ implements Listener {
     private final Map<String, Target> targets = new HashMap<String, Target>();
     private final Map<UUID, Combo> combos = new HashMap<UUID, Combo>();
 
-    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants, PassiveAbilityService passives) {
+    public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants, PassiveAbilityService passives, CollectionsService collections) {
         this.plugin = p;
         this.skills = s;
         this.bars = b;
         this.global = g;
         this.enchants = enchants;
         this.passives = passives;
+        this.collections = collections;
         this.treasures = new BuriedTreasureService(p, s);
     }
 
@@ -241,6 +246,11 @@ implements Listener {
         if (this.isLog(m)) {
             this.gain(p, SkillType.FORAGING, this.logXp(m));
             this.track(k, new Target(SkillType.FORAGING, m), p);
+        } else if (m == Material.CACTUS) {
+            // No regular Farming skill XP here on purpose - the player's own Collections
+            // spec only ever defines milestones for Cactus, never a per-break skill XP
+            // amount the way every Ageable crop below already has one.
+            this.applyCollections(p, m, 1);
         } else if (m == Material.SUGAR_CANE) {
             // Sugar cane's own Ageable#getAge() is an internal 0-15 "ticks until the next
             // segment grows" counter, not a wheat-style maturity gate - it resets to 0 the
@@ -263,8 +273,42 @@ implements Listener {
                 this.gain(p, SkillType.FARMING, this.cropXp(m));
                 this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
                 this.tryReplenish(p, e.getBlock(), m);
+                this.applyCollections(p, this.cropDrop(m), 1);
             }
         }
+    }
+
+    /**
+     * Records {@code amount} of {@code drop} towards its own Collections milestones (see
+     * {@code collections.CollectionsService#record}) - a no-op for anything the Collections
+     * catalog doesn't track (every crop except Cactus/Carrot today), so this is safe to call
+     * unconditionally from every harvest branch above rather than gating each call site on
+     * "is this even a Collections material". Grants each freshly-crossed milestone's own
+     * Farming XP through {@link #gain} (so it gets the same level-up message/progress bar
+     * every other Farming XP source does - see {@code CollectionsService#record}'s own doc
+     * on why that part isn't granted inside the service itself) and announces every kind of
+     * unlock (XP, recipe, enchant discount alike) in one combined chat message.
+     */
+    private void applyCollections(Player p, Material drop, int amount) {
+        CollectionsService.Update update = this.collections.record(p, drop, amount);
+        if (!update.any()) {
+            return;
+        }
+        Language l = Language.of(p);
+        boolean pt = l == Language.PT;
+        for (CollectionsMilestone milestone : update.unlocked()) {
+            if (milestone.kind() == RewardKind.FARMING_XP) {
+                this.gain(p, SkillType.FARMING, milestone.xpAmount());
+            }
+        }
+        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DE COLEÇÃO! ", "COLLECTION MILESTONE! "), NamedTextColor.GOLD)
+                .append(Component.translatable(drop.translationKey())));
+        for (CollectionsMilestone milestone : update.unlocked()) {
+            p.sendMessage(Component.text(milestone.reward(pt), NamedTextColor.GREEN));
+        }
+        p.sendMessage(Component.text("+" + update.globalXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
     }
 
     /**

@@ -3,6 +3,11 @@ package dev.icaro.foodtooltips;
 import dev.icaro.foodtooltips.bestiary.BestiaryListener;
 import dev.icaro.foodtooltips.bestiary.BestiaryMenuService;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.collections.CollectionsListener;
+import dev.icaro.foodtooltips.collections.CollectionsMenuService;
+import dev.icaro.foodtooltips.collections.CollectionsProgressService;
+import dev.icaro.foodtooltips.collections.CollectionsRecipeGateListener;
+import dev.icaro.foodtooltips.collections.CollectionsService;
 import dev.icaro.foodtooltips.biome.BiomeWandListener;
 import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.builder.BuilderWandListener;
@@ -49,6 +54,7 @@ import dev.icaro.foodtooltips.item.DurabilityListener;
 import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -140,6 +146,8 @@ extends JavaPlugin {
         lapisArmor.registerRecipes();
         LapisExperienceService lapisExperience = new LapisExperienceService((Plugin)this, tiers);
         lapisExperience.registerRecipes();
+        FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers);
+        farmingCollectionsItems.registerRecipes();
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat, reforgeService);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
@@ -156,6 +164,10 @@ extends JavaPlugin {
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
         menus.reforge(reforgeService);
+        CollectionsProgressService collectionsProgress = new CollectionsProgressService();
+        CollectionsService collectionsService = new CollectionsService(collectionsProgress, global);
+        CollectionsMenuService collectionsMenu = new CollectionsMenuService(collectionsProgress, global, menus::openMain);
+        menus.collections(collectionsMenu);
         this.quiver = new QuiverService((Plugin)this, combat, menus::openMain);
         menus.quiver(this.quiver);
         PassiveAbilityService passives = new PassiveAbilityService();
@@ -183,6 +195,10 @@ extends JavaPlugin {
         menus.crafting(craftingMenu);
         RecipeBookMenuService recipeBook = new RecipeBookMenuService((Plugin)this, menus::openMain);
         menus.recipeBook(recipeBook);
+        recipeBook.requirementCheck((viewer, recipeKey) -> collectionsService.findGatingMilestone(recipeKey)
+                .map(milestone -> new RecipeBookMenuService.Requirement(
+                        collectionsService.hasUnlockedRecipe(viewer, recipeKey), milestone.rewardPt(), milestone.rewardEn()))
+                .orElse(null));
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
@@ -196,6 +212,7 @@ extends JavaPlugin {
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
         menus.enchantMenu(enchantMenu);
+        enchantMenu.collections(collectionsService);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         AnvilMenuService anvilMenu = new AnvilMenuService((Plugin)this, enchants);
         ReforgeMenuService reforgeMenu = new ReforgeMenuService((Plugin)this, reforgeService);
@@ -230,7 +247,9 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
-        pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives), (Plugin)this);
+        pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives, collectionsService), (Plugin)this);
+        pm.registerEvents((Listener)new CollectionsListener(collectionsMenu, collectionsService), (Plugin)this);
+        pm.registerEvents((Listener)new CollectionsRecipeGateListener(collectionsService), (Plugin)this);
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
@@ -439,6 +458,7 @@ extends JavaPlugin {
             general.applyBonusHealth((Player)p);
             skillsStar.ensure((Player)p);
             global.migrate((Player)p);
+            collectionsService.syncDiscoveredRecipes((Player)p);
             if (!((Player)p).isDead()) {
                 ((Player)p).setHealth(Math.min(healthBefore, stats.stats((Player)p).maxHealth()));
             }

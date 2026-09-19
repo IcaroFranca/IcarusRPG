@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.skills;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.collections.CollectionsMenuService;
 import dev.icaro.foodtooltips.crafting.CraftingMenuService;
 import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
@@ -92,6 +93,7 @@ public final class SkillsMenuService {
     private PassiveAbilityMenuService passiveAbilities;
     private RecipeBookMenuService recipeBook;
     private ReforgeService reforge;
+    private CollectionsMenuService collections;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -151,6 +153,10 @@ public final class SkillsMenuService {
         this.recipeBook = recipeBook;
     }
 
+    public void collections(CollectionsMenuService collections) {
+        this.collections = collections;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -184,6 +190,16 @@ public final class SkillsMenuService {
             }
             bookLore.add(this.click(l));
             v.setItem(25, this.item(Material.WRITTEN_BOOK, l.choose("Livro de Receitas", "Recipe Book"), bookLore));
+        }
+        if (this.collections != null) {
+            List<Component> collectionsLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Veja os drops de Combate, Mineração, Agricultura, Coleta e Pesca, e desbloqueie recompensas coletando cada um.",
+                    "See Combat, Mining, Farming, Foraging and Fishing drops, and unlock rewards by collecting each one."), LoreWrap.DEFAULT_WIDTH)) {
+                collectionsLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            collectionsLore.add(this.click(l));
+            v.setItem(19, this.customHead(HeadTexture.BUNDLE, l.choose("Coleções", "Collections"), collectionsLore));
         }
         if (this.trash != null) {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
@@ -366,6 +382,9 @@ public final class SkillsMenuService {
                 } else if (slot == 25 && this.recipeBook != null) {
                     this.views.remove(p.getUniqueId());
                     this.recipeBook.open(p, 0);
+                } else if (slot == 19 && this.collections != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.collections.openCategories(p);
                 } else if (slot == TRASH_BUTTON_SLOT && this.trash != null) {
                     this.views.remove(p.getUniqueId());
                     this.trash.open(p);

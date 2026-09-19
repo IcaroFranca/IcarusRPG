@@ -36,9 +36,15 @@ public final class HeadTexture {
     public static final String LAPIS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTY1NjA3NDE4ODU0M2Y5YjRhZGNkNjQ1Mjc4MzIwNjhjYmUwOGYxNTZlOWVlOGVkOWMyMDNiOGFkODVhNzZmNyJ9fX0=";
     /** "Ornate Lapis Block" (minecraft-heads.com ID 48300) - the True Lapis Core crafting item, see {@code LapisExperienceService}. */
     public static final String TRUE_LAPIS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWMwZTkxNDQ3NmUxYjE1ZGEyYTkxZjQ1Njk2ZGQyMTc2NjlkNGRhYzRmYTYyMTY1MDkyOWJhY2UwM2RlMjI1NCJ9fX0=";
+    /** "Bundle" (minecraft-heads.com ID 104707) - the Skills menu's Collections button icon. */
+    public static final String BUNDLE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODZiZDkyMGI0MDI4MTVhZDg5MDE4ZGY4Mjk3N2JlOWY3ZWExOWU3OTllY2YwMTZmN2YwZGE0YWI0N2NhMjNjNSJ9fX0=";
+    /** "Cactus" (minecraft-heads.com ID 67954) - the Cactus Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String CACTUS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWFiZmRlODM5OGMxMTAyODc1Y2NlOGJmY2MzNDJlNGZlZTM0ZGNjYjQ4MzQxOTc4ZGU1MzQ2YzBiZjU0NWFhNyJ9fX0=";
+    /** "Carrot" (minecraft-heads.com ID 28251) - the Carrot Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String CARROT_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjQ0OGMxODNhNzY0MDg2N2U0MjExOGU2OWMzZjRkMTVkYjFmZmIwZDkzNjQ2Yjc3MDc4ZWNlZGNhMmE0MzQ1NCJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
-            SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE);
+            SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE);
 
     private HeadTexture() {
     }
