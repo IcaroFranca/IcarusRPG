@@ -62,6 +62,8 @@ import dev.icaro.foodtooltips.mining.GemService;
 import dev.icaro.foodtooltips.mining.MiningMenuListener;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
 import dev.icaro.foodtooltips.placeholder.IcarusPlaceholders;
+import dev.icaro.foodtooltips.reforge.ReforgeListener;
+import dev.icaro.foodtooltips.reforge.ReforgeMenuService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseListener;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.BedrockSwordThrowListener;
@@ -186,6 +188,7 @@ extends JavaPlugin {
         menus.enchantMenu(enchantMenu);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         AnvilMenuService anvilMenu = new AnvilMenuService((Plugin)this, enchants);
+        ReforgeMenuService reforgeMenu = new ReforgeMenuService();
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
         armor.defenseMultiplier(e -> minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0);
@@ -205,6 +208,9 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);
         pm.registerEvents((Listener)new AnvilMenuListener(anvilMenu), (Plugin)this);
+        if (pm.getPlugin("Citizens") != null) {
+            pm.registerEvents((Listener)new ReforgeListener(reforgeMenu), (Plugin)this);
+        }
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals, abilities), (Plugin)this);
