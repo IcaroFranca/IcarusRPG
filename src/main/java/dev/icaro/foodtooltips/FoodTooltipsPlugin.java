@@ -152,6 +152,7 @@ extends JavaPlugin {
         GlobalLevelService global = new GlobalLevelService((Plugin)this, combat, general, bestiaryProgress);
         stats.global(global);
         SkillsMenuService menus = new SkillsMenuService(combat, general, stats, abilities, mining, global, armor, bestiaryProgress);
+        menus.reforge(reforgeService);
         this.quiver = new QuiverService((Plugin)this, combat, menus::openMain);
         menus.quiver(this.quiver);
         PassiveAbilityService passives = new PassiveAbilityService();
@@ -159,6 +160,7 @@ extends JavaPlugin {
         menus.passiveAbilities(passiveAbilityMenu);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat, reforgeService);
+        reforgeService.legendary(legendary);
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         this.visuals = new MobVisualService((Plugin)this);

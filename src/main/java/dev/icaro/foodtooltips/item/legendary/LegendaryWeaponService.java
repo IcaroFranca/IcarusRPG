@@ -223,7 +223,7 @@ public final class LegendaryWeaponService {
         // corrects it to whoever actually ends up holding the item almost immediately,
         // same as STRENGTH_LINE_KEY's placeholder below.
         meta.getPersistentDataContainer().set(SPEED_LINE_KEY, PersistentDataType.INTEGER, lore.size());
-        lore.add(this.speedLine(this.combat.attackSpeed(0) + SwordDamageService.ATTACK_SPEED_DELTA, pt));
+        lore.add(this.speedLine(this.combat.attackSpeed(0) + SwordDamageService.ATTACK_SPEED_DELTA, 0.0, pt));
         if (w.agility() > 0) {
             lore.add(this.line((pt ? "Agilidade: +" : "Agility: +") + w.agility(), NamedTextColor.GREEN));
         }
@@ -280,9 +280,24 @@ public final class LegendaryWeaponService {
         return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
     }
 
-    /** "Velocidade de Ataque: X.X" / "Attack Speed: X.X" - same wording/color/format {@code SwordDamageService} uses for plain swords. */
-    private Component speedLine(double real, boolean pt) {
-        return this.line((pt ? "Velocidade de Ataque: " : "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW);
+    /**
+     * "Velocidade de Ataque: X.X" / "Attack Speed: X.X" - same wording/color/format {@code
+     * SwordDamageService} uses for plain swords, plus "(+X%)" when {@code bonusPercent} (the
+     * item's own reforge Attack Speed %, see {@link ReforgeService}) is nonzero - the reforge
+     * stat block never gets its own separate Attack Speed line (see {@code ReforgeService}'s
+     * own doc on why an attribute the item already displays merges into that existing line
+     * instead of duplicating it).
+     */
+    private Component speedLine(double real, double bonusPercent, boolean pt) {
+        String text = (pt ? "Velocidade de Ataque: " : "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real);
+        if (Math.abs(bonusPercent) > 1.0E-4) {
+            text += " (" + (bonusPercent >= 0 ? "+" : "") + trimmedPercent(bonusPercent) + "%)";
+        }
+        return this.line(text, NamedTextColor.YELLOW);
+    }
+
+    private static String trimmedPercent(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value) : String.format(java.util.Locale.US, "%.1f", value);
     }
 
     /**
@@ -405,8 +420,9 @@ public final class LegendaryWeaponService {
         if (index != null && meta.hasLore()) {
             List<Component> lore = meta.lore();
             if (index >= 0 && index < lore.size()) {
-                double real = base * (1.0 + this.reforge.statsOf(item).attackSpeed() / 100.0);
-                Component updatedLine = this.speedLine(real, l == Language.PT);
+                double bonusPercent = this.reforge.statsOf(item).attackSpeed();
+                double real = base * (1.0 + bonusPercent / 100.0);
+                Component updatedLine = this.speedLine(real, bonusPercent, l == Language.PT);
                 if (!updatedLine.equals(lore.get(index))) {
                     List<Component> newLore = new ArrayList<>(lore);
                     newLore.set(index, updatedLine);
@@ -428,6 +444,38 @@ public final class LegendaryWeaponService {
             item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
         }
         return item;
+    }
+
+    /**
+     * Which lore line is the live Attack Speed line ({@link #SPEED_LINE_KEY}), or null if
+     * {@code item} isn't a legendary weapon - public so {@code ReforgeService} can insert its
+     * own stat-line block right after it (per the user's spec: reforge attributes go right
+     * below Attack Speed) instead of guessing the position.
+     */
+    public Integer speedLineIndex(ItemStack item) {
+        if (of(item) == null) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? null : meta.getPersistentDataContainer().get(SPEED_LINE_KEY, PersistentDataType.INTEGER);
+    }
+
+    /**
+     * Shifts the live Strength-scaling line's stored index ({@link #STRENGTH_LINE_KEY}, Two as
+     * One / Kamish's Wrath only - every other weapon has none, and this is a no-op for those)
+     * by {@code delta} if it currently sits at or after {@code fromIndexInclusive} - called by
+     * {@code ReforgeService} right after it inserts or resizes its own stat-line block earlier
+     * in the same lore list, so this stored index keeps pointing at the real line instead of
+     * drifting once something else's lines move in ahead of it.
+     */
+    public void shiftStrengthLineIfAtOrAfter(ItemMeta meta, int fromIndexInclusive, int delta) {
+        if (delta == 0) {
+            return;
+        }
+        Integer index = meta.getPersistentDataContainer().get(STRENGTH_LINE_KEY, PersistentDataType.INTEGER);
+        if (index != null && index >= fromIndexInclusive) {
+            meta.getPersistentDataContainer().set(STRENGTH_LINE_KEY, PersistentDataType.INTEGER, index + delta);
+        }
     }
 
     /** The item's current reforge Attack Speed modifier (see {@link #REFORGE_SPEED_KEY}), or null if it has none. */
