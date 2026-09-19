@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.Plugin;
 
 /**
  * The Blacksmith's reforge screen. A player deposits a sword ({@link #ITEM_SLOT}) - its own
@@ -38,10 +39,12 @@ public final class ReforgeMenuService {
     public static final int REFORGE_SLOT = 22;
     public static final int CLOSE_SLOT = 40;
 
+    private final Plugin plugin;
     private final ReforgeService reforge;
     private final Set<UUID> viewing = new HashSet<>();
 
-    public ReforgeMenuService(ReforgeService reforge) {
+    public ReforgeMenuService(Plugin plugin, ReforgeService reforge) {
+        this.plugin = plugin;
         this.reforge = reforge;
     }
 
@@ -80,6 +83,21 @@ public final class ReforgeMenuService {
         for (ItemStack leftover : overflow.values()) {
             player.getWorld().dropItemNaturally(player.getLocation(), leftover);
         }
+    }
+
+    /** Called (next tick, after a real click on {@link #ITEM_SLOT} actually lands) whenever the deposited item changes - same deferred-refresh pattern {@code AnvilMenuService#scheduleRefresh} uses, needed because the click that places/removes the item hasn't been applied yet at the moment the event fires. A no-op if the player closed the screen before this ran. */
+    public void scheduleRefresh(Player player) {
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            if (!this.viewing.contains(player.getUniqueId())) {
+                return;
+            }
+            Inventory inventory = player.getOpenInventory().getTopInventory();
+            if (inventory.getSize() != 45) {
+                return;
+            }
+            this.refreshReforgeIcon(inventory, player);
+            MenuBackground.apply(player, ITEM_SLOT);
+        });
     }
 
     public void reforge(Player player) {

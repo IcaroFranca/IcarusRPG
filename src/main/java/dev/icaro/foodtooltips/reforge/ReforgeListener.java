@@ -69,6 +69,7 @@ public final class ReforgeListener implements Listener {
             return;
         }
         if (rawSlot == ReforgeMenuService.ITEM_SLOT) {
+            this.menu.scheduleRefresh(player);
             return;
         }
 

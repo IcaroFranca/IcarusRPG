@@ -253,8 +253,15 @@ public final class MinerVariantService implements Listener {
         // (keeping whatever text is already there), so comparing the whole styled
         // Component would see a "mismatch" on color alone and rewrite a name that's
         // already correct, undoing that recoloring every tick.
-        String currentNameText = meta.hasDisplayName() ? PlainTextComponentSerializer.plainText().serialize(meta.displayName()) : null;
-        if (!wantedName.equals(currentNameText)) {
+        Component currentName = meta.hasDisplayName() ? meta.displayName() : null;
+        String currentNameText = currentName == null ? null : PlainTextComponentSerializer.plainText().serialize(currentName);
+        // A reforged piece (see ReforgeService#applyName) wraps this same base name in
+        // its own prefix Component ("Heavy " + this exact name, as a single child) rather
+        // than editing the text - recognized here the same way so a reforge prefix isn't
+        // treated as "wrong" and stripped back off every tick.
+        boolean reforgedWrapper = currentName != null && currentName.children().size() == 1
+                && wantedName.equals(PlainTextComponentSerializer.plainText().serialize(currentName.children().get(0)));
+        if (!wantedName.equals(currentNameText) && !reforgedWrapper) {
             meta.displayName(Component.text(wantedName, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             changed = true;
         }

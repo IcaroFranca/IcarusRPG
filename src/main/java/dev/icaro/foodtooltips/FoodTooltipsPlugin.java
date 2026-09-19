@@ -194,7 +194,7 @@ extends JavaPlugin {
         menus.enchantMenu(enchantMenu);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         AnvilMenuService anvilMenu = new AnvilMenuService((Plugin)this, enchants);
-        ReforgeMenuService reforgeMenu = new ReforgeMenuService(reforgeService);
+        ReforgeMenuService reforgeMenu = new ReforgeMenuService((Plugin)this, reforgeService);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
         armor.defenseMultiplier(e -> minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0);
