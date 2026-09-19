@@ -34,9 +34,12 @@ public final class ReforgeListener implements Listener {
      * Citizens' own {@code NPCLeftClickEvent} only fires when the NPC's "protected" trait
      * is on - it derives the event from whether Citizens itself ends up cancelling the
      * underlying damage, so an unprotected NPC never raises it. Hooking the raw damage
-     * event ourselves instead works regardless of that toggle.
+     * event ourselves instead works regardless of that toggle. Deliberately NOT {@code
+     * ignoreCancelled} - Citizens' own listener runs at LOWEST and cancels this same event
+     * the moment it sees a protected NPC (that's how it stops the NPC taking damage), so
+     * an ignoreCancelled handler here would never even run for the default, protected case.
      */
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void leftClick(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) {
             return;
