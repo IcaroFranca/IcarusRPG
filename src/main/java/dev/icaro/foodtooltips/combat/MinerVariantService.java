@@ -209,6 +209,7 @@ public final class MinerVariantService implements Listener {
         }
         meta.setUnbreakable(true);
         ArmorDefenseService.forceDefense(meta, diamondDefense);
+        ArmorDefenseService.markMinerArmor(meta);
         this.tiers.forceTier(meta, ItemTier.C);
         meta.getPersistentDataContainer().set(PIECE_NAME_PT_KEY, PersistentDataType.STRING, namePt);
         meta.getPersistentDataContainer().set(PIECE_NAME_EN_KEY, PersistentDataType.STRING, nameEn);
@@ -248,6 +249,17 @@ public final class MinerVariantService implements Listener {
             return false;
         }
         boolean changed = false;
+        // Retroactive fix for a piece crafted/dropped before ArmorDefenseService#markMinerArmor
+        // existed (it used to infer "Miner's Armor" from forceDefense's own generic marker,
+        // which Lapis Lazuli Armor also sets - wrongly giving Lapis Armor the doubled-Defense-
+        // underground bonus too). Backfilling here, on the same per-tick sweep that already
+        // re-localizes every Miner's Armor piece a player holds, means an already-crafted/
+        // -looted piece self-heals the first time it's next touched - nobody has to craft a
+        // new one.
+        if (!ArmorDefenseService.isMinerPiece(item)) {
+            ArmorDefenseService.markMinerArmor(meta);
+            changed = true;
+        }
         // Compared as plain text, not a full Component - ItemTierService#applyTier
         // recolors this same display name to the item's Tier color once it's picked up
         // (keeping whatever text is already there), so comparing the whole styled

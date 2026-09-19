@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.76.14</version>
+  <version>0.76.15</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>
@@ -124,6 +124,21 @@
       <version>2.11.6</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Test-only: plain interface/class mocks (Player, ItemMeta, PersistentDataContainer...)
+         rather than a full server (Paper 26.2 is too new for MockBukkit to target yet) - see
+         ReforgeServiceTest for the pattern this enables. -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>5.15.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -142,6 +157,18 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <!-- Byte Buddy (Mockito's inline mock maker) doesn't know Java 25 class files yet
+               (officially supports up to 24) - this tells it to proceed anyway rather than
+               refuse to instrument java.base/JDK-adjacent classes. Drop once Mockito ships a
+               Byte Buddy build with native Java 25 support. -->
+          <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+        </configuration>
       </plugin>
       <!-- Shades IF into our jar (it isn't a server plugin, so nothing else
            provides it at runtime) and relocates its package so it can't

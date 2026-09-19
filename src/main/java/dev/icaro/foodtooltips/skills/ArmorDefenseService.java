@@ -47,6 +47,8 @@ public final class ArmorDefenseService {
     private final NamespacedKey tooltipKey = new NamespacedKey("foodtooltips", "defense_tooltip_applied");
     /** See {@link #forceDefense}/{@link #pieceDefense} - same per-item override idea as {@code ItemTierService#forceTier}. */
     private static final NamespacedKey FORCED_DEFENSE_KEY = new NamespacedKey("foodtooltips", "forced_defense");
+    /** See {@link #markMinerArmor}/{@link #isMinerPiece} - deliberately separate from {@link #FORCED_DEFENSE_KEY}, which by itself only means "this piece's Defense doesn't come from its Material" and is NOT unique to Miner's Armor (Lapis Lazuli Armor - {@code LapisArmorService} - forces its own Defense too, and must never get Miner's Armor's own doubled-Defense-underground bonus). */
+    private static final NamespacedKey MINER_ARMOR_KEY = new NamespacedKey("foodtooltips", "miner_armor_piece");
     private GeneralSkillService general;
     private ReforgeService reforge;
     /** Extra Defense from the Protection enchant (see {@code ArmorEnchantEffectListener}) - wired in the same late-bound way as {@link #general}, as a plain functional callback rather than a direct type reference so this class (in {@code skills}) never has to depend on the {@code enchant} package. Defaults to always-0 so this class works before it's wired (or if it never is). */
@@ -110,13 +112,18 @@ public final class ArmorDefenseService {
         meta.getPersistentDataContainer().set(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER, value);
     }
 
-    /** Whether {@code item} carries {@link #forceDefense}'s own override - in practice always a Miner's Armor piece, the only thing that ever calls it - exposed so {@code MinerVariantService} can tell whether an entity (mob or player alike) is wearing at least one, without needing this class's own private key. */
+    /** Marks {@code meta} as a genuine Miner's Armor piece - called once by {@code MinerVariantService#minerPiece} at creation time (and retroactively, on the periodic sweep, for a piece crafted/dropped before this marker existed - see {@code MinerVariantService#localize}), so {@link #isMinerPiece} can tell it apart from any other item that merely also happens to force its own Defense (Lapis Lazuli Armor included). */
+    public static void markMinerArmor(ItemMeta meta) {
+        meta.getPersistentDataContainer().set(MINER_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    /** Whether {@code item} is genuinely a Miner's Armor piece ({@link #markMinerArmor}) - exposed so {@code MinerVariantService} can tell whether an entity (mob or player alike) is wearing at least one, without needing this class's own private key. Deliberately NOT just "has {@link #forceDefense}'s own override" - Lapis Lazuli Armor forces its own Defense too, but must never count here (it would otherwise wrongly get Miner's Armor's own doubled-Defense-underground bonus). */
     public static boolean isMinerPiece(ItemStack item) {
         if (item == null || item.isEmpty()) {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER);
+        return meta != null && meta.getPersistentDataContainer().has(MINER_ARMOR_KEY, PersistentDataType.BYTE);
     }
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */
