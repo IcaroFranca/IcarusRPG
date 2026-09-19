@@ -18,6 +18,7 @@ import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
@@ -143,6 +144,7 @@ public final class CombatListener implements Listener {
     private final EnchantService enchants;
     private final MobDifficultyService difficulty;
     private final PassiveAbilityService passives;
+    private final ReforgeService reforge;
     private final Map<UUID, Long> secondWind = new HashMap<>();
     /** Captured on death, consumed on respawn (see {@link #playerDeath}/{@link #respawn}) - where to point the death compass. */
     private final Map<UUID, Location> deathLocations = new HashMap<>();
@@ -165,8 +167,10 @@ public final class CombatListener implements Listener {
     public CombatListener(Plugin p, CombatSkillService c, MobVisualService v, BestiaryProgressService b, SkillProgressBarService bar,
                            CombatAbilityService abilityService, GlobalLevelService global,
                            PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
-                           LegendaryWeaponService legendary, EnchantService enchants, MobDifficultyService difficulty, PassiveAbilityService passives) {
+                           LegendaryWeaponService legendary, EnchantService enchants, MobDifficultyService difficulty, PassiveAbilityService passives,
+                           ReforgeService reforge) {
         this.plugin = p;
+        this.reforge = reforge;
         this.combat = c;
         this.visuals = v;
         this.bestiary = b;
@@ -272,7 +276,10 @@ public final class CombatListener implements Listener {
      * is the player's own real stat (not a placeholder - matches {@code
      * GlobalLevelService#strengthMultiplier}'s own {@code 1 + strength/100} exactly,
      * just computed once here instead of as a separate multiplicative factor, so it
-     * isn't double-counted). Enchants sums every percentage damage bonus this plugin
+     * isn't double-counted), plus whatever the held weapon's own reforge grants (see
+     * {@link ReforgeService#statsOf}, which also feeds Crit Chance and CritDamage the
+     * same way - a weapon-only bonus, unlike every other term here). Enchants sums
+     * every percentage damage bonus this plugin
      * already grants (Sharpness/Smite/Bane, Cubism, Ender Slayer, Execute, Giant Killer,
      * Impaling, First Strike - see {@link #customMeleeDamagePercent}); WeaponBonus and
      * ArmorBonus are reserved for a future legendary-weapon/armor "flat ability damage
@@ -361,7 +368,7 @@ public final class CombatListener implements Listener {
         // below (base chance + level + Ruthless Strikes), capped at 100% so nothing
         // (base, level scaling, and the ability tree bonus all stacked) can ever push a
         // hit past a guaranteed crit.
-        double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p));
+        double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p) + this.reforge.statsOf(weapon).critChance());
         boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
@@ -370,10 +377,10 @@ public final class CombatListener implements Listener {
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
         double undead = this.legendary.undeadMultiplier(target, weapon);
-        double critMultiplier = critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus : 1.0;
+        double critMultiplier = critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus + this.reforge.statsOf(weapon).critDamage() / 100.0 : 1.0;
         double damage;
         if (melee) {
-            double strength = this.stats.stats(p).strength();
+            double strength = this.stats.stats(p).strength() + this.reforge.statsOf(weapon).strength();
             double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + strength / 100.0);
             // 1 + CombatLevelBonus + Enchants + WeaponBonus (always 0, see this method's
             // own doc) + AbilityTreeBonus - combat.damageMultiplier(level) already IS
