@@ -1,12 +1,13 @@
 package dev.icaro.foodtooltips.reforge;
 
-import net.citizensnpcs.api.event.NPCLeftClickEvent;
+import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -28,12 +29,24 @@ public final class ReforgeListener implements Listener {
         }
     }
 
-    @EventHandler
-    public void leftClick(NPCLeftClickEvent event) {
-        if (this.isBlacksmith(event.getNPC())) {
-            event.setCancelled(true);
-            this.menu.open(event.getClicker());
+    /**
+     * Left-clicking (attacking) the Blacksmith should also open the reforge menu, but
+     * Citizens' own {@code NPCLeftClickEvent} only fires when the NPC's "protected" trait
+     * is on - it derives the event from whether Citizens itself ends up cancelling the
+     * underlying damage, so an unprotected NPC never raises it. Hooking the raw damage
+     * event ourselves instead works regardless of that toggle.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void leftClick(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player player)) {
+            return;
         }
+        NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getEntity());
+        if (npc == null || !this.isBlacksmith(npc)) {
+            return;
+        }
+        event.setCancelled(true);
+        this.menu.open(player);
     }
 
     @EventHandler(ignoreCancelled = true)
