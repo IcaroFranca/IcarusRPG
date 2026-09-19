@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
@@ -66,6 +67,8 @@ public final class LegendaryWeaponService {
     private static final NamespacedKey STRENGTH_LINE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_strength_line");
     /** Which lore line is the live Attack Speed line - see {@link #refreshAttackSpeedLore}. Every legendary weapon has one. */
     private static final NamespacedKey SPEED_LINE_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_speed_line");
+    /** This item's own reforge Attack Speed % (see {@link ReforgeService}), re-added as its own flat delta every time it changes - same pattern {@code SwordDamageService} uses for plain swords. */
+    private static final NamespacedKey REFORGE_SPEED_KEY = new NamespacedKey("foodtooltips", "legendary_weapon_reforge_attack_speed");
 
     /** A longsword swings 2 blocks farther than a normal sword. */
     private static final double LONGSWORD_RANGE_BONUS = 2.0;
@@ -118,13 +121,15 @@ public final class LegendaryWeaponService {
     private final PlayerStatsService stats;
     private final ItemTierService tiers;
     private final CombatSkillService combat;
+    private final ReforgeService reforge;
     private final Map<UUID, Integer> bleedStacks = new HashMap<>();
 
-    public LegendaryWeaponService(Plugin plugin, PlayerStatsService stats, ItemTierService tiers, CombatSkillService combat) {
+    public LegendaryWeaponService(Plugin plugin, PlayerStatsService stats, ItemTierService tiers, CombatSkillService combat, ReforgeService reforge) {
         this.plugin = plugin;
         this.stats = stats;
         this.tiers = tiers;
         this.combat = combat;
+        this.reforge = reforge;
     }
 
     // ---- Identity ---------------------------------------------------------
@@ -390,11 +395,17 @@ public final class LegendaryWeaponService {
                     new AttributeModifier(BASE_ZERO_KEY, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
             changed = true;
         }
+        double base = this.combat.attackSpeed(this.combat.progress(p).level()) + SwordDamageService.ATTACK_SPEED_DELTA;
+        double reforgeDelta = base * this.reforge.statsOf(item).attackSpeed() / 100.0;
+        if (this.needsReforgeSpeedUpdate(meta, reforgeDelta)) {
+            this.updateReforgeSpeedModifier(meta, reforgeDelta);
+            changed = true;
+        }
         Integer index = meta.getPersistentDataContainer().get(SPEED_LINE_KEY, PersistentDataType.INTEGER);
         if (index != null && meta.hasLore()) {
             List<Component> lore = meta.lore();
             if (index >= 0 && index < lore.size()) {
-                double real = this.combat.attackSpeed(this.combat.progress(p).level()) + SwordDamageService.ATTACK_SPEED_DELTA;
+                double real = base * (1.0 + this.reforge.statsOf(item).attackSpeed() / 100.0);
                 Component updatedLine = this.speedLine(real, l == Language.PT);
                 if (!updatedLine.equals(lore.get(index))) {
                     List<Component> newLore = new ArrayList<>(lore);
@@ -417,6 +428,40 @@ public final class LegendaryWeaponService {
             item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
         }
         return item;
+    }
+
+    /** The item's current reforge Attack Speed modifier (see {@link #REFORGE_SPEED_KEY}), or null if it has none. */
+    private AttributeModifier reforgeSpeedModifier(ItemMeta meta) {
+        if (!meta.hasAttributeModifiers()) {
+            return null;
+        }
+        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_SPEED)) {
+            if (m.getKey().equals(REFORGE_SPEED_KEY)) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /** Whether the item's real Attack Speed modifier needs adding, removing or replacing to match {@code reforgeDelta} (0 meaning "no reforge bonus right now"). */
+    private boolean needsReforgeSpeedUpdate(ItemMeta meta, double reforgeDelta) {
+        AttributeModifier existing = this.reforgeSpeedModifier(meta);
+        if (Math.abs(reforgeDelta) < 1.0E-4) {
+            return existing != null;
+        }
+        return existing == null || Math.abs(existing.getAmount() - reforgeDelta) > 1.0E-4;
+    }
+
+    /** Swaps the item's reforge Attack Speed modifier for one matching {@code reforgeDelta}, or removes it entirely if {@code reforgeDelta} is (now) 0. */
+    private void updateReforgeSpeedModifier(ItemMeta meta, double reforgeDelta) {
+        AttributeModifier existing = this.reforgeSpeedModifier(meta);
+        if (existing != null) {
+            meta.removeAttributeModifier(Attribute.ATTACK_SPEED, existing);
+        }
+        if (Math.abs(reforgeDelta) > 1.0E-4) {
+            meta.addAttributeModifier(Attribute.ATTACK_SPEED,
+                    new AttributeModifier(REFORGE_SPEED_KEY, reforgeDelta, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
     }
 
     /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #BASE_ZERO_KEY}). */

@@ -39,9 +39,9 @@ import org.bukkit.plugin.Plugin;
  * Component} wrapping the original name ({@link #applyName}) rather than by editing text -
  * that way the original name (and its {@code ItemTierService}-applied color/bold) never has
  * to be reconstructed or parsed back out of a rendered string, translatable material names
- * included. Its stat lines are inserted right after {@code SwordDamageService}'s own Damage/
- * Attack Speed pair ({@link #LORE_INSERT_INDEX}) and replaced as a block on every reroll (see
- * {@link #LORE_COUNT_KEY}), never touching either of those two lines.
+ * included. Its stat lines are inserted as a block, replaced whole on every reroll (see {@link
+ * #LORE_COUNT_KEY}) - see {@link #applyLore} for exactly where that block goes on a plain sword
+ * versus a legendary one.
  */
 public final class ReforgeService {
     public static final int ATTEMPTS_PER_CHARGE = 5;
@@ -70,11 +70,16 @@ public final class ReforgeService {
 
     // ---- Eligibility / cost ----
 
-    /** Sword-only for now (see {@link ReforgePrefix}'s class doc) - a plain, non-legendary {@code _SWORD} material this plugin already gives its own flat damage total to. */
+    /**
+     * Sword-only for now (see {@link ReforgePrefix}'s class doc) - any {@code _SWORD}-material
+     * item this plugin already gives its own flat damage total to, plain or legendary (every
+     * legendary weapon, daggers and longswords included, is built on a {@code _SWORD} material -
+     * see {@code LegendaryWeapon#material} - so this one check already covers all of them, no
+     * per-{@code WeaponType} special-casing needed).
+     */
     public boolean isReforgeable(ItemStack item) {
         return item != null && !item.isEmpty() && item.getType().name().endsWith("_SWORD")
-                && SwordDamageService.totalDamage(item.getType()) != null
-                && !LegendaryWeaponService.isLegendary(item);
+                && SwordDamageService.totalDamage(item.getType()) != null;
     }
 
     public Material costMaterial(ItemTier tier) {
@@ -162,7 +167,7 @@ public final class ReforgeService {
         // overwritten with the new roll - it's what #applyName reads to tell "never
         // reforged before" (no wrapper to unwrap) apart from "rerolling" (unwrap first).
         this.applyName(item, meta, prefix);
-        this.applyLore(meta, prefix.stats(tier), Language.of(player));
+        this.applyLore(item, meta, prefix.stats(tier), Language.of(player));
         attempts -= 1;
         d.set(ATTEMPTS_KEY, PersistentDataType.INTEGER, attempts);
         d.set(PREFIX_KEY, PersistentDataType.STRING, prefix.name());
@@ -185,12 +190,22 @@ public final class ReforgeService {
         meta.displayName(prefixText.append(baseName));
     }
 
-    /** Replaces whatever stat-line block this service last inserted (see {@link #LORE_COUNT_KEY}) right after the Damage/Attack Speed pair with {@code stats}'s own lines. */
-    private void applyLore(ItemMeta meta, ReforgeStats stats, Language l) {
+    /**
+     * Replaces whatever stat-line block this service last inserted (see {@link #LORE_COUNT_KEY})
+     * with {@code stats}'s own lines. A plain sword's lore is a fixed, known shape ({@code
+     * SwordDamageService} always puts Damage/Attack Speed at indices 0/1), so the block goes
+     * right after those two; a legendary weapon's lore instead has several of its own lines at
+     * indices {@code LegendaryWeaponService} tracks and rewrites by PDC-stored index ({@code
+     * STRENGTH_LINE_KEY}/{@code SPEED_LINE_KEY}) - inserting anywhere before the end would shift
+     * those stored indices out of sync with their real position, so for those this always
+     * appends at the very end instead, never touching an index another system already owns.
+     */
+    private void applyLore(ItemStack item, ItemMeta meta, ReforgeStats stats, Language l) {
         PersistentDataContainer d = meta.getPersistentDataContainer();
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         int previousCount = d.getOrDefault(LORE_COUNT_KEY, PersistentDataType.INTEGER, 0);
-        int insertAt = Math.min(LORE_INSERT_INDEX, lore.size());
+        boolean legendary = LegendaryWeaponService.isLegendary(item);
+        int insertAt = legendary ? Math.max(0, lore.size() - previousCount) : Math.min(LORE_INSERT_INDEX, lore.size());
         for (int i = 0; i < previousCount && insertAt < lore.size(); i++) {
             lore.remove(insertAt);
         }
