@@ -124,12 +124,12 @@ extends JavaPlugin {
         CombatSkillService combat = new CombatSkillService((Plugin)this);
         GeneralSkillService general = new GeneralSkillService();
         stats.general(general);
-        ReforgeService reforgeService = new ReforgeService((Plugin)this);
-        stats.reforge(reforgeService);
         CombatValorService valor = new CombatValorService((Plugin)this);
         ArmorDefenseService armor = new ArmorDefenseService();
         armor.general(general);
         ItemTierService tiers = new ItemTierService((Plugin)this);
+        ReforgeService reforgeService = new ReforgeService((Plugin)this, tiers);
+        stats.reforge(reforgeService);
         LapisArmorService lapisArmor = new LapisArmorService((Plugin)this, tiers);
         general.armorMiningSpeedBonus(lapisArmor::equippedMiningSpeedBonus);
         general.armorMiningFortuneBonus(lapisArmor::equippedMiningFortuneBonus);
