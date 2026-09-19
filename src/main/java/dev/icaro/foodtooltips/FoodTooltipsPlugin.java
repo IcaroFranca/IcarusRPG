@@ -24,6 +24,8 @@ import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.CustomEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.SpawnerTouchListener;
 import dev.icaro.foodtooltips.enchant.MeleeEnchantEffectListener;
+import dev.icaro.foodtooltips.enchant.AnvilMenuListener;
+import dev.icaro.foodtooltips.enchant.AnvilMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMilestoneService;
@@ -183,6 +185,7 @@ extends JavaPlugin {
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
         menus.enchantMenu(enchantMenu);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
+        AnvilMenuService anvilMenu = new AnvilMenuService((Plugin)this, enchants);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
         armor.defenseMultiplier(e -> minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0);
@@ -201,6 +204,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);
+        pm.registerEvents((Listener)new AnvilMenuListener(anvilMenu), (Plugin)this);
         CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals, abilities), (Plugin)this);
