@@ -21,8 +21,8 @@ import org.bukkit.inventory.EquipmentSlot;
  * same "cancel, then open our own" pattern {@code GrindstoneMenuListener}/{@code
  * EnchantMenuListener} already use for their own blocks. The two input slots ({@link
  * AnvilMenuService#MAIN_ITEM_SLOT}/{@link AnvilMenuService#SECONDARY_ITEM_SLOT}) accept
- * real placement/pickup only in Combine mode - everything else in the top inventory is
- * a fixed control, always cancelled.
+ * real placement/pickup - everything else in the top inventory is a fixed control,
+ * always cancelled.
  */
 public final class AnvilMenuListener implements Listener {
     private static final Set<Material> ANVILS = Set.of(Material.ANVIL, Material.CHIPPED_ANVIL, Material.DAMAGED_ANVIL);
@@ -55,13 +55,13 @@ public final class AnvilMenuListener implements Listener {
             // Player's own inventory - always free to reorganize; shift-click could land
             // in one of the (currently empty) input slots, same reasoning as the
             // Grindstone's own listener.
-            if (e.isShiftClick() && this.menu.mode(p) == AnvilMenuService.Mode.COMBINE) {
+            if (e.isShiftClick()) {
                 this.menu.scheduleRefresh(p);
             }
             return;
         }
         boolean inputSlot = raw == AnvilMenuService.MAIN_ITEM_SLOT || raw == AnvilMenuService.SECONDARY_ITEM_SLOT;
-        if (inputSlot && this.menu.mode(p) == AnvilMenuService.Mode.COMBINE) {
+        if (inputSlot) {
             // Not cancelled - real placement/pickup, this is one of the two items being combined.
             this.menu.scheduleRefresh(p);
             return;
@@ -69,10 +69,6 @@ public final class AnvilMenuListener implements Listener {
         e.setCancelled(true);
         if (raw == AnvilMenuService.PREVIEW_SLOT) {
             this.menu.confirm(p);
-        } else if (raw == AnvilMenuService.COMBINE_TAB_SLOT) {
-            this.menu.switchMode(p, AnvilMenuService.Mode.COMBINE);
-        } else if (raw == AnvilMenuService.REFORGE_TAB_SLOT) {
-            this.menu.switchMode(p, AnvilMenuService.Mode.REFORGE);
         } else if (raw == AnvilMenuService.CLOSE_SLOT) {
             p.closeInventory();
         }

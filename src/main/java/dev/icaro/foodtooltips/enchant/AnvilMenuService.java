@@ -6,7 +6,6 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,43 +35,33 @@ import org.bukkit.plugin.Plugin;
  * in this screen, so renaming an item here is impossible by construction, not by a
  * runtime check.
  *
- * <p>Two modes, switched via the tabs at {@link #COMBINE_TAB_SLOT}/{@link
- * #REFORGE_TAB_SLOT} (per-player, see {@link #modes}):
- * <ul>
- *   <li><b>Combine</b> ({@link Mode#COMBINE}, the default): {@link #MAIN_ITEM_SLOT} takes
- *   the item to keep, {@link #SECONDARY_ITEM_SLOT} takes either another item of the exact
- *   same {@link Material} or a real enchanted book - every enchantment (custom or vanilla)
- *   the secondary item/book offers is checked against the main item the same way the
- *   Enchanting Table itself would ({@link EnchantService#vanillaBlockReason}/{@link
- *   EnchantService#customBlockReason} - same type-compatibility and conflict rules, no
- *   duplicated logic), merged in (matching level bumps it by one, capped at the entry's
- *   own max; a higher level on either side wins) into a live preview at {@link
- *   #PREVIEW_SLOT}. Clicking the preview - when it's a real item, not an explanation -
- *   consumes both inputs and hands the result to the player, exactly like clicking a real
- *   anvil's own output slot.
- *   <li><b>Reforge</b> ({@link Mode#REFORGE}): structure only for now, no functionality -
- *   see the class doc note on {@link #renderReforge}. Deliberately not this class's
- *   concern yet: real vanilla repair/durability restoration is unavailable while this
- *   screen replaces the anvil, until Reforge actually ships.
- * </ul>
- * Switching modes or closing the screen always hands back whatever sits in {@link
- * #MAIN_ITEM_SLOT}/{@link #SECONDARY_ITEM_SLOT} first ({@link #returnInputItems}) -
- * never consumed except by a genuine confirmed Combine.
+ * <p>Combine only for now (Reforge was going to be a second mode here, but it's being
+ * tied to an NPC instead - no mode-switching structure left to carry): {@link
+ * #MAIN_ITEM_SLOT} takes the item to keep, {@link #SECONDARY_ITEM_SLOT} takes either
+ * another item of the exact same {@link Material} or a real enchanted book - every
+ * enchantment (custom or vanilla) the secondary item/book offers is checked against the
+ * main item the same way the Enchanting Table itself would ({@link
+ * EnchantService#vanillaBlockReason}/{@link EnchantService#customBlockReason} - same
+ * type-compatibility and conflict rules, no duplicated logic), merged in (matching level
+ * bumps it by one, capped at the entry's own max; a higher level on either side wins)
+ * into a live preview at {@link #PREVIEW_SLOT}. Clicking the preview - when it's a real
+ * item, not an explanation - consumes both inputs and hands the result to the player,
+ * exactly like clicking a real anvil's own output slot.
+ *
+ * <p>Closing the screen always hands back whatever sits in {@link #MAIN_ITEM_SLOT}/
+ * {@link #SECONDARY_ITEM_SLOT} first ({@link #returnInputItems}) - never consumed except
+ * by a genuine confirmed combination.
  */
 public final class AnvilMenuService {
     public static final int MAIN_ITEM_SLOT = 29;
     public static final int SECONDARY_ITEM_SLOT = 33;
     public static final int PREVIEW_SLOT = 13;
-    public static final int COMBINE_TAB_SLOT = 22;
-    public static final int REFORGE_TAB_SLOT = 24;
+    public static final int LABEL_SLOT = 22;
     public static final int CLOSE_SLOT = 49;
-
-    public enum Mode { COMBINE, REFORGE }
 
     private final Plugin plugin;
     private final EnchantService enchants;
     private final Set<UUID> viewing = new HashSet<>();
-    private final Map<UUID, Mode> modes = new HashMap<>();
 
     public AnvilMenuService(Plugin plugin, EnchantService enchants) {
         this.plugin = plugin;
@@ -85,8 +74,8 @@ public final class AnvilMenuService {
         this.fill(v);
         v.setItem(MAIN_ITEM_SLOT, null);
         v.setItem(SECONDARY_ITEM_SLOT, null);
-        this.modes.put(p.getUniqueId(), Mode.COMBINE);
-        this.renderTabsAndClose(v, p);
+        v.setItem(LABEL_SLOT, this.labelIcon(p));
+        v.setItem(CLOSE_SLOT, this.closeIcon(p));
         this.refreshPreview(p, v);
         p.openInventory(v);
         this.viewing.add(p.getUniqueId());
@@ -96,39 +85,16 @@ public final class AnvilMenuService {
         return this.viewing.contains(p.getUniqueId());
     }
 
-    public Mode mode(Player p) {
-        return this.modes.getOrDefault(p.getUniqueId(), Mode.COMBINE);
-    }
-
     /** Called by {@code AnvilMenuListener} on {@code InventoryCloseEvent} - hands back any input items before forgetting this player entirely. */
     public void handleClose(Player p, Inventory v) {
         this.returnInputItems(p, v);
         this.viewing.remove(p.getUniqueId());
-        this.modes.remove(p.getUniqueId());
     }
 
-    /** Switches to {@code target} (a no-op if already there), returning whatever's in the input slots first - see this class's own doc. Reuses the already-open {@link Inventory} in place, same "update, don't reopen" pattern {@code EnchantMenuService#turnMainPage} uses for pagination. */
-    public void switchMode(Player p, Mode target) {
-        if (this.mode(p) == target) {
-            return;
-        }
-        Inventory v = p.getOpenInventory().getTopInventory();
-        this.returnInputItems(p, v);
-        this.modes.put(p.getUniqueId(), target);
-        this.renderTabsAndClose(v, p);
-        if (target == Mode.COMBINE) {
-            v.setItem(MAIN_ITEM_SLOT, null);
-            v.setItem(SECONDARY_ITEM_SLOT, null);
-            this.refreshPreview(p, v);
-        } else {
-            this.renderReforge(v, p);
-        }
-    }
-
-    /** Called (next tick, after the click that changed a slot actually lands) whenever an input slot changes in Combine mode - same deferred-refresh pattern {@code GrindstoneMenuService#scheduleCatalogRefresh} uses. A no-op if the player switched away or closed the screen before this ran. */
+    /** Called (next tick, after the click that changed a slot actually lands) whenever an input slot changes - same deferred-refresh pattern {@code GrindstoneMenuService#scheduleCatalogRefresh} uses. A no-op if the player closed the screen before this ran. */
     public void scheduleRefresh(Player p) {
         Bukkit.getScheduler().runTask(this.plugin, () -> {
-            if (!this.viewing.contains(p.getUniqueId()) || this.mode(p) != Mode.COMBINE) {
+            if (!this.viewing.contains(p.getUniqueId())) {
                 return;
             }
             Inventory v = p.getOpenInventory().getTopInventory();
@@ -139,11 +105,8 @@ public final class AnvilMenuService {
         });
     }
 
-    /** Clicking the preview slot in Combine mode: a no-op unless it's currently showing a real, valid result (never an explanation or the "waiting for items" hint). Consumes both inputs and hands the result to the player. */
+    /** Clicking the preview slot: a no-op unless it's currently showing a real, valid result (never an explanation or the "waiting for items" hint). Consumes both inputs and hands the result to the player. */
     public void confirm(Player p) {
-        if (this.mode(p) != Mode.COMBINE) {
-            return;
-        }
         Inventory v = p.getOpenInventory().getTopInventory();
         boolean pt = Language.of(p) == Language.PT;
         ItemStack main = v.getItem(MAIN_ITEM_SLOT);
@@ -158,7 +121,7 @@ public final class AnvilMenuService {
         this.refreshPreview(p, v);
     }
 
-    /** Hands back whatever's sitting in the two input slots (overflow drops on the ground), then clears them - shared by {@link #handleClose} and {@link #switchMode}, the only two ways an in-progress Combine can be abandoned. */
+    /** Hands back whatever's sitting in the two input slots (overflow drops on the ground), then clears them - the only way an in-progress combination can be abandoned, since there's no second mode to switch away to anymore. */
     private void returnInputItems(Player p, Inventory v) {
         ItemStack main = v.getItem(MAIN_ITEM_SLOT);
         ItemStack secondary = v.getItem(SECONDARY_ITEM_SLOT);
@@ -177,12 +140,6 @@ public final class AnvilMenuService {
         }
     }
 
-    private void renderTabsAndClose(Inventory v, Player p) {
-        v.setItem(COMBINE_TAB_SLOT, this.combineTabIcon(p));
-        v.setItem(REFORGE_TAB_SLOT, this.reforgeTabIcon(p));
-        v.setItem(CLOSE_SLOT, this.closeIcon(p));
-    }
-
     private void refreshPreview(Player p, Inventory v) {
         boolean pt = Language.of(p) == Language.PT;
         ItemStack main = v.getItem(MAIN_ITEM_SLOT);
@@ -190,26 +147,13 @@ public final class AnvilMenuService {
         v.setItem(PREVIEW_SLOT, this.previewIcon(this.computeCombine(main, secondary, pt), pt));
     }
 
-    /**
-     * Structure only, per explicit request - no reforge logic yet. The two item slots
-     * are plain filler here (not the real, placeable ones Combine mode uses) so nothing
-     * can be dropped into a mode that doesn't process it yet.
-     */
-    private void renderReforge(Inventory v, Player p) {
-        boolean pt = Language.of(p) == Language.PT;
-        v.setItem(MAIN_ITEM_SLOT, this.filler());
-        v.setItem(SECONDARY_ITEM_SLOT, this.filler());
-        v.setItem(PREVIEW_SLOT, this.item(Material.BARRIER, pt ? "Em breve" : "Coming soon",
-                List.of(this.text(pt ? "O modo Reforjar ainda não existe." : "Reforge mode doesn't exist yet.", NamedTextColor.GRAY))));
-    }
-
-    // ---- Combine mode logic --------------------------------------------------------
+    // ---- Combine logic --------------------------------------------------------------
 
     private record CombineOutcome(ItemStack preview, String reason) {
     }
 
     /**
-     * Works out what Combine would produce right now, or why it can't - see this
+     * Works out what combining would produce right now, or why it can't - see this
      * class's own doc for the merge rules. Both {@code main}/{@code secondary} are read
      * only, never mutated - the returned {@link CombineOutcome#preview} (if any) is a
      * fresh clone.
@@ -226,8 +170,8 @@ public final class AnvilMenuService {
         EnchantmentStorageMeta bookMeta = secondary.getType() == Material.ENCHANTED_BOOK && secondary.getItemMeta() instanceof EnchantmentStorageMeta esm ? esm : null;
         if (bookMeta == null && main.getType() != secondary.getType()) {
             return new CombineOutcome(null, pt
-                    ? "Coloque outro item do mesmo tipo ou um livro encantado no segundo slot."
-                    : "Place another item of the same type or an enchanted book in the second slot.");
+                    ? "Os itens precisam ser do mesmo tipo, ou o segundo precisa ser um livro encantado."
+                    : "The items need to be the same type, or the second one needs to be an enchanted book.");
         }
 
         Map<EnchantEntry, Integer> current = this.enchants.levelsOf(main);
@@ -319,57 +263,29 @@ public final class AnvilMenuService {
             }
             return this.item(Material.BARRIER, pt ? "Combinação inválida" : "Invalid combination", lore);
         }
-        return this.item(Material.GRAY_STAINED_GLASS_PANE, pt ? "Aguardando itens" : "Waiting for items", List.of(
-                this.text(pt ? "Coloque o item principal no slot 29" : "Place the main item in slot 29", NamedTextColor.GRAY),
-                this.text(pt ? "e outro equipamento igual ou um" : "and another matching equipment or an", NamedTextColor.GRAY),
-                this.text(pt ? "livro encantado no slot 33." : "enchanted book in slot 33.", NamedTextColor.GRAY)));
-    }
-
-    private ItemStack combineTabIcon(Player p) {
-        boolean pt = Language.of(p) == Language.PT;
-        boolean active = this.mode(p) == Mode.COMBINE;
         List<Component> lore = new ArrayList<>();
         for (String part : LoreWrap.wrapText(pt
-                ? "Combina os encantamentos do item principal com os de outro equipamento igual ou de um livro encantado."
-                : "Combines the main item's enchantments with another matching equipment's or an enchanted book's.", LoreWrap.DEFAULT_WIDTH)) {
+                ? "Coloque um item e outro equipamento compatível ou um livro encantado."
+                : "Place an item and another compatible equipment or an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
-        if (active) {
-            lore.add(Component.empty());
-            lore.add(this.text(pt ? "Modo ativo" : "Active mode", NamedTextColor.GREEN));
-        }
-        ItemStack icon = this.item(Material.ANVIL, pt ? "Combinar Itens" : "Combine Items", lore);
-        if (active) {
-            this.glint(icon);
-        }
-        return icon;
+        return this.item(Material.GRAY_STAINED_GLASS_PANE, pt ? "Aguardando itens" : "Waiting for items", lore);
     }
 
-    private ItemStack reforgeTabIcon(Player p) {
+    private ItemStack labelIcon(Player p) {
         boolean pt = Language.of(p) == Language.PT;
-        boolean active = this.mode(p) == Mode.REFORGE;
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(pt ? "Em breve." : "Coming soon.", NamedTextColor.GRAY));
-        if (active) {
-            lore.add(Component.empty());
-            lore.add(this.text(pt ? "Modo ativo" : "Active mode", NamedTextColor.GREEN));
+        for (String part : LoreWrap.wrapText(pt
+                ? "Combina os encantamentos de dois itens compatíveis, ou de um item e um livro encantado."
+                : "Combines the enchantments of two compatible items, or an item and an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
         }
-        ItemStack icon = this.item(Material.DAMAGED_ANVIL, pt ? "Reforjar" : "Reforge", lore);
-        if (active) {
-            this.glint(icon);
-        }
-        return icon;
+        return this.item(Material.ANVIL, pt ? "Combinar Itens" : "Combine Items", lore);
     }
 
     private ItemStack closeIcon(Player p) {
         boolean pt = Language.of(p) == Language.PT;
         return this.customHead(HeadTexture.CLOSE, pt ? "Fechar" : "Close", List.of());
-    }
-
-    private void glint(ItemStack item) {
-        ItemMeta meta = item.getItemMeta();
-        meta.setEnchantmentGlintOverride(true);
-        item.setItemMeta(meta);
     }
 
     private ItemStack filler() {
