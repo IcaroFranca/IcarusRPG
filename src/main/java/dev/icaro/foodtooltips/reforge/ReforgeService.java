@@ -2,14 +2,12 @@ package dev.icaro.foodtooltips.reforge;
 
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
+import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -28,12 +26,13 @@ import org.bukkit.plugin.Plugin;
  * gameplay logic, kept separate from {@link ReforgeMenuService} (screen/inventory plumbing
  * only, same split {@code EnchantService}/{@code EnchantMenuService} already use).
  *
- * <p>Reforging costs one tier-specific material ({@link #costMaterial}) and grants {@link
- * #ATTEMPTS_PER_CHARGE} random rerolls at that tier before the next material is needed - both
- * the remaining rerolls and which tier they're for live on the item itself ({@link
- * #CHARGE_TIER_KEY}/{@link #ATTEMPTS_KEY}), so picking a different tier mid-session (say,
- * cheaper Coal after a Netherite Scrap charge) always starts a fresh charge rather than
- * spending the pricier tier's leftover attempts on the cheap one.
+ * <p>The tier reforged at is never a player choice - it's always {@code item}'s own tier ({@link
+ * #tierOf}, the same {@code ItemTierService} rarity every item already carries, forced tier for
+ * a legendary weapon included), so a Diamond Sword always costs Iron and rolls Tier C stats,
+ * never anything else. Reforging costs one tier-specific material ({@link #costMaterial}) and
+ * grants {@link #ATTEMPTS_PER_CHARGE} random rerolls at that tier before the next material is
+ * needed - both the remaining rerolls and which tier they're for live on the item itself ({@link
+ * #CHARGE_TIER_KEY}/{@link #ATTEMPTS_KEY}).
  *
  * <p>The rolled prefix's name is prepended to the item's display name as its own {@link
  * Component} wrapping the original name ({@link #applyName}) rather than by editing text -
@@ -53,22 +52,18 @@ public final class ReforgeService {
     private static final NamespacedKey ATTEMPTS_KEY = new NamespacedKey("foodtooltips", "reforge_attempts");
     private static final NamespacedKey LORE_COUNT_KEY = new NamespacedKey("foodtooltips", "reforge_lore_count");
 
-    private final Map<UUID, ItemTier> selectedTier = new HashMap<>();
+    private final ItemTierService tiers;
 
-    public ReforgeService(Plugin plugin) {
-    }
-
-    // ---- Tier selection (menu-side only, not persisted) ----
-
-    public ItemTier selectedTier(Player player) {
-        return this.selectedTier.getOrDefault(player.getUniqueId(), ItemTier.D);
-    }
-
-    public void selectTier(Player player, ItemTier tier) {
-        this.selectedTier.put(player.getUniqueId(), tier);
+    public ReforgeService(Plugin plugin, ItemTierService tiers) {
+        this.tiers = tiers;
     }
 
     // ---- Eligibility / cost ----
+
+    /** Which tier {@code item} reforges at - always its own {@code ItemTierService} rarity, never a player choice. */
+    public ItemTier tierOf(ItemStack item) {
+        return this.tiers.tierOf(item);
+    }
 
     /**
      * Sword-only for now (see {@link ReforgePrefix}'s class doc) - any {@code _SWORD}-material
@@ -92,8 +87,8 @@ public final class ReforgeService {
         };
     }
 
-    /** Attempts left in {@code item}'s current charge, but only if that charge is for {@code tier} - 0 for a different tier or no charge at all, meaning the next reforge pays for a fresh one. */
-    public int attemptsRemaining(ItemStack item, ItemTier tier) {
+    /** Attempts left in {@code item}'s current charge, but only if that charge is for {@code item}'s own {@link #tierOf} - 0 for a stale charge (the item's tier can't actually change, but this stays consistent with {@link #reforge}'s own check) or no charge at all, meaning the next reforge pays for a fresh one. */
+    public int attemptsRemaining(ItemStack item) {
         if (item == null || item.isEmpty()) {
             return 0;
         }
@@ -102,7 +97,7 @@ public final class ReforgeService {
             return 0;
         }
         PersistentDataContainer d = meta.getPersistentDataContainer();
-        if (!tier.name().equals(d.get(CHARGE_TIER_KEY, PersistentDataType.STRING))) {
+        if (!this.tierOf(item).name().equals(d.get(CHARGE_TIER_KEY, PersistentDataType.STRING))) {
             return 0;
         }
         return d.getOrDefault(ATTEMPTS_KEY, PersistentDataType.INTEGER, 0);
@@ -140,11 +135,13 @@ public final class ReforgeService {
     }
 
     /**
-     * Rolls one random {@link ReforgePrefix} onto {@code item} at {@code tier}, charging the
-     * player one {@link #costMaterial} if the item has no attempts left in its current charge
-     * (see the class doc). Mutates {@code item} in place (name, lore and PDC) on success.
+     * Rolls one random {@link ReforgePrefix} onto {@code item} at its own {@link #tierOf},
+     * charging the player one {@link #costMaterial} if the item has no attempts left in its
+     * current charge (see the class doc). Mutates {@code item} in place (name, lore and PDC)
+     * on success.
      */
-    public Result reforge(Player player, ItemStack item, ItemTier tier) {
+    public Result reforge(Player player, ItemStack item) {
+        ItemTier tier = this.tierOf(item);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return new Result(Outcome.MISSING_MATERIAL, null, tier, 0, this.costMaterial(tier));

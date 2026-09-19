@@ -77,6 +77,15 @@ public final class ItemTierService {
         meta.getPersistentDataContainer().set(this.forcedTierKey, PersistentDataType.STRING, tier.name());
     }
 
+    /** {@code item}'s effective tier, respecting a {@link #forceTier} pin or {@code item-tiers} override the same way {@link #applyTier} itself resolves one - e.g. so {@code ReforgeService} can charge a legendary weapon's own forced tier rather than its underlying material's. */
+    public ItemTier tierOf(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return ItemTier.D;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? this.tierOf(item.getType()) : this.tierOf(meta, item.getType());
+    }
+
     private ItemTier tierOf(ItemMeta meta, Material m) {
         String forced = meta.getPersistentDataContainer().get(this.forcedTierKey, PersistentDataType.STRING);
         if (forced != null) {

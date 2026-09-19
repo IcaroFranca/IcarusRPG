@@ -25,18 +25,18 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 /**
- * The Blacksmith's reforge screen. A player deposits a sword ({@link #ITEM_SLOT}),
- * right-clicks the anvil ({@link #REFORGE_SLOT}) to cycle which tier to pay for (its own
- * lore shows the current pick and cost, see {@link #refreshReforgeIcon}) and left-clicks it
- * to roll a random {@link ReforgePrefix} at that tier - see {@link ReforgeService} for the
- * actual cost/attempts/roll logic, kept entirely out of this class (screen plumbing only,
- * same split {@code EnchantMenuService}/{@code EnchantService} already use).
+ * The Blacksmith's reforge screen. A player deposits a sword ({@link #ITEM_SLOT}) - its own
+ * lore shows the tier it'll reforge at and the cost, see {@link #refreshReforgeIcon} - and
+ * clicks the anvil ({@link #REFORGE_SLOT}) to roll a random {@link ReforgePrefix} at that tier.
+ * See {@link ReforgeService} for the actual cost/attempts/roll logic (including {@link
+ * ReforgeService#tierOf}, which is what decides the tier - never a player choice here), kept
+ * entirely out of this class (screen plumbing only, same split {@code EnchantMenuService}/
+ * {@code EnchantService} already use).
  */
 public final class ReforgeMenuService {
     public static final int ITEM_SLOT = 13;
     public static final int REFORGE_SLOT = 22;
     public static final int CLOSE_SLOT = 40;
-    private static final ItemTier[] TIER_ORDER = {ItemTier.D, ItemTier.C, ItemTier.B, ItemTier.A, ItemTier.S};
 
     private final ReforgeService reforge;
     private final Set<UUID> viewing = new HashSet<>();
@@ -82,15 +82,6 @@ public final class ReforgeMenuService {
         }
     }
 
-    /** Right-clicking the anvil ({@link #REFORGE_SLOT}) cycles D -&gt; C -&gt; B -&gt; A -&gt; S -&gt; D..., just changing the player's selection - no cost yet. */
-    public void cycleTier(Player player) {
-        ItemTier current = this.reforge.selectedTier(player);
-        int next = (java.util.Arrays.asList(TIER_ORDER).indexOf(current) + 1) % TIER_ORDER.length;
-        this.reforge.selectTier(player, TIER_ORDER[next]);
-        this.refreshReforgeIcon(player.getOpenInventory().getTopInventory(), player);
-        MenuBackground.apply(player, ITEM_SLOT);
-    }
-
     public void reforge(Player player) {
         Inventory inventory = player.getOpenInventory().getTopInventory();
         ItemStack deposited = inventory.getItem(ITEM_SLOT);
@@ -107,13 +98,12 @@ public final class ReforgeMenuService {
                     NamedTextColor.RED));
             return;
         }
-        ItemTier tier = this.reforge.selectedTier(player);
-        ReforgeService.Result result = this.reforge.reforge(player, deposited, tier);
+        ReforgeService.Result result = this.reforge.reforge(player, deposited);
         if (result.outcome() == ReforgeService.Outcome.MISSING_MATERIAL) {
             player.sendActionBar(this.text(
                     language.choose("Você precisa de 1x ", "You need 1x ")
                             + this.materialName(result.missingMaterial(), language)
-                            + language.choose(" para reforjar em ", " to reforge at ") + tier.label() + ".",
+                            + language.choose(" para reforjar em ", " to reforge at ") + result.tier().label() + ".",
                     NamedTextColor.RED));
             return;
         }
@@ -121,7 +111,7 @@ public final class ReforgeMenuService {
         this.refreshReforgeIcon(inventory, player);
         player.sendActionBar(this.text(
                 language.choose("Reforjado: ", "Reforged: ") + result.prefix().displayWord()
-                        + " (" + tier.label() + ") - " + result.attemptsRemaining()
+                        + " (" + result.tier().label() + ") - " + result.attemptsRemaining()
                         + language.choose(" tentativas restantes", " attempts left"),
                 NamedTextColor.GREEN));
         MenuBackground.apply(player, ITEM_SLOT);
@@ -129,19 +119,21 @@ public final class ReforgeMenuService {
 
     private void refreshReforgeIcon(Inventory inventory, Player player) {
         Language language = Language.of(player);
-        ItemTier tier = this.reforge.selectedTier(player);
         ItemStack deposited = inventory.getItem(ITEM_SLOT);
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(language.choose("Coloque um item no espaço acima.", "Place an item in the slot above."), NamedTextColor.GRAY));
-        lore.add(this.text(language.choose("Tier selecionado: ", "Selected tier: "), NamedTextColor.GRAY)
-                .append(this.text(tier.label(), tier.color())));
-        int attempts = deposited == null ? 0 : this.reforge.attemptsRemaining(deposited, tier);
-        if (attempts > 0) {
-            lore.add(this.text(attempts + language.choose(" tentativas restantes nesta carga.", " attempts left in this charge."), NamedTextColor.GREEN));
+        if (deposited == null || deposited.isEmpty()) {
+            lore.add(this.text(language.choose("Coloque um item no espaço acima.", "Place an item in the slot above."), NamedTextColor.GRAY));
         } else {
-            lore.add(this.text(language.choose("Custo: 1x ", "Cost: 1x ") + this.materialName(this.reforge.costMaterial(tier), language), NamedTextColor.GRAY));
+            ItemTier tier = this.reforge.tierOf(deposited);
+            lore.add(this.text(language.choose("Tier do item: ", "Item tier: "), NamedTextColor.GRAY)
+                    .append(this.text(tier.label(), tier.color())));
+            int attempts = this.reforge.attemptsRemaining(deposited);
+            if (attempts > 0) {
+                lore.add(this.text(attempts + language.choose(" tentativas restantes nesta carga.", " attempts left in this charge."), NamedTextColor.GREEN));
+            } else {
+                lore.add(this.text(language.choose("Custo: 1x ", "Cost: 1x ") + this.materialName(this.reforge.costMaterial(tier), language), NamedTextColor.GRAY));
+            }
         }
-        lore.add(this.text(language.choose("Clique direito para trocar de tier.", "Right-click to change tier."), NamedTextColor.GRAY));
         lore.add(this.text(language.choose("Clique para reforjar.", "Click to reforge."), NamedTextColor.YELLOW));
         inventory.setItem(REFORGE_SLOT, this.item(Material.ANVIL, language.choose("Reforjar item", "Reforge Item"), lore));
     }

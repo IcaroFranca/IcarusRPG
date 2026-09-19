@@ -74,11 +74,7 @@ public final class ReforgeListener implements Listener {
 
         event.setCancelled(true);
         if (rawSlot == ReforgeMenuService.REFORGE_SLOT) {
-            if (event.isRightClick()) {
-                this.menu.cycleTier(player);
-            } else {
-                this.menu.reforge(player);
-            }
+            this.menu.reforge(player);
         } else if (rawSlot == ReforgeMenuService.CLOSE_SLOT) {
             player.closeInventory();
         }
