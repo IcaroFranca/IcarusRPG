@@ -1,0 +1,232 @@
+package dev.icaro.foodtooltips.reforge;
+
+import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.ItemTier;
+import dev.icaro.foodtooltips.item.SwordDamageService;
+import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
+
+/**
+ * Applies and tracks sword reforges (see {@link ReforgePrefix}) - the Blacksmith's own
+ * gameplay logic, kept separate from {@link ReforgeMenuService} (screen/inventory plumbing
+ * only, same split {@code EnchantService}/{@code EnchantMenuService} already use).
+ *
+ * <p>Reforging costs one tier-specific material ({@link #costMaterial}) and grants {@link
+ * #ATTEMPTS_PER_CHARGE} random rerolls at that tier before the next material is needed - both
+ * the remaining rerolls and which tier they're for live on the item itself ({@link
+ * #CHARGE_TIER_KEY}/{@link #ATTEMPTS_KEY}), so picking a different tier mid-session (say,
+ * cheaper Coal after a Netherite Scrap charge) always starts a fresh charge rather than
+ * spending the pricier tier's leftover attempts on the cheap one.
+ *
+ * <p>The rolled prefix's name is prepended to the item's display name as its own {@link
+ * Component} wrapping the original name ({@link #applyName}) rather than by editing text -
+ * that way the original name (and its {@code ItemTierService}-applied color/bold) never has
+ * to be reconstructed or parsed back out of a rendered string, translatable material names
+ * included. Its stat lines are inserted right after {@code SwordDamageService}'s own Damage/
+ * Attack Speed pair ({@link #LORE_INSERT_INDEX}) and replaced as a block on every reroll (see
+ * {@link #LORE_COUNT_KEY}), never touching either of those two lines.
+ */
+public final class ReforgeService {
+    public static final int ATTEMPTS_PER_CHARGE = 5;
+    private static final int LORE_INSERT_INDEX = 2;
+
+    private static final NamespacedKey PREFIX_KEY = new NamespacedKey("foodtooltips", "reforge_prefix");
+    private static final NamespacedKey TIER_KEY = new NamespacedKey("foodtooltips", "reforge_tier");
+    private static final NamespacedKey CHARGE_TIER_KEY = new NamespacedKey("foodtooltips", "reforge_charge_tier");
+    private static final NamespacedKey ATTEMPTS_KEY = new NamespacedKey("foodtooltips", "reforge_attempts");
+    private static final NamespacedKey LORE_COUNT_KEY = new NamespacedKey("foodtooltips", "reforge_lore_count");
+
+    private final Map<UUID, ItemTier> selectedTier = new HashMap<>();
+
+    public ReforgeService(Plugin plugin) {
+    }
+
+    // ---- Tier selection (menu-side only, not persisted) ----
+
+    public ItemTier selectedTier(Player player) {
+        return this.selectedTier.getOrDefault(player.getUniqueId(), ItemTier.D);
+    }
+
+    public void selectTier(Player player, ItemTier tier) {
+        this.selectedTier.put(player.getUniqueId(), tier);
+    }
+
+    // ---- Eligibility / cost ----
+
+    /** Sword-only for now (see {@link ReforgePrefix}'s class doc) - a plain, non-legendary {@code _SWORD} material this plugin already gives its own flat damage total to. */
+    public boolean isReforgeable(ItemStack item) {
+        return item != null && !item.isEmpty() && item.getType().name().endsWith("_SWORD")
+                && SwordDamageService.totalDamage(item.getType()) != null
+                && !LegendaryWeaponService.isLegendary(item);
+    }
+
+    public Material costMaterial(ItemTier tier) {
+        return switch (tier) {
+            case D -> Material.COAL;
+            case C -> Material.IRON_INGOT;
+            case B -> Material.GOLD_INGOT;
+            case A -> Material.DIAMOND;
+            case S, E -> Material.NETHERITE_SCRAP;
+        };
+    }
+
+    /** Attempts left in {@code item}'s current charge, but only if that charge is for {@code tier} - 0 for a different tier or no charge at all, meaning the next reforge pays for a fresh one. */
+    public int attemptsRemaining(ItemStack item, ItemTier tier) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return 0;
+        }
+        PersistentDataContainer d = meta.getPersistentDataContainer();
+        if (!tier.name().equals(d.get(CHARGE_TIER_KEY, PersistentDataType.STRING))) {
+            return 0;
+        }
+        return d.getOrDefault(ATTEMPTS_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    // ---- Applied stats (read by combat/stats code) ----
+
+    /** The currently-applied reforge's stats for {@code item}, or all-zero if it's never been reforged. Safe to call on anything - not just a reforgeable sword. */
+    public ReforgeStats statsOf(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return ReforgeStats.NONE;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return ReforgeStats.NONE;
+        }
+        PersistentDataContainer d = meta.getPersistentDataContainer();
+        String prefixName = d.get(PREFIX_KEY, PersistentDataType.STRING);
+        String tierName = d.get(TIER_KEY, PersistentDataType.STRING);
+        if (prefixName == null || tierName == null) {
+            return ReforgeStats.NONE;
+        }
+        try {
+            return ReforgePrefix.valueOf(prefixName).stats(ItemTier.valueOf(tierName));
+        } catch (IllegalArgumentException ex) {
+            return ReforgeStats.NONE;
+        }
+    }
+
+    // ---- Rolling ----
+
+    public enum Outcome { SUCCESS, MISSING_MATERIAL }
+
+    public record Result(Outcome outcome, ReforgePrefix prefix, ItemTier tier, int attemptsRemaining, Material missingMaterial) {
+    }
+
+    /**
+     * Rolls one random {@link ReforgePrefix} onto {@code item} at {@code tier}, charging the
+     * player one {@link #costMaterial} if the item has no attempts left in its current charge
+     * (see the class doc). Mutates {@code item} in place (name, lore and PDC) on success.
+     */
+    public Result reforge(Player player, ItemStack item, ItemTier tier) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return new Result(Outcome.MISSING_MATERIAL, null, tier, 0, this.costMaterial(tier));
+        }
+        PersistentDataContainer d = meta.getPersistentDataContainer();
+        int attempts = tier.name().equals(d.get(CHARGE_TIER_KEY, PersistentDataType.STRING))
+                ? d.getOrDefault(ATTEMPTS_KEY, PersistentDataType.INTEGER, 0) : 0;
+        if (attempts <= 0) {
+            Material cost = this.costMaterial(tier);
+            if (!player.getInventory().containsAtLeast(new ItemStack(cost), 1)) {
+                return new Result(Outcome.MISSING_MATERIAL, null, tier, 0, cost);
+            }
+            player.getInventory().removeItem(new ItemStack(cost, 1));
+            attempts = ATTEMPTS_PER_CHARGE;
+            d.set(CHARGE_TIER_KEY, PersistentDataType.STRING, tier.name());
+        }
+        ReforgePrefix[] all = ReforgePrefix.values();
+        ReforgePrefix prefix = all[ThreadLocalRandom.current().nextInt(all.length)];
+        // Unwraps any previous prefix (see #applyName) BEFORE PREFIX_KEY below is
+        // overwritten with the new roll - it's what #applyName reads to tell "never
+        // reforged before" (no wrapper to unwrap) apart from "rerolling" (unwrap first).
+        this.applyName(item, meta, prefix);
+        this.applyLore(meta, prefix.stats(tier), Language.of(player));
+        attempts -= 1;
+        d.set(ATTEMPTS_KEY, PersistentDataType.INTEGER, attempts);
+        d.set(PREFIX_KEY, PersistentDataType.STRING, prefix.name());
+        d.set(TIER_KEY, PersistentDataType.STRING, tier.name());
+        item.setItemMeta(meta);
+        return new Result(Outcome.SUCCESS, prefix, tier, attempts, null);
+    }
+
+    /**
+     * Wraps the item's current name in a new prefix {@link Component} carrying the exact same
+     * style (color/bold from {@code ItemTierService}) - see the class doc for why this never
+     * needs to read the name back out as plain text. On a reroll, the previous prefix wrapper
+     * (its single child is the true original name) is unwrapped first so prefixes never stack.
+     */
+    private void applyName(ItemStack item, ItemMeta meta, ReforgePrefix prefix) {
+        Component current = meta.hasDisplayName() ? meta.displayName() : Component.translatable(item.getType().translationKey());
+        boolean alreadyPrefixed = meta.getPersistentDataContainer().has(PREFIX_KEY, PersistentDataType.STRING);
+        Component baseName = alreadyPrefixed && !current.children().isEmpty() ? current.children().get(0) : current;
+        Component prefixText = Component.text(prefix.displayWord() + " ").style(current.style());
+        meta.displayName(prefixText.append(baseName));
+    }
+
+    /** Replaces whatever stat-line block this service last inserted (see {@link #LORE_COUNT_KEY}) right after the Damage/Attack Speed pair with {@code stats}'s own lines. */
+    private void applyLore(ItemMeta meta, ReforgeStats stats, Language l) {
+        PersistentDataContainer d = meta.getPersistentDataContainer();
+        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        int previousCount = d.getOrDefault(LORE_COUNT_KEY, PersistentDataType.INTEGER, 0);
+        int insertAt = Math.min(LORE_INSERT_INDEX, lore.size());
+        for (int i = 0; i < previousCount && insertAt < lore.size(); i++) {
+            lore.remove(insertAt);
+        }
+        List<Component> statLines = this.statLines(stats, l);
+        lore.addAll(insertAt, statLines);
+        meta.lore(lore);
+        d.set(LORE_COUNT_KEY, PersistentDataType.INTEGER, statLines.size());
+    }
+
+    private List<Component> statLines(ReforgeStats stats, Language l) {
+        List<Component> lines = new ArrayList<>();
+        if (stats.strength() != 0) {
+            lines.add(this.statLine(l.choose("Força: ", "Strength: "), stats.strength(), false, NamedTextColor.RED));
+        }
+        if (stats.critChance() != 0) {
+            lines.add(this.statLine(l.choose("Chance Crítica: ", "Crit Chance: "), stats.critChance(), true, NamedTextColor.AQUA));
+        }
+        if (stats.critDamage() != 0) {
+            lines.add(this.statLine(l.choose("Dano Crítico: ", "Crit Damage: "), stats.critDamage(), true, NamedTextColor.WHITE));
+        }
+        if (stats.intelligence() != 0) {
+            lines.add(this.statLine(l.choose("Inteligência: ", "Intelligence: "), stats.intelligence(), false, NamedTextColor.AQUA));
+        }
+        if (stats.attackSpeed() != 0) {
+            lines.add(this.statLine(l.choose("Velocidade de Ataque: ", "Attack Speed: "), stats.attackSpeed(), true, NamedTextColor.YELLOW));
+        }
+        return lines;
+    }
+
+    private Component statLine(String label, double value, boolean percent, NamedTextColor color) {
+        String sign = value >= 0 ? "+" : "";
+        String text = label + sign + this.trimmed(value) + (percent ? "%" : "");
+        return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private String trimmed(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value) : String.format(Locale.US, "%.1f", value);
+    }
+}

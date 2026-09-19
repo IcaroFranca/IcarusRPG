@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.stats;
 
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import net.kyori.adventure.key.Key;
@@ -57,6 +58,7 @@ public final class PlayerStatsService {
     private CombatAbilityService abilities;
     private GeneralSkillService general;
     private LegendaryWeaponService legendary;
+    private ReforgeService reforge;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -96,6 +98,10 @@ public final class PlayerStatsService {
 
     public void legendary(LegendaryWeaponService legendary) {
         this.legendary = legendary;
+    }
+
+    public void reforge(ReforgeService reforge) {
+        this.reforge = reforge;
     }
 
     // ---- Base config values (for the Combat Stats breakdown - see SkillsMenuService#combatStatsItem) ----
@@ -145,8 +151,10 @@ public final class PlayerStatsService {
         return this.get(p, this.maxMana, this.base) + this.effectiveIntelligence(p);
     }
 
+    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon reforge grants (see {@link ReforgeService}) - same "held item bonus" pairing {@link #effectiveAgility} uses for Agility. */
     private double effectiveIntelligence(Player p) {
-        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p));
+        double reforgeBonus = this.reforge == null ? 0.0 : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence();
+        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus;
     }
 
     /** Base Agility plus whatever the player's currently-held weapon grants (e.g. Baruka's Dagger, +10 while wielded) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */

@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.reforge;
 
+import dev.icaro.foodtooltips.item.ItemTier;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.npc.NPC;
@@ -73,10 +74,13 @@ public final class ReforgeListener implements Listener {
         }
 
         event.setCancelled(true);
+        ItemTier tier = ReforgeMenuService.tierForSlot(rawSlot);
         if (rawSlot == ReforgeMenuService.REFORGE_SLOT) {
             this.menu.reforge(player);
         } else if (rawSlot == ReforgeMenuService.CLOSE_SLOT) {
             player.closeInventory();
+        } else if (tier != null) {
+            this.menu.selectTier(player, tier);
         }
     }
 

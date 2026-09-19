@@ -64,6 +64,7 @@ import dev.icaro.foodtooltips.mining.MiningMenuService;
 import dev.icaro.foodtooltips.placeholder.IcarusPlaceholders;
 import dev.icaro.foodtooltips.reforge.ReforgeListener;
 import dev.icaro.foodtooltips.reforge.ReforgeMenuService;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseListener;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.BedrockSwordThrowListener;
@@ -123,6 +124,8 @@ extends JavaPlugin {
         CombatSkillService combat = new CombatSkillService((Plugin)this);
         GeneralSkillService general = new GeneralSkillService();
         stats.general(general);
+        ReforgeService reforgeService = new ReforgeService((Plugin)this);
+        stats.reforge(reforgeService);
         CombatValorService valor = new CombatValorService((Plugin)this);
         ArmorDefenseService armor = new ArmorDefenseService();
         armor.general(general);
@@ -135,7 +138,7 @@ extends JavaPlugin {
         LapisExperienceService lapisExperience = new LapisExperienceService((Plugin)this, tiers);
         lapisExperience.registerRecipes();
         DurabilityService durability = new DurabilityService((Plugin)this);
-        SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat);
+        SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat, reforgeService);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
         PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this, combat);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
@@ -188,7 +191,7 @@ extends JavaPlugin {
         menus.enchantMenu(enchantMenu);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         AnvilMenuService anvilMenu = new AnvilMenuService((Plugin)this, enchants);
-        ReforgeMenuService reforgeMenu = new ReforgeMenuService();
+        ReforgeMenuService reforgeMenu = new ReforgeMenuService(reforgeService);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
         armor.defenseMultiplier(e -> minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0);
@@ -225,7 +228,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService);
         // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
         // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
         // CombatListener#secondWind - Bukkit runs same-priority handlers in

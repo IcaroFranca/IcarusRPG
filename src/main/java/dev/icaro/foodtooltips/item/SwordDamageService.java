@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,18 +91,23 @@ public final class SwordDamageService {
     public static final double BASE_ATTACK_SPEED_REFERENCE = 4.0;
 
     private final CombatSkillService combat;
+    private final ReforgeService reforge;
     private final NamespacedKey appliedKey;
     private final NamespacedKey damageKey;
     private final NamespacedKey speedKey;
     /** Cancels the wielder's innate 1.0 base Attack Damage - see {@link #rewrite}. */
     private final NamespacedKey baseZeroKey;
+    /** This item's own reforge Attack Speed % (see {@link ReforgeService}), re-added as its own flat delta every time it changes - see {@link #updateReforgeSpeedModifier}. */
+    private final NamespacedKey reforgeSpeedKey;
 
-    public SwordDamageService(Plugin plugin, CombatSkillService combat) {
+    public SwordDamageService(Plugin plugin, CombatSkillService combat, ReforgeService reforge) {
         this.combat = combat;
+        this.reforge = reforge;
         this.appliedKey = new NamespacedKey(plugin, "sword_damage_applied");
         this.damageKey = new NamespacedKey(plugin, "sword_attack_damage");
         this.speedKey = new NamespacedKey(plugin, "sword_attack_speed");
         this.baseZeroKey = new NamespacedKey(plugin, "vanilla_attack_damage_zero");
+        this.reforgeSpeedKey = new NamespacedKey(plugin, "sword_reforge_attack_speed");
     }
 
     /** Total attack damage a sword of this Material should hit for, or null if not a sword. */
@@ -121,10 +127,12 @@ public final class SwordDamageService {
         };
     }
 
-    /** The real Attack Speed total a player has while wielding a sword, factoring in their Combat level. */
-    private double realAttackSpeed(Player p) {
+    /** The real Attack Speed total a player has while wielding {@code item}, factoring in their Combat level plus this specific item's own reforge Attack Speed % (see {@link ReforgeService}), if any. */
+    private double realAttackSpeed(Player p, ItemStack item) {
         int level = this.combat.progress(p).level();
-        return this.combat.attackSpeed(level) + ATTACK_SPEED_DELTA;
+        double base = this.combat.attackSpeed(level) + ATTACK_SPEED_DELTA;
+        double bonusPercent = this.reforge.statsOf(item).attackSpeed();
+        return base * (1.0 + bonusPercent / 100.0);
     }
 
     /** Applies the custom attack-damage/speed pair to every sword in the player's inventory (storage and offhand). */
@@ -173,7 +181,7 @@ public final class SwordDamageService {
         if (meta == null) {
             return null;
         }
-        Component speedLine = this.speedLine(this.realAttackSpeed(p), l);
+        Component speedLine = this.speedLine(this.realAttackSpeed(p, item), l);
         boolean applied = meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE);
         // Re-checked separately from applied (not folded into it) so a sword that
         // already went through the one-shot setup below before this modifier existed -
@@ -181,8 +189,11 @@ public final class SwordDamageService {
         // retrofitted here without re-running (and duplicating) the one-shot lore
         // insertion further down, which only ever runs once per item.
         boolean needsBaseZero = !this.hasBaseZero(meta);
+        double reforgeDelta = (this.combat.attackSpeed(this.combat.progress(p).level()) + ATTACK_SPEED_DELTA)
+                * this.reforge.statsOf(item).attackSpeed() / 100.0;
+        boolean needsSpeedModifier = this.needsReforgeSpeedUpdate(meta, reforgeDelta);
         List<Component> currentLore = meta.hasLore() ? meta.lore() : null;
-        if (applied && !needsBaseZero && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
+        if (applied && !needsBaseZero && !needsSpeedModifier && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
             return null;
         }
         List<Component> lore = currentLore == null ? new ArrayList<>() : new ArrayList<>(currentLore);
@@ -198,6 +209,9 @@ public final class SwordDamageService {
         } else {
             lore.set(1, speedLine);
         }
+        if (needsSpeedModifier) {
+            this.updateReforgeSpeedModifier(meta, reforgeDelta);
+        }
         if (needsBaseZero) {
             // Cancels the player's own innate 1.0 base right here, scoped to this item
             // (MAINHAND, same as the total above) instead of a permanent player-wide
@@ -210,6 +224,40 @@ public final class SwordDamageService {
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** The item's current reforge Attack Speed modifier (see {@link #reforgeSpeedKey}), or null if it has none. */
+    private AttributeModifier reforgeSpeedModifier(ItemMeta meta) {
+        if (!meta.hasAttributeModifiers()) {
+            return null;
+        }
+        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_SPEED)) {
+            if (m.getKey().equals(this.reforgeSpeedKey)) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /** Whether the item's real Attack Speed modifier needs adding, removing or replacing to match {@code reforgeDelta} (0 meaning "no reforge bonus right now"). */
+    private boolean needsReforgeSpeedUpdate(ItemMeta meta, double reforgeDelta) {
+        AttributeModifier existing = this.reforgeSpeedModifier(meta);
+        if (Math.abs(reforgeDelta) < 1.0E-4) {
+            return existing != null;
+        }
+        return existing == null || Math.abs(existing.getAmount() - reforgeDelta) > 1.0E-4;
+    }
+
+    /** Swaps the item's reforge Attack Speed modifier for one matching {@code reforgeDelta}, or removes it entirely if {@code reforgeDelta} is (now) 0 - e.g. after a reroll changes or clears the item's Attack Speed bonus. */
+    private void updateReforgeSpeedModifier(ItemMeta meta, double reforgeDelta) {
+        AttributeModifier existing = this.reforgeSpeedModifier(meta);
+        if (existing != null) {
+            meta.removeAttributeModifier(Attribute.ATTACK_SPEED, existing);
+        }
+        if (Math.abs(reforgeDelta) > 1.0E-4) {
+            meta.addAttributeModifier(Attribute.ATTACK_SPEED,
+                    new AttributeModifier(this.reforgeSpeedKey, reforgeDelta, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
     }
 
     /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}). */
