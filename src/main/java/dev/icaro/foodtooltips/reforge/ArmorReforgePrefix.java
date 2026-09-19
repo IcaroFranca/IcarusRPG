@@ -48,7 +48,7 @@ public enum ArmorReforgePrefix {
             case B -> this.tierB;
             case A -> this.tierA;
             case S -> this.tierS;
-            case E -> ArmorReforgeStats.NONE;
+            case MYTHIC, E -> ArmorReforgeStats.NONE;
         };
     }
 

@@ -303,6 +303,92 @@ final class ReforgeServiceTest {
     }
 
     /**
+     * The bow half of {@link #swordRerollWithExistingChargeNeverTouchesMaterial} - a bow
+     * reroll never touches {@code Attribute} either (unlike armor's {@code
+     * applyArmorAttributeModifiers}, a bow's own reforge stats - Strength/Crit Chance/Crit
+     * Damage/Intelligence - are all summed on demand by {@code CombatListener}/{@code
+     * PlayerStatsService}/{@code SkillsMenuService}, never baked as real attribute
+     * modifiers), so this one isn't blocked at all and exercises the exact same charge-reuse
+     * path end to end, including {@link BowReforgePrefix}'s own {@link ItemTier#MYTHIC}
+     * tier (see {@link #bowRerollAtMythicTierNeverTouchesMaterial} for that specifically).
+     */
+    @Test
+    void bowRerollWithExistingChargeNeverTouchesMaterial() {
+        FakeItem fake = this.newItem(Material.BOW);
+        ItemMeta meta = fake.item().getItemMeta();
+        Component baseName = Component.text("Bow");
+        meta.displayName(Component.text("Deadly ").append(baseName));
+        NamespacedKey chargeTierKey = new NamespacedKey("foodtooltips", "reforge_charge_tier");
+        NamespacedKey attemptsKey = new NamespacedKey("foodtooltips", "reforge_attempts");
+        NamespacedKey bowPrefixKey = new NamespacedKey("foodtooltips", "bow_reforge_prefix");
+        fake.pdc().set(chargeTierKey, PersistentDataType.STRING, "C"); // every plain Bow -> Tier C
+        fake.pdc().set(attemptsKey, PersistentDataType.INTEGER, 4);
+        fake.pdc().set(bowPrefixKey, PersistentDataType.STRING, "DEADLY");
+
+        ReforgeService.Result result = this.reforge.reforge(this.player, fake.item());
+
+        assertEquals(ReforgeService.Outcome.SUCCESS, result.outcome());
+        assertEquals(ItemTier.C, result.tier());
+        assertEquals(3, result.attemptsRemaining());
+        assertNotNull(result.prefixWord());
+
+        BowReforgePrefix prefix = BowReforgePrefix.valueOf(result.prefixWord().toUpperCase(Locale.ROOT));
+        assertEquals(prefix.stats(ItemTier.C), this.reforge.bowStatsOf(fake.item()));
+        assertNotNull(fake.plainName());
+        assertTrue(fake.plainName().startsWith(result.prefixWord() + " "));
+
+        verify(this.inventory, never()).containsAtLeast(any(), anyInt());
+        verify(this.inventory, never()).removeItem(any(ItemStack[].class));
+    }
+
+    /**
+     * A plain vanilla Bow always resolves to Tier C ({@code ItemTierService#equipmentTier}
+     * has no bow material family to vary by - see {@link ItemTier#MYTHIC}'s own class doc),
+     * so reaching {@link ItemTier#MYTHIC} needs {@code ItemTierService#forceTier} - exactly
+     * how a legendary weapon or Miner's/Lapis Lazuli Armor already pins its own Tier. Proves
+     * the new tier is wired all the way through {@code BowReforgePrefix#stats}, {@code
+     * ReforgeService#costMaterial} (Netherite Scrap, same as Tier S) and {@code
+     * ReforgeService#bowStatsOf} - not just that the enum constant compiles.
+     */
+    @Test
+    void bowRerollAtMythicTierNeverTouchesMaterial() {
+        FakeItem fake = this.newItem(Material.BOW);
+        ItemMeta meta = fake.item().getItemMeta();
+        this.tiers.forceTier(meta, ItemTier.MYTHIC);
+        Component baseName = Component.text("Bow");
+        meta.displayName(Component.text("Rich ").append(baseName));
+        NamespacedKey chargeTierKey = new NamespacedKey("foodtooltips", "reforge_charge_tier");
+        NamespacedKey attemptsKey = new NamespacedKey("foodtooltips", "reforge_attempts");
+        NamespacedKey bowPrefixKey = new NamespacedKey("foodtooltips", "bow_reforge_prefix");
+        fake.pdc().set(chargeTierKey, PersistentDataType.STRING, "MYTHIC");
+        fake.pdc().set(attemptsKey, PersistentDataType.INTEGER, 4);
+        fake.pdc().set(bowPrefixKey, PersistentDataType.STRING, "RICH");
+
+        ReforgeService.Result result = this.reforge.reforge(this.player, fake.item());
+
+        assertEquals(ReforgeService.Outcome.SUCCESS, result.outcome());
+        assertEquals(ItemTier.MYTHIC, result.tier());
+        assertEquals(Material.NETHERITE_SCRAP, this.reforge.costMaterial(ItemTier.MYTHIC));
+        assertEquals(3, result.attemptsRemaining());
+        assertNotNull(result.prefixWord());
+
+        // The reroll picks a fresh random prefix - "RICH" above was only ever this item's
+        // PRE-reroll state, not necessarily what it rolls into - so compare against whatever
+        // BowReforgePrefix the actual result names, same as the other reroll tests do.
+        BowReforgePrefix prefix = BowReforgePrefix.valueOf(result.prefixWord().toUpperCase(Locale.ROOT));
+        assertEquals(prefix.stats(ItemTier.MYTHIC), this.reforge.bowStatsOf(fake.item()));
+
+        verify(this.inventory, never()).containsAtLeast(any(), anyInt());
+        verify(this.inventory, never()).removeItem(any(ItemStack[].class));
+    }
+
+    @Test
+    void bowIsReforgeable() {
+        FakeItem fake = this.newItem(Material.BOW);
+        assertTrue(this.reforge.isReforgeable(fake.item()));
+    }
+
+    /**
      * The armor-specific half of the same reroll scenario - see {@link
      * #swordRerollWithExistingChargeNeverTouchesMaterial}'s doc for why this is split out
      * and currently blocked: {@code applyArmorAttributeModifiers} references {@code

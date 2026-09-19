@@ -9,9 +9,17 @@ import net.kyori.adventure.text.format.NamedTextColor;
  * would have used (Common=white, Uncommon=green, Rare=blue, Epic=purple,
  * Legendary=gold); {@link #E} is a new bottom tier, below Common, for plain
  * / naturally-occurring materials (dirt, cobblestone, sticks...), colored
- * gray.
+ * gray. {@link #MYTHIC} is a new top tier above {@link #S}, colored bright
+ * pink/magenta - introduced for the bow reforge catalog ({@code
+ * BowReforgePrefix}), the first (and so far only) thing that reaches it;
+ * every plain vanilla {@code Material.BOW} still resolves to Tier C today
+ * ({@code ItemTierService#equipmentTier} has no bow material family to vary
+ * by), so Mythic (like D/B/A/S) only becomes reachable for a bow whose Tier
+ * is pinned by {@code ItemTierService#forceTier} - the same mechanism a
+ * legendary weapon or Miner's/Lapis Lazuli Armor already uses.
  */
 public enum ItemTier {
+    MYTHIC(NamedTextColor.LIGHT_PURPLE),
     S(NamedTextColor.GOLD),
     A(NamedTextColor.DARK_PURPLE),
     B(NamedTextColor.BLUE),

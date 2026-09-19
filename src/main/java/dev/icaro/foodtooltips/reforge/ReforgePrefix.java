@@ -49,7 +49,7 @@ public enum ReforgePrefix {
             case B -> this.tierB;
             case A -> this.tierA;
             case S -> this.tierS;
-            case E -> ReforgeStats.NONE;
+            case MYTHIC, E -> ReforgeStats.NONE;
         };
     }
 

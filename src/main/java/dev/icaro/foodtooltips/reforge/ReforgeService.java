@@ -71,6 +71,8 @@ public final class ReforgeService {
 
     private static final NamespacedKey PREFIX_KEY = new NamespacedKey("foodtooltips", "reforge_prefix");
     private static final NamespacedKey TIER_KEY = new NamespacedKey("foodtooltips", "reforge_tier");
+    private static final NamespacedKey BOW_PREFIX_KEY = new NamespacedKey("foodtooltips", "bow_reforge_prefix");
+    private static final NamespacedKey BOW_TIER_KEY = new NamespacedKey("foodtooltips", "bow_reforge_tier");
     private static final NamespacedKey CHARGE_TIER_KEY = new NamespacedKey("foodtooltips", "reforge_charge_tier");
     private static final NamespacedKey ATTEMPTS_KEY = new NamespacedKey("foodtooltips", "reforge_attempts");
     private static final NamespacedKey LORE_COUNT_KEY = new NamespacedKey("foodtooltips", "reforge_lore_count");
@@ -119,15 +121,20 @@ public final class ReforgeService {
         return this.tiers.tierOf(item);
     }
 
-    /** A plain or legendary sword (see {@link ReforgePrefix}'s class doc) or an armor piece (see {@link ArmorReforgePrefix}'s) - the only two gear kinds with a reforge table today. */
+    /** A plain or legendary sword (see {@link ReforgePrefix}'s class doc), an armor piece (see {@link ArmorReforgePrefix}'s), or a bow (see {@link BowReforgePrefix}'s) - the only three gear kinds with a reforge table today. */
     public boolean isReforgeable(ItemStack item) {
-        return this.isSword(item) || isArmorPiece(item);
+        return this.isSword(item) || isArmorPiece(item) || isBow(item);
     }
 
     /** Any {@code _SWORD}-material item this plugin already gives its own flat damage total to, plain or legendary (every legendary weapon, daggers and longswords included, is built on a {@code _SWORD} material - see {@code LegendaryWeapon#material} - so this one check already covers all of them, no per-{@code WeaponType} special-casing needed). */
     private boolean isSword(ItemStack item) {
         return item != null && !item.isEmpty() && item.getType().name().endsWith("_SWORD")
                 && SwordDamageService.totalDamage(item.getType()) != null;
+    }
+
+    /** A plain vanilla Bow - no legendary/crossbow variant exists in this plugin yet, so unlike swords there's no separate check to fold in. */
+    private static boolean isBow(ItemStack item) {
+        return item != null && !item.isEmpty() && item.getType() == Material.BOW;
     }
 
     /** A helmet, chestplate, leggings or boots of any material - no legendary armor exists in this plugin yet, so unlike swords there's no separate check to fold in. */
@@ -153,7 +160,7 @@ public final class ReforgeService {
             case C -> Material.IRON_INGOT;
             case B -> Material.GOLD_INGOT;
             case A -> Material.DIAMOND;
-            case S, E -> Material.NETHERITE_SCRAP;
+            case S, MYTHIC, E -> Material.NETHERITE_SCRAP;
         };
     }
 
@@ -192,6 +199,28 @@ public final class ReforgeService {
         }
         try {
             return ReforgePrefix.valueOf(prefixName).stats(ItemTier.valueOf(tierName));
+        } catch (IllegalArgumentException ex) {
+            return ReforgeStats.NONE;
+        }
+    }
+
+    /** The currently-applied bow reforge's stats for {@code item}, or all-zero if it's never been reforged (or isn't a bow). Safe to call on anything - same shape as {@link #statsOf}, just its own {@link #BOW_PREFIX_KEY}/{@link #BOW_TIER_KEY} pair so a bow's roll is never confused for a sword's. */
+    public ReforgeStats bowStatsOf(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return ReforgeStats.NONE;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return ReforgeStats.NONE;
+        }
+        PersistentDataContainer d = meta.getPersistentDataContainer();
+        String prefixName = d.get(BOW_PREFIX_KEY, PersistentDataType.STRING);
+        String tierName = d.get(BOW_TIER_KEY, PersistentDataType.STRING);
+        if (prefixName == null || tierName == null) {
+            return ReforgeStats.NONE;
+        }
+        try {
+            return BowReforgePrefix.valueOf(prefixName).stats(ItemTier.valueOf(tierName));
         } catch (IllegalArgumentException ex) {
             return ReforgeStats.NONE;
         }
@@ -275,6 +304,14 @@ public final class ReforgeService {
             d.set(ARMOR_PREFIX_KEY, PersistentDataType.STRING, prefix.name());
             d.set(ARMOR_TIER_KEY, PersistentDataType.STRING, tier.name());
             prefixWord = prefix.displayWord();
+        } else if (isBow(item)) {
+            BowReforgePrefix[] all = BowReforgePrefix.values();
+            BowReforgePrefix prefix = all[ThreadLocalRandom.current().nextInt(all.length)];
+            this.applyName(item, meta, prefix.displayWord(), BOW_PREFIX_KEY);
+            this.applyBowLore(meta, prefix.stats(tier), language);
+            d.set(BOW_PREFIX_KEY, PersistentDataType.STRING, prefix.name());
+            d.set(BOW_TIER_KEY, PersistentDataType.STRING, tier.name());
+            prefixWord = prefix.displayWord();
         } else {
             ReforgePrefix[] all = ReforgePrefix.values();
             ReforgePrefix prefix = all[ThreadLocalRandom.current().nextInt(all.length)];
@@ -310,7 +347,7 @@ public final class ReforgeService {
      * sword's is always at index 1 ({@code SwordDamageService}), a legendary weapon's own index
      * varies per weapon ({@link LegendaryWeaponService#speedLineIndex}). Attack Speed itself
      * never gets a line here even when {@code stats.attackSpeed()} is nonzero - see {@link
-     * #swordStatLines}. Inserting after (never before) that line means it never needs to move, but a
+     * #weaponStatLines}. Inserting after (never before) that line means it never needs to move, but a
      * legendary weapon's separately-tracked Strength-scaling line ({@code STRENGTH_LINE_KEY},
      * Two as One / Kamish's Wrath) can sit right after it and would drift out of sync with this
      * block's size changing on every reroll - {@link LegendaryWeaponService#shiftStrengthLineIfAtOrAfter}
@@ -320,7 +357,7 @@ public final class ReforgeService {
         Integer legendarySpeedIndex = this.legendary == null ? null : this.legendary.speedLineIndex(item);
         int fallbackIndex = SWORD_LORE_INSERT_INDEX;
         int insertAt = legendarySpeedIndex != null ? legendarySpeedIndex + 1 : fallbackIndex;
-        int previousCount = this.replaceLoreBlock(meta, insertAt, this.swordStatLines(stats, l));
+        int previousCount = this.replaceLoreBlock(meta, insertAt, this.weaponStatLines(stats, l));
         if (legendarySpeedIndex != null) {
             int inserted = meta.getPersistentDataContainer().getOrDefault(LORE_COUNT_KEY, PersistentDataType.INTEGER, 0);
             this.legendary.shiftStrengthLineIfAtOrAfter(meta, insertAt, inserted - previousCount);
@@ -330,6 +367,11 @@ public final class ReforgeService {
     /** Replaces the reforge stat-line block right after the armor piece's own "Defesa: +N" line ({@code ArmorDefenseService#tooltip}, always index 0 when present) - or right at the start if that line is somehow missing (a piece with 0 base Defense, e.g. a Turtle Shell reused as a helmet skin, never gets one). */
     private void applyArmorLore(ItemMeta meta, ArmorReforgeStats stats, Language l) {
         this.replaceLoreBlock(meta, 1, this.armorStatLines(stats, l));
+    }
+
+    /** Replaces the reforge stat-line block right at the very start of the bow's own lore - unlike a sword's Attack Speed or an armor piece's Defense, a plain bow has no {@code SwordDamageService}-style line of its own to anchor after (nothing else in this plugin gives a bow custom lore), so index 0 is simply where the block always goes. */
+    private void applyBowLore(ItemMeta meta, ReforgeStats stats, Language l) {
+        this.replaceLoreBlock(meta, 0, this.weaponStatLines(stats, l));
     }
 
     /**
@@ -354,8 +396,16 @@ public final class ReforgeService {
         return previousCount;
     }
 
-    /** Every stat line except Attack Speed, which instead merges into the item's own existing Attack Speed line as a "(+X%)" suffix (see {@code SwordDamageService}/{@code LegendaryWeaponService#speedLine}) rather than getting a redundant line of its own here. */
-    private List<Component> swordStatLines(ReforgeStats stats, Language l) {
+    /**
+     * Every {@link ReforgeStats} line except Attack Speed, which instead merges into a sword's
+     * own existing Attack Speed line as a "(+X%)" suffix (see {@code SwordDamageService}/{@code
+     * LegendaryWeaponService#speedLine}) rather than getting a redundant line of its own here -
+     * moot for a bow ({@link #applyBowLore}'s own caller), whose {@link BowReforgePrefix} table
+     * never populates {@code attackSpeed} in the first place (always 0, see its class doc), but
+     * kept as one shared method rather than two near-identical ones since both catalogs want
+     * the exact same four lines either way.
+     */
+    private List<Component> weaponStatLines(ReforgeStats stats, Language l) {
         List<Component> lines = new ArrayList<>();
         if (stats.strength() != 0) {
             lines.add(this.statLine(l.choose("Força: ", "Strength: "), stats.strength(), false, NamedTextColor.RED));

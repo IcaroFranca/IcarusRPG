@@ -549,9 +549,12 @@ public final class SkillsMenuService {
         int defense = this.armor.defense(p);
         long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
         ItemStack mainHand = p.getInventory().getItemInMainHand();
-        double reforgeCritChance = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critChance() + this.reforge.totalArmorStats(p).critChance();
-        double reforgeCritDamage = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critDamage() + this.reforge.totalArmorStats(p).critDamage();
-        double reforgeStrength = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).strength() + this.reforge.totalArmorStats(p).strength();
+        double reforgeCritChance = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).critChance() + this.reforge.bowStatsOf(mainHand).critChance() + this.reforge.totalArmorStats(p).critChance();
+        double reforgeCritDamage = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).critDamage() + this.reforge.bowStatsOf(mainHand).critDamage() + this.reforge.totalArmorStats(p).critDamage();
+        double reforgeStrength = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).strength() + this.reforge.bowStatsOf(mainHand).strength() + this.reforge.totalArmorStats(p).strength();
         double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage;
         double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p) + reforgeCritChance);
         List<Component> lore = List.of(
@@ -788,9 +791,12 @@ public final class SkillsMenuService {
         int defense = this.armor.defense(p);
         ItemStack mainHand = p.getInventory().getItemInMainHand();
         ArmorReforgeStats armorReforge = this.reforge == null ? null : this.reforge.totalArmorStats(p);
-        double reforgeStrength = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).strength() + armorReforge.strength();
-        double reforgeCritChance = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critChance() + armorReforge.critChance();
-        double reforgeCritDamage = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critDamage() + armorReforge.critDamage();
+        double reforgeStrength = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).strength() + this.reforge.bowStatsOf(mainHand).strength() + armorReforge.strength();
+        double reforgeCritChance = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).critChance() + this.reforge.bowStatsOf(mainHand).critChance() + armorReforge.critChance();
+        double reforgeCritDamage = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).critDamage() + this.reforge.bowStatsOf(mainHand).critDamage() + armorReforge.critDamage();
         double reforgeHealth = armorReforge == null ? 0.0 : armorReforge.health();
         double reforgeDefense = armorReforge == null ? 0.0 : armorReforge.defense();
         double combatCritChance = this.combat.critChance(c.level());
@@ -867,7 +873,8 @@ public final class SkillsMenuService {
                 SWING_RANGE_INFO, l));
 
         long alchemyEnchantingIntelligence = this.general.bonusIntelligence(p);
-        double reforgeIntelligence = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).intelligence() + this.reforge.totalArmorStats(p).intelligence();
+        double reforgeIntelligence = this.reforge == null ? 0.0
+                : this.reforge.statsOf(mainHand).intelligence() + this.reforge.bowStatsOf(mainHand).intelligence() + this.reforge.totalArmorStats(p).intelligence();
         items.add(this.statItem(Material.LAPIS_LAZULI, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()),
                 this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseIntelligence()),
                         alchemyEnchantingIntelligence > 0 ? l.choose("Alquimia/Encantamento +", "Alchemy/Enchanting +") + alchemyEnchantingIntelligence : null,

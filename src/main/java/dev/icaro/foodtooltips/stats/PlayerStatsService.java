@@ -154,7 +154,9 @@ public final class PlayerStatsService {
     /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon and equipped armor reforges grant (see {@link ReforgeService}) - same "held/worn item bonus" pairing {@link #effectiveAgility} uses for Agility. */
     private double effectiveIntelligence(Player p) {
         double reforgeBonus = this.reforge == null ? 0.0
-                : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence() + this.reforge.totalArmorStats(p).intelligence();
+                : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence()
+                        + this.reforge.bowStatsOf(p.getInventory().getItemInMainHand()).intelligence()
+                        + this.reforge.totalArmorStats(p).intelligence();
         return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus;
     }
 

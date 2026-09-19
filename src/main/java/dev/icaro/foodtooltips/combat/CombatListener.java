@@ -20,6 +20,7 @@ import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.reforge.ArmorReforgeStats;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
+import dev.icaro.foodtooltips.reforge.ReforgeStats;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
@@ -369,12 +370,17 @@ public final class CombatListener implements Listener {
         // ReforgeService#totalArmorStats) - both are weapon-and-armor-only bonuses, so
         // neither belongs in PlayerStatsService#stats itself (unlike Global Strength).
         ArmorReforgeStats armorReforge = this.reforge.totalArmorStats(p);
+        // A bow's own reforge (see BowReforgePrefix) - statsOf(weapon) is always NONE for
+        // a bow (it only recognizes a sword's own PREFIX_KEY/TIER_KEY) and bowStatsOf is
+        // always NONE for anything else, so adding both together below is safe regardless
+        // of which kind of weapon is actually held.
+        ReforgeStats bowReforge = this.reforge.bowStatsOf(weapon);
         // No more vanilla jump-crit - critical hits come only from the skill-based roll
         // below (base chance + level + Ruthless Strikes), capped at 100% so nothing
         // (base, level scaling, and the ability tree bonus all stacked) can ever push a
         // hit past a guaranteed crit.
         double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p)
-                + this.reforge.statsOf(weapon).critChance() + armorReforge.critChance());
+                + this.reforge.statsOf(weapon).critChance() + armorReforge.critChance() + bowReforge.critChance());
         boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
@@ -385,7 +391,7 @@ public final class CombatListener implements Listener {
         double undead = this.legendary.undeadMultiplier(target, weapon);
         double critMultiplier = critical
                 ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus
-                        + (this.reforge.statsOf(weapon).critDamage() + armorReforge.critDamage()) / 100.0
+                        + (this.reforge.statsOf(weapon).critDamage() + armorReforge.critDamage() + bowReforge.critDamage()) / 100.0
                 : 1.0;
         double damage;
         if (melee) {
@@ -400,7 +406,13 @@ public final class CombatListener implements Listener {
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
             double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
-            damage = (e.getDamage() * (1.0 + arrowEnchantPercent / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
+            // A bow's own reforge Strength is flat points, same unit a sword's own Strength
+            // reforge uses (see the melee branch above) - folded in as a percentage right
+            // alongside the arrow's own enchant percentage rather than added as a flat
+            // bonus like weaponStrengthBonus, so "N points of Strength" means the same +N%
+            // regardless of whether the hit was melee or ranged.
+            double bowStrengthPercent = bowReforge.strength();
+            damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                     * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead;
         }
         e.setDamage(damage);
