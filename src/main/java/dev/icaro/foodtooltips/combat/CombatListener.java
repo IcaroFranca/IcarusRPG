@@ -18,6 +18,7 @@ import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.ToolDamageService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeapon;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
+import dev.icaro.foodtooltips.reforge.ArmorReforgeStats;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
@@ -364,11 +365,16 @@ public final class CombatListener implements Listener {
             return;
         }
         int level = this.combat.progress(p).level();
+        // Weapon reforge plus the sum of whatever's reforged in all 4 armor slots (see
+        // ReforgeService#totalArmorStats) - both are weapon-and-armor-only bonuses, so
+        // neither belongs in PlayerStatsService#stats itself (unlike Global Strength).
+        ArmorReforgeStats armorReforge = this.reforge.totalArmorStats(p);
         // No more vanilla jump-crit - critical hits come only from the skill-based roll
         // below (base chance + level + Ruthless Strikes), capped at 100% so nothing
         // (base, level scaling, and the ability tree bonus all stacked) can ever push a
         // hit past a guaranteed crit.
-        double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p) + this.reforge.statsOf(weapon).critChance());
+        double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p)
+                + this.reforge.statsOf(weapon).critChance() + armorReforge.critChance());
         boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
@@ -377,10 +383,13 @@ public final class CombatListener implements Listener {
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
         double undead = this.legendary.undeadMultiplier(target, weapon);
-        double critMultiplier = critical ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus + this.reforge.statsOf(weapon).critDamage() / 100.0 : 1.0;
+        double critMultiplier = critical
+                ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus
+                        + (this.reforge.statsOf(weapon).critDamage() + armorReforge.critDamage()) / 100.0
+                : 1.0;
         double damage;
         if (melee) {
-            double strength = this.stats.stats(p).strength() + this.reforge.statsOf(weapon).strength();
+            double strength = this.stats.stats(p).strength() + this.reforge.statsOf(weapon).strength() + armorReforge.strength();
             double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + strength / 100.0);
             // 1 + CombatLevelBonus + Enchants + WeaponBonus (always 0, see this method's
             // own doc) + AbilityTreeBonus - combat.damageMultiplier(level) already IS
