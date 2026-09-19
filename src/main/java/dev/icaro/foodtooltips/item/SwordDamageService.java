@@ -181,7 +181,8 @@ public final class SwordDamageService {
         if (meta == null) {
             return null;
         }
-        Component speedLine = this.speedLine(this.realAttackSpeed(p, item), l);
+        double bonusPercent = this.reforge.statsOf(item).attackSpeed();
+        Component speedLine = this.speedLine(this.realAttackSpeed(p, item), bonusPercent, l);
         boolean applied = meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE);
         // Re-checked separately from applied (not folded into it) so a sword that
         // already went through the one-shot setup below before this modifier existed -
@@ -189,8 +190,7 @@ public final class SwordDamageService {
         // retrofitted here without re-running (and duplicating) the one-shot lore
         // insertion further down, which only ever runs once per item.
         boolean needsBaseZero = !this.hasBaseZero(meta);
-        double reforgeDelta = (this.combat.attackSpeed(this.combat.progress(p).level()) + ATTACK_SPEED_DELTA)
-                * this.reforge.statsOf(item).attackSpeed() / 100.0;
+        double reforgeDelta = (this.combat.attackSpeed(this.combat.progress(p).level()) + ATTACK_SPEED_DELTA) * bonusPercent / 100.0;
         boolean needsSpeedModifier = this.needsReforgeSpeedUpdate(meta, reforgeDelta);
         List<Component> currentLore = meta.hasLore() ? meta.lore() : null;
         if (applied && !needsBaseZero && !needsSpeedModifier && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
@@ -278,8 +278,16 @@ public final class SwordDamageService {
                 .decoration(TextDecoration.ITALIC, false);
     }
 
-    private Component speedLine(double real, Language l) {
-        return Component.text(l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW)
-                .decoration(TextDecoration.ITALIC, false);
+    /** "Attack Speed: X.X" plus "(+X%)" when {@code bonusPercent} (this item's own reforge Attack Speed %, see {@link ReforgeService}) is nonzero - merged into this existing line rather than a separate reforge stat line, see {@link ReforgeService}'s own doc on why. */
+    private Component speedLine(double real, double bonusPercent, Language l) {
+        String text = l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real);
+        if (Math.abs(bonusPercent) > 1.0E-4) {
+            text += " (" + (bonusPercent >= 0 ? "+" : "") + trimmedPercent(bonusPercent) + "%)";
+        }
+        return Component.text(text, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private static String trimmedPercent(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value) : String.format(java.util.Locale.US, "%.1f", value);
     }
 }

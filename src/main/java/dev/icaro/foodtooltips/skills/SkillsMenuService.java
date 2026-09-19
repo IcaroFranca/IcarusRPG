@@ -13,6 +13,7 @@ import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
+import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.stats.PlayerStats;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import dev.icaro.foodtooltips.travel.TravelMenuService;
@@ -87,6 +88,7 @@ public final class SkillsMenuService {
     private EnchantMenuService enchantMenu;
     private QuiverService quiver;
     private PassiveAbilityMenuService passiveAbilities;
+    private ReforgeService reforge;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -135,6 +137,11 @@ public final class SkillsMenuService {
 
     public void passiveAbilities(PassiveAbilityMenuService passiveAbilities) {
         this.passiveAbilities = passiveAbilities;
+    }
+
+    /** Wired after construction, same reason as {@link #enchants}. Lets {@link #head}/{@link #combatStatItems} show the held weapon's own reforge bonus (Strength/Crit Chance/Crit Damage) on top of every other source. */
+    public void reforge(ReforgeService reforge) {
+        this.reforge = reforge;
     }
 
     /**
@@ -521,14 +528,18 @@ public final class SkillsMenuService {
         CombatProgress c = this.combat.progress(p);
         int defense = this.armor.defense(p);
         long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
-        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0;
-        double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p));
+        ItemStack mainHand = p.getInventory().getItemInMainHand();
+        double reforgeCritChance = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critChance();
+        double reforgeCritDamage = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critDamage();
+        double reforgeStrength = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).strength();
+        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage;
+        double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p) + reforgeCritChance);
         List<Component> lore = List.of(
                 this.text(l.choose("Veja seu equipamento, status e mais!", "View your equipment, stats, and more!"), NamedTextColor.GRAY),
                 Component.empty(),
                 this.text("🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent, NamedTextColor.WHITE),
                 this.text("🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(this.stats.effectiveAgility(p)), NamedTextColor.WHITE),
-                this.text("✹ Strength: " + s.strength(), NamedTextColor.RED),
+                this.text("✹ Strength: " + Math.round(s.strength() + reforgeStrength), NamedTextColor.RED),
                 this.text("✦ " + l.choose("Defesa: ", "Defense: ") + defense, NamedTextColor.GREEN),
                 this.text("☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.BLUE),
                 this.text("☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.BLUE),
@@ -755,11 +766,15 @@ public final class SkillsMenuService {
         CombatProgress c = this.combat.progress(p);
         GlobalLevelSnapshot g = this.global.snapshot(p);
         int defense = this.armor.defense(p);
+        ItemStack mainHand = p.getInventory().getItemInMainHand();
+        double reforgeStrength = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).strength();
+        double reforgeCritChance = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critChance();
+        double reforgeCritDamage = this.reforge == null ? 0.0 : this.reforge.statsOf(mainHand).critDamage();
         double combatCritChance = this.combat.critChance(c.level());
         double critChanceBonus = this.abilities.critChanceBonus(p);
-        double critChance = Math.min(100.0, combatCritChance + critChanceBonus);
+        double critChance = Math.min(100.0, combatCritChance + critChanceBonus + reforgeCritChance);
         boolean criticalMastery = this.abilities.enabled(p, CombatAbility.CRITICAL_MASTERY);
-        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0;
+        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage;
         long globalStrength = g.level() / (long) this.global.levelsPerStrength() * (long) this.global.strengthPerGroup();
         long foragingStrength = this.general.bonusStrength(p);
         double baseHealth = this.stats.baseHealth();
@@ -797,19 +812,22 @@ public final class SkillsMenuService {
         items.add(this.statItem(Material.NETHERITE_INGOT, "🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()),
                 l.choose("Base (config)", "Base (config)"), TRUE_DEFENSE_INFO, l));
 
-        items.add(this.statItem(Material.DIAMOND_SWORD, "✹ Strength: " + s.strength(),
+        items.add(this.statItem(Material.DIAMOND_SWORD, "✹ Strength: " + Math.round(s.strength() + reforgeStrength),
                 this.join(l.choose("Nível Global +", "Global Level +") + globalStrength,
-                        foragingStrength > 0 ? l.choose("Coleta +", "Foraging +") + foragingStrength : null),
+                        foragingStrength > 0 ? l.choose("Coleta +", "Foraging +") + foragingStrength : null,
+                        reforgeStrength != 0 ? l.choose("Reforja +", "Reforge +") + Math.round(reforgeStrength) : null),
                 STRENGTH_INFO, l));
 
         items.add(this.statItem(Material.ARROW, "☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%",
                 this.join(l.choose("Nível de Combate +", "Combat Level +") + String.format(Locale.US, "%.1f", combatCritChance) + "%",
-                        critChanceBonus > 0 ? l.choose("Golpes Implacáveis +", "Ruthless Strikes +") + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null),
+                        critChanceBonus > 0 ? l.choose("Golpes Implacáveis +", "Ruthless Strikes +") + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null,
+                        reforgeCritChance != 0 ? l.choose("Reforja +", "Reforge +") + String.format(Locale.US, "%.1f", reforgeCritChance) + "%" : null),
                 CRIT_CHANCE_INFO, l));
 
         items.add(this.statItem(Material.NETHERITE_SWORD, "☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%",
-                criticalMastery ? l.choose("Maestria Crítica (rank ", "Critical Mastery (rank ") + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
-                        : l.choose("Base (config) - Maestria Crítica não desbloqueada", "Base (config) - Critical Mastery not unlocked"),
+                this.join(criticalMastery ? l.choose("Maestria Crítica (rank ", "Critical Mastery (rank ") + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
+                                : l.choose("Base (config) - Maestria Crítica não desbloqueada", "Base (config) - Critical Mastery not unlocked"),
+                        reforgeCritDamage != 0 ? l.choose("Reforja +", "Reforge +") + String.format(Locale.US, "%.1f", reforgeCritDamage) + "%" : null),
                 CRIT_DAMAGE_INFO, l));
 
         items.add(this.statItem(Material.GOLDEN_AXE, "Ⓕ Ferocity: " + Math.round(s.ferocity()),

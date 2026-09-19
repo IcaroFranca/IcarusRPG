@@ -53,9 +53,15 @@ public final class ReforgeService {
     private static final NamespacedKey LORE_COUNT_KEY = new NamespacedKey("foodtooltips", "reforge_lore_count");
 
     private final ItemTierService tiers;
+    /** Wired after construction ({@code LegendaryWeaponService} itself depends on this class for its own Attack Speed reforge bonus, so the reverse reference can't be a constructor param without a cycle) - see {@link #applyLore}. */
+    private LegendaryWeaponService legendary;
 
     public ReforgeService(Plugin plugin, ItemTierService tiers) {
         this.tiers = tiers;
+    }
+
+    public void legendary(LegendaryWeaponService legendary) {
+        this.legendary = legendary;
     }
 
     // ---- Eligibility / cost ----
@@ -189,20 +195,24 @@ public final class ReforgeService {
 
     /**
      * Replaces whatever stat-line block this service last inserted (see {@link #LORE_COUNT_KEY})
-     * with {@code stats}'s own lines. A plain sword's lore is a fixed, known shape ({@code
-     * SwordDamageService} always puts Damage/Attack Speed at indices 0/1), so the block goes
-     * right after those two; a legendary weapon's lore instead has several of its own lines at
-     * indices {@code LegendaryWeaponService} tracks and rewrites by PDC-stored index ({@code
-     * STRENGTH_LINE_KEY}/{@code SPEED_LINE_KEY}) - inserting anywhere before the end would shift
-     * those stored indices out of sync with their real position, so for those this always
-     * appends at the very end instead, never touching an index another system already owns.
+     * with {@code stats}'s own lines, right after the item's own Attack Speed line - a plain
+     * sword's is always at index 1 ({@code SwordDamageService}), a legendary weapon's own index
+     * varies per weapon ({@link LegendaryWeaponService#speedLineIndex}). Attack Speed itself
+     * never gets a line here even when {@code stats.attackSpeed()} is nonzero - see {@link
+     * #statLines}. Inserting after (never before) that line means it never needs to move, but a
+     * legendary weapon's separately-tracked Strength-scaling line ({@code STRENGTH_LINE_KEY},
+     * Two as One / Kamish's Wrath) can sit right after it and would drift out of sync with this
+     * block's size changing on every reroll - {@link LegendaryWeaponService#shiftStrengthLineIfAtOrAfter}
+     * keeps that index correct.
      */
     private void applyLore(ItemStack item, ItemMeta meta, ReforgeStats stats, Language l) {
         PersistentDataContainer d = meta.getPersistentDataContainer();
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         int previousCount = d.getOrDefault(LORE_COUNT_KEY, PersistentDataType.INTEGER, 0);
-        boolean legendary = LegendaryWeaponService.isLegendary(item);
-        int insertAt = legendary ? Math.max(0, lore.size() - previousCount) : Math.min(LORE_INSERT_INDEX, lore.size());
+        Integer legendarySpeedIndex = this.legendary == null ? null : this.legendary.speedLineIndex(item);
+        int insertAt = legendarySpeedIndex != null
+                ? Math.min(legendarySpeedIndex + 1, lore.size())
+                : Math.min(LORE_INSERT_INDEX, lore.size());
         for (int i = 0; i < previousCount && insertAt < lore.size(); i++) {
             lore.remove(insertAt);
         }
@@ -210,8 +220,12 @@ public final class ReforgeService {
         lore.addAll(insertAt, statLines);
         meta.lore(lore);
         d.set(LORE_COUNT_KEY, PersistentDataType.INTEGER, statLines.size());
+        if (legendarySpeedIndex != null) {
+            this.legendary.shiftStrengthLineIfAtOrAfter(meta, insertAt, statLines.size() - previousCount);
+        }
     }
 
+    /** Every stat line except Attack Speed, which instead merges into the item's own existing Attack Speed line as a "(+X%)" suffix (see {@code SwordDamageService}/{@code LegendaryWeaponService#speedLine}) rather than getting a redundant line of its own here. */
     private List<Component> statLines(ReforgeStats stats, Language l) {
         List<Component> lines = new ArrayList<>();
         if (stats.strength() != 0) {
@@ -225,9 +239,6 @@ public final class ReforgeService {
         }
         if (stats.intelligence() != 0) {
             lines.add(this.statLine(l.choose("Inteligência: ", "Intelligence: "), stats.intelligence(), false, NamedTextColor.AQUA));
-        }
-        if (stats.attackSpeed() != 0) {
-            lines.add(this.statLine(l.choose("Velocidade de Ataque: ", "Attack Speed: "), stats.attackSpeed(), true, NamedTextColor.YELLOW));
         }
         return lines;
     }
