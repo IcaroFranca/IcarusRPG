@@ -32,7 +32,7 @@ public final class ReforgeMenuService {
 
     public void open(Player player) {
         Language language = Language.of(player);
-        Inventory inventory = Bukkit.createInventory(null, 54, "Reforge");
+        Inventory inventory = Bukkit.createInventory(null, 45, "Reforge");
         ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             inventory.setItem(slot, filler);
