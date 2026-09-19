@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -30,6 +31,12 @@ import org.bukkit.plugin.Plugin;
  * low 32, so even ×5 (160) leaves them too fragile to matter next to gold's already
  * class-leading Mining Speed/attack speed here; a flat, generous number fixes that
  * without needing a per-gold-item-type table.
+ *
+ * <p>Every {@code Material.SHIELD} also gets flagged Unbreakable outright (per explicit
+ * request) - piggybacking on this same one-shot sweep rather than a dedicated service/key
+ * of its own, since a shield is already guaranteed to pass through here (it's damageable,
+ * see this class's own doc) and {@link ItemMeta#setUnbreakable} is naturally idempotent
+ * (setting it to already-true again is a no-op), so it doesn't need its own PDC marker.
  */
 public final class DurabilityService {
     /** Flat Max Durability every {@code GOLDEN_*} item gets instead of the usual multiplier - see this class's own doc. */
@@ -71,7 +78,7 @@ public final class DurabilityService {
         }
     }
 
-    /** Mutates {@code item} in place and returns true if it needed multiplying, or false if it's not damageable or was already done. */
+    /** Mutates {@code item} in place and returns true if it needed multiplying and/or flagging Unbreakable (see the class doc), or false if neither applied. */
     private boolean multiply(ItemStack item) {
         if (item == null || item.isEmpty()) {
             return false;
@@ -81,15 +88,29 @@ public final class DurabilityService {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
-        if (!(meta instanceof Damageable damageable) || meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE)) {
+        if (!(meta instanceof Damageable damageable)) {
             return false;
         }
-        int currentDamage = damageable.hasDamage() ? damageable.getDamage() : 0;
-        int targetMax = item.getType().name().startsWith("GOLDEN_") ? GOLD_MAX_DURABILITY : vanillaMax * this.multiplier;
-        damageable.setMaxDamage(targetMax);
-        damageable.setDamage((int) Math.round(currentDamage * (targetMax / (double) vanillaMax)));
-        meta.getPersistentDataContainer().set(this.appliedKey, PersistentDataType.BYTE, (byte) 1);
-        item.setItemMeta(meta);
-        return true;
+        boolean changed = false;
+        // Checked independent of appliedKey's own one-shot gate below (and every tick, not
+        // just once) so a shield already in someone's inventory from before this shipped -
+        // appliedKey already set from its own durability multiplier - still gets flagged,
+        // no re-crafting/re-looting needed.
+        if (item.getType() == Material.SHIELD && !meta.isUnbreakable()) {
+            meta.setUnbreakable(true);
+            changed = true;
+        }
+        if (!meta.getPersistentDataContainer().has(this.appliedKey, PersistentDataType.BYTE)) {
+            int currentDamage = damageable.hasDamage() ? damageable.getDamage() : 0;
+            int targetMax = item.getType().name().startsWith("GOLDEN_") ? GOLD_MAX_DURABILITY : vanillaMax * this.multiplier;
+            damageable.setMaxDamage(targetMax);
+            damageable.setDamage((int) Math.round(currentDamage * (targetMax / (double) vanillaMax)));
+            meta.getPersistentDataContainer().set(this.appliedKey, PersistentDataType.BYTE, (byte) 1);
+            changed = true;
+        }
+        if (changed) {
+            item.setItemMeta(meta);
+        }
+        return changed;
     }
 }
