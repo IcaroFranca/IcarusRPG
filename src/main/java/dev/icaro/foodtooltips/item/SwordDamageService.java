@@ -5,6 +5,7 @@ import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -226,12 +227,20 @@ public final class SwordDamageService {
         return item;
     }
 
-    /** The item's current reforge Attack Speed modifier (see {@link #reforgeSpeedKey}), or null if it has none. */
+    /**
+     * The item's current reforge Attack Speed modifier (see {@link #reforgeSpeedKey}), or null
+     * if it has none. {@code getAttributeModifiers(Attribute.ATTACK_SPEED)} returns {@code
+     * null} - not an empty collection - for an item that has some OTHER attribute's modifier
+     * (e.g. {@link #baseZeroKey}'s own {@code ATTACK_DAMAGE} one) but none for this specific
+     * one yet, even though {@code hasAttributeModifiers()} is true - confirmed on a live
+     * server for the exact same shape of check in {@code ReforgeService#removeModifier}.
+     */
     private AttributeModifier reforgeSpeedModifier(ItemMeta meta) {
-        if (!meta.hasAttributeModifiers()) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_SPEED);
+        if (modifiers == null) {
             return null;
         }
-        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_SPEED)) {
+        for (AttributeModifier m : modifiers) {
             if (m.getKey().equals(this.reforgeSpeedKey)) {
                 return m;
             }
@@ -260,12 +269,13 @@ public final class SwordDamageService {
         }
     }
 
-    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}). */
+    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}) - see {@link #reforgeSpeedModifier}'s own doc on why {@code null}, not just an empty collection, has to be handled here too. */
     private boolean hasBaseZero(ItemMeta meta) {
-        if (!meta.hasAttributeModifiers()) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE);
+        if (modifiers == null) {
             return false;
         }
-        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+        for (AttributeModifier m : modifiers) {
             if (m.getKey().equals(this.baseZeroKey)) {
                 return true;
             }

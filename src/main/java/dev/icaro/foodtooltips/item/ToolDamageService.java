@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -179,12 +180,20 @@ public final class ToolDamageService {
         return item;
     }
 
-    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #baseZeroKey}). */
+    /**
+     * Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link
+     * #baseZeroKey}). {@code getAttributeModifiers(Attribute.ATTACK_DAMAGE)} returns {@code
+     * null} - not an empty collection - when the item has no modifier for that specific
+     * attribute yet even if {@code hasAttributeModifiers()} is true for some other attribute -
+     * confirmed on a live server for the equivalent check in {@code
+     * ReforgeService#removeModifier}.
+     */
     private boolean hasBaseZero(ItemMeta meta) {
-        if (!meta.hasAttributeModifiers()) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE);
+        if (modifiers == null) {
             return false;
         }
-        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+        for (AttributeModifier m : modifiers) {
             if (m.getKey().equals(this.baseZeroKey)) {
                 return true;
             }

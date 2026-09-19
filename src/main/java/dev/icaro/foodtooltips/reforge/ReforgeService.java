@@ -7,6 +7,7 @@ import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
@@ -515,11 +516,24 @@ public final class ReforgeService {
         return ARMOR_SPEED_FEET_KEY;
     }
 
+    /**
+     * {@code meta.getAttributeModifiers(attribute)} returns {@code null} - not an empty
+     * collection - for an attribute the item has no modifier for yet, even when {@code
+     * meta.hasAttributeModifiers()} (which only means "some attribute, not necessarily this
+     * one") is true - confirmed by a live server stack trace on this Paper version. This was
+     * the actual cause of "reforjo a armadura uma vez e não consigo de novo": a reroll that
+     * grants Agility but not Health (or vice versa) called this for BOTH {@link
+     * Attribute#MAX_HEALTH} and {@link Attribute#MOVEMENT_SPEED} - the moment the item had a
+     * real modifier for one but not the other, the unchecked {@code for} below threw an NPE
+     * partway through {@link #applyArmorAttributeModifiers}, after the material was already
+     * spent but before the roll's name/lore/PDC ever got written back to the item.
+     */
     private void removeModifier(ItemMeta meta, Attribute attribute, NamespacedKey key) {
-        if (!meta.hasAttributeModifiers()) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(attribute);
+        if (modifiers == null) {
             return;
         }
-        for (AttributeModifier m : meta.getAttributeModifiers(attribute)) {
+        for (AttributeModifier m : modifiers) {
             if (m.getKey().equals(key)) {
                 meta.removeAttributeModifier(attribute, m);
                 return;
@@ -554,8 +568,9 @@ public final class ReforgeService {
         double bonusPercent = this.armorStatsOf(item).attackSpeed();
         double delta = base * bonusPercent / 100.0;
         AttributeModifier existing = null;
-        if (meta.hasAttributeModifiers()) {
-            for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_SPEED)) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_SPEED);
+        if (modifiers != null) {
+            for (AttributeModifier m : modifiers) {
                 if (m.getKey().equals(speedKey)) {
                     existing = m;
                     break;

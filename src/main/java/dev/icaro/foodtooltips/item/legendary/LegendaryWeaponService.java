@@ -9,6 +9,7 @@ import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -478,12 +479,20 @@ public final class LegendaryWeaponService {
         }
     }
 
-    /** The item's current reforge Attack Speed modifier (see {@link #REFORGE_SPEED_KEY}), or null if it has none. */
+    /**
+     * The item's current reforge Attack Speed modifier (see {@link #REFORGE_SPEED_KEY}), or
+     * null if it has none. {@code getAttributeModifiers(Attribute.ATTACK_SPEED)} returns
+     * {@code null} - not an empty collection - for an item that has some other attribute's
+     * modifier (e.g. {@link #BASE_ZERO_KEY}'s own {@code ATTACK_DAMAGE} one) but none for this
+     * specific one yet, confirmed on a live server for the equivalent check in {@code
+     * ReforgeService#removeModifier}.
+     */
     private AttributeModifier reforgeSpeedModifier(ItemMeta meta) {
-        if (!meta.hasAttributeModifiers()) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_SPEED);
+        if (modifiers == null) {
             return null;
         }
-        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_SPEED)) {
+        for (AttributeModifier m : modifiers) {
             if (m.getKey().equals(REFORGE_SPEED_KEY)) {
                 return m;
             }
@@ -512,12 +521,13 @@ public final class LegendaryWeaponService {
         }
     }
 
-    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #BASE_ZERO_KEY}). */
+    /** Whether {@code meta}'s item already cancels the wielder's 1.0 base (see {@link #BASE_ZERO_KEY}) - null-check included, see {@link #reforgeSpeedModifier}'s own doc. */
     private boolean hasBaseZero(ItemMeta meta) {
-        if (!meta.hasAttributeModifiers()) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE);
+        if (modifiers == null) {
             return false;
         }
-        for (AttributeModifier m : meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE)) {
+        for (AttributeModifier m : modifiers) {
             if (m.getKey().equals(BASE_ZERO_KEY)) {
                 return true;
             }

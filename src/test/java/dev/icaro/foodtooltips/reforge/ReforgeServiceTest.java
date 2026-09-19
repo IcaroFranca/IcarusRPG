@@ -116,8 +116,15 @@ final class ReforgeServiceTest {
             return null;
         }).when(meta).lore(any());
         when(meta.hasAttributeModifiers()).thenAnswer(i -> !attributeModifiers.isEmpty());
+        // Map#get, not getOrDefault(..., List.of()) - real Paper returns null (not an empty
+        // collection) for an attribute the item has no modifier for yet, even when it has one
+        // for some OTHER attribute (hasAttributeModifiers() only means "any attribute at all").
+        // This is the exact behavior that crashed ReforgeService#removeModifier and friends
+        // (see their own doc) - mirroring it here means the same bug can't silently creep back
+        // in without a test noticing, once a fix for the Attribute/Registry block (see class
+        // doc) lets a test actually reach this code path.
         when(meta.getAttributeModifiers(any(Attribute.class)))
-                .thenAnswer(i -> attributeModifiers.getOrDefault((Attribute) i.getArgument(0), List.of()));
+                .thenAnswer(i -> attributeModifiers.get((Attribute) i.getArgument(0)));
         doAnswer(i -> {
             Attribute a = i.getArgument(0);
             AttributeModifier m = i.getArgument(1);
