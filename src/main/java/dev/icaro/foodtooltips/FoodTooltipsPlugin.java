@@ -158,7 +158,7 @@ extends JavaPlugin {
         PassiveAbilityMenuService passiveAbilityMenu = new PassiveAbilityMenuService(passives, global, menus::openMain);
         menus.passiveAbilities(passiveAbilityMenu);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
-        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat);
+        LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat, reforgeService);
         stats.legendary(legendary);
         LegendaryItemsMenuService legendaryItemsMenu = new LegendaryItemsMenuService(legendary);
         this.visuals = new MobVisualService((Plugin)this);
