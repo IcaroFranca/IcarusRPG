@@ -327,12 +327,16 @@ implements Listener {
         } else if (m == Material.MELON) {
             // Same story as Pumpkin just above, but the collected item (Melon Slice) isn't
             // this block's own Material - see this.cropDrop's own doc on block-vs-drop
-            // pairs. Tracking this (unlike before) means a Silk Touch break - which yields
-            // the Melon block itself, not slices - naturally credits nothing here either
-            // (trackedDrop never matches what actually dropped), instead of the old flat
-            // "+1" this used to give even then.
+            // pairs. A Silk Touch break yields the Melon block itself, not slices, so it
+            // can't flow through #track/#drops like a normal harvest - credited directly
+            // instead, 9 per block (a full melon's own worth of slices), same reasoning
+            // and amount as the huge Mushroom Block branch just below.
             this.gain(p, SkillType.FARMING, this.cropXp(m));
-            this.track(k, new Target(SkillType.FARMING, Material.MELON_SLICE), p);
+            if (p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
+                this.applyCollections(p, Material.MELON_SLICE, 9);
+            } else {
+                this.track(k, new Target(SkillType.FARMING, Material.MELON_SLICE), p);
+            }
         } else if (m == Material.RED_MUSHROOM || m == Material.BROWN_MUSHROOM) {
             // Both mushroom colors feed the same catalog entry (keyed by RED_MUSHROOM) -
             // the player never asked for separate Red/Brown milestone ladders. Tracked
