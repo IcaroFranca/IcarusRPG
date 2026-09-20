@@ -61,6 +61,12 @@ import dev.icaro.foodtooltips.item.MushroomArmorService;
 import dev.icaro.foodtooltips.item.MushroomSoupFlightService;
 import dev.icaro.foodtooltips.item.FarmCrystalService;
 import dev.icaro.foodtooltips.item.CactusArmorService;
+import dev.icaro.foodtooltips.item.CowHatService;
+import dev.icaro.foodtooltips.item.ArcheryPotionService;
+import dev.icaro.foodtooltips.item.ManaPotionService;
+import dev.icaro.foodtooltips.item.RabbitArmorService;
+import dev.icaro.foodtooltips.item.SpeedsterArmorService;
+import dev.icaro.foodtooltips.item.EnchantedCarrotStickService;
 import dev.icaro.foodtooltips.item.BrewingStandFuelService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
@@ -164,6 +170,12 @@ extends JavaPlugin {
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();
+        CowHatService cowHat = new CowHatService();
+        ArcheryPotionService archeryPotion = new ArcheryPotionService();
+        ManaPotionService manaPotion = new ManaPotionService();
+        RabbitArmorService rabbitArmor = new RabbitArmorService();
+        SpeedsterArmorService speedsterArmor = new SpeedsterArmorService();
+        EnchantedCarrotStickService enchantedCarrotStick = new EnchantedCarrotStickService();
         FarmCrystalService farmCrystal = new FarmCrystalService((Plugin)this);
         farmCrystal.start();
         BrewingStandFuelService brewingStandFuel = new BrewingStandFuelService((Plugin)this);
@@ -286,6 +298,9 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new WardrobeListener(this.wardrobe, menus::openMain), (Plugin)this);
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
         pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
+        pm.registerEvents((Listener)cowHat, (Plugin)this);
+        pm.registerEvents((Listener)archeryPotion, (Plugin)this);
+        pm.registerEvents((Listener)manaPotion, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
         pm.registerEvents((Listener)new CactusArmorService(), (Plugin)this);
         pm.registerEvents((Listener)brewingStandFuel, (Plugin)this);
@@ -294,6 +309,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService);
+        combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
         // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
         // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
         // CombatListener#secondWind - Bukkit runs same-priority handlers in
@@ -429,10 +445,11 @@ extends JavaPlugin {
         });
         StatsHudService hud = new StatsHudService(this.getConfig().getString("hud.spacing", "     "));
         long ticks = Math.max(1L, this.getConfig().getLong("hud.update-ticks", 5L));
-        double manaRegen = this.getConfig().getDouble("stats.mana-regeneration-per-second", 2.0) * (double)ticks / 20.0;
+        double baseManaRegenPerSecond = this.getConfig().getDouble("stats.mana-regeneration-per-second", 2.0);
         double vitalityRegen = this.getConfig().getDouble("stats.vitality-regeneration-per-second", 4.0) * (double)ticks / 20.0;
         double naturalHealthRegenPerSecond = this.getConfig().getDouble("stats.natural-health-regen-per-second", 0.5);
         this.getServer().getScheduler().runTaskTimer((Plugin)this, () -> this.getServer().getOnlinePlayers().forEach(p -> {
+            double manaRegen = (baseManaRegenPerSecond + manaPotion.regenBonusPerSecond((Player)p)) * (double)ticks / 20.0;
             stats.regen((Player)p, manaRegen);
             stats.regenVitality((Player)p, vitalityRegen);
             double healthRegenMultiplier = stats.stats((Player)p).healthRegen() / 100.0;
@@ -454,7 +471,13 @@ extends JavaPlugin {
             reforgeService.applyArmorAttackSpeedModifiers((Player)p);
             mushroomArmor.applyToInventory((Player)p);
             farmingCollectionsItems.applyFarmerBootsSpeed((Player)p);
+            farmingCollectionsItems.applyLanternHelmetHealth((Player)p);
+            rabbitArmor.applyToInventory((Player)p);
+            speedsterArmor.applyFullSetSpeed((Player)p);
+            enchantedCarrotStick.applyMountSpeed((Player)p);
             mushroomSoupFlight.tick((Player)p, ticks);
+            archeryPotion.tick((Player)p, ticks);
+            manaPotion.tick((Player)p, ticks);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every

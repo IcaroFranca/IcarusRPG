@@ -80,6 +80,16 @@ public final class FarmingCollectionsItemsService {
     private static final UUID POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID PUMPKIN_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pumpkin_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID WHEAT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID COW_HAT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cow_hat".getBytes(StandardCharsets.UTF_8));
+    private static final UUID MILK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:milk_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID MILKSHAKE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:milkshake_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID WOOL_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wool_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID RAINBOW_WOOL_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:rainbow_wool_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID NETHER_WART_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:nether_wart_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID MUTANT_NETHER_WART_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mutant_nether_wart_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID LANTERN_HELMET_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:lantern_helmet".getBytes(StandardCharsets.UTF_8));
+    private static final UUID SUGAR_CANE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:sugar_cane_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID RABBIT_ARMOR_HELMET_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:rabbit_armor_helmet".getBytes(StandardCharsets.UTF_8));
     private static final Color CACTUS_ARMOR_COLOR = Color.fromRGB(0x00, 0xFF, 0x00);
     /** No exact shade was specified ("tingida de marrom") - a plain chocolate brown, easy to retune. */
     private static final Color CHOCOLATE_ARMOR_COLOR = Color.fromRGB(0x5C, 0x3A, 0x21);
@@ -122,6 +132,40 @@ public final class FarmingCollectionsItemsService {
     public static final int MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS = 2 * 60 * 20;
     /** 200 minutes, per the player's own spec. */
     public static final int MYSTICAL_MUSHROOM_SOUP_FLIGHT_TICKS = 200 * 60 * 20;
+    /** See {@code CowHatService} - the actual debuff-immunity logic lives there, this class only builds the item and its recipe. */
+    public static final NamespacedKey COW_HAT_KEY = new NamespacedKey("foodtooltips", "cow_hat");
+    /** See {@code ArcheryPotionService}. No real ingredient/duration was specified - same judgment-call precedent {@link #registerResistancePotionMix} already set, 8 minutes to match. */
+    public static final NamespacedKey ARCHERY_POTION_KEY = new NamespacedKey("foodtooltips", "archery_potion");
+    public static final int ARCHERY_POTION_DURATION_TICKS = RESISTANCE_DURATION_TICKS;
+    public static final double ARCHERY_POTION_PERCENT = 12.5;
+    /** See {@code ManaPotionService}. Same judgment-call duration as {@link #ARCHERY_POTION_KEY}. */
+    public static final NamespacedKey MANA_POTION_KEY = new NamespacedKey("foodtooltips", "mana_potion");
+    public static final int MANA_POTION_DURATION_TICKS = RESISTANCE_DURATION_TICKS;
+    public static final double MANA_POTION_REGEN_PER_SECOND = 1.0;
+    /** See {@code EnchantedCarrotStickService} - the actual mount-speed-doubling logic lives there. */
+    public static final NamespacedKey ENCHANTED_CARROT_STICK_KEY = new NamespacedKey("foodtooltips", "enchanted_carrot_stick");
+    public static final double ENCHANTED_CARROT_STICK_MOUNT_SPEED_MULTIPLIER = 2.0;
+    private static final Color RABBIT_ARMOR_COLOR = Color.fromRGB(0xCB, 0xD2, 0xDB);
+    private static final Color SPEEDSTER_ARMOR_COLOR = Color.fromRGB(0xE0, 0xFC, 0xF7);
+    private static final int RABBIT_HELMET_DEFENSE = 15;
+    private static final int RABBIT_CHESTPLATE_DEFENSE = 40;
+    private static final int RABBIT_LEGGINGS_DEFENSE = 30;
+    private static final int RABBIT_BOOTS_DEFENSE = 15;
+    private static final int RABBIT_ARMOR_SPEED_PER_PIECE = 5;
+    private static final int SPEEDSTER_HELMET_DEFENSE = 45;
+    private static final int SPEEDSTER_CHESTPLATE_DEFENSE = 70;
+    private static final int SPEEDSTER_LEGGINGS_DEFENSE = 60;
+    private static final int SPEEDSTER_BOOTS_DEFENSE = 35;
+    private static final int SPEEDSTER_SPEED_PER_PIECE = 15;
+    private static final int LANTERN_HELMET_BASE_HEALTH = 20;
+    private static final int LANTERN_HELMET_BASE_DEFENSE = 10;
+    private static final int LANTERN_HELMET_DEFENSE_PER_LEVEL = 2;
+    private static final int LANTERN_HELMET_HEALTH_PER_LEVEL = 4;
+    private static final int LANTERN_HELMET_FORTUNE_PER_LEVEL = 1;
+    private static final NamespacedKey LANTERN_HELMET_KEY = new NamespacedKey("foodtooltips", "lantern_helmet_piece");
+    private static final NamespacedKey LANTERN_HELMET_HEALTH_KEY = new NamespacedKey("foodtooltips", "lantern_helmet_health");
+    private static final NamespacedKey RABBIT_ARMOR_SPEED_KEY = new NamespacedKey("foodtooltips", "rabbit_armor_speed");
+    private static final NamespacedKey SPEEDSTER_ARMOR_SPEED_KEY = new NamespacedKey("foodtooltips", "speedster_armor_speed");
 
     private final Plugin plugin;
     private final ItemTierService tiers;
@@ -260,6 +304,103 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore()));
                     r.setIngredient('D', Material.DIAMOND);
                 });
+        this.newShapedRecipe(CollectionsCatalog.LANTERN_HELMET_RECIPE, this.lanternHelmet(),
+                new String[]{"PPP", "P P"}, r -> r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore())));
+
+        // Sprout Armor: an upgrade recipe, not a from-scratch one - same "Core surrounds the
+        // matching upgrade-source piece" shape as newHaymakerRecipe, but 8 Carrot Cores
+        // around the corresponding Haymaker piece.
+        this.newSproutRecipe(CollectionsCatalog.SPROUT_HELMET_RECIPE, this.createSproutPiece(Material.LEATHER_HELMET, "Sprout Helmet"),
+                this.haymakerPiece(Material.LEATHER_HELMET, "Haymaker Helmet"));
+        this.newSproutRecipe(CollectionsCatalog.SPROUT_CHESTPLATE_RECIPE, this.createSproutPiece(Material.LEATHER_CHESTPLATE, "Sprout Chestplate"),
+                this.haymakerPiece(Material.LEATHER_CHESTPLATE, "Haymaker Chestplate"));
+        this.newSproutRecipe(CollectionsCatalog.SPROUT_LEGGINGS_RECIPE, this.createSproutPiece(Material.LEATHER_LEGGINGS, "Sprout Leggings"),
+                this.haymakerPiece(Material.LEATHER_LEGGINGS, "Haymaker Leggings"));
+        this.newSproutRecipe(CollectionsCatalog.SPROUT_BOOTS_RECIPE, this.createSproutPiece(Material.LEATHER_BOOTS, "Sprout Boots"),
+                this.haymakerPiece(Material.LEATHER_BOOTS, "Haymaker Boots"));
+
+        Bukkit.removeRecipe(CollectionsCatalog.ENCHANTED_CARROT_STICK_RECIPE);
+        ShapelessRecipe enchantedCarrotStick = new ShapelessRecipe(CollectionsCatalog.ENCHANTED_CARROT_STICK_RECIPE, this.enchantedCarrotOnAStick());
+        enchantedCarrotStick.addIngredient(Material.FISHING_ROD);
+        enchantedCarrotStick.addIngredient(new RecipeChoice.ExactChoice(this.carrotCore()));
+        Bukkit.addRecipe(enchantedCarrotStick);
+
+        this.registerArcheryPotionMix();
+        this.registerManaPotionMix();
+
+        Bukkit.removeRecipe(CollectionsCatalog.COW_HAT_RECIPE);
+        ShapelessRecipe cowHat = new ShapelessRecipe(CollectionsCatalog.COW_HAT_RECIPE, this.cowHat());
+        for (int i = 0; i < 8; i++) {
+            cowHat.addIngredient(Material.BEEF);
+        }
+        Bukkit.addRecipe(cowHat);
+
+        this.newShapedRecipe(CollectionsCatalog.MILK_CORE_RECIPE, this.milkCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.BEEF);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.MILKSHAKE_CORE_RECIPE, this.milkshakeCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.milkCore()));
+                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.WOOL_CORE_RECIPE, this.woolCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.WHITE_WOOL);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.RAINBOW_WOOL_CORE_RECIPE, this.rainbowWoolCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.woolCore()));
+                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.NETHER_WART_CORE_RECIPE, this.netherWartCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.NETHER_WART);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.MUTANT_NETHER_WART_CORE_RECIPE, this.mutantNetherWartCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.netherWartCore()));
+                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.SUGAR_CANE_CORE_RECIPE, this.sugarCaneCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.SUGAR_CANE);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.RABBIT_HELMET_RECIPE, this.rabbitHelmet(),
+                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.RABBIT_HIDE));
+        this.newShapedRecipe(CollectionsCatalog.RABBIT_CHESTPLATE_RECIPE, this.rabbitPiece(Material.LEATHER_CHESTPLATE, "Rabbit Chestplate", RABBIT_CHESTPLATE_DEFENSE),
+                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.RABBIT_HIDE));
+        this.newShapedRecipe(CollectionsCatalog.RABBIT_LEGGINGS_RECIPE, this.rabbitPiece(Material.LEATHER_LEGGINGS, "Rabbit Leggings", RABBIT_LEGGINGS_DEFENSE),
+                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.RABBIT_HIDE));
+        this.newShapedRecipe(CollectionsCatalog.RABBIT_BOOTS_RECIPE, this.rabbitPiece(Material.LEATHER_BOOTS, "Rabbit Boots", RABBIT_BOOTS_DEFENSE),
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.RABBIT_HIDE));
+
+        this.newShapedRecipe(CollectionsCatalog.SPEEDSTER_HELMET_RECIPE, this.speedsterPiece(Material.LEATHER_HELMET, "Speedster Helmet", SPEEDSTER_HELMET_DEFENSE),
+                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', new RecipeChoice.ExactChoice(this.sugarCaneCore())));
+        this.newShapedRecipe(CollectionsCatalog.SPEEDSTER_CHESTPLATE_RECIPE, this.speedsterPiece(Material.LEATHER_CHESTPLATE, "Speedster Chestplate", SPEEDSTER_CHESTPLATE_DEFENSE),
+                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', new RecipeChoice.ExactChoice(this.sugarCaneCore())));
+        this.newShapedRecipe(CollectionsCatalog.SPEEDSTER_LEGGINGS_RECIPE, this.speedsterPiece(Material.LEATHER_LEGGINGS, "Speedster Leggings", SPEEDSTER_LEGGINGS_DEFENSE),
+                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', new RecipeChoice.ExactChoice(this.sugarCaneCore())));
+        this.newShapedRecipe(CollectionsCatalog.SPEEDSTER_BOOTS_RECIPE, this.speedsterPiece(Material.LEATHER_BOOTS, "Speedster Boots", SPEEDSTER_BOOTS_DEFENSE),
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', new RecipeChoice.ExactChoice(this.sugarCaneCore())));
+    }
+
+    /** Sprout Armor's own upgrade-recipe shape: the matching Haymaker piece exactly, dead center, surrounded by 8 Carrot Cores - see {@link #newHaymakerRecipe}, the exact same idea one Core-family earlier. */
+    private void newSproutRecipe(NamespacedKey key, ItemStack result, ItemStack haymakerPiece) {
+        Bukkit.removeRecipe(key);
+        ShapedRecipe recipe = new ShapedRecipe(key, result);
+        recipe.shape("CCC", "CFC", "CCC");
+        recipe.setIngredient('C', new RecipeChoice.ExactChoice(this.carrotCore()));
+        recipe.setIngredient('F', new RecipeChoice.ExactChoice(haymakerPiece));
+        Bukkit.addRecipe(recipe);
     }
 
     /** Magical Mushroom Soup: grants {@value #MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}, which reads {@link #MAGICAL_MUSHROOM_SOUP_KEY} to tell this apart from a plain Mushroom Stew. {@link org.bukkit.inventory.meta.components.FoodComponent#setCanAlwaysEat} lets it be drunk regardless of hunger - a flight potion, not a meal, so gating it behind being hungry would make no sense (the player's own spec: "não deve ser necessário ter fome para consumir essas sopas"). */
@@ -357,6 +498,62 @@ public final class FarmingCollectionsItemsService {
         Bukkit.getPotionBrewer().removePotionMix(key);
         Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, adrenaline,
                 new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.SUGAR)));
+    }
+
+    /**
+     * Archery Potion: no ingredient/duration was specified ("cada nível aumentará em 12,5%
+     * o dano com arco e flecha") - an Arrow as the "central material" (matching Resistance's
+     * own Cactus/Adrenaline's own Sugar precedent) and {@link #ARCHERY_POTION_DURATION_TICKS}'
+     * same 8-minute judgment call. No real vanilla {@link PotionEffectType} exists for a bow-
+     * damage bonus, so this carries no actual potion effect at all - just the {@link
+     * #ARCHERY_POTION_KEY} marker {@code ArcheryPotionService} reads on drink, same "a plain
+     * flag on an otherwise ordinary potion" shape the Mushroom Soups use for their own flight.
+     */
+    private void registerArcheryPotionMix() {
+        var awkward = new org.bukkit.inventory.ItemStack(Material.POTION);
+        PotionMeta awkwardMeta = (PotionMeta) awkward.getItemMeta();
+        awkwardMeta.setBasePotionType(PotionType.AWKWARD);
+        awkward.setItemMeta(awkwardMeta);
+
+        var archery = new org.bukkit.inventory.ItemStack(Material.POTION);
+        PotionMeta archeryMeta = (PotionMeta) archery.getItemMeta();
+        archeryMeta.setBasePotionType(PotionType.MUNDANE);
+        archeryMeta.getPersistentDataContainer().set(ARCHERY_POTION_KEY, PersistentDataType.BYTE, (byte) 1);
+        archeryMeta.setColor(Color.fromRGB(0x4C, 0xAF, 0x50));
+        archeryMeta.displayName(Component.text("Archery Potion", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        archery.setItemMeta(archeryMeta);
+
+        NamespacedKey key = new NamespacedKey(this.plugin, "archery_from_arrow");
+        Bukkit.getPotionBrewer().removePotionMix(key);
+        Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, archery,
+                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.ARROW)));
+    }
+
+    /**
+     * Mana Potion: no ingredient/duration was specified either - Lapis Lazuli as the
+     * "central material" (this plugin's own established magic/Intelligence theme, e.g.
+     * {@code LapisArmorService}) and the same 8-minute judgment call as {@link
+     * #registerArcheryPotionMix}. Same "no real potion effect, just a marker" shape too - see
+     * {@code ManaPotionService}, which reads {@link #MANA_POTION_KEY}.
+     */
+    private void registerManaPotionMix() {
+        var awkward = new org.bukkit.inventory.ItemStack(Material.POTION);
+        PotionMeta awkwardMeta = (PotionMeta) awkward.getItemMeta();
+        awkwardMeta.setBasePotionType(PotionType.AWKWARD);
+        awkward.setItemMeta(awkwardMeta);
+
+        var mana = new org.bukkit.inventory.ItemStack(Material.POTION);
+        PotionMeta manaMeta = (PotionMeta) mana.getItemMeta();
+        manaMeta.setBasePotionType(PotionType.MUNDANE);
+        manaMeta.getPersistentDataContainer().set(MANA_POTION_KEY, PersistentDataType.BYTE, (byte) 1);
+        manaMeta.setColor(Color.fromRGB(0x00, 0xBF, 0xFF));
+        manaMeta.displayName(Component.text("Mana Potion", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
+        mana.setItemMeta(manaMeta);
+
+        NamespacedKey key = new NamespacedKey(this.plugin, "mana_from_lapis");
+        Bukkit.getPotionBrewer().removePotionMix(key);
+        Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, mana,
+                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.LAPIS_LAZULI)));
     }
 
     private org.bukkit.inventory.ItemStack cactusCore() {
@@ -517,6 +714,211 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
+    private org.bukkit.inventory.ItemStack milkCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.MILK_CORE, MILK_CORE_PROFILE);
+        meta.displayName(Component.text("Milk Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack milkshakeCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.MILKSHAKE_CORE, MILKSHAKE_CORE_PROFILE);
+        meta.displayName(Component.text("Milkshake Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack woolCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.WOOL_CORE, WOOL_CORE_PROFILE);
+        meta.displayName(Component.text("Wool Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack rainbowWoolCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.RAINBOW_WOOL_CORE, RAINBOW_WOOL_CORE_PROFILE);
+        meta.displayName(Component.text("Rainbow Wool Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack netherWartCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.NETHER_WART_CORE, NETHER_WART_CORE_PROFILE);
+        meta.displayName(Component.text("Nether Wart Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack mutantNetherWartCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.MUTANT_NETHER_WART_CORE, MUTANT_NETHER_WART_CORE_PROFILE);
+        meta.displayName(Component.text("Mutant Nether Wart Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack sugarCaneCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.SUGAR_CANE_CORE, SUGAR_CANE_CORE_PROFILE);
+        meta.displayName(Component.text("Sugar Cane Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Cow Hat: worn as a helmet, grants immunity to negative status effects - see {@code CowHatService}, which reads {@link #COW_HAT_KEY} to tell this apart from a plain custom head. */
+    private org.bukkit.inventory.ItemStack cowHat() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.COW_HAT, COW_HAT_PROFILE);
+        meta.getPersistentDataContainer().set(COW_HAT_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text("Cow Hat", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta, Component.text("Grants immunity to negative status effects", NamedTextColor.LIGHT_PURPLE));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Enchanted Carrot on a Stick: doubles any mount's speed while held in hand (main or
+     * off) - see {@code EnchantedCarrotStickService}, which reads
+     * {@link #ENCHANTED_CARROT_STICK_KEY} to tell this apart from vanilla's own plain Carrot
+     * on a Stick.
+     */
+    private org.bukkit.inventory.ItemStack enchantedCarrotOnAStick() {
+        var item = new org.bukkit.inventory.ItemStack(Material.CARROT_ON_A_STICK);
+        var meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(ENCHANTED_CARROT_STICK_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text("Enchanted Carrot on a Stick", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta, Component.text("Doubles any mount's speed while held", NamedTextColor.LIGHT_PURPLE));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Lantern Helmet: +{@value #LANTERN_HELMET_BASE_HEALTH} Health/+{@value
+     * #LANTERN_HELMET_BASE_DEFENSE} Defense baked once (Health via a real {@link
+     * Attribute#MAX_HEALTH} modifier refreshed every tick by {@link
+     * #applyLanternHelmetHealth} to add its own per-level term, same pattern {@link
+     * #applyFarmerBootsSpeed} uses for Farmer Boots' own Speed) - Defense's own per-level
+     * term is late-bound instead (see {@link #farmerBootsDefenseBonus}), and Farming
+     * Fortune only while an axe is held (see {@link #farmingFortuneBonus}).
+     */
+    private org.bukkit.inventory.ItemStack lanternHelmet() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.LANTERN_HELMET, LANTERN_HELMET_PROFILE);
+        meta.addAttributeModifier(Attribute.MAX_HEALTH,
+                new AttributeModifier(LANTERN_HELMET_HEALTH_KEY, LANTERN_HELMET_BASE_HEALTH, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD));
+        ArmorDefenseService.forceDefense(meta, LANTERN_HELMET_BASE_DEFENSE);
+        meta.getPersistentDataContainer().set(LANTERN_HELMET_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text("Lantern Helmet", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Health: +" + LANTERN_HELMET_BASE_HEALTH, NamedTextColor.RED),
+                Component.text("Defense: +" + LANTERN_HELMET_BASE_DEFENSE, NamedTextColor.GREEN),
+                Component.empty(),
+                Component.text("Per Farming level:", NamedTextColor.GRAY),
+                Component.text("Health: +" + LANTERN_HELMET_HEALTH_PER_LEVEL, NamedTextColor.RED),
+                Component.text("Defense: +" + LANTERN_HELMET_DEFENSE_PER_LEVEL, NamedTextColor.GREEN),
+                Component.text("☘ Farming Fortune: +" + LANTERN_HELMET_FORTUNE_PER_LEVEL + " (axe in hand)", NamedTextColor.GOLD));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * One piece of Rabbit Armor: dyed #CBD2DB leather (except the helmet, a custom head -
+     * see below), {@code defense} forced plus a flat +{@value #RABBIT_ARMOR_SPEED_PER_PIECE}
+     * Speed baked as a real {@link Attribute#MOVEMENT_SPEED} modifier (no per-level scaling,
+     * unlike Farmer Boots' own) - the full-set sneaking Jump Boost II bonus lives in {@code
+     * RabbitArmorService}.
+     */
+    private org.bukkit.inventory.ItemStack rabbitPiece(Material material, String name, int defense) {
+        var item = new org.bukkit.inventory.ItemStack(material);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(RABBIT_ARMOR_COLOR);
+        }
+        EquipmentSlotGroup slot = material.name().endsWith("_HELMET") ? EquipmentSlotGroup.HEAD
+                : material.name().endsWith("_CHESTPLATE") ? EquipmentSlotGroup.CHEST
+                : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
+                : EquipmentSlotGroup.FEET;
+        ArmorDefenseService.forceDefense(meta, defense);
+        meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
+                new AttributeModifier(RABBIT_ARMOR_SPEED_KEY, RABBIT_ARMOR_SPEED_PER_PIECE * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER, slot));
+        RabbitArmorService.markRabbitPiece(meta);
+        meta.displayName(Component.text(name, NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Defense: +" + defense, NamedTextColor.GREEN),
+                Component.text("Speed: +" + RABBIT_ARMOR_SPEED_PER_PIECE, NamedTextColor.WHITE),
+                Component.empty(),
+                Component.text("Full Set Bonus:", NamedTextColor.GRAY),
+                Component.text("Permanent Jump Boost II while sneaking", NamedTextColor.LIGHT_PURPLE));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** The Rabbit Armor's own helmet: a custom head (Rabbit texture) instead of dyed leather - see {@link #rabbitPiece}'s own doc, everything else about it (Defense/Speed/markers) is identical. */
+    private org.bukkit.inventory.ItemStack rabbitHelmet() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.RABBIT_ARMOR_HELMET, RABBIT_ARMOR_HELMET_PROFILE);
+        ArmorDefenseService.forceDefense(meta, RABBIT_HELMET_DEFENSE);
+        meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
+                new AttributeModifier(RABBIT_ARMOR_SPEED_KEY, RABBIT_ARMOR_SPEED_PER_PIECE * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD));
+        RabbitArmorService.markRabbitPiece(meta);
+        meta.displayName(Component.text("Rabbit Helmet", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Defense: +" + RABBIT_HELMET_DEFENSE, NamedTextColor.GREEN),
+                Component.text("Speed: +" + RABBIT_ARMOR_SPEED_PER_PIECE, NamedTextColor.WHITE),
+                Component.empty(),
+                Component.text("Full Set Bonus:", NamedTextColor.GRAY),
+                Component.text("Permanent Jump Boost II while sneaking", NamedTextColor.LIGHT_PURPLE));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * One piece of Speedster Armor: dyed #E0FCF7 leather, {@code defense} forced plus a flat
+     * +{@value #SPEEDSTER_SPEED_PER_PIECE} Speed baked as a real {@link
+     * Attribute#MOVEMENT_SPEED} modifier per piece (same "no per-level scaling" shape as
+     * Rabbit Armor's own) - the full-set +{@value SpeedsterArmorService#FULL_SET_SPEED_BONUS}
+     * Speed bonus lives in {@code SpeedsterArmorService}.
+     */
+    private org.bukkit.inventory.ItemStack speedsterPiece(Material material, String name, int defense) {
+        var item = new org.bukkit.inventory.ItemStack(material);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(SPEEDSTER_ARMOR_COLOR);
+        }
+        EquipmentSlotGroup slot = material.name().endsWith("_HELMET") ? EquipmentSlotGroup.HEAD
+                : material.name().endsWith("_CHESTPLATE") ? EquipmentSlotGroup.CHEST
+                : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
+                : EquipmentSlotGroup.FEET;
+        ArmorDefenseService.forceDefense(meta, defense);
+        meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
+                new AttributeModifier(SPEEDSTER_ARMOR_SPEED_KEY, SPEEDSTER_SPEED_PER_PIECE * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER, slot));
+        SpeedsterArmorService.markSpeedsterPiece(meta);
+        meta.displayName(Component.text(name, NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Defense: +" + defense, NamedTextColor.GREEN),
+                Component.text("Speed: +" + SPEEDSTER_SPEED_PER_PIECE, NamedTextColor.WHITE),
+                Component.empty(),
+                Component.text("Full Set Bonus:", NamedTextColor.GRAY),
+                Component.text("Speed: +" + SpeedsterArmorService.FULL_SET_SPEED_BONUS, NamedTextColor.WHITE));
+        item.setItemMeta(meta);
+        return item;
+    }
+
     /** One piece of Farmhand Armor: +{@value #FARMHAND_DEFENSE_PER_PIECE} Defense/+{@value #FARMHAND_FARMING_FORTUNE_PER_PIECE} Farming Fortune, flat (see {@link #farmingFortuneBonus}) - {@code color} is {@code null} for the one piece left undyed ("cor padrão" - the boots). */
     private org.bukkit.inventory.ItemStack farmhandPiece(Material material, String name, Color color) {
         var item = new org.bukkit.inventory.ItemStack(material);
@@ -613,16 +1015,35 @@ public final class FarmingCollectionsItemsService {
             if (pdc.has(FARMER_BOOTS_KEY, PersistentDataType.BYTE)) {
                 total += this.general.progress(p, SkillType.FARMING).level() * FARMER_BOOTS_FORTUNE_PER_LEVEL;
             }
+            // Lantern Helmet's own per-level Farming Fortune only applies with an axe in the
+            // main hand, per the player's own spec - unlike every other Farming Fortune
+            // source above, which always applies regardless of what's held.
+            if (pdc.has(LANTERN_HELMET_KEY, PersistentDataType.BYTE) && p.getInventory().getItemInMainHand().getType().name().endsWith("_AXE")) {
+                total += this.general.progress(p, SkillType.FARMING).level() * LANTERN_HELMET_FORTUNE_PER_LEVEL;
+            }
         }
         return total;
     }
 
-    /** Farmer Boots' own level-scaling Defense bonus - wired into {@code ArmorDefenseService#farmerBootsBonus}, added outside its own multiplier (see that field's own doc). 0 for anything but a player actually wearing Farmer Boots. */
+    /**
+     * Every level-scaling Defense source this class owns - Farmer Boots and the Lantern
+     * Helmet alike (both {@code ArmorDefenseService#farmerBootsBonus} bonus, added outside
+     * its own multiplier - see that field's own doc) - summed for whichever of the two
+     * {@code e} is actually wearing right now. 0 for a non-{@link Player} or one wearing
+     * neither.
+     */
     public int farmerBootsDefenseBonus(LivingEntity e) {
-        if (!(e instanceof Player p) || !isFarmerBoots(p.getInventory().getBoots())) {
+        if (!(e instanceof Player p)) {
             return 0;
         }
-        return FARMER_BOOTS_BASE_DEFENSE + FARMER_BOOTS_DEFENSE_PER_LEVEL * this.general.progress(p, SkillType.FARMING).level();
+        int total = 0;
+        if (isFarmerBoots(p.getInventory().getBoots())) {
+            total += FARMER_BOOTS_BASE_DEFENSE + FARMER_BOOTS_DEFENSE_PER_LEVEL * this.general.progress(p, SkillType.FARMING).level();
+        }
+        if (isLanternHelmet(p.getInventory().getHelmet())) {
+            total += LANTERN_HELMET_BASE_DEFENSE + LANTERN_HELMET_DEFENSE_PER_LEVEL * this.general.progress(p, SkillType.FARMING).level();
+        }
+        return total;
     }
 
     private static boolean isFarmerBoots(ItemStack item) {
@@ -631,6 +1052,54 @@ public final class FarmingCollectionsItemsService {
         }
         ItemMeta meta = item.getItemMeta();
         return meta != null && meta.getPersistentDataContainer().has(FARMER_BOOTS_KEY, PersistentDataType.BYTE);
+    }
+
+    private static boolean isLanternHelmet(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(LANTERN_HELMET_KEY, PersistentDataType.BYTE);
+    }
+
+    /**
+     * Refreshes the Lantern Helmet's own real {@link Attribute#MAX_HEALTH} modifier to match
+     * {@code player}'s current Farming level - same "recompute every tick from current
+     * equipment" pattern {@link #applyFarmerBootsSpeed} already uses for Farmer Boots' own
+     * level-scaling Speed, needed here for the same reason (a level-scaling bonus can't just
+     * be baked once at crafting time). Call from the same periodic per-player pass.
+     */
+    public void applyLanternHelmetHealth(Player player) {
+        ItemStack helmet = player.getInventory().getHelmet();
+        if (!isLanternHelmet(helmet)) {
+            return;
+        }
+        ItemMeta meta = helmet.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        int level = this.general.progress(player, SkillType.FARMING).level();
+        double amount = LANTERN_HELMET_BASE_HEALTH + LANTERN_HELMET_HEALTH_PER_LEVEL * level;
+        AttributeModifier existing = null;
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.MAX_HEALTH);
+        if (modifiers != null) {
+            for (AttributeModifier m : modifiers) {
+                if (m.getKey().equals(LANTERN_HELMET_HEALTH_KEY)) {
+                    existing = m;
+                    break;
+                }
+            }
+        }
+        boolean needsUpdate = existing == null || Math.abs(existing.getAmount() - amount) > 1.0E-6;
+        if (!needsUpdate) {
+            return;
+        }
+        if (existing != null) {
+            meta.removeAttributeModifier(Attribute.MAX_HEALTH, existing);
+        }
+        meta.addAttributeModifier(Attribute.MAX_HEALTH,
+                new AttributeModifier(LANTERN_HELMET_HEALTH_KEY, amount, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD));
+        helmet.setItemMeta(meta);
     }
 
     /**

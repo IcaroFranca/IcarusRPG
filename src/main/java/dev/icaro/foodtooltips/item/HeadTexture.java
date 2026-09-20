@@ -64,10 +64,32 @@ public final class HeadTexture {
     public static final String MYSTICAL_MUSHROOM_SOUP = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTFlNWQwYzIzZWMxYTFmODEzYzBjNjNmMTEyZTU1YjdiMWM4N2ZlY2QzMjY5YzBmZGJjZTk2ZDAzYjU1OGMwOCJ9fX0=";
     /** "Farm Crystal" (minecraft-heads.com ID 128323) - the Farm Crystal item and its own floating/spinning placed representation, see {@code FarmCrystalService}. */
     public static final String FARM_CRYSTAL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjkxODBjMDVjY2I1YTVlNjQzNWFhNWMxOTg3NDIxNjZhYjk4MTkwNGM1NmJlODY5NDNmOGZhYzE1MzQ2OTBmNiJ9fX0=";
+    /** "Cow (temperate)" (minecraft-heads.com ID 115920) - the Cow Hat item, see {@code CowHatService}. */
+    public static final String COW_HAT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGY4Y2UzOTE1YTIxMTY4ZDgzOTQyMTQ1NTJjZGI1NjUyZTg1NWU5ZTM4MjAwMWQ1OTY5NzJmZTNjMDA5ZWE3ZCJ9fX0=";
+    /** "Milk Bucket" (minecraft-heads.com ID 126180) - the Milk Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String MILK_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjRlZmNiOTJmYzFlMTRkMjRmMmMyY2JiYWQ0ODQyN2RjYWNmYWZkODQzMmJiNGMyNjIxZjVkNDA3YWUzMWNkMiJ9fX0=";
+    /** "Banana Milkshake" (minecraft-heads.com ID 55176) - the Milkshake Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String MILKSHAKE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjk2MGI3N2VjMDViNjAyYjU1ZjBmMzYzYzlmODY0YTFhYjcyNjRhMWZiZTRjM2I0OTIyOWJhNzQzMTJhZTVmOCJ9fX0=";
+    /** "Wool (white)" (minecraft-heads.com ID 18239) - the Wool Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String WOOL_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDA4ZGY2MGM1MTA3NGVlZjI1NDRmZjM4Y2VhZDllMTY2NzVhZTQyNTE5MTYxMDUxODBlMWY4Y2UxOTdhYjNiYyJ9fX0=";
+    /** "Wool (rainbow)" (minecraft-heads.com ID 18667) - the Rainbow Wool Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String RAINBOW_WOOL_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDRiMDM3OTRiOWIzZTNiNWQwN2UzYmU2OGI5NmFmODdkZjIxNWMzNzUyZTU0NzM2YzgwZjdkNTBiZDM0MzdhNCJ9fX0=";
+    /** "Nether Wart Block" (minecraft-heads.com ID 52965) - the Nether Wart Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String NETHER_WART_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzEzMGY3ZjJjMjhhODFlZWI0ZTI5YjM0OTk5NDA5MDhlNmRmNjM3NzNiYmQ0MmMzMThjMWVkNTI0YjE4ODQwMyJ9fX0=";
+    /** "Nether Wart" (minecraft-heads.com ID 23329) - the Mutant Nether Wart Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String MUTANT_NETHER_WART_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTExYTNjZWM3YWFmOTA0MjEyY2NmOTNiYjY3YTNjYWYzZDY0OTc4M2JhOTBiOGI2MGJiNjNjNzY4N2ViMzlmIn19fQ==";
+    /** "Jack O'Lantern" (minecraft-heads.com ID 115662) - the Lantern Helmet item, see {@code FarmingCollectionsItemsService}. */
+    public static final String LANTERN_HELMET = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWNjYmM4NGQ2MGNmNDA5OWE1NGRiNjY1NGJiNWFkODNiZWM4ZjRlMGIwYjNkMDAzYjBlODcxOGZkOGYwYWMyYSJ9fX0=";
+    /** "Rabbit" (minecraft-heads.com ID 129537) - the Rabbit Armor's own helmet, see {@code RabbitArmorService}. */
+    public static final String RABBIT_ARMOR_HELMET = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGEwY2EyYjkwZDgzMWYxN2Y3YzhiNzcxZmIzOTczY2NhMmQ3NmE0NTZiYjdiNDdiODBkNjg3MmIwNWIyNTFmNSJ9fX0=";
+    /** "Sugar Cane" (minecraft-heads.com ID 20) - the Sugar Cane Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String SUGAR_CANE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODYyNGJhY2I1ZjE5ODZlNjQ3N2FiY2U0YWU3ZGNhMTgyMGE1MjYwYjYyMzNiNTViYTFkOWJhOTM2Yzg0YiJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
-            MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL);
+            MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
+            COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
+            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE);
 
     private HeadTexture() {
     }

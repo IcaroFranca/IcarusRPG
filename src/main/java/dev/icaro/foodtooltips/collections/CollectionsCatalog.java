@@ -62,6 +62,28 @@ public final class CollectionsCatalog {
     public static final NamespacedKey HAYMAKER_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "haymaker_chestplate");
     public static final NamespacedKey HAYMAKER_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "haymaker_leggings");
     public static final NamespacedKey HAYMAKER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "haymaker_boots");
+    public static final NamespacedKey SPROUT_HELMET_RECIPE = new NamespacedKey("foodtooltips", "sprout_helmet");
+    public static final NamespacedKey SPROUT_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "sprout_chestplate");
+    public static final NamespacedKey SPROUT_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "sprout_leggings");
+    public static final NamespacedKey SPROUT_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "sprout_boots");
+    public static final NamespacedKey ENCHANTED_CARROT_STICK_RECIPE = new NamespacedKey("foodtooltips", "enchanted_carrot_stick");
+    public static final NamespacedKey COW_HAT_RECIPE = new NamespacedKey("foodtooltips", "cow_hat");
+    public static final NamespacedKey MILK_CORE_RECIPE = new NamespacedKey("foodtooltips", "milk_core");
+    public static final NamespacedKey MILKSHAKE_CORE_RECIPE = new NamespacedKey("foodtooltips", "milkshake_core");
+    public static final NamespacedKey WOOL_CORE_RECIPE = new NamespacedKey("foodtooltips", "wool_core");
+    public static final NamespacedKey RAINBOW_WOOL_CORE_RECIPE = new NamespacedKey("foodtooltips", "rainbow_wool_core");
+    public static final NamespacedKey NETHER_WART_CORE_RECIPE = new NamespacedKey("foodtooltips", "nether_wart_core");
+    public static final NamespacedKey MUTANT_NETHER_WART_CORE_RECIPE = new NamespacedKey("foodtooltips", "mutant_nether_wart_core");
+    public static final NamespacedKey LANTERN_HELMET_RECIPE = new NamespacedKey("foodtooltips", "lantern_helmet");
+    public static final NamespacedKey RABBIT_HELMET_RECIPE = new NamespacedKey("foodtooltips", "rabbit_helmet");
+    public static final NamespacedKey RABBIT_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "rabbit_chestplate");
+    public static final NamespacedKey RABBIT_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "rabbit_leggings");
+    public static final NamespacedKey RABBIT_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "rabbit_boots");
+    public static final NamespacedKey SUGAR_CANE_CORE_RECIPE = new NamespacedKey("foodtooltips", "sugar_cane_core");
+    public static final NamespacedKey SPEEDSTER_HELMET_RECIPE = new NamespacedKey("foodtooltips", "speedster_helmet");
+    public static final NamespacedKey SPEEDSTER_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "speedster_chestplate");
+    public static final NamespacedKey SPEEDSTER_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "speedster_leggings");
+    public static final NamespacedKey SPEEDSTER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "speedster_boots");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -125,13 +147,12 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(1750,
                             "Desbloqueia a receita do Carrot Core", "Unlocks the Carrot Core recipe",
                             CARROT_CORE_RECIPE),
-                    // Sprout Armor's own recipe doesn't exist yet (see FarmingCollectionsItemsService's
-                    // own doc) - an empty recipe list still marks this milestone real and completable,
-                    // ready to gate a recipe the moment one is added, without needing to touch this
-                    // catalog entry again.
                     CollectionsMilestone.recipeUnlock(5000,
-                            "Desbloqueia a Sprout Armor (receita em breve)", "Unlocks Sprout Armor (recipe coming soon)"),
-                    CollectionsMilestone.farmingXp(10000, 5000, "+5000 XP de Agricultura", "+5000 Farming XP"),
+                            "Desbloqueia a receita da Sprout Armor", "Unlocks the Sprout Armor recipe",
+                            SPROUT_HELMET_RECIPE, SPROUT_CHESTPLATE_RECIPE, SPROUT_LEGGINGS_RECIPE, SPROUT_BOOTS_RECIPE),
+                    CollectionsMilestone.recipeUnlock(10000,
+                            "Desbloqueia a receita da Enchanted Carrot on a Stick", "Unlocks the Enchanted Carrot on a Stick recipe",
+                            ENCHANTED_CARROT_STICK_RECIPE),
                     CollectionsMilestone.farmingXp(25000, 10000, "+10000 XP de Agricultura", "+10000 Farming XP"),
                     CollectionsMilestone.farmingXp(50000, 25000, "+25000 XP de Agricultura", "+25000 Farming XP"),
                     CollectionsMilestone.farmingXp(100000, 50000, "+50000 XP de Agricultura", "+50000 Farming XP"))),
@@ -171,8 +192,11 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Feather Core", "Unlocks the Feather Core recipe"),
                     new CollectionsMilestone(2500, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.SNIPE, 25.0,
                             "-25% de custo em XP para Tiro Longo", "-25% XP cost for Snipe"),
-                    new CollectionsMilestone(10000, RewardKind.FARMING_XP, 5000, List.of(), null, 0.0,
-                            "+5000 XP de Agricultura", "+5000 Farming XP"),
+                    // A PotionMix, not a real CraftingRecipe - no recipes to gate here, same
+                    // "unlocked in name only" limitation Resistance/Adrenaline Potion already
+                    // accept (see CollectionsRecipeGateListener's own doc).
+                    new CollectionsMilestone(10000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a receita da Poção de Arquearia", "Unlocks the Archery Potion recipe"),
                     new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
                             "+10000 XP de Agricultura", "+10000 Farming XP"),
                     new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
@@ -180,14 +204,25 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
                             "+50000 XP de Agricultura", "+50000 Farming XP"))),
             // Wardrobe unlock/expansion milestones carry no recipes (a feature unlock, not a
-            // craftable item) - see skills.WardrobeService for the actual mechanic.
+            // craftable item) - see skills.WardrobeService for the actual mechanic. M2/M4/M6
+            // carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead of the
+            // generic ladder's own plain Farming XP.
             new CollectionsEntry(Material.LEATHER, Material.LEATHER, CollectionsCategory.FARMING, "Couro", "Leather", genericXpWithOverrides(
                     at(1, new CollectionsMilestone(25, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o Wardrobe (3 colunas)", "Unlocks the Wardrobe (3 columns)")),
+                    at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Cow Hat", "Unlocks the Cow Hat recipe",
+                            COW_HAT_RECIPE)),
                     at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Wardrobe: +2 colunas (5 no total)", "Wardrobe: +2 columns (5 total)")),
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Milk Core", "Unlocks the Milk Core recipe",
+                            MILK_CORE_RECIPE)),
                     at(5, new CollectionsMilestone(DEFAULT_THRESHOLDS[4], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Wardrobe: +2 colunas (7 no total)", "Wardrobe: +2 columns (7 total)")),
+                    at(6, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Milkshake Core", "Unlocks the Milkshake Core recipe",
+                            MILKSHAKE_CORE_RECIPE)),
                     at(7, new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Wardrobe: +2 colunas (9 no total)", "Wardrobe: +2 columns (9 total)")))),
             new CollectionsEntry(Material.MELON_SLICE, Material.MELON_SLICE, CollectionsCategory.FARMING, "Fatia de Melancia", "Melon Slice", genericXpWithOverrides(
@@ -217,16 +252,36 @@ public final class CollectionsCatalog {
                             "+25000 XP de Agricultura", "+25000 Farming XP"),
                     new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
                             "+50000 XP de Agricultura", "+50000 Farming XP"))),
-            new CollectionsEntry(Material.MUTTON, Material.MUTTON, CollectionsCategory.FARMING, "Carneiro Cru", "Raw Mutton", genericXp()),
+            // M2/M4/M6 carry real crafted rewards (Mana Potion/Wool Core/Rainbow Wool Core)
+            // instead of the generic ladder's own plain Farming XP.
+            new CollectionsEntry(Material.MUTTON, Material.MUTTON, CollectionsCategory.FARMING, "Carneiro Cru", "Raw Mutton", genericXpWithOverrides(
+                    // A PotionMix, not a real CraftingRecipe - same "unlocked in name only"
+                    // limitation as the Archery Potion (Feather M6) above.
+                    at(2, new CollectionsMilestone(DEFAULT_THRESHOLDS[1], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a receita da Poção de Mana", "Unlocks the Mana Potion recipe")),
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Wool Core", "Unlocks the Wool Core recipe",
+                            WOOL_CORE_RECIPE)),
+                    at(6, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Rainbow Wool Core", "Unlocks the Rainbow Wool Core recipe",
+                            RAINBOW_WOOL_CORE_RECIPE)))),
             // Potion Bag unlock/expansion milestones carry no recipes, same reasoning as
-            // the Wardrobe (Leather) entry above - see skills.PotionBagService.
+            // the Wardrobe (Leather) entry above - see skills.PotionBagService. M4/M6 carry
+            // real crafted rewards (Nether Wart Core/Mutant Nether Wart Core) instead of the
+            // generic ladder's own plain Farming XP.
             new CollectionsEntry(Material.NETHER_WART, Material.NETHER_WART, CollectionsCategory.FARMING, "Verruga do Nether", "Nether Wart", genericXpWithOverrides(
                     at(1, new CollectionsMilestone(DEFAULT_THRESHOLDS[0], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia a Potion Bag (9 slots)", "Unlocks the Potion Bag (9 slots)")),
                     at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Potion Bag: +9 slots (18 no total)", "Potion Bag: +9 slots (18 total)")),
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Nether Wart Core", "Unlocks the Nether Wart Core recipe",
+                            NETHER_WART_CORE_RECIPE)),
                     at(5, new CollectionsMilestone(DEFAULT_THRESHOLDS[4], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Potion Bag: +9 slots (27 no total)", "Potion Bag: +9 slots (27 total)")),
+                    at(6, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Mutant Nether Wart Core", "Unlocks the Mutant Nether Wart Core recipe",
+                            MUTANT_NETHER_WART_CORE_RECIPE)),
                     at(7, new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Potion Bag: +9 slots (36 no total)", "Potion Bag: +9 slots (36 total)")),
                     at(9, new CollectionsMilestone(DEFAULT_THRESHOLDS[8], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
@@ -246,16 +301,28 @@ public final class CollectionsCatalog {
                             FARMER_BOOTS_RECIPE)),
                     at(6, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
                             "Desbloqueia a receita do Farm Crystal", "Unlocks the Farm Crystal recipe",
-                            FARM_CRYSTAL_RECIPE)))),
+                            FARM_CRYSTAL_RECIPE)),
+                    at(7, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Lantern Helmet", "Unlocks the Lantern Helmet recipe",
+                            LANTERN_HELMET_RECIPE)))),
             new CollectionsEntry(Material.CHICKEN, Material.CHICKEN, CollectionsCategory.FARMING, "Frango Cru", "Raw Chicken", genericXp()),
             new CollectionsEntry(Material.PORKCHOP, Material.PORKCHOP, CollectionsCategory.FARMING, "Porco Cru", "Raw Porkchop", genericXp()),
             new CollectionsEntry(Material.RABBIT, Material.RABBIT, CollectionsCategory.FARMING, "Coelho Cru", "Raw Rabbit", genericXpWithOverrides(
                     at(1, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[0], IcarusEnchant.LUCK, 25.0,
                             "-25% de custo em XP para Sorte", "-25% XP cost for Luck")),
                     at(2, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.LUCK_OF_THE_SEA, 25.0,
-                            "-25% de custo em XP para Sorte do Mar", "-25% XP cost for Luck of the Sea")))),
+                            "-25% de custo em XP para Sorte do Mar", "-25% XP cost for Luck of the Sea")),
+                    at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita da Rabbit Armor", "Unlocks the Rabbit Armor recipe",
+                            RABBIT_HELMET_RECIPE, RABBIT_CHESTPLATE_RECIPE, RABBIT_LEGGINGS_RECIPE, RABBIT_BOOTS_RECIPE)))),
             new CollectionsEntry(Material.WHEAT_SEEDS, Material.WHEAT_SEEDS, CollectionsCategory.FARMING, "Sementes", "Seeds", genericXp()),
-            new CollectionsEntry(Material.SUGAR_CANE, Material.SUGAR_CANE, CollectionsCategory.FARMING, "Cana-de-açúcar", "Sugar Cane", genericXp()),
+            new CollectionsEntry(Material.SUGAR_CANE, Material.SUGAR_CANE, CollectionsCategory.FARMING, "Cana-de-açúcar", "Sugar Cane", genericXpWithOverrides(
+                    at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Sugar Cane Core", "Unlocks the Sugar Cane Core recipe",
+                            SUGAR_CANE_CORE_RECIPE)),
+                    at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita da Speedster Armor", "Unlocks the Speedster Armor recipe",
+                            SPEEDSTER_HELMET_RECIPE, SPEEDSTER_CHESTPLATE_RECIPE, SPEEDSTER_LEGGINGS_RECIPE, SPEEDSTER_BOOTS_RECIPE)))),
             new CollectionsEntry(Material.WHEAT, Material.WHEAT, CollectionsCategory.FARMING, "Trigo", "Wheat", genericXpWithOverrides(
                     at(1, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[0], IcarusEnchant.HARVESTING, 25.0,
                             "-25% de custo em XP para Colheita", "-25% XP cost for Harvesting")),

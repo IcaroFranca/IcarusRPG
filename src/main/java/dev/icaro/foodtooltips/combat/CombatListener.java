@@ -161,6 +161,13 @@ public final class CombatListener implements Listener {
     private final boolean healToFullOnMapEnter;
     private final boolean pvpFullDamageStack;
     private final long teleportArmWindowMillis;
+    /** Archery Potion's own +12.5% bow/arrow damage (see {@code item.ArcheryPotionService}) - late-bound, same "no direct dependency on an unrelated feature" shape {@code skills.ArmorDefenseService#protectionBonus} already uses, wired from {@code FoodTooltipsPlugin}. Defaults to always-0 so this class works before it's ever wired. */
+    private java.util.function.ToDoubleFunction<Player> archeryPotionPercent = p -> 0.0;
+
+    /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link #archeryPotionPercent}'s own doc. */
+    public void archeryPotionPercent(java.util.function.ToDoubleFunction<Player> archeryPotionPercent) {
+        this.archeryPotionPercent = archeryPotionPercent;
+    }
 
     /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
     private record LethalityDebuff(int level, int stacks, long expiry) {
@@ -298,7 +305,9 @@ public final class CombatListener implements Listener {
      * pipeline in {@code CustomEnchantEffectListener#bowShoot}. It does get its own
      * percentage bonus on top, though - {@link #arrowEnchantPercent}, the bow-side
      * equivalent of {@link #customMeleeDamagePercent} (Cubism/Ender Slayer/Impaling
-     * when the bow that fired had one, Snipe's distance bonus).
+     * when the bow that fired had one, Snipe's distance bonus), plus {@link
+     * #archeryPotionPercent} (Archery Potion's own +12.5% while active - see {@code
+     * item.ArcheryPotionService}), folded into the same percentage sum.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void damage(EntityDamageByEntityEvent e) {
@@ -412,7 +421,8 @@ public final class CombatListener implements Listener {
             // bonus like weaponStrengthBonus, so "N points of Strength" means the same +N%
             // regardless of whether the hit was melee or ranged.
             double bowStrengthPercent = bowReforge.strength();
-            damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
+            double archeryPotionPercent = this.archeryPotionPercent.applyAsDouble(p);
+            damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent + archeryPotionPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                     * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead;
         }
         e.setDamage(damage);

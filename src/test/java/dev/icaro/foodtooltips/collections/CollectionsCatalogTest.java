@@ -87,9 +87,10 @@ final class CollectionsCatalogTest {
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
         assertEquals(List.of(CollectionsCatalog.CARROT_CORE_RECIPE), m.get(3).recipes());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(4).kind());
-        assertTrue(m.get(4).recipes().isEmpty()); // Sprout Armor: no recipe registered yet.
-        assertEquals(RewardKind.FARMING_XP, m.get(5).kind());
-        assertEquals(5000, m.get(5).xpAmount());
+        assertEquals(4, m.get(4).recipes().size()); // Sprout Armor
+        assertTrue(m.get(4).recipes().contains(CollectionsCatalog.SPROUT_HELMET_RECIPE));
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(5).kind());
+        assertEquals(List.of(CollectionsCatalog.ENCHANTED_CARROT_STICK_RECIPE), m.get(5).recipes());
         assertEquals(RewardKind.FARMING_XP, m.get(6).kind());
         assertEquals(10000, m.get(6).xpAmount());
         assertEquals(RewardKind.FARMING_XP, m.get(7).kind());
@@ -244,7 +245,11 @@ final class CollectionsCatalogTest {
             assertEquals(RewardKind.RECIPE_UNLOCK, m.get(i).kind(), "milestone index " + i);
             assertTrue(m.get(i).recipes().isEmpty(), "milestone index " + i);
         }
-        assertEquals(RewardKind.FARMING_XP, m.get(1).kind());
+        // M2/M4/M6 carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead of
+        // the generic ladder's own plain Farming XP.
+        assertEquals(List.of(CollectionsCatalog.COW_HAT_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.MILK_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(List.of(CollectionsCatalog.MILKSHAKE_CORE_RECIPE), m.get(5).recipes());
     }
 
     @Test
