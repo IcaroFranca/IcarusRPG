@@ -9,10 +9,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -43,11 +45,18 @@ import org.bukkit.scoreboard.ScoreboardManager;
  * <p>Both soups themselves are made drinkable regardless of hunger ({@code
  * FarmingCollectionsItemsService}'s own builders set {@code FoodComponent#setCanAlwaysEat}) -
  * this class only cares about the item actually being consumed, not why vanilla allowed it.
+ *
+ * <p>Leaving the server pauses the timer rather than losing it: {@link #quit} stashes
+ * whatever's left in the player's own PDC instead of just discarding it (the periodic loop
+ * only ever iterates {@link Bukkit#getOnlinePlayers()} anyway, so it was already effectively
+ * frozen while offline - the old code just forgot it afterwards instead of remembering it),
+ * and {@link #join} picks it back up exactly where it left off, flight and sidebar included.
  */
 public final class MushroomSoupFlightService implements Listener {
     /** This plugin's only sidebar consumer - deliberately not shared with anything else, so this class can freely register/unregister it without ever touching another feature's own scoreboard state. */
     private static final String OBJECTIVE_ID = "foodtooltips_soup_flight";
     private static final String SCORE_ENTRY = "flight_time";
+    private static final NamespacedKey PAUSED_TICKS_KEY = new NamespacedKey("foodtooltips", "mushroom_soup_flight_paused_ticks");
     private final Map<UUID, Integer> remainingTicks = new HashMap<>();
     /**
      * Late-bound, same "no direct dependency on an unrelated feature" shape every other
@@ -160,8 +169,29 @@ public final class MushroomSoupFlightService implements Listener {
         return current;
     }
 
+    /** Pauses (rather than discards) whatever flight time {@code p} still had left - see this class's own doc. */
     @EventHandler
     public void quit(PlayerQuitEvent e) {
-        this.remainingTicks.remove(e.getPlayer().getUniqueId());
+        Player p = e.getPlayer();
+        Integer remaining = this.remainingTicks.remove(p.getUniqueId());
+        if (remaining != null && remaining > 0) {
+            p.getPersistentDataContainer().set(PAUSED_TICKS_KEY, PersistentDataType.INTEGER, remaining);
+        }
+    }
+
+    /** Resumes any flight time {@link #quit} paused for {@code p} - re-grants flight and the sidebar immediately, exactly as if the timer had simply kept running while they were offline (it never actually did - see this class's own doc). */
+    @EventHandler
+    public void join(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        Integer paused = p.getPersistentDataContainer().get(PAUSED_TICKS_KEY, PersistentDataType.INTEGER);
+        if (paused == null || paused <= 0) {
+            return;
+        }
+        p.getPersistentDataContainer().remove(PAUSED_TICKS_KEY);
+        this.remainingTicks.put(p.getUniqueId(), paused);
+        if (p.getGameMode() != GameMode.CREATIVE && p.getGameMode() != GameMode.SPECTATOR) {
+            p.setAllowFlight(true);
+        }
+        this.showBoard(p, paused);
     }
 }
