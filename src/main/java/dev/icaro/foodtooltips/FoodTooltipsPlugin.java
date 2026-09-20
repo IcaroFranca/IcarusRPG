@@ -60,6 +60,7 @@ import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
 import dev.icaro.foodtooltips.item.MushroomArmorService;
 import dev.icaro.foodtooltips.item.MushroomSoupFlightService;
 import dev.icaro.foodtooltips.item.FarmCrystalService;
+import dev.icaro.foodtooltips.item.BrewingStandFuelService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -164,6 +165,8 @@ extends JavaPlugin {
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();
         FarmCrystalService farmCrystal = new FarmCrystalService((Plugin)this);
         farmCrystal.start();
+        BrewingStandFuelService brewingStandFuel = new BrewingStandFuelService((Plugin)this);
+        brewingStandFuel.start();
         MushroomArmorService mushroomArmor = new MushroomArmorService();
         mushroomArmor.reforge(reforgeService);
         DurabilityService durability = new DurabilityService((Plugin)this);
@@ -282,6 +285,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
         pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
+        pm.registerEvents((Listener)brewingStandFuel, (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
