@@ -209,19 +209,15 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
 
-        // Farmhand Armor's own recipe ingredient was never specified (only Farmer Boots'/
-        // Haymaker's own upgrade recipe were) - standard vanilla armor shapes using Wheat,
-        // matching Cactus/Chocolate/Mushroom Armor's own "the unlocking category's own
-        // drop material" precedent.
         this.newShapedRecipe(CollectionsCatalog.FARMHAND_HELMET_RECIPE, this.farmhandPiece(Material.LEATHER_HELMET, "Farmhand Helmet", FARMHAND_HELMET_COLOR),
-                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.WHEAT));
+                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.HAY_BLOCK));
         this.newShapedRecipe(CollectionsCatalog.FARMHAND_CHESTPLATE_RECIPE, this.farmhandPiece(Material.LEATHER_CHESTPLATE, "Farmhand Chestplate", FARMHAND_CHESTPLATE_COLOR),
-                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.WHEAT));
+                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.HAY_BLOCK));
         this.newShapedRecipe(CollectionsCatalog.FARMHAND_LEGGINGS_RECIPE, this.farmhandPiece(Material.LEATHER_LEGGINGS, "Farmhand Leggings", FARMHAND_LEGGINGS_COLOR),
-                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.WHEAT));
+                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.HAY_BLOCK));
         // "botas de couro na cor padrão" - the one Farmhand piece deliberately left undyed.
         this.newShapedRecipe(CollectionsCatalog.FARMHAND_BOOTS_RECIPE, this.farmhandPiece(Material.LEATHER_BOOTS, "Farmhand Boots", null),
-                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.WHEAT));
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.HAY_BLOCK));
 
         // Haymaker Armor: an upgrade recipe, not a from-scratch one - the corresponding
         // Farmhand piece exactly (RecipeChoice.ExactChoice, so a plain dyed leather piece
@@ -237,10 +233,8 @@ public final class FarmingCollectionsItemsService {
 
         this.registerAdrenalinePotionMix();
 
-        // Farmer Boots' own recipe ingredient was never specified either - Pumpkin, since
-        // that's the collection it's unlocked from (same heuristic as Farmhand Armor above).
         this.newShapedRecipe(CollectionsCatalog.FARMER_BOOTS_RECIPE, this.farmerBoots(),
-                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.PUMPKIN));
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', new RecipeChoice.ExactChoice(this.pumpkinCore())));
 
         Bukkit.removeRecipe(CollectionsCatalog.MAGICAL_MUSHROOM_SOUP_RECIPE);
         ShapelessRecipe magicalSoup = new ShapelessRecipe(CollectionsCatalog.MAGICAL_MUSHROOM_SOUP_RECIPE, this.magicalMushroomSoup());
