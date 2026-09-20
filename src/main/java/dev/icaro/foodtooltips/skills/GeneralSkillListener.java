@@ -42,6 +42,7 @@ import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -57,6 +58,7 @@ import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -153,6 +155,33 @@ implements Listener {
     @EventHandler
     public void quit(PlayerQuitEvent e) {
         this.combos.remove(e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * Passive-mob Collections tracking (Feather/Leather/Raw Mutton/Raw Chicken/Raw
+     * Porkchop/Raw Rabbit) - same "1 per event, not the real Looting-adjusted drop count"
+     * simplification every harvest hook in {@link #broken} already uses. MONITOR, same
+     * tier {@code CombatListener#death} runs its own Bestiary/Combat-XP handling at, so
+     * this never races anything there that might still cancel the event first.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void animalDrop(EntityDeathEvent e) {
+        Player p = e.getEntity().getKiller();
+        if (p == null) {
+            return;
+        }
+        switch (e.getEntity().getType()) {
+            case EntityType.CHICKEN -> {
+                this.applyCollections(p, Material.FEATHER, 1);
+                this.applyCollections(p, Material.CHICKEN, 1);
+            }
+            case EntityType.COW, EntityType.MOOSHROOM -> this.applyCollections(p, Material.LEATHER, 1);
+            case EntityType.SHEEP -> this.applyCollections(p, Material.MUTTON, 1);
+            case EntityType.PIG -> this.applyCollections(p, Material.PORKCHOP, 1);
+            case EntityType.RABBIT -> this.applyCollections(p, Material.RABBIT, 1);
+            default -> {
+            }
+        }
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
@@ -266,6 +295,24 @@ implements Listener {
             // break resolves) and folded into one gain call.
             this.gain(p, SkillType.FARMING, this.cropXp(m) * (1 + this.caneSegmentsAbove(e.getBlock())));
             this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
+            this.applyCollections(p, m, 1 + this.caneSegmentsAbove(e.getBlock()));
+        } else if (m == Material.PUMPKIN) {
+            // Not Ageable itself (only its stem is) - a mature stem spawns this block as a
+            // one-off world event, never through a player-fired BlockPlaceEvent, so it's
+            // never in this.placed and always counts. No regular Farming XP for the same
+            // reason as Cactus above: the player's spec never gave Pumpkin one.
+            this.applyCollections(p, m, 1);
+        } else if (m == Material.MELON) {
+            // Same story as Pumpkin just above, but the collected item (Melon Slice) isn't
+            // this block's own Material - see this.cropDrop's own doc on block-vs-drop
+            // pairs. (A Silk Touch break yields a single Melon block instead of slices, but
+            // that's not specially counted as "9" here - see this class's own known
+            // simplification of counting 1 per qualifying event, not exact item yield.)
+            this.applyCollections(p, Material.MELON_SLICE, 1);
+        } else if (m == Material.RED_MUSHROOM || m == Material.BROWN_MUSHROOM) {
+            // Both mushroom colors feed the same catalog entry (keyed by RED_MUSHROOM) -
+            // the player never asked for separate Red/Brown milestone ladders.
+            this.applyCollections(p, Material.RED_MUSHROOM, 1);
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
@@ -274,6 +321,13 @@ implements Listener {
                 this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
                 this.tryReplenish(p, e.getBlock(), m);
                 this.applyCollections(p, this.cropDrop(m), 1);
+                if (m == Material.WHEAT) {
+                    // Wheat's own harvest also drops Wheat Seeds as a separate bonus item
+                    // from the same event - counted here as its own independent Collections
+                    // entry (Seeds), same "1 per event" simplification as everywhere else in
+                    // this method rather than reading the real random 0-3 seed yield.
+                    this.applyCollections(p, Material.WHEAT_SEEDS, 1);
+                }
             }
         }
     }
@@ -591,15 +645,19 @@ implements Listener {
 
     /**
      * Whether breaking {@code m} at its current block state is Farming's own harvest -
-     * a crop at full maturity, or any sugar cane segment (see the SUGAR_CANE branch's
-     * own doc in {@link #broken} for why cane has no separate maturity gate) - the one
-     * case {@link #placed} deliberately doesn't block XP for (see {@link #broken}'s own
-     * doc): planting a seed and growing it to harvest is the entire point of the
-     * Farming skill, not the place-then-immediately-break exploit {@link #placed}
-     * exists to guard Mining/Foraging XP against.
+     * a crop at full maturity, or any sugar cane/cactus segment (neither has a separate
+     * maturity gate on the block a player directly placed: cane's own {@link
+     * Ageable#getAge()} is an internal growth-tick counter, not a wheat-style maturity
+     * value, and cactus has no {@link Ageable} block data at all - both instead grow by
+     * spawning new segments on top, leaving the originally-placed block itself
+     * "finished" the moment it's placed) - the one case {@link #placed} deliberately
+     * doesn't block XP/Collections for (see {@link #broken}'s own doc): planting and
+     * growing a farm is the entire point of the Farming skill, not the
+     * place-then-immediately-break exploit {@link #placed} exists to guard
+     * Mining/Foraging XP against.
      */
     private boolean isHarvestableCrop(Block block, Material m) {
-        if (m == Material.SUGAR_CANE) {
+        if (m == Material.SUGAR_CANE || m == Material.CACTUS) {
             return true;
         }
         BlockData blockData = block.getBlockData();

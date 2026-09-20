@@ -60,7 +60,15 @@ import org.bukkit.potion.PotionType;
 public final class FarmingCollectionsItemsService {
     private static final UUID CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cactus_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CARROT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:carrot_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID CHOCOLATE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:chocolate_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID FEATHER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:feather_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID MUSHROOM_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mushroom_core".getBytes(StandardCharsets.UTF_8));
     private static final Color CACTUS_ARMOR_COLOR = Color.fromRGB(0x00, 0xFF, 0x00);
+    /** No exact shade was specified ("tingida de marrom") - a plain chocolate brown, easy to retune. */
+    private static final Color CHOCOLATE_ARMOR_COLOR = Color.fromRGB(0x5C, 0x3A, 0x21);
+    /** No exact shade was specified ("tingida de vermelho") - matches Cactus Armor's own pure-color convention. */
+    private static final Color MUSHROOM_ARMOR_COLOR = Color.fromRGB(0xFF, 0x00, 0x00);
+    /** Neither Chocolate nor Mushroom Armor's own recipe ingredient was specified (only their unlock milestones and their Core items' ingredients were) - Chocolate uses Cocoa Beans and Mushroom uses Red Mushroom, matching Cactus Armor's own "the category's own drop material" precedent. */
     private static final int SPROUT_DEFENSE_PER_PIECE = 20;
     /** 8 minutes - see {@link #registerResistancePotionMix}'s own doc on why this is a judgment call. */
     private static final int RESISTANCE_DURATION_TICKS = 9600;
@@ -96,6 +104,42 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.CACTUS_BOOTS_RECIPE, this.cactusPiece(Material.LEATHER_BOOTS, "Cactus Boots"),
                 new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.CACTUS));
         this.registerResistancePotionMix();
+
+        this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_CORE_RECIPE, this.chocolateCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.COCOA_BEANS);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_HELMET_RECIPE, this.chocolatePiece(Material.LEATHER_HELMET, "Chocolate Helmet"),
+                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.COCOA_BEANS));
+        this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_CHESTPLATE_RECIPE, this.chocolatePiece(Material.LEATHER_CHESTPLATE, "Chocolate Chestplate"),
+                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.COCOA_BEANS));
+        this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_LEGGINGS_RECIPE, this.chocolatePiece(Material.LEATHER_LEGGINGS, "Chocolate Leggings"),
+                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.COCOA_BEANS));
+        this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_BOOTS_RECIPE, this.chocolatePiece(Material.LEATHER_BOOTS, "Chocolate Boots"),
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.COCOA_BEANS));
+
+        this.newShapedRecipe(CollectionsCatalog.FEATHER_CORE_RECIPE, this.featherCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.FEATHER);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+
+        // "de qualquer tipo" (either mushroom color) - the Core recipe's own explicit spec.
+        RecipeChoice.MaterialChoice anyMushroom = new RecipeChoice.MaterialChoice(Material.RED_MUSHROOM, Material.BROWN_MUSHROOM);
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_CORE_RECIPE, this.mushroomCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', anyMushroom);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_HELMET_RECIPE, this.mushroomPiece(Material.LEATHER_HELMET, "Mushroom Helmet", 0),
+                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_CHESTPLATE_RECIPE, this.mushroomPiece(Material.LEATHER_CHESTPLATE, "Mushroom Chestplate", MushroomArmorService.CHESTPLATE_DEFENSE),
+                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_LEGGINGS_RECIPE, this.mushroomPiece(Material.LEATHER_LEGGINGS, "Mushroom Leggings", MushroomArmorService.LEGGINGS_DEFENSE),
+                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_BOOTS_RECIPE, this.mushroomPiece(Material.LEATHER_BOOTS, "Mushroom Boots", 0),
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
     }
 
     /**
@@ -155,6 +199,68 @@ public final class FarmingCollectionsItemsService {
             leather.setColor(CACTUS_ARMOR_COLOR);
         }
         meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack chocolateCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.CHOCOLATE_CORE, CHOCOLATE_CORE_PROFILE);
+        meta.displayName(Component.text("Chocolate Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack featherCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.FEATHER_CORE, FEATHER_CORE_PROFILE);
+        meta.displayName(Component.text("Feather Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack mushroomCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.MUSHROOM_CORE, MUSHROOM_CORE_PROFILE);
+        meta.displayName(Component.text("Mushroom Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** One piece of Chocolate Armor: dyed-brown leather, purely cosmetic - same "no forced stats" spec as Cactus Armor (only Sprout/Mushroom Armor have explicit stats). */
+    private org.bukkit.inventory.ItemStack chocolatePiece(Material material, String name) {
+        var item = new org.bukkit.inventory.ItemStack(material);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(CHOCOLATE_ARMOR_COLOR);
+        }
+        meta.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * One piece of Mushroom Armor: dyed-red leather, {@code defense} forced (0 for Helmet/
+     * Boots, per the player's own per-piece spec - see {@link MushroomArmorService}) via the
+     * same override every other custom-Defense armor in this plugin uses. Health is
+     * deliberately NOT baked here - {@link MushroomArmorService#applyToInventory} bakes it
+     * fresh every tick instead (base + this piece's own reforge Health, tripled at night),
+     * so a value baked here would just be immediately overwritten anyway.
+     */
+    private org.bukkit.inventory.ItemStack mushroomPiece(Material material, String name, int defense) {
+        var item = new org.bukkit.inventory.ItemStack(material);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(MUSHROOM_ARMOR_COLOR);
+        }
+        if (defense > 0) {
+            ArmorDefenseService.forceDefense(meta, defense);
+        }
+        MushroomArmorService.markMushroomPiece(meta);
+        meta.displayName(Component.text(name, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

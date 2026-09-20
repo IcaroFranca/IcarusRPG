@@ -103,4 +103,103 @@ final class CollectionsCatalogTest {
         assertEquals(CollectionsCategory.FARMING, cactus().category());
         assertEquals(CollectionsCategory.FARMING, carrot().category());
     }
+
+    /**
+     * Regression test for the real bug {@code CollectionsService#record} used to hit for any
+     * entry whose block and drop are different materials: {@code find} used to check only
+     * {@code material()}, so a harvest hook reporting the drop item (Carrot, Potato, Cocoa
+     * Beans - see {@code skills.GeneralSkillListener#cropDrop}) never found its own entry and
+     * silently recorded nothing at all. Both identities must resolve to the same entry now.
+     */
+    @Test
+    void findMatchesBothBlockAndDropIdentity() {
+        assertEquals(carrot(), CollectionsCatalog.find(Material.CARROT).orElseThrow());
+        CollectionsEntry potato = CollectionsCatalog.find(Material.POTATOES).orElseThrow();
+        assertEquals(potato, CollectionsCatalog.find(Material.POTATO).orElseThrow());
+        CollectionsEntry cocoa = CollectionsCatalog.find(Material.COCOA).orElseThrow();
+        assertEquals(cocoa, CollectionsCatalog.find(Material.COCOA_BEANS).orElseThrow());
+    }
+
+    @Test
+    void everyFarmingEntryIsPresent() {
+        List<CollectionsEntry> farming = CollectionsCatalog.entries(CollectionsCategory.FARMING);
+        assertEquals(17, farming.size());
+        for (CollectionsEntry entry : farming) {
+            assertEquals(9, entry.milestones().size(), entry.nameEn() + " should have exactly 9 milestones");
+        }
+    }
+
+    @Test
+    void cocoaBeansMatchesSpec() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.COCOA).orElseThrow().milestones();
+        int[] expected = {75, 200, 500, 2000, 5000, 10000, 25000, 50000, 100000};
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], m.get(i).threshold(), "Cocoa Beans milestone " + (i + 1));
+        }
+        assertEquals(RewardKind.FARMING_XP, m.get(0).kind());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(RewardKind.FARMING_XP, m.get(1).kind());
+        assertEquals(2000, m.get(1).xpAmount());
+        assertEquals(RewardKind.ENCHANT_DISCOUNT, m.get(2).kind());
+        assertEquals(IcarusEnchant.REPLENISH, m.get(2).discountEnchant());
+        assertEquals(25.0, m.get(2).discountPercent());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
+        assertEquals(List.of(CollectionsCatalog.CHOCOLATE_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(4).kind());
+        assertEquals(4, m.get(4).recipes().size());
+        assertTrue(m.get(4).recipes().contains(CollectionsCatalog.CHOCOLATE_HELMET_RECIPE));
+    }
+
+    @Test
+    void featherMatchesSpec() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.FEATHER).orElseThrow().milestones();
+        int[] expected = {50, 100, 250, 1000, 2500, 10000, 25000, 50000, 100000};
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], m.get(i).threshold(), "Feather milestone " + (i + 1));
+        }
+        assertEquals(IcarusEnchant.PROJECTILE_PROTECTION, m.get(0).discountEnchant());
+        assertEquals(IcarusEnchant.FEATHER_FALLING, m.get(1).discountEnchant());
+        assertEquals(IcarusEnchant.AIMING, m.get(2).discountEnchant());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
+        assertEquals(List.of(CollectionsCatalog.FEATHER_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(IcarusEnchant.SNIPE, m.get(4).discountEnchant());
+    }
+
+    @Test
+    void mushroomMatchesSpec() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.RED_MUSHROOM).orElseThrow().milestones();
+        int[] expected = {50, 100, 250, 1000, 2500, 10000, 25000, 50000, 100000};
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], m.get(i).threshold(), "Mushroom milestone " + (i + 1));
+        }
+        assertEquals(RewardKind.FARMING_XP, m.get(0).kind());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(1).kind());
+        assertEquals(4, m.get(1).recipes().size());
+        assertTrue(m.get(1).recipes().contains(CollectionsCatalog.MUSHROOM_HELMET_RECIPE));
+        assertEquals(List.of(CollectionsCatalog.RED_MUSHROOM_BLOCK_RECIPE, CollectionsCatalog.BROWN_MUSHROOM_BLOCK_RECIPE), m.get(2).recipes());
+        assertEquals(List.of(CollectionsCatalog.MUSHROOM_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(2500, m.get(4).xpAmount());
+    }
+
+    @Test
+    void pumpkinUnlocksCubismAtMilestoneThree() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.PUMPKIN).orElseThrow().milestones();
+        assertEquals(RewardKind.ENCHANT_DISCOUNT, m.get(2).kind());
+        assertEquals(IcarusEnchant.CUBISM, m.get(2).discountEnchant());
+        assertEquals(500, m.get(2).threshold()); // unchanged from the generic ladder's own M3 threshold
+    }
+
+    @Test
+    void rawRabbitUnlocksLuckDiscountsAtMilestonesOneAndTwo() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.RABBIT).orElseThrow().milestones();
+        assertEquals(IcarusEnchant.LUCK, m.get(0).discountEnchant());
+        assertEquals(IcarusEnchant.LUCK_OF_THE_SEA, m.get(1).discountEnchant());
+    }
+
+    @Test
+    void wheatUnlocksHarvestingAtMilestoneOne() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.WHEAT).orElseThrow().milestones();
+        assertEquals(IcarusEnchant.HARVESTING, m.get(0).discountEnchant());
+    }
 }

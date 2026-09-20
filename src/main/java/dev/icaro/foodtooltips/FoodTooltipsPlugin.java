@@ -55,6 +55,7 @@ import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
+import dev.icaro.foodtooltips.item.MushroomArmorService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -148,6 +149,8 @@ extends JavaPlugin {
         lapisExperience.registerRecipes();
         FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers);
         farmingCollectionsItems.registerRecipes();
+        MushroomArmorService mushroomArmor = new MushroomArmorService();
+        mushroomArmor.reforge(reforgeService);
         DurabilityService durability = new DurabilityService((Plugin)this);
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat, reforgeService);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
@@ -218,7 +221,10 @@ extends JavaPlugin {
         ReforgeMenuService reforgeMenu = new ReforgeMenuService((Plugin)this, reforgeService);
         ArmorEnchantEffectListener armorEnchants = new ArmorEnchantEffectListener(enchants);
         armor.protectionBonus(armorEnchants::protectionDefenseBonus);
-        armor.defenseMultiplier(e -> minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0);
+        // Independent bonus sources composed multiplicatively - a piece can only ever be one
+        // or the other (see each service's own doc), but nothing stops mixing pieces from
+        // both sets across slots, so this stays correct (2x, 3x or 6x) either way.
+        armor.defenseMultiplier(e -> (minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0) * (mushroomArmor.bonusActive(e) ? 3.0 : 1.0));
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();
@@ -413,6 +419,7 @@ extends JavaPlugin {
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             reforgeService.applyArmorAttackSpeedModifiers((Player)p);
+            mushroomArmor.applyToInventory((Player)p);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
@@ -454,6 +461,7 @@ extends JavaPlugin {
             legendary.refreshStrengthLore((Player)p);
             legendary.refreshAttackSpeedLore((Player)p);
             reforgeService.applyArmorAttackSpeedModifiers((Player)p);
+            mushroomArmor.applyToInventory((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             general.applyBonusHealth((Player)p);
             skillsStar.ensure((Player)p);

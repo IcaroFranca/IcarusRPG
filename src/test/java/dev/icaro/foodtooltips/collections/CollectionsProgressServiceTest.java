@@ -53,7 +53,7 @@ final class CollectionsProgressServiceTest {
         // static structure this sums over (every catalog entry counted, not just Farming's)
         // without needing a Player, since achieved(entry, count) is already covered above.
         int farmingEntries = CollectionsCatalog.entries(CollectionsCategory.FARMING).size();
-        assertEquals(2, farmingEntries);
+        assertEquals(17, farmingEntries);
         for (var category : List.of(CollectionsCategory.COMBAT, CollectionsCategory.MINING,
                 CollectionsCategory.FORAGING, CollectionsCategory.FISHING)) {
             assertEquals(0, CollectionsCatalog.entries(category).size(), category + " should have no entries yet");

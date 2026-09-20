@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.collections;
 
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.bukkit.Material;
@@ -9,16 +10,20 @@ import org.bukkit.NamespacedKey;
 /**
  * Every collectible material's own milestone ladder, grouped by {@link CollectionsCategory} -
  * same "static final list, never built per-call" shape as {@code bestiary.BestiaryCatalog}/
- * {@code mining.MiningCatalog}. Only Farming (Cactus, Carrot) is populated today - the
- * player's own explicit "o resto vai passando com o tempo" ("the rest will come with time"):
- * Combat/Mining/Foraging/Fishing are real {@link CollectionsCategory} values already (so
- * {@link CollectionsMenuService}'s category screen never has to change shape once they're
- * filled in), they just have no entries yet.
+ * {@code mining.MiningCatalog}. Only Farming is populated today - the player's own explicit
+ * "o resto vai passando com o tempo" ("the rest will come with time"): Combat/Mining/
+ * Foraging/Fishing are real {@link CollectionsCategory} values already (so {@link
+ * CollectionsMenuService}'s category screen never has to change shape once they're filled
+ * in), they just have no entries yet.
  *
  * <p>The recipe keys below are this class's own - {@code
  * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService} registers its actual {@code
  * Bukkit.addRecipe} calls under these exact same keys, so a milestone's {@link
- * CollectionsMilestone#recipes} and the real registered recipe always agree on identity.
+ * CollectionsMilestone#recipes} and the real registered recipe always agree on identity. The
+ * two {@code MUSHROOM_BLOCK} keys are the exception - real *vanilla* recipe keys (Bukkit
+ * ships one already for each), gated here without this plugin ever registering a recipe of
+ * its own for them; see {@code collections.CollectionsRecipeGateListener}, which checks any
+ * {@code CraftingRecipe} regardless of who registered it, not just this plugin's own.
  */
 public final class CollectionsCatalog {
     public static final NamespacedKey CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "cactus_core");
@@ -27,6 +32,57 @@ public final class CollectionsCatalog {
     public static final NamespacedKey CACTUS_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "cactus_chestplate");
     public static final NamespacedKey CACTUS_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "cactus_leggings");
     public static final NamespacedKey CACTUS_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "cactus_boots");
+    public static final NamespacedKey CHOCOLATE_CORE_RECIPE = new NamespacedKey("foodtooltips", "chocolate_core");
+    public static final NamespacedKey CHOCOLATE_HELMET_RECIPE = new NamespacedKey("foodtooltips", "chocolate_helmet");
+    public static final NamespacedKey CHOCOLATE_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "chocolate_chestplate");
+    public static final NamespacedKey CHOCOLATE_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "chocolate_leggings");
+    public static final NamespacedKey CHOCOLATE_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "chocolate_boots");
+    public static final NamespacedKey FEATHER_CORE_RECIPE = new NamespacedKey("foodtooltips", "feather_core");
+    public static final NamespacedKey MUSHROOM_CORE_RECIPE = new NamespacedKey("foodtooltips", "mushroom_core");
+    public static final NamespacedKey MUSHROOM_HELMET_RECIPE = new NamespacedKey("foodtooltips", "mushroom_helmet");
+    public static final NamespacedKey MUSHROOM_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "mushroom_chestplate");
+    public static final NamespacedKey MUSHROOM_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "mushroom_leggings");
+    public static final NamespacedKey MUSHROOM_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "mushroom_boots");
+    /** Real vanilla recipe keys - see this class's own doc. */
+    public static final NamespacedKey RED_MUSHROOM_BLOCK_RECIPE = NamespacedKey.minecraft("red_mushroom_block");
+    public static final NamespacedKey BROWN_MUSHROOM_BLOCK_RECIPE = NamespacedKey.minecraft("brown_mushroom_block");
+
+    /**
+     * The threshold ladder every "no special reward decided yet" entry uses (the player's
+     * own words: "coloca uma progressão de Farming XP como recompensa até eu pensar em algo
+     * melhor") - same shape as Cactus's own table, since nothing else was specified. {@link
+     * #genericXp()}/{@link #genericXpWithOverrides} build a fresh 9-milestone list from this
+     * plus {@link #DEFAULT_XP}, so swapping any single tier for a real reward later (as
+     * already happened for Pumpkin/Wheat/Raw Rabbit's own enchant discounts below) never
+     * needs the threshold repeated by hand.
+     */
+    private static final int[] DEFAULT_THRESHOLDS = {100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000};
+    /** Placeholder Farming XP reward per tier, paired with {@link #DEFAULT_THRESHOLDS} - a plain increasing progression, explicitly provisional (see this class's own field doc). */
+    private static final int[] DEFAULT_XP = {1000, 2000, 3000, 4000, 5000, 7500, 10000, 25000, 50000};
+
+    private static List<CollectionsMilestone> genericXp() {
+        List<CollectionsMilestone> list = new ArrayList<>();
+        for (int i = 0; i < DEFAULT_THRESHOLDS.length; i++) {
+            int xp = DEFAULT_XP[i];
+            list.add(CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[i], xp,
+                    "+" + xp + " XP de Agricultura", "+" + xp + " Farming XP"));
+        }
+        return list;
+    }
+
+    /** {@link #genericXp()} with one or more tiers (0-indexed, i.e. index 0 is Milestone 1) replaced by a real reward - every "generic progression, but Milestone N unlocks X" entry below uses this instead of repeating the whole ladder by hand. */
+    @SafeVarargs
+    private static List<CollectionsMilestone> genericXpWithOverrides(java.util.Map.Entry<Integer, CollectionsMilestone>... overrides) {
+        List<CollectionsMilestone> list = genericXp();
+        for (var override : overrides) {
+            list.set(override.getKey(), override.getValue());
+        }
+        return list;
+    }
+
+    private static java.util.Map.Entry<Integer, CollectionsMilestone> at(int milestoneNumber, CollectionsMilestone milestone) {
+        return java.util.Map.entry(milestoneNumber - 1, milestone);
+    }
 
     private static final List<CollectionsEntry> ENTRIES = List.of(
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
@@ -62,7 +118,88 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.farmingXp(10000, 5000, "+5000 XP de Agricultura", "+5000 Farming XP"),
                     CollectionsMilestone.farmingXp(25000, 10000, "+10000 XP de Agricultura", "+10000 Farming XP"),
                     CollectionsMilestone.farmingXp(50000, 25000, "+25000 XP de Agricultura", "+25000 Farming XP"),
-                    CollectionsMilestone.farmingXp(100000, 50000, "+50000 XP de Agricultura", "+50000 Farming XP"))));
+                    CollectionsMilestone.farmingXp(100000, 50000, "+50000 XP de Agricultura", "+50000 Farming XP"))),
+            new CollectionsEntry(Material.COCOA, Material.COCOA_BEANS, CollectionsCategory.FARMING, "Cocoa Beans", "Cocoa Beans", List.of(
+                    new CollectionsMilestone(75, RewardKind.FARMING_XP, 1000, List.of(), null, 0.0,
+                            "+1000 XP de Agricultura", "+1000 Farming XP"),
+                    new CollectionsMilestone(200, RewardKind.FARMING_XP, 2000, List.of(), null, 0.0,
+                            "+2000 XP de Agricultura", "+2000 Farming XP"),
+                    new CollectionsMilestone(500, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.REPLENISH, 25.0,
+                            "-25% de custo em XP para Reabastecer", "-25% XP cost for Replenish"),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(CHOCOLATE_CORE_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do Chocolate Core", "Unlocks the Chocolate Core recipe"),
+                    new CollectionsMilestone(5000, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(CHOCOLATE_HELMET_RECIPE, CHOCOLATE_CHESTPLATE_RECIPE, CHOCOLATE_LEGGINGS_RECIPE, CHOCOLATE_BOOTS_RECIPE), null, 0.0,
+                            "Desbloqueia a receita da Chocolate Armor", "Unlocks the Chocolate Armor recipe"),
+                    new CollectionsMilestone(10000, RewardKind.FARMING_XP, 5000, List.of(), null, 0.0,
+                            "+5000 XP de Agricultura", "+5000 Farming XP"),
+                    new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
+                            "+10000 XP de Agricultura", "+10000 Farming XP"),
+                    new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
+                            "+25000 XP de Agricultura", "+25000 Farming XP"),
+                    new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
+                            "+50000 XP de Agricultura", "+50000 Farming XP"))),
+            new CollectionsEntry(Material.FEATHER, Material.FEATHER, CollectionsCategory.FARMING, "Pena", "Feather", List.of(
+                    new CollectionsMilestone(50, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.PROJECTILE_PROTECTION, 25.0,
+                            "-25% de custo em XP para Proteção contra Projétil", "-25% XP cost for Projectile Protection"),
+                    new CollectionsMilestone(100, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.FEATHER_FALLING, 25.0,
+                            "-25% de custo em XP para Queda de Pena", "-25% XP cost for Feather Falling"),
+                    new CollectionsMilestone(250, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.AIMING, 25.0,
+                            "-25% de custo em XP para Mira", "-25% XP cost for Aiming"),
+                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(FEATHER_CORE_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do Feather Core", "Unlocks the Feather Core recipe"),
+                    new CollectionsMilestone(2500, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.SNIPE, 25.0,
+                            "-25% de custo em XP para Tiro Longo", "-25% XP cost for Snipe"),
+                    new CollectionsMilestone(10000, RewardKind.FARMING_XP, 5000, List.of(), null, 0.0,
+                            "+5000 XP de Agricultura", "+5000 Farming XP"),
+                    new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
+                            "+10000 XP de Agricultura", "+10000 Farming XP"),
+                    new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
+                            "+25000 XP de Agricultura", "+25000 Farming XP"),
+                    new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
+                            "+50000 XP de Agricultura", "+50000 Farming XP"))),
+            new CollectionsEntry(Material.LEATHER, Material.LEATHER, CollectionsCategory.FARMING, "Couro", "Leather", genericXp()),
+            new CollectionsEntry(Material.MELON_SLICE, Material.MELON_SLICE, CollectionsCategory.FARMING, "Fatia de Melancia", "Melon Slice", genericXp()),
+            new CollectionsEntry(Material.RED_MUSHROOM, Material.RED_MUSHROOM, CollectionsCategory.FARMING, "Cogumelo", "Mushroom", List.of(
+                    new CollectionsMilestone(50, RewardKind.FARMING_XP, 1000, List.of(), null, 0.0,
+                            "+1000 XP de Agricultura", "+1000 Farming XP"),
+                    new CollectionsMilestone(100, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(MUSHROOM_HELMET_RECIPE, MUSHROOM_CHESTPLATE_RECIPE, MUSHROOM_LEGGINGS_RECIPE, MUSHROOM_BOOTS_RECIPE), null, 0.0,
+                            "Desbloqueia a receita da Mushroom Armor", "Unlocks the Mushroom Armor recipe"),
+                    new CollectionsMilestone(250, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(RED_MUSHROOM_BLOCK_RECIPE, BROWN_MUSHROOM_BLOCK_RECIPE), null, 0.0,
+                            "Desbloqueia as receitas dos Blocos de Cogumelo", "Unlocks the Mushroom Block recipes"),
+                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(MUSHROOM_CORE_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do Mushroom Core", "Unlocks the Mushroom Core recipe"),
+                    new CollectionsMilestone(2500, RewardKind.FARMING_XP, 2500, List.of(), null, 0.0,
+                            "+2500 XP de Agricultura", "+2500 Farming XP"),
+                    new CollectionsMilestone(10000, RewardKind.FARMING_XP, 5000, List.of(), null, 0.0,
+                            "+5000 XP de Agricultura", "+5000 Farming XP"),
+                    new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
+                            "+10000 XP de Agricultura", "+10000 Farming XP"),
+                    new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
+                            "+25000 XP de Agricultura", "+25000 Farming XP"),
+                    new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
+                            "+50000 XP de Agricultura", "+50000 Farming XP"))),
+            new CollectionsEntry(Material.MUTTON, Material.MUTTON, CollectionsCategory.FARMING, "Carneiro Cru", "Raw Mutton", genericXp()),
+            new CollectionsEntry(Material.NETHER_WART, Material.NETHER_WART, CollectionsCategory.FARMING, "Verruga do Nether", "Nether Wart", genericXp()),
+            new CollectionsEntry(Material.POTATOES, Material.POTATO, CollectionsCategory.FARMING, "Batata", "Potato", genericXp()),
+            new CollectionsEntry(Material.PUMPKIN, Material.PUMPKIN, CollectionsCategory.FARMING, "Abóbora", "Pumpkin", genericXpWithOverrides(
+                    at(3, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[2], IcarusEnchant.CUBISM, 25.0,
+                            "-25% de custo em XP para Cubismo", "-25% XP cost for Cubism")))),
+            new CollectionsEntry(Material.CHICKEN, Material.CHICKEN, CollectionsCategory.FARMING, "Frango Cru", "Raw Chicken", genericXp()),
+            new CollectionsEntry(Material.PORKCHOP, Material.PORKCHOP, CollectionsCategory.FARMING, "Porco Cru", "Raw Porkchop", genericXp()),
+            new CollectionsEntry(Material.RABBIT, Material.RABBIT, CollectionsCategory.FARMING, "Coelho Cru", "Raw Rabbit", genericXpWithOverrides(
+                    at(1, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[0], IcarusEnchant.LUCK, 25.0,
+                            "-25% de custo em XP para Sorte", "-25% XP cost for Luck")),
+                    at(2, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.LUCK_OF_THE_SEA, 25.0,
+                            "-25% de custo em XP para Sorte do Mar", "-25% XP cost for Luck of the Sea")))),
+            new CollectionsEntry(Material.WHEAT_SEEDS, Material.WHEAT_SEEDS, CollectionsCategory.FARMING, "Sementes", "Seeds", genericXp()),
+            new CollectionsEntry(Material.SUGAR_CANE, Material.SUGAR_CANE, CollectionsCategory.FARMING, "Cana-de-açúcar", "Sugar Cane", genericXp()),
+            new CollectionsEntry(Material.WHEAT, Material.WHEAT, CollectionsCategory.FARMING, "Trigo", "Wheat", genericXpWithOverrides(
+                    at(1, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[0], IcarusEnchant.HARVESTING, 25.0,
+                            "-25% de custo em XP para Colheita", "-25% XP cost for Harvesting")))));
 
     private CollectionsCatalog() {
     }
@@ -75,7 +212,17 @@ public final class CollectionsCatalog {
         return ENTRIES.stream().filter(e -> e.category() == category).toList();
     }
 
+    /**
+     * Matches either {@code material} (the block identity progress is stored under) or
+     * {@code drop} (the item a harvest hook actually reports) - {@link CollectionsService
+     * #record} is always called with whatever material the triggering event naturally
+     * hands it, which is the harvested item for a crop with a distinct block/drop pair
+     * (Carrot, Potato, Cocoa Beans - see {@code skills.GeneralSkillListener#cropDrop}), not
+     * the block. Only checking {@code material()} would silently drop every one of those
+     * entries' progress forever, since {@code find(CARROT)} would never match an entry
+     * keyed by {@code CARROTS}.
+     */
     public static Optional<CollectionsEntry> find(Material material) {
-        return ENTRIES.stream().filter(e -> e.material() == material).findFirst();
+        return ENTRIES.stream().filter(e -> e.material() == material || e.drop() == material).findFirst();
     }
 }

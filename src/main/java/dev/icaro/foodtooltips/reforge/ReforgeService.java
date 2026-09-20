@@ -484,7 +484,11 @@ public final class ReforgeService {
         }
         NamespacedKey healthKey = healthKeyFor(slot);
         this.removeModifier(meta, Attribute.MAX_HEALTH, healthKey);
-        if (stats.health() != 0) {
+        // Mushroom Armor bakes its own combined (base + this same reforge Health, tripled at
+        // night) modifier under its own key - see MushroomArmorService's own doc. Baking one
+        // here too would double-count this reforge's Health contribution the moment night
+        // tripling applies (this one always at 1x, MushroomArmorService's own copy at 3x).
+        if (stats.health() != 0 && !dev.icaro.foodtooltips.item.MushroomArmorService.isMushroomPiece(item)) {
             meta.addAttributeModifier(Attribute.MAX_HEALTH, new AttributeModifier(healthKey, stats.health(), AttributeModifier.Operation.ADD_NUMBER, slot));
         }
         NamespacedKey agilityKey = agilityKeyFor(slot);
