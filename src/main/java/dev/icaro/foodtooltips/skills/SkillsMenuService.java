@@ -56,6 +56,8 @@ public final class SkillsMenuService {
     private static final int QUIVER_SLOT = 33;
     /** The MAIN screen's Wardrobe button, per the player's own spec - see {@link WardrobeService}. */
     private static final int WARDROBE_SLOT = 34;
+    /** The MAIN screen's Potion Bag button, per the player's own spec - see {@link PotionBagService}. */
+    private static final int POTION_BAG_SLOT = 28;
     /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
     private static final int PASSIVE_ABILITIES_SLOT = 29;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
@@ -93,6 +95,7 @@ public final class SkillsMenuService {
     private EnchantMenuService enchantMenu;
     private QuiverService quiver;
     private WardrobeService wardrobe;
+    private PotionBagService potionBag;
     private PassiveAbilityMenuService passiveAbilities;
     private RecipeBookMenuService recipeBook;
     private ReforgeService reforge;
@@ -145,6 +148,10 @@ public final class SkillsMenuService {
 
     public void wardrobe(WardrobeService wardrobe) {
         this.wardrobe = wardrobe;
+    }
+
+    public void potionBag(PotionBagService potionBag) {
+        this.potionBag = potionBag;
     }
 
     public void passiveAbilities(PassiveAbilityMenuService passiveAbilities) {
@@ -241,6 +248,17 @@ public final class SkillsMenuService {
             wardrobeLore.add(this.text(this.wardrobe.columns(p) + "/" + WardrobeService.COLUMNS + " " + l.choose("colunas", "columns"), NamedTextColor.GOLD));
             wardrobeLore.add(this.click(l));
             v.setItem(WARDROBE_SLOT, this.wardrobeIcon(wardrobeLore));
+        }
+        if (this.potionBag != null && this.potionBag.unlocked(p)) {
+            List<Component> potionBagLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Guarde poções, garrafas de XP e garrafas d'água separadamente do seu inventário.",
+                    "Store potions, XP bottles and water bottles separately from your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+                potionBagLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            potionBagLore.add(this.text(this.potionBag.storageSize(p) + "/" + PotionBagService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
+            potionBagLore.add(this.click(l));
+            v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -412,6 +430,9 @@ public final class SkillsMenuService {
                 } else if (slot == WARDROBE_SLOT && this.wardrobe != null && this.wardrobe.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.wardrobe.open(p);
+                } else if (slot == POTION_BAG_SLOT && this.potionBag != null && this.potionBag.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.potionBag.open(p);
                 } else if (slot == PASSIVE_ABILITIES_SLOT && this.passiveAbilities != null) {
                     this.views.remove(p.getUniqueId());
                     this.passiveAbilities.open(p);
