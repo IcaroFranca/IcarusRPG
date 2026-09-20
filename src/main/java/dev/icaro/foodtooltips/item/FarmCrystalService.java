@@ -62,7 +62,7 @@ import org.bukkit.plugin.Plugin;
 public final class FarmCrystalService implements Listener {
     private static final NamespacedKey CRYSTAL_KEY = new NamespacedKey("foodtooltips", "farm_crystal");
     private static final UUID ITEM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:farm_crystal".getBytes(StandardCharsets.UTF_8));
-    private static final int PULSE_TICKS = 100;
+    private static final int PULSE_TICKS = 400;
     /** How often {@link #spin} nudges every tracked stand's own yaw - fast enough to read as continuous rotation without a task running every single tick. */
     private static final int SPIN_TICKS = 2;
     private static final float SPIN_DEGREES_PER_STEP = 6.0f;
