@@ -182,7 +182,7 @@ public final class CollectionsCatalog {
             // Wardrobe unlock/expansion milestones carry no recipes (a feature unlock, not a
             // craftable item) - see skills.WardrobeService for the actual mechanic.
             new CollectionsEntry(Material.LEATHER, Material.LEATHER, CollectionsCategory.FARMING, "Couro", "Leather", genericXpWithOverrides(
-                    at(1, new CollectionsMilestone(DEFAULT_THRESHOLDS[0], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                    at(1, new CollectionsMilestone(25, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o Wardrobe (3 colunas)", "Unlocks the Wardrobe (3 columns)")),
                     at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Wardrobe: +2 colunas (5 no total)", "Wardrobe: +2 columns (5 total)")),

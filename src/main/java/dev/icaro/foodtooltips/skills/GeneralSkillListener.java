@@ -19,6 +19,7 @@ import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -159,10 +160,12 @@ implements Listener {
 
     /**
      * Passive-mob Collections tracking (Feather/Leather/Raw Mutton/Raw Chicken/Raw
-     * Porkchop/Raw Rabbit) - same "1 per event, not the real Looting-adjusted drop count"
-     * simplification every harvest hook in {@link #broken} already uses. MONITOR, same
-     * tier {@code CombatListener#death} runs its own Bestiary/Combat-XP handling at, so
-     * this never races anything there that might still cancel the event first.
+     * Porkchop/Raw Rabbit) - credits the real amount that dropped ({@link
+     * EntityDeathEvent#getDrops()}, already Looting-adjusted by the time this fires), not a
+     * flat "1 per kill" - same "count what was actually obtained" reasoning {@link #drops}
+     * already applies to every harvest. MONITOR, same tier {@code CombatListener#death} runs
+     * its own Bestiary/Combat-XP handling at, so this never races anything there that might
+     * still cancel the event first.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void animalDrop(EntityDeathEvent e) {
@@ -170,17 +173,25 @@ implements Listener {
         if (p == null) {
             return;
         }
-        switch (e.getEntity().getType()) {
-            case EntityType.CHICKEN -> {
-                this.applyCollections(p, Material.FEATHER, 1);
-                this.applyCollections(p, Material.CHICKEN, 1);
+        Set<Material> tracked = switch (e.getEntity().getType()) {
+            case EntityType.CHICKEN -> EnumSet.of(Material.FEATHER, Material.CHICKEN);
+            case EntityType.COW, EntityType.MOOSHROOM -> EnumSet.of(Material.LEATHER);
+            case EntityType.SHEEP -> EnumSet.of(Material.MUTTON);
+            case EntityType.PIG -> EnumSet.of(Material.PORKCHOP);
+            case EntityType.RABBIT -> EnumSet.of(Material.RABBIT);
+            default -> null;
+        };
+        if (tracked == null) {
+            return;
+        }
+        Map<Material, Integer> amounts = new HashMap<>();
+        for (ItemStack drop : e.getDrops()) {
+            if (tracked.contains(drop.getType())) {
+                amounts.merge(drop.getType(), drop.getAmount(), Integer::sum);
             }
-            case EntityType.COW, EntityType.MOOSHROOM -> this.applyCollections(p, Material.LEATHER, 1);
-            case EntityType.SHEEP -> this.applyCollections(p, Material.MUTTON, 1);
-            case EntityType.PIG -> this.applyCollections(p, Material.PORKCHOP, 1);
-            case EntityType.RABBIT -> this.applyCollections(p, Material.RABBIT, 1);
-            default -> {
-            }
+        }
+        for (Map.Entry<Material, Integer> entry : amounts.entrySet()) {
+            this.applyCollections(p, entry.getKey(), entry.getValue());
         }
     }
 
