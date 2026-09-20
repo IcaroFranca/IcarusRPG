@@ -335,6 +335,16 @@ implements Listener {
             // credit time - see its own doc) rather than always RED_MUSHROOM here, since
             // that's what actually has to match the real dropped item's Material.
             this.track(k, new Target(SkillType.FARMING, m), p);
+        } else if ((m == Material.BROWN_MUSHROOM_BLOCK || m == Material.RED_MUSHROOM_BLOCK)
+                && p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
+            // A huge mushroom block only counts towards Mushroom Collections with Silk
+            // Touch (otherwise it just breaks into its usual 0-2 loot-table Red/Brown
+            // Mushroom items, already covered by the branch just above) - it drops the
+            // block itself, not a Red/Brown Mushroom item, so this can't flow through
+            // #track/#drops like every other Farming Collections source and is credited
+            // directly instead. Both colors fold into the same RED_MUSHROOM catalog
+            // entry (see the branch just above), 9 per block.
+            this.applyCollections(p, Material.RED_MUSHROOM, 9);
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
