@@ -308,16 +308,18 @@ implements Listener {
             //
             // Breaking a cane segment also knocks off every segment stacked on top of it
             // (cane can't float unsupported) - vanilla just drops those as a physics side
-            // effect with no BlockBreakEvent of their own, so without this they'd give no
-            // XP at all. Counted here (while they're still real blocks, right before this
-            // break resolves) and folded into one gain call. Collections crediting for the
-            // directly-broken segment itself happens in #drops instead (so Fortune's own
-            // copies multiplier applies to it too) - the cascaded segments above are NOT
-            // separately counted there (only #drops's own item list, which never includes
-            // them - see its own doc), so Collections slightly undercounts a tall cane
-            // harvest the same documented way Melon Slice's own Silk Touch yield does.
+            // effect with no BlockBreakEvent (or BlockDropItemEvent) of their own, so
+            // without this they'd give no XP, no Collections credit, and - the player's
+            // own bug report - no Telekinesis pickup either, since #drops (where
+            // Telekinesis' own sweep lives) never fires for them at all. XP is counted
+            // here (while they're still real blocks, right before this break resolves)
+            // and folded into one gain call; #harvestCaneSegmentsAbove removes them
+            // itself and routes their drop through the same give-or-drop-naturally
+            // (Telekinesis-aware) path #drops uses, plus its own Collections credit -
+            // closing the gap this comment used to document as an accepted undercount.
             this.gain(p, SkillType.FARMING, this.cropXp(m) * (1 + this.caneSegmentsAbove(e.getBlock())));
             this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
+            this.harvestCaneSegmentsAbove(e.getBlock(), p);
         } else if (m == Material.PUMPKIN) {
             // Not Ageable itself (only its stem is) - a mature stem spawns this block as a
             // one-off world event, never through a player-fired BlockPlaceEvent, so it's
@@ -755,6 +757,15 @@ implements Listener {
                 || m == Material.ATTACHED_PUMPKIN_STEM || m == Material.ATTACHED_MELON_STEM) {
             return true;
         }
+        // Sugar cane's own BlockData is ALSO an Ageable (see the #broken SUGAR_CANE
+        // branch's own doc on why that age is a growth-tick counter, not a maturity
+        // gate) - without this explicit exclusion, the generic Ageable check just below
+        // would wrongly catch it too (its age sits below max most of the time), letting
+        // Delicate block breaking cane almost every time despite this method's own doc
+        // always having said it doesn't cover cane at all.
+        if (m == Material.SUGAR_CANE) {
+            return false;
+        }
         BlockData blockData = block.getBlockData();
         return blockData instanceof Ageable a && a.getAge() < a.getMaximumAge();
     }
@@ -854,6 +865,38 @@ implements Listener {
             above = above.getRelative(0, 1, 0);
         }
         return count;
+    }
+
+    /**
+     * Removes every SUGAR_CANE block stacked above {@code base} (itself already handled
+     * by the caller) directly, before vanilla's own physics update gets a chance to -
+     * that physics-triggered collapse never fires a {@link BlockDropItemEvent} (only a
+     * genuine player break does), which is exactly why {@link #drops}'s own Telekinesis
+     * sweep and Farming Collections credit used to silently skip these segments. Their
+     * combined drop goes through the same give-or-drop-naturally path {@link #give}/
+     * {@link #drops}'s own Telekinesis branch already uses, then gets its own Collections
+     * credit directly (real dropped amount, same reasoning as every other harvest here).
+     */
+    private void harvestCaneSegmentsAbove(Block base, Player p) {
+        Block current = base.getRelative(0, 1, 0);
+        int total = 0;
+        while (current.getType() == Material.SUGAR_CANE) {
+            Block next = current.getRelative(0, 1, 0);
+            current.setType(Material.AIR);
+            total++;
+            current = next;
+        }
+        if (total <= 0) {
+            return;
+        }
+        ItemStack drop = new ItemStack(Material.SUGAR_CANE, total);
+        boolean telekinesis = this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_BLOCK_DROPS);
+        if (telekinesis) {
+            this.give(p, drop);
+        } else {
+            base.getWorld().dropItemNaturally(base.getLocation(), drop);
+        }
+        this.applyCollections(p, Material.SUGAR_CANE, total);
     }
 
     private String key(Location l) {

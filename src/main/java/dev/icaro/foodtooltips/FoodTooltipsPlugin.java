@@ -38,6 +38,9 @@ import dev.icaro.foodtooltips.enchant.AnvilMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantMenuService;
 import dev.icaro.foodtooltips.enchant.EnchantMilestoneService;
+import dev.icaro.foodtooltips.potion.PotionMilestoneService;
+import dev.icaro.foodtooltips.potion.PotionGuideMenuService;
+import dev.icaro.foodtooltips.potion.PotionGuideMenuListener;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuListener;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuService;
@@ -254,6 +257,10 @@ extends JavaPlugin {
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
         menus.enchantMenu(enchantMenu);
         enchantMenu.collections(collectionsService);
+        PotionMilestoneService potionMilestones = new PotionMilestoneService();
+        PotionGuideMenuService potionGuide = new PotionGuideMenuService(global, potionMilestones,
+                (p) -> menus.openGeneral((Player)p, SkillType.ALCHEMY, 0));
+        menus.potionGuide(potionGuide);
         GrindstoneMenuService grindstoneMenu = new GrindstoneMenuService((Plugin)this, enchants);
         AnvilMenuService anvilMenu = new AnvilMenuService((Plugin)this, enchants);
         ReforgeMenuService reforgeMenu = new ReforgeMenuService((Plugin)this, reforgeService);
@@ -278,6 +285,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new RecipeBookListener(recipeBook), (Plugin)this);
         pm.registerEvents((Listener)new TrashMenuListener(trashMenu), (Plugin)this);
         pm.registerEvents((Listener)new EnchantMenuListener(enchantMenu, (Plugin)this), (Plugin)this);
+        pm.registerEvents((Listener)new PotionGuideMenuListener(potionGuide), (Plugin)this);
         pm.registerEvents((Listener)new GrindstoneMenuListener(grindstoneMenu), (Plugin)this);
         pm.registerEvents((Listener)new AnvilMenuListener(anvilMenu), (Plugin)this);
         if (pm.getPlugin("Citizens") != null) {

@@ -42,9 +42,8 @@ import org.bukkit.inventory.meta.SkullMeta;
 public final class CraftingMenuService {
     /** Row-major (matches {@link Bukkit#craftItem}'s [0 1 2 / 3 4 5 / 6 7 8] order) slots of the 3x3 grid, centered in the 54-slot menu. */
     public static final int[] MATRIX_SLOTS = {11, 12, 13, 20, 21, 22, 29, 30, 31};
-    public static final int OUTPUT_SLOT = 25;
-    public static final int BACK_SLOT = 45;
-    private static final int ARROW_SLOT = 24;
+    public static final int OUTPUT_SLOT = 24;
+    public static final int BACK_SLOT = 49;
     private static final int[] VISIBLE_WORK_SLOTS = {11, 12, 13, 20, 21, 22, 29, 30, 31, OUTPUT_SLOT};
 
     private final Consumer<Player> back;
@@ -64,7 +63,6 @@ public final class CraftingMenuService {
         for (int slot : MATRIX_SLOTS) {
             v.setItem(slot, null);
         }
-        v.setItem(ARROW_SLOT, this.item(Material.ARROW, l.choose("Resultado", "Result"), List.of()));
         v.setItem(OUTPUT_SLOT, null);
         v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         p.openInventory(v);
@@ -152,6 +150,27 @@ public final class CraftingMenuService {
             v.setItem(slot, item.getAmount() <= 0 ? null : item);
         }
         this.recompute(p);
+    }
+
+    /**
+     * Shift-click on the output slot: repeats {@link #takeOutput} (one real craft each
+     * time, ingredients included) until the grid can't produce the recipe anymore -
+     * same "craft the whole stack at once" behavior a real vanilla crafting table's
+     * result slot gives a shift-click, which this screen's own plain click didn't
+     * reproduce before (it only ever did one craft, shift or not). Terminates on its
+     * own: each pass consumes at least one ingredient, so the grid's own finite stacks
+     * guarantee the output eventually goes empty.
+     */
+    public void craftAll(Player p) {
+        Inventory v = p.getOpenInventory().getTopInventory();
+        if (!this.viewing(p) || v.getSize() != 54) {
+            return;
+        }
+        ItemStack result = v.getItem(OUTPUT_SLOT);
+        while (result != null && !result.isEmpty()) {
+            this.takeOutput(p);
+            result = v.getItem(OUTPUT_SLOT);
+        }
     }
 
     /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */

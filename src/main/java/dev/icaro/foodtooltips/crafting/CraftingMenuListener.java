@@ -45,7 +45,11 @@ public final class CraftingMenuListener implements Listener {
         }
         if (raw == CraftingMenuService.OUTPUT_SLOT) {
             e.setCancelled(true);
-            this.menu.takeOutput(p);
+            if (e.isShiftClick()) {
+                this.menu.craftAll(p);
+            } else {
+                this.menu.takeOutput(p);
+            }
             return;
         }
         if (this.isMatrixSlot(raw)) {

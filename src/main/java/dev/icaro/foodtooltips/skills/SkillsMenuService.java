@@ -93,6 +93,7 @@ public final class SkillsMenuService {
     private CraftingMenuService crafting;
     private TrashMenuService trash;
     private EnchantMenuService enchantMenu;
+    private dev.icaro.foodtooltips.potion.PotionGuideMenuService potionGuide;
     private QuiverService quiver;
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
@@ -140,6 +141,10 @@ public final class SkillsMenuService {
 
     public void enchantMenu(EnchantMenuService enchantMenu) {
         this.enchantMenu = enchantMenu;
+    }
+
+    public void potionGuide(dev.icaro.foodtooltips.potion.PotionGuideMenuService potionGuide) {
+        this.potionGuide = potionGuide;
     }
 
     public void quiver(QuiverService quiver) {
@@ -328,6 +333,11 @@ public final class SkillsMenuService {
             }
             v.setItem(39, this.item(Material.ENCHANTED_BOOK, l.choose("Milestones de Encantamento", "Enchantment Milestones"), milestonesLore));
             v.setItem(41, this.item(Material.BOOK, l.choose("Guia de Encantamentos", "Enchantment Guide"), List.of(this.text(l.choose("Veja todos os encantamentos disponíveis.", "See every enchantment available."), NamedTextColor.YELLOW))));
+        } else if (t == SkillType.ALCHEMY && this.potionGuide != null) {
+            v.setItem(39, this.item(Material.BREWING_STAND, l.choose("Milestones de Poção", "Potion Milestones"),
+                    List.of(this.text(l.choose("Quais poções você já preparou.", "Which potions you've already brewed."), NamedTextColor.YELLOW))));
+            v.setItem(41, this.item(Material.BOOK, l.choose("Guia de Poções", "Potion Guide"),
+                    List.of(this.text(l.choose("Veja como preparar cada poção do jogo.", "See how to brew every potion in the game."), NamedTextColor.YELLOW))));
         }
         this.nav(v, l, page, this.general.maxLevel());
         this.open(p, v, new View(Type.GENERAL, page, t));
@@ -498,6 +508,12 @@ public final class SkillsMenuService {
                 } else if (slot == 39 && v.skill() == SkillType.ENCHANTING && this.enchantMenu != null) {
                     this.views.remove(p.getUniqueId());
                     this.enchantMenu.openMilestoneCategories(p);
+                } else if (slot == 41 && v.skill() == SkillType.ALCHEMY && this.potionGuide != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.potionGuide.openGuide(p, 0);
+                } else if (slot == 39 && v.skill() == SkillType.ALCHEMY && this.potionGuide != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.potionGuide.openMilestones(p, 0);
                 } else if (slot == 48 && v.page() > 0) {
                     this.openGeneral(p, v.skill(), v.page() - 1);
                 } else if (slot == 50) {
