@@ -15,7 +15,10 @@ import org.bukkit.event.player.PlayerQuitEvent;
  * unlocked column always triggers {@link WardrobeService#select} instead of letting an item
  * be placed there, and an unlocked armor-row cell behaves like plain chest storage (see
  * {@link WardrobeService}'s own doc on why no item-type filter applies here, unlike {@code
- * QuiverListener}'s arrow-only sweep).
+ * QuiverListener}'s arrow-only sweep) - EXCEPT the currently-equipped column's own armor-row
+ * cells ({@link WardrobeService#isLockedActiveSlot}), which stay locked against every
+ * interaction the whole time that column is worn, so the master copy backing what's on the
+ * player's body can never be pulled out for a free duplicate.
  */
 public final class WardrobeListener implements Listener {
     private final WardrobeService wardrobe;
@@ -47,7 +50,7 @@ public final class WardrobeListener implements Listener {
             this.wardrobe.select(p, raw % 9);
             return;
         }
-        if (!this.wardrobe.isUsableSlot(p, raw)) {
+        if (!this.wardrobe.isUsableSlot(p, raw) || this.wardrobe.isLockedActiveSlot(p, raw)) {
             e.setCancelled(true);
         }
     }
@@ -59,7 +62,7 @@ public final class WardrobeListener implements Listener {
         }
         int topSize = e.getView().getTopInventory().getSize();
         boolean touchesRestrictedSlot = e.getRawSlots().stream().anyMatch(slot ->
-                slot < topSize && (!this.wardrobe.isUsableSlot(p, slot) || WardrobeService.isSelectorSlot(slot)));
+                slot < topSize && (!this.wardrobe.isUsableSlot(p, slot) || WardrobeService.isSelectorSlot(slot) || this.wardrobe.isLockedActiveSlot(p, slot)));
         if (touchesRestrictedSlot) {
             e.setCancelled(true);
         }

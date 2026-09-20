@@ -38,8 +38,13 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * Collections entry (M1: 3 columns; M3/M5/M7: +2 each, up to 9 - see {@code
  * CollectionsCatalog}'s own Leather entry), opened from the Skills star menu's own slot 34.
  * Five fixed rows, exactly the player's own spec ("não haverá sexta fileira"): helmets,
- * chestplates, leggings, boots, then a selector row whose {@code column}-th button swaps the
- * player's currently worn armor with that column's own stored set in one click.
+ * chestplates, leggings, boots, then a selector row whose {@code column}-th button equips
+ * that column's own stored set onto the player in one click ({@link #select}) - the column
+ * keeps showing that same set the whole time it's worn (a clone goes on the player, not the
+ * stored item itself), so switching sets back and forth never loses anything, and its own
+ * armor-row cells lock against removal while active ({@link #isLockedActiveSlot}) so the
+ * stored master can never be pulled out alongside the identical worn copy for a free
+ * duplicate.
  *
  * <p>Persisted exactly like {@code QuiverService} (same {@code BukkitObjectOutputStream}-over-
  * {@code ItemStack[]} Base64 trick in the player's own PDC) - a full {@value #COLUMNS}-wide,
@@ -68,8 +73,11 @@ public final class WardrobeService {
     private final Plugin plugin;
     private final CollectionsProgressService collectionsProgress;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "wardrobe_contents");
+    private final NamespacedKey activeColumnKey = new NamespacedKey("foodtooltips", "wardrobe_active_column");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
+    /** Which column {@code p} is currently wearing (equipped via {@link #select}), if any - absent for a player wearing gear the Wardrobe never sourced. Loaded from {@link #activeColumnKey} the same lazy way {@link #inventoryFor} loads {@link #contentsKey}. See {@link #select}'s own doc on why the active column's storage is never actually emptied, and {@link #isLockedActiveSlot} on why that means it must stay locked. */
+    private final Map<UUID, Integer> active = new HashMap<>();
 
     public WardrobeService(Plugin plugin, CollectionsProgressService collectionsProgress) {
         this.plugin = plugin;
@@ -113,6 +121,26 @@ public final class WardrobeService {
         return slot / 9 == SELECTOR_ROW;
     }
 
+    /**
+     * Whether {@code slot} is an armor-row cell belonging to the column {@code p} currently
+     * has equipped ({@link #select}) - locked against every inventory interaction (see {@code
+     * WardrobeListener}) while active, since {@link #select} never actually removes that
+     * column's own items from storage when equipping (it clones them onto the player instead,
+     * precisely so the set "stays represented" there for a quick re-equip) - letting a player
+     * also pull the real stored copy out while wearing an identical worn copy would be a free
+     * duplicate.
+     */
+    public boolean isLockedActiveSlot(Player p, int slot) {
+        if (isSelectorSlot(slot) || isBackSlot(slot)) {
+            return false;
+        }
+        Integer activeColumn = this.active.get(p.getUniqueId());
+        if (activeColumn == null) {
+            return false;
+        }
+        return slot % 9 == activeColumn;
+    }
+
     public void open(Player p) {
         Inventory inv = this.inventoryFor(p);
         this.render(p, inv);
@@ -134,6 +162,7 @@ public final class WardrobeService {
         this.viewing.remove(p.getUniqueId());
         this.persist(p);
         this.cache.remove(p.getUniqueId());
+        this.active.remove(p.getUniqueId());
     }
 
     public void back(Player p) {
@@ -152,41 +181,73 @@ public final class WardrobeService {
     }
 
     /**
-     * Swaps {@code p}'s currently worn helmet/chestplate/leggings/boots with whatever
-     * {@code column} has stored (each slot independently - an empty stored slot simply
-     * unequips that piece, an empty worn slot simply leaves the stored one behind empty),
-     * then redraws the board so the swap is immediately visible. No-op for a locked column.
+     * Equips {@code column}'s stored helmet/chestplate/leggings/boots onto {@code p} (each
+     * slot independently - an empty stored slot simply unequips that piece) and marks
+     * {@code column} as the currently active one, then redraws the board. Unlike this
+     * method's own first version, the stored items are CLONED onto the player rather than
+     * moved - {@code column}'s own storage keeps holding them (see {@link #isLockedActiveSlot},
+     * which locks those cells against removal the instant this makes them active), so the set
+     * "stays represented" there for an instant, lossless re-equip later, exactly the player's
+     * own spec ("continuar representado lá... para deixar a troca mais dinâmica").
+     *
+     * <p>Whatever {@code p} was wearing before this call needs nowhere to go if it came from
+     * another Wardrobe column (its own storage was never emptied either, by this same rule -
+     * the worn copy was only ever a clone, safe to just discard/overwrite here); it's only
+     * given back to {@code p}'s own inventory (never silently lost) when nothing was
+     * previously active, meaning the current gear isn't backed by any column's own storage at
+     * all. No-op for a locked column.
      */
     public void select(Player p, int column) {
         if (column < 0 || column >= this.columns(p)) {
             return;
         }
         Inventory inv = this.inventoryFor(p);
-        ItemStack storedHelmet = inv.getItem(HELMET_ROW * 9 + column);
-        ItemStack storedChest = inv.getItem(CHESTPLATE_ROW * 9 + column);
-        ItemStack storedLegs = inv.getItem(LEGGINGS_ROW * 9 + column);
-        ItemStack storedBoots = inv.getItem(BOOTS_ROW * 9 + column);
+        UUID id = p.getUniqueId();
         PlayerInventory pinv = p.getInventory();
-        ItemStack wornHelmet = pinv.getHelmet();
-        ItemStack wornChest = pinv.getChestplate();
-        ItemStack wornLegs = pinv.getLeggings();
-        ItemStack wornBoots = pinv.getBoots();
-        inv.setItem(HELMET_ROW * 9 + column, wornHelmet);
-        inv.setItem(CHESTPLATE_ROW * 9 + column, wornChest);
-        inv.setItem(LEGGINGS_ROW * 9 + column, wornLegs);
-        inv.setItem(BOOTS_ROW * 9 + column, wornBoots);
-        pinv.setHelmet(storedHelmet);
-        pinv.setChestplate(storedChest);
-        pinv.setLeggings(storedLegs);
-        pinv.setBoots(storedBoots);
+        if (this.active.get(id) == null) {
+            this.giveBack(p, pinv.getHelmet());
+            this.giveBack(p, pinv.getChestplate());
+            this.giveBack(p, pinv.getLeggings());
+            this.giveBack(p, pinv.getBoots());
+        }
+        pinv.setHelmet(this.cloneOrNull(inv.getItem(HELMET_ROW * 9 + column)));
+        pinv.setChestplate(this.cloneOrNull(inv.getItem(CHESTPLATE_ROW * 9 + column)));
+        pinv.setLeggings(this.cloneOrNull(inv.getItem(LEGGINGS_ROW * 9 + column)));
+        pinv.setBoots(this.cloneOrNull(inv.getItem(BOOTS_ROW * 9 + column)));
+        this.active.put(id, column);
+        this.persistActive(p);
         this.render(p, inv);
         p.updateInventory();
     }
 
-    /** Rebuilds every locked-column filler cell and the selector row's own preview icons from {@code inv}'s current (already-swapped) contents - never touches an unlocked armor-row cell's real item. */
+    private ItemStack cloneOrNull(ItemStack item) {
+        return item == null || item.isEmpty() ? null : item.clone();
+    }
+
+    /** Adds {@code item} straight to {@code p}'s own inventory (dropping naturally at their feet only whatever doesn't fit) - the same "give, don't ever discard" rule {@code GeneralSkillListener#give} already applies to Telekinesis' own block drops, used here so gear {@link #select} takes off never just vanishes. */
+    private void giveBack(Player p, ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return;
+        }
+        for (ItemStack overflow : p.getInventory().addItem(item).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+        }
+    }
+
+    private void persistActive(Player p) {
+        Integer column = this.active.get(p.getUniqueId());
+        if (column == null) {
+            p.getPersistentDataContainer().remove(this.activeColumnKey);
+        } else {
+            p.getPersistentDataContainer().set(this.activeColumnKey, PersistentDataType.INTEGER, column);
+        }
+    }
+
+    /** Rebuilds every locked-column filler cell and the selector row's own preview icons from {@code inv}'s current (real, undisturbed - see {@link #select}) contents - never touches an unlocked armor-row cell's real item. */
     private void render(Player p, Inventory inv) {
         Language l = Language.of(p);
         int columns = this.columns(p);
+        Integer activeColumn = this.active.get(p.getUniqueId());
         for (int row = 0; row <= SELECTOR_ROW; row++) {
             for (int column = 0; column < COLUMNS; column++) {
                 int slot = row * 9 + column;
@@ -198,7 +259,7 @@ public final class WardrobeService {
                     continue;
                 }
                 if (row == SELECTOR_ROW) {
-                    inv.setItem(slot, this.selectorIcon(inv, column, l));
+                    inv.setItem(slot, this.selectorIcon(inv, column, l, activeColumn != null && activeColumn == column));
                 }
             }
         }
@@ -207,12 +268,15 @@ public final class WardrobeService {
         }
     }
 
-    private ItemStack selectorIcon(Inventory inv, int column, Language l) {
+    private ItemStack selectorIcon(Inventory inv, int column, Language l, boolean active) {
         ItemStack helmet = inv.getItem(HELMET_ROW * 9 + column);
         ItemStack base = helmet != null && !helmet.isEmpty() ? helmet.clone() : new ItemStack(Material.ARMOR_STAND);
         ItemMeta meta = base.getItemMeta();
-        meta.displayName(Component.text(l.choose("Set ", "Set ") + (column + 1), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text(l.choose("Set ", "Set ") + (column + 1), active ? NamedTextColor.GREEN : NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         List<Component> lore = new ArrayList<>();
+        if (active) {
+            lore.add(Component.text(l.choose("Atualmente equipado!", "Currently equipped!"), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        }
         lore.add(Component.text(l.choose("Clique para equipar este set!", "Click to equip this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         base.setItemMeta(meta);
@@ -267,6 +331,10 @@ public final class WardrobeService {
                 for (int i = 0; i < limit; i++) {
                     inv.setItem(i, saved[i]);
                 }
+            }
+            Integer storedActive = p.getPersistentDataContainer().get(this.activeColumnKey, PersistentDataType.INTEGER);
+            if (storedActive != null) {
+                this.active.put(id, storedActive);
             }
             return inv;
         });
