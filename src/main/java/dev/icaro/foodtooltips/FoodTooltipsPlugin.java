@@ -3,6 +3,8 @@ package dev.icaro.foodtooltips;
 import dev.icaro.foodtooltips.bestiary.BestiaryListener;
 import dev.icaro.foodtooltips.bestiary.BestiaryMenuService;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.collections.CollectionsItemsMenuListener;
+import dev.icaro.foodtooltips.collections.CollectionsItemsMenuService;
 import dev.icaro.foodtooltips.collections.CollectionsListener;
 import dev.icaro.foodtooltips.collections.CollectionsMenuService;
 import dev.icaro.foodtooltips.collections.CollectionsProgressService;
@@ -228,6 +230,8 @@ extends JavaPlugin {
         legendaryItemsMenu.lapisArmor(lapisArmor::createArmorSet);
         legendaryItemsMenu.grandBottle(lapisExperience::grandBottleGift);
         legendaryItemsMenu.titanicBottle(lapisExperience::titanicBottleGift);
+        CollectionsItemsMenuService collectionsItemsMenu = new CollectionsItemsMenuService(legendaryItemsMenu::open);
+        legendaryItemsMenu.collectionsItems(p -> collectionsItemsMenu.open(p, 0));
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
@@ -298,6 +302,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)minerVariants, (Plugin)this);
         pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
+        pm.registerEvents((Listener)new CollectionsItemsMenuListener(collectionsItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
         pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);

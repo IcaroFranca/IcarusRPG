@@ -49,6 +49,8 @@ public final class LegendaryItemsMenuService {
     private static final int GRAND_BOTTLE_SLOT = 20;
     /** Flanking {@link #LAPIS_ARMOR_SLOT} on the same row - see {@link #titanicBottle}. */
     private static final int TITANIC_BOTTLE_SLOT = 24;
+    /** Opens {@code collections.CollectionsItemsMenuService} instead of handing over an item directly, per the player's own "TODOS os itens pegáveis pelo /rpgitems" spec - a separate paginated screen since the number of Collections-unlockable items keeps growing (see that class's own doc). */
+    private static final int COLLECTIONS_ITEMS_SLOT = 40;
 
     private final LegendaryWeaponService weapons;
     private final Set<UUID> viewing = new HashSet<>();
@@ -60,6 +62,8 @@ public final class LegendaryItemsMenuService {
     private Function<Player, List<ItemStack>> grandBottle = p -> List.of();
     /** {@code LapisExperienceService::titanicBottleGift} - see {@link #TITANIC_BOTTLE_SLOT}. */
     private Function<Player, List<ItemStack>> titanicBottle = p -> List.of();
+    /** {@code CollectionsItemsMenuService::open} - see {@link #COLLECTIONS_ITEMS_SLOT}. Defaults to a no-op so the tile never fails if this is somehow never wired. */
+    private java.util.function.Consumer<Player> collectionsItems = p -> {};
 
     public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
         this.weapons = weapons;
@@ -85,6 +89,11 @@ public final class LegendaryItemsMenuService {
         this.titanicBottle = titanicBottle;
     }
 
+    /** Wired in after construction - see {@link #collectionsItems}. */
+    public void collectionsItems(java.util.function.Consumer<Player> collectionsItems) {
+        this.collectionsItems = collectionsItems;
+    }
+
     public void open(Player p) {
         Language l = Language.of(p);
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Itens Lendários", "Legendary Items"));
@@ -99,6 +108,7 @@ public final class LegendaryItemsMenuService {
         v.setItem(LAPIS_ARMOR_SLOT, this.armorSetPreview(this.lapisArmor.apply(p), l));
         v.setItem(GRAND_BOTTLE_SLOT, this.armorSetPreview(this.grandBottle.apply(p), l));
         v.setItem(TITANIC_BOTTLE_SLOT, this.armorSetPreview(this.titanicBottle.apply(p), l));
+        v.setItem(COLLECTIONS_ITEMS_SLOT, this.collectionsItemsTile(l));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
@@ -128,6 +138,11 @@ public final class LegendaryItemsMenuService {
         }
         if (slot == TITANIC_BOTTLE_SLOT) {
             this.giveSet(p, this.titanicBottle.apply(p), l, "Titanic Experience Bottle");
+            return;
+        }
+        if (slot == COLLECTIONS_ITEMS_SLOT) {
+            this.viewing.remove(p.getUniqueId());
+            this.collectionsItems.accept(p);
             return;
         }
         LegendaryWeapon w = SLOTS.get(slot);
@@ -177,6 +192,27 @@ public final class LegendaryItemsMenuService {
         }
         lore.add(Component.text(l.choose("Clique para receber.", "Click to receive."), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** {@link #COLLECTIONS_ITEMS_SLOT}'s own tile - a Bundle, same icon {@code SkillsMenuService}'s own Collections button already uses, since this opens the same catalog's items rather than giving anything directly on click. */
+    private ItemStack collectionsItemsTile(dev.icaro.foodtooltips.i18n.Language l) {
+        ItemStack item = ItemStack.of(Material.PLAYER_HEAD);
+        var meta = (org.bukkit.inventory.meta.SkullMeta) item.getItemMeta();
+        try {
+            var profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", dev.icaro.foodtooltips.item.HeadTexture.BUNDLE));
+            meta.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the menu.
+        }
+        meta.displayName(Component.text(l.choose("Itens de Coleções", "Collections Items"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(l.choose("Todo item craftável desbloqueado por Coleções.", "Every craftable item unlocked by Collections."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text(l.choose("Clique para abrir!", "Click to open!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;
     }

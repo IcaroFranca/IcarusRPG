@@ -32,6 +32,15 @@ import org.bukkit.inventory.meta.SkullMeta;
  * since the two catalogs' data shapes differ enough that a common base would need more
  * indirection than it saves). Opened from the Skills menu's own Collections button ({@code
  * SkillsMenuService}, slot 19).
+ *
+ * <p>{@link #milestoneIcon} shows the real unlocked item as a milestone's own tile whenever
+ * one exists ({@link Bukkit#getRecipe} on the milestone's own {@link CollectionsMilestone
+ * #recipes}, the exact same generic lookup {@code CollectionsItemsMenuService} uses for its
+ * own {@code /rpgitems} tiles) - per the player's own "pelo menos visíveis ao clicar no
+ * collection deles" spec. Falls back to the old plain dye tile for anything with no real
+ * recipe to preview yet (a PotionMix like the Adrenaline/Resistance Potions, an XP/enchant-
+ * discount milestone, or a feature unlock with no physical item at all - the Wardrobe/Potion
+ * Bag).
  */
 public final class CollectionsMenuService {
     private final CollectionsProgressService progress;
@@ -122,7 +131,7 @@ public final class CollectionsMenuService {
             lore.add(this.text(milestone.reward(l == Language.PT), unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
             lore.add(this.text("+" + this.global.milestoneXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
             lore.add(this.text(unlocked ? l.choose("CONCLUÍDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
-            inv.setItem(MILESTONE_SLOTS[i], this.item(unlocked ? Material.LIME_DYE : Material.GRAY_DYE, "Milestone " + (i + 1), lore));
+            inv.setItem(MILESTONE_SLOTS[i], this.milestoneIcon(milestone, unlocked, "Milestone " + (i + 1), lore));
         }
         inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         p.openInventory(inv);
@@ -169,6 +178,37 @@ public final class CollectionsMenuService {
         } else if (slot == 49) {
             this.openCategories(p);
         }
+    }
+
+    /**
+     * A real preview of what {@code milestone} unlocks (the first of its own {@link
+     * CollectionsMilestone#recipes} that resolves to an actually-registered {@link
+     * org.bukkit.inventory.Recipe} - a real crafted item, not the generic dye - see this
+     * class's own doc for why reading straight from {@link Bukkit#getRecipe} needs no extra
+     * registry) with the usual status lore appended, falling back to the old plain dye tile
+     * for anything with no real recipe to preview (an XP/enchant-discount milestone, or one of
+     * the handful of "unlocked in name only" items - a PotionMix, or a recipe not added yet).
+     */
+    private ItemStack milestoneIcon(CollectionsMilestone milestone, boolean unlocked, String fallbackName, List<Component> statusLore) {
+        ItemStack preview = null;
+        for (org.bukkit.NamespacedKey key : milestone.recipes()) {
+            org.bukkit.inventory.Recipe recipe = Bukkit.getRecipe(key);
+            if (recipe != null) {
+                preview = recipe.getResult().clone();
+                break;
+            }
+        }
+        if (preview == null) {
+            return this.item(unlocked ? Material.LIME_DYE : Material.GRAY_DYE, fallbackName, statusLore);
+        }
+        ItemMeta meta = preview.getItemMeta();
+        List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+        lore.add(Component.empty());
+        lore.addAll(statusLore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
+        meta.lore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        preview.setItemMeta(meta);
+        return preview;
     }
 
     private ItemStack entryItem(Player p, CollectionsEntry e, Language l) {
