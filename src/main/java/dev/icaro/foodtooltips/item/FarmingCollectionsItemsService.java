@@ -257,6 +257,12 @@ public final class FarmingCollectionsItemsService {
         mysticalSoup.addIngredient(new RecipeChoice.ExactChoice(this.mushroomCore()));
         mysticalSoup.addIngredient(Material.REDSTONE);
         Bukkit.addRecipe(mysticalSoup);
+
+        this.newShapedRecipe(CollectionsCatalog.FARM_CRYSTAL_RECIPE, FarmCrystalService.createItem(),
+                new String[]{"PPP", "PDP", "PPP"}, r -> {
+                    r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore()));
+                    r.setIngredient('D', Material.DIAMOND);
+                });
     }
 
     /** Magical Mushroom Soup: grants {@value #MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}, which reads {@link #MAGICAL_MUSHROOM_SOUP_KEY} to tell this apart from a plain Mushroom Stew. */
