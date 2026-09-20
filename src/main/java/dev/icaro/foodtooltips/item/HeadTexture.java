@@ -48,9 +48,24 @@ public final class HeadTexture {
     public static final String FEATHER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmI3ZWFlZjMyOWRkOTM0ZTY3Y2YzZDQ4MTNjOWI4OWJmZmQ3OTRjZmE1ZWY4YjRlMTU4ZjI1YmQ1ZGQzZTM5MyJ9fX0=";
     /** "Red Mushroom" (minecraft-heads.com ID 72057) - the Mushroom Core crafting item (any mushroom type), see {@code FarmingCollectionsItemsService}. */
     public static final String MUSHROOM_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzMyZGJkNjYxMmU5ZDNmNDI5NDdiNWNhODc4NWJmYjMzNDI1OGYzY2ViODNhZDY5YTVjZGVlYmVhNGNkNjUifX19";
+    /** "Watermelon" (minecraft-heads.com ID 102906) - the Melon Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String MELON_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDU1NzI2MWY4YmNhOTgxNWY3YTZjZTBjMTNhZjJhZTQyN2NiNDc1YWJjNzFkOTVmZmRhN2VjYjgwNWU2OGZkIn19fQ==";
+    /** "Potato" (minecraft-heads.com ID 124379) - the Potato Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String POTATO_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGY0MDlkZWUxYTdmN2ZiODQ1NzNkOGRmMzRkZGFjYmQyMzU1ODBkY2I4NWRlZmU4ODI3NmFlODU2NmJhN2ZmYiJ9fX0=";
+    /** "Pumpkin" (minecraft-heads.com ID 121024) - the Pumpkin Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String PUMPKIN_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWRiNzA3MjE4Y2QyZjcxODc4NDFjNzkwN2IzMjcyMjU5NzI5MTQyNDk5ZDliODZiODY3ZWZiOGU2ZDk3ODUyIn19fQ==";
+    /** "Wheat" (minecraft-heads.com ID 53835) - the Wheat Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String WHEAT_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjg2YmFkYjBkOTEzYjM5MWZiNDhkNzc3NmMzNzhjYTNmNGIyZGJlNzI0NTM0MDM0ZjM1MGNjZDM4ZjkwNDQ3MyJ9fX0=";
+    /** "Potion" (minecraft-heads.com ID 120006) - the Potion Bag's own icon, see {@code skills.PotionBagService}. */
+    public static final String POTION_BAG = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWZlZTViN2VjZmUyNDUyNWRkNjMyODdiZTAwOTg5ODkzNWZjODRhYTk5ZjQyZGEzZjBkMDM2ODFiMGQ1ZTE2MCJ9fX0=";
+    /** "Mushroom Soup" (minecraft-heads.com ID 59559) - the Magical Mushroom Soup item, see {@code FarmingCollectionsItemsService}. */
+    public static final String MUSHROOM_SOUP = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTUzMWNkNWE3MjQyZjQ0NWI1ZjZkZDlhMmFmMTk0YTBkYjliMWY0ZWYxODQ3ZTJiNWY4NWE4YTdlNzJjZDY1MyJ9fX0=";
+    /** "Mystical Mushroom Soup" (minecraft-heads.com ID 48195) - the Mystical Mushroom Soup item, see {@code FarmingCollectionsItemsService}. */
+    public static final String MYSTICAL_MUSHROOM_SOUP = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTFlNWQwYzIzZWMxYTFmODEzYzBjNjNmMTEyZTU1YjdiMWM4N2ZlY2QzMjY5YzBmZGJjZTk2ZDAzYjU1OGMwOCJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
-            SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE);
+            SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
+            MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP);
 
     private HeadTexture() {
     }

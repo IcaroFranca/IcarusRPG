@@ -138,8 +138,9 @@ final class CollectionsCatalogTest {
         }
         assertEquals(RewardKind.FARMING_XP, m.get(0).kind());
         assertEquals(1000, m.get(0).xpAmount());
-        assertEquals(RewardKind.FARMING_XP, m.get(1).kind());
-        assertEquals(2000, m.get(1).xpAmount());
+        // Adrenaline Potion - a PotionMix, no recipe key to gate (see the catalog's own doc).
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(1).kind());
+        assertTrue(m.get(1).recipes().isEmpty());
         assertEquals(RewardKind.ENCHANT_DISCOUNT, m.get(2).kind());
         assertEquals(IcarusEnchant.REPLENISH, m.get(2).discountEnchant());
         assertEquals(25.0, m.get(2).discountPercent());
@@ -172,14 +173,17 @@ final class CollectionsCatalogTest {
         for (int i = 0; i < expected.length; i++) {
             assertEquals(expected[i], m.get(i).threshold(), "Mushroom milestone " + (i + 1));
         }
-        assertEquals(RewardKind.FARMING_XP, m.get(0).kind());
-        assertEquals(1000, m.get(0).xpAmount());
+        // Magical Mushroom Soup - a real Shapeless recipe now, unlike the PotionMix-based
+        // Adrenaline Potion/Resistance Potion, so it does get a real recipe key here.
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(0).kind());
+        assertEquals(List.of(CollectionsCatalog.MAGICAL_MUSHROOM_SOUP_RECIPE), m.get(0).recipes());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(1).kind());
         assertEquals(4, m.get(1).recipes().size());
         assertTrue(m.get(1).recipes().contains(CollectionsCatalog.MUSHROOM_HELMET_RECIPE));
         assertEquals(List.of(CollectionsCatalog.RED_MUSHROOM_BLOCK_RECIPE, CollectionsCatalog.BROWN_MUSHROOM_BLOCK_RECIPE), m.get(2).recipes());
         assertEquals(List.of(CollectionsCatalog.MUSHROOM_CORE_RECIPE), m.get(3).recipes());
-        assertEquals(2500, m.get(4).xpAmount());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(4).kind());
+        assertEquals(List.of(CollectionsCatalog.MYSTICAL_MUSHROOM_SOUP_RECIPE), m.get(4).recipes());
     }
 
     @Test
@@ -201,5 +205,55 @@ final class CollectionsCatalogTest {
     void wheatUnlocksHarvestingAtMilestoneOne() {
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.WHEAT).orElseThrow().milestones();
         assertEquals(IcarusEnchant.HARVESTING, m.get(0).discountEnchant());
+    }
+
+    @Test
+    void wheatUnlocksFarmhandCoreAndHaymakerAtTwoFourFive() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.WHEAT).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.FARMHAND_HELMET_RECIPE, CollectionsCatalog.FARMHAND_CHESTPLATE_RECIPE,
+                CollectionsCatalog.FARMHAND_LEGGINGS_RECIPE, CollectionsCatalog.FARMHAND_BOOTS_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.WHEAT_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(List.of(CollectionsCatalog.HAYMAKER_HELMET_RECIPE, CollectionsCatalog.HAYMAKER_CHESTPLATE_RECIPE,
+                CollectionsCatalog.HAYMAKER_LEGGINGS_RECIPE, CollectionsCatalog.HAYMAKER_BOOTS_RECIPE), m.get(4).recipes());
+    }
+
+    @Test
+    void pumpkinUnlocksCoreBootsAndCrystal() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.PUMPKIN).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.PUMPKIN_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(List.of(CollectionsCatalog.FARMER_BOOTS_RECIPE), m.get(4).recipes());
+        assertEquals(List.of(CollectionsCatalog.FARM_CRYSTAL_RECIPE), m.get(5).recipes());
+    }
+
+    @Test
+    void potatoUnlocksCoreAtMilestoneFour() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.POTATOES).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.POTATO_CORE_RECIPE), m.get(3).recipes());
+    }
+
+    @Test
+    void melonSliceUnlocksCoreAtMilestoneFour() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.MELON_SLICE).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.MELON_CORE_RECIPE), m.get(3).recipes());
+    }
+
+    @Test
+    void leatherUnlocksWardrobeAtOneThreeFiveSeven() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.LEATHER).orElseThrow().milestones();
+        for (int i : new int[]{0, 2, 4, 6}) {
+            assertEquals(RewardKind.RECIPE_UNLOCK, m.get(i).kind(), "milestone index " + i);
+            assertTrue(m.get(i).recipes().isEmpty(), "milestone index " + i);
+        }
+        assertEquals(RewardKind.FARMING_XP, m.get(1).kind());
+    }
+
+    @Test
+    void netherWartUnlocksPotionBagAtOneThreeFiveSevenNine() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.NETHER_WART).orElseThrow().milestones();
+        for (int i : new int[]{0, 2, 4, 6, 8}) {
+            assertEquals(RewardKind.RECIPE_UNLOCK, m.get(i).kind(), "milestone index " + i);
+            assertTrue(m.get(i).recipes().isEmpty(), "milestone index " + i);
+        }
+        assertEquals(RewardKind.FARMING_XP, m.get(1).kind());
     }
 }
