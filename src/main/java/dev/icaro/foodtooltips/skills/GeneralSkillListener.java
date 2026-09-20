@@ -797,6 +797,7 @@ implements Listener {
             case Material.WHEAT, Material.CARROTS, Material.POTATOES, Material.BEETROOTS -> 4.0;
             case Material.NETHER_WART -> 6.0;
             case Material.COCOA, Material.SWEET_BERRY_BUSH -> 5.0;
+            case Material.PUMPKIN, Material.MELON -> 10.0;
             default -> 3.0;
         };
     }
