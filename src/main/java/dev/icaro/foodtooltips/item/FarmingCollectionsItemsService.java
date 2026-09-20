@@ -100,6 +100,11 @@ public final class FarmingCollectionsItemsService {
     private static final Color FARMHAND_LEGGINGS_COLOR = Color.fromRGB(0x4A, 0x48, 0x84);
     private static final Color HAYMAKER_COLOR = Color.fromRGB(0xFF, 0xD7, 0x00);
     private static final Color FARMER_BOOTS_COLOR = Color.fromRGB(0xCC, 0x55, 0x00);
+    /** No color was specified for the helmet - kept as the original plain green every piece used before the player's own per-piece colors arrived for the other three. */
+    private static final Color SPROUT_HELMET_COLOR = Color.fromRGB(0x4C, 0xAF, 0x50);
+    private static final Color SPROUT_CHESTPLATE_COLOR = Color.fromRGB(0xFF, 0xA7, 0x3F);
+    private static final Color SPROUT_LEGGINGS_COLOR = Color.fromRGB(0xFF, 0x8E, 0x09);
+    private static final Color SPROUT_BOOTS_COLOR = Color.fromRGB(0xAC, 0x39, 0x00);
     /** Neither Chocolate nor Mushroom Armor's own recipe ingredient was specified (only their unlock milestones and their Core items' ingredients were) - Chocolate uses Cocoa Beans and Mushroom uses Red Mushroom, matching Cactus Armor's own "the category's own drop material" precedent. */
     private static final int SPROUT_DEFENSE_PER_PIECE = 20;
     /** 8 minutes - see {@link #registerResistancePotionMix}'s own doc on why this is a judgment call. */
@@ -1155,7 +1160,11 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
         if (meta instanceof LeatherArmorMeta leather) {
-            leather.setColor(Color.fromRGB(0x4C, 0xAF, 0x50));
+            Color color = material.name().endsWith("_CHESTPLATE") ? SPROUT_CHESTPLATE_COLOR
+                    : material.name().endsWith("_LEGGINGS") ? SPROUT_LEGGINGS_COLOR
+                    : material.name().endsWith("_BOOTS") ? SPROUT_BOOTS_COLOR
+                    : SPROUT_HELMET_COLOR;
+            leather.setColor(color);
         }
         ArmorDefenseService.forceDefense(meta, SPROUT_DEFENSE_PER_PIECE);
         this.tiers.forceTier(meta, ItemTier.B);
