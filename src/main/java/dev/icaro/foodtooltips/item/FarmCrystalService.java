@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
+import dev.icaro.foodtooltips.i18n.Language;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -121,6 +122,13 @@ public final class FarmCrystalService implements Listener {
         e.setCancelled(true);
         Player p = e.getPlayer();
         Location spawnAt = clicked.getLocation().add(0.5, 2.5, 0.5);
+        if (this.withinRangeOfAnother(spawnAt)) {
+            Language l = Language.of(p);
+            p.sendMessage(Component.text(l.choose(
+                    "Já existe um Farm Crystal perto demais daqui.",
+                    "There's already a Farm Crystal too close to here."), NamedTextColor.RED));
+            return;
+        }
         ArmorStand stand = clicked.getWorld().spawn(spawnAt, ArmorStand.class);
         stand.setInvisible(true);
         stand.setGravity(false);
@@ -202,6 +210,16 @@ public final class FarmCrystalService implements Listener {
         for (int i = 0; i <= steps; i++) {
             world.spawnParticle(Particle.END_ROD, from.getX() + dx * i, from.getY() + dy * i, from.getZ() + dz * i, 1, 0, 0, 0, 0);
         }
+    }
+
+    /** Whether another Farm Crystal already sits within {@value #RANGE} blocks of {@code spawnAt} in every direction - the exact same cube {@link #randomImmatureCrop} itself scans for crops, so two crystals can never end up with overlapping growth ranges. */
+    private boolean withinRangeOfAnother(Location spawnAt) {
+        for (Entity entity : spawnAt.getWorld().getNearbyEntities(spawnAt, RANGE, RANGE, RANGE)) {
+            if (isFarmCrystalEntity(entity)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** One random immature {@link Ageable} crop within {@value #RANGE} blocks of {@code center} in every direction (a cube) - null if none. */
