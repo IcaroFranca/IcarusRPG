@@ -60,6 +60,7 @@ import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
 import dev.icaro.foodtooltips.item.MushroomArmorService;
 import dev.icaro.foodtooltips.item.MushroomSoupFlightService;
 import dev.icaro.foodtooltips.item.FarmCrystalService;
+import dev.icaro.foodtooltips.item.CactusArmorService;
 import dev.icaro.foodtooltips.item.BrewingStandFuelService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
@@ -285,6 +286,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
         pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
+        pm.registerEvents((Listener)new CactusArmorService(), (Plugin)this);
         pm.registerEvents((Listener)brewingStandFuel, (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);

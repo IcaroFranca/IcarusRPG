@@ -114,6 +114,7 @@ public final class FarmingCollectionsItemsService {
     private static final NamespacedKey FARMER_BOOTS_KEY = new NamespacedKey("foodtooltips", "farmer_boots_piece");
     private static final NamespacedKey FARMER_BOOTS_HEALTH_KEY = new NamespacedKey("foodtooltips", "farmer_boots_health");
     private static final NamespacedKey FARMER_BOOTS_SPEED_KEY = new NamespacedKey("foodtooltips", "farmer_boots_speed");
+    private static final NamespacedKey CACTUS_HEALTH_KEY = new NamespacedKey("foodtooltips", "cactus_armor_health");
     /** See {@code MushroomSoupFlightService} - the actual flight-granting logic lives there, this class only builds the item and its recipe. */
     public static final NamespacedKey MAGICAL_MUSHROOM_SOUP_KEY = new NamespacedKey("foodtooltips", "magical_mushroom_soup");
     public static final NamespacedKey MYSTICAL_MUSHROOM_SOUP_KEY = new NamespacedKey("foodtooltips", "mystical_mushroom_soup");
@@ -144,13 +145,13 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('X', Material.CARROT);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
-        this.newShapedRecipe(CollectionsCatalog.CACTUS_HELMET_RECIPE, this.cactusPiece(Material.LEATHER_HELMET, "Cactus Helmet"),
+        this.newShapedRecipe(CollectionsCatalog.CACTUS_HELMET_RECIPE, this.cactusPiece(Material.LEATHER_HELMET, "Cactus Helmet", 5, 10),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.CACTUS));
-        this.newShapedRecipe(CollectionsCatalog.CACTUS_CHESTPLATE_RECIPE, this.cactusPiece(Material.LEATHER_CHESTPLATE, "Cactus Chestplate"),
+        this.newShapedRecipe(CollectionsCatalog.CACTUS_CHESTPLATE_RECIPE, this.cactusPiece(Material.LEATHER_CHESTPLATE, "Cactus Chestplate", 15, 25),
                 new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.CACTUS));
-        this.newShapedRecipe(CollectionsCatalog.CACTUS_LEGGINGS_RECIPE, this.cactusPiece(Material.LEATHER_LEGGINGS, "Cactus Leggings"),
+        this.newShapedRecipe(CollectionsCatalog.CACTUS_LEGGINGS_RECIPE, this.cactusPiece(Material.LEATHER_LEGGINGS, "Cactus Leggings", 10, 20),
                 new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.CACTUS));
-        this.newShapedRecipe(CollectionsCatalog.CACTUS_BOOTS_RECIPE, this.cactusPiece(Material.LEATHER_BOOTS, "Cactus Boots"),
+        this.newShapedRecipe(CollectionsCatalog.CACTUS_BOOTS_RECIPE, this.cactusPiece(Material.LEATHER_BOOTS, "Cactus Boots", 5, 10),
                 new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.CACTUS));
         this.registerResistancePotionMix();
 
@@ -370,14 +371,34 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
-    /** One piece of Cactus Armor: dyed-green leather, purely cosmetic - real leather Defense, no forced override, matching the player's own "representada por uma armadura de couro tingida" spec. */
-    private org.bukkit.inventory.ItemStack cactusPiece(Material material, String name) {
+    /**
+     * One piece of Cactus Armor: dyed-green leather, {@code health}/{@code defense} forced
+     * (flat, no per-level or day/night scaling - a real {@link Attribute#MAX_HEALTH} modifier
+     * baked once here, same as Farmer Boots' own baseline Health) plus the full-set 33% damage
+     * reflect ({@link CactusArmorService#REFLECT_PERCENT}) mentioned in every piece's own lore
+     * regardless of which one the player is looking at.
+     */
+    private org.bukkit.inventory.ItemStack cactusPiece(Material material, String name, int health, int defense) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(CACTUS_ARMOR_COLOR);
         }
+        EquipmentSlotGroup slot = material.name().endsWith("_HELMET") ? EquipmentSlotGroup.HEAD
+                : material.name().endsWith("_CHESTPLATE") ? EquipmentSlotGroup.CHEST
+                : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
+                : EquipmentSlotGroup.FEET;
+        meta.addAttributeModifier(Attribute.MAX_HEALTH,
+                new AttributeModifier(CACTUS_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, slot));
+        ArmorDefenseService.forceDefense(meta, defense);
+        CactusArmorService.markCactusPiece(meta);
         meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Health: +" + health, NamedTextColor.RED),
+                Component.text("Defense: +" + defense, NamedTextColor.GREEN),
+                Component.empty(),
+                Component.text("Full Set Bonus:", NamedTextColor.GRAY),
+                Component.text("Reflects " + Math.round(CactusArmorService.REFLECT_PERCENT * 100) + "% of damage taken to the attacker", NamedTextColor.LIGHT_PURPLE));
         item.setItemMeta(meta);
         return item;
     }
