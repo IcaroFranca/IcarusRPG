@@ -186,15 +186,32 @@ public final class RecipeBookMenuService {
         }
     }
 
-    /** Every registered recipe whose key belongs to this plugin, sorted by result Material name for a stable order across opens. */
+    /**
+     * Recipe keys built the "old" way, straight from a hardcoded {@code "foodtooltips"}
+     * string (see e.g. {@code collections.CollectionsCatalog}'s own recipe-key constants and
+     * every {@code item.FarmingCollectionsItemsService} recipe registration) rather than from
+     * this plugin's own {@link Plugin} instance (whose {@link NamespacedKey}-sanitized name is
+     * {@code "icarusrpg"}, from the {@code plugin.yml} display name - see {@link #namespace}).
+     * Both are this plugin's own recipes just the same, so {@link #ownRecipes} accepts either
+     * - without this, every Collections-gated Farming recipe (Cactus/Chocolate/Mushroom
+     * Armor, every Core, Farmhand/Haymaker/Farmer Boots, both Mushroom Soups...) silently
+     * never showed up here at all, leaving only the couple of recipes (Lapis Lazuli Armor,
+     * its Experience Bottles) that happen to use the other, plugin-instance-derived key.
+     */
+    private static final String LEGACY_RECIPE_NAMESPACE = "foodtooltips";
+
+    /** Every registered recipe whose key belongs to this plugin (either of its two own namespaces - see {@link #LEGACY_RECIPE_NAMESPACE}), sorted by result Material name for a stable order across opens. */
     private List<CraftingRecipe> ownRecipes() {
         String namespace = this.namespace();
         List<CraftingRecipe> found = new ArrayList<>();
         Iterator<Recipe> it = Bukkit.recipeIterator();
         while (it.hasNext()) {
             Recipe r = it.next();
-            if (r instanceof CraftingRecipe crafting && crafting.getKey().getNamespace().equals(namespace)) {
-                found.add(crafting);
+            if (r instanceof CraftingRecipe crafting) {
+                String ns = crafting.getKey().getNamespace();
+                if (ns.equals(namespace) || ns.equals(LEGACY_RECIPE_NAMESPACE)) {
+                    found.add(crafting);
+                }
             }
         }
         found.sort(Comparator.comparing(r -> r.getResult().getType().name()));
