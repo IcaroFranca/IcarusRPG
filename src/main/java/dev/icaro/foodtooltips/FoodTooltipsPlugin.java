@@ -211,6 +211,7 @@ extends JavaPlugin {
         LevelColorService levelColors = new LevelColorService((Plugin)this, global);
         LevelBadgeRenderer badgeRenderer = new LevelBadgeRenderer(this.getConfig().getInt("global-level.badge-animation-smoothness", 4));
         GlobalPresentationService presentation = new GlobalPresentationService((Plugin)this, global, levelColors, badgeRenderer);
+        mushroomSoupFlight.onScoreboardReplaced(p -> presentation.refreshAll());
         LevelColorMenuService levelColorMenu = new LevelColorMenuService((Plugin)this, global, levelColors, presentation, menus::openMain);
         menus.levelColors(levelColorMenu);
         CombatTreeMenuService treeMenu = new CombatTreeMenuService(combat, abilities, valor, menus::openMain);

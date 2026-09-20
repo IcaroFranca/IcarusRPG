@@ -262,22 +262,28 @@ public final class FarmingCollectionsItemsService {
                 });
     }
 
-    /** Magical Mushroom Soup: grants {@value #MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}, which reads {@link #MAGICAL_MUSHROOM_SOUP_KEY} to tell this apart from a plain Mushroom Stew. */
+    /** Magical Mushroom Soup: grants {@value #MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}, which reads {@link #MAGICAL_MUSHROOM_SOUP_KEY} to tell this apart from a plain Mushroom Stew. {@link org.bukkit.inventory.meta.components.FoodComponent#setCanAlwaysEat} lets it be drunk regardless of hunger - a flight potion, not a meal, so gating it behind being hungry would make no sense (the player's own spec: "não deve ser necessário ter fome para consumir essas sopas"). */
     private ItemStack magicalMushroomSoup() {
         var item = new ItemStack(Material.MUSHROOM_STEW);
         var meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(MAGICAL_MUSHROOM_SOUP_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Magical Mushroom Soup", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        var food = meta.getFood();
+        food.setCanAlwaysEat(true);
+        meta.setFood(food);
         item.setItemMeta(meta);
         return item;
     }
 
-    /** Mystical Mushroom Soup: grants {@value #MYSTICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}. */
+    /** Mystical Mushroom Soup: grants {@value #MYSTICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}. Always drinkable regardless of hunger, same reasoning as {@link #magicalMushroomSoup}. */
     private ItemStack mysticalMushroomSoup() {
         var item = new ItemStack(Material.MUSHROOM_STEW);
         var meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(MYSTICAL_MUSHROOM_SOUP_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Mystical Mushroom Soup", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
+        var food = meta.getFood();
+        food.setCanAlwaysEat(true);
+        meta.setFood(food);
         item.setItemMeta(meta);
         return item;
     }
