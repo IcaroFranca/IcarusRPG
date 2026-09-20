@@ -163,9 +163,12 @@ implements Listener {
      * Porkchop/Raw Rabbit) - credits the real amount that dropped ({@link
      * EntityDeathEvent#getDrops()}, already Looting-adjusted by the time this fires), not a
      * flat "1 per kill" - same "count what was actually obtained" reasoning {@link #drops}
-     * already applies to every harvest. MONITOR, same tier {@code CombatListener#death} runs
-     * its own Bestiary/Combat-XP handling at, so this never races anything there that might
-     * still cancel the event first.
+     * already applies to every harvest. Every vanilla mob that can naturally drop one of
+     * these five materials is listed here, not just the "obvious" one per material - Leather
+     * also comes from Horse/Donkey/Mule (equines, same as Cow/Mooshroom) and from Hoglin
+     * (which drops both Leather and Raw Porkchop, being a boar-like Nether mob). MONITOR,
+     * same tier {@code CombatListener#death} runs its own Bestiary/Combat-XP handling at, so
+     * this never races anything there that might still cancel the event first.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void animalDrop(EntityDeathEvent e) {
@@ -175,9 +178,11 @@ implements Listener {
         }
         Set<Material> tracked = switch (e.getEntity().getType()) {
             case EntityType.CHICKEN -> EnumSet.of(Material.FEATHER, Material.CHICKEN);
-            case EntityType.COW, EntityType.MOOSHROOM -> EnumSet.of(Material.LEATHER);
+            case EntityType.COW, EntityType.MOOSHROOM, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE ->
+                    EnumSet.of(Material.LEATHER);
             case EntityType.SHEEP -> EnumSet.of(Material.MUTTON);
             case EntityType.PIG -> EnumSet.of(Material.PORKCHOP);
+            case EntityType.HOGLIN -> EnumSet.of(Material.LEATHER, Material.PORKCHOP);
             case EntityType.RABBIT -> EnumSet.of(Material.RABBIT);
             default -> null;
         };
