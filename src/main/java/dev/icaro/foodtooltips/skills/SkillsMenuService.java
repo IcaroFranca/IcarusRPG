@@ -54,6 +54,8 @@ public final class SkillsMenuService {
     private static final int TRASH_BUTTON_SLOT = 53;
     /** The MAIN screen's Quiver button - see {@link QuiverService}. */
     private static final int QUIVER_SLOT = 33;
+    /** The MAIN screen's Wardrobe button, per the player's own spec - see {@link WardrobeService}. */
+    private static final int WARDROBE_SLOT = 34;
     /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
     private static final int PASSIVE_ABILITIES_SLOT = 29;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
@@ -90,6 +92,7 @@ public final class SkillsMenuService {
     private TrashMenuService trash;
     private EnchantMenuService enchantMenu;
     private QuiverService quiver;
+    private WardrobeService wardrobe;
     private PassiveAbilityMenuService passiveAbilities;
     private RecipeBookMenuService recipeBook;
     private ReforgeService reforge;
@@ -138,6 +141,10 @@ public final class SkillsMenuService {
 
     public void quiver(QuiverService quiver) {
         this.quiver = quiver;
+    }
+
+    public void wardrobe(WardrobeService wardrobe) {
+        this.wardrobe = wardrobe;
     }
 
     public void passiveAbilities(PassiveAbilityMenuService passiveAbilities) {
@@ -223,6 +230,17 @@ public final class SkillsMenuService {
             }
             quiverLore.add(this.click(l));
             v.setItem(QUIVER_SLOT, this.customHead(HeadTexture.QUIVER, this.quiver.displayName(p, l), quiverLore));
+        }
+        if (this.wardrobe != null && this.wardrobe.unlocked(p)) {
+            List<Component> wardrobeLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Guarde sets de armadura e equipe-os instantaneamente.",
+                    "Store armor sets and equip them instantly."), LoreWrap.DEFAULT_WIDTH)) {
+                wardrobeLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            wardrobeLore.add(this.text(this.wardrobe.columns(p) + "/" + WardrobeService.COLUMNS + " " + l.choose("colunas", "columns"), NamedTextColor.GOLD));
+            wardrobeLore.add(this.click(l));
+            v.setItem(WARDROBE_SLOT, this.wardrobeIcon(wardrobeLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -391,6 +409,9 @@ public final class SkillsMenuService {
                 } else if (slot == QUIVER_SLOT && this.quiver != null && this.quiver.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.quiver.open(p);
+                } else if (slot == WARDROBE_SLOT && this.wardrobe != null && this.wardrobe.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.wardrobe.open(p);
                 } else if (slot == PASSIVE_ABILITIES_SLOT && this.passiveAbilities != null) {
                     this.views.remove(p.getUniqueId());
                     this.passiveAbilities.open(p);
@@ -544,6 +565,15 @@ public final class SkillsMenuService {
         m.displayName(this.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         m.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(m);
+        return i;
+    }
+
+    /** {@link WardrobeService#menuIcon} (a dyed leather chestplate, per the player's own spec - not a custom head like every other button here) plus this button's own lore. */
+    private ItemStack wardrobeIcon(List<Component> lore) {
+        ItemStack i = WardrobeService.menuIcon();
+        ItemMeta m = i.getItemMeta();
+        m.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
         i.setItemMeta(m);
         return i;
     }

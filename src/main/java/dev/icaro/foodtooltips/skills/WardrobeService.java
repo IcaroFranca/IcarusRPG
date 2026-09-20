@@ -1,0 +1,319 @@
+package dev.icaro.foodtooltips.skills;
+
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.collections.CollectionsProgressService;
+import dev.icaro.foodtooltips.i18n.Language;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
+
+/**
+ * A per-player armor-set storage and quick-equip board - unlocked by the Leather Farming
+ * Collections entry (M1: 3 columns; M3/M5/M7: +2 each, up to 9 - see {@code
+ * CollectionsCatalog}'s own Leather entry), opened from the Skills star menu's own slot 34.
+ * Five fixed rows, exactly the player's own spec ("não haverá sexta fileira"): helmets,
+ * chestplates, leggings, boots, then a selector row whose {@code column}-th button swaps the
+ * player's currently worn armor with that column's own stored set in one click.
+ *
+ * <p>Persisted exactly like {@code QuiverService} (same {@code BukkitObjectOutputStream}-over-
+ * {@code ItemStack[]} Base64 trick in the player's own PDC) - a full {@value #COLUMNS}-wide,
+ * {@value #ARMOR_ROWS}-tall array regardless of how many columns are currently unlocked, since
+ * Collections progress only ever goes up: a column that's locked today has never once been
+ * writable, so it can never hold real data that unlocking later would need to reveal - locked
+ * columns are always safe to just render as filler.
+ *
+ * <p>Any item can sit in an armor-row slot, not just the matching piece type - this is a
+ * personal storage board, not a strict per-slot armor validator, and the player's own spec
+ * never asked for one (unlike {@code QuiverService}'s arrow-only filter or {@code
+ * PotionBagService}'s own restriction).
+ */
+public final class WardrobeService {
+    public static final int COLUMNS = 9;
+    private static final int ARMOR_ROWS = 4;
+    private static final int TOTAL_SIZE = 45;
+    private static final int HELMET_ROW = 0;
+    private static final int CHESTPLATE_ROW = 1;
+    private static final int LEGGINGS_ROW = 2;
+    private static final int BOOTS_ROW = 3;
+    private static final int SELECTOR_ROW = 4;
+    /** Only ever a back button while at least one column is still locked (see this class's own doc on why a fully-unlocked board has no free cell left in its own 5 rows for one) - closing the screen normally (Esc/E) always works regardless, same as {@code QuiverService}'s own board. */
+    private static final int BACK_SLOT = SELECTOR_ROW * 9 + (COLUMNS - 1);
+
+    private final Plugin plugin;
+    private final CollectionsProgressService collectionsProgress;
+    private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "wardrobe_contents");
+    private final Map<UUID, Inventory> cache = new HashMap<>();
+    private final Set<UUID> viewing = new HashSet<>();
+
+    public WardrobeService(Plugin plugin, CollectionsProgressService collectionsProgress) {
+        this.plugin = plugin;
+        this.collectionsProgress = collectionsProgress;
+    }
+
+    public boolean unlocked(Player p) {
+        return this.columns(p) > 0;
+    }
+
+    /** How many of the {@value #COLUMNS} columns {@code p} has actually unlocked - see this class's own doc on the Leather milestone ladder this reads. */
+    public int columns(Player p) {
+        int achieved = this.collectionsProgress.achieved(p, this.leatherEntry());
+        if (achieved >= 7) return 9;
+        if (achieved >= 5) return 7;
+        if (achieved >= 3) return 5;
+        if (achieved >= 1) return 3;
+        return 0;
+    }
+
+    private dev.icaro.foodtooltips.collections.CollectionsEntry leatherEntry() {
+        return CollectionsCatalog.find(Material.LEATHER).orElseThrow();
+    }
+
+    public static boolean isBackSlot(int slot) {
+        return slot == BACK_SLOT;
+    }
+
+    /** Whether {@code slot} (a raw top-inventory slot) is a real storage/selector cell for {@code p}'s currently unlocked columns - false for anything in a locked column, or the decorative back-button cell. */
+    public boolean isUsableSlot(Player p, int slot) {
+        if (slot < 0 || slot >= TOTAL_SIZE || isBackSlot(slot)) {
+            return false;
+        }
+        int column = slot % 9;
+        int row = slot / 9;
+        return row <= SELECTOR_ROW && column < this.columns(p);
+    }
+
+    /** Whether {@code slot} sits in the selector row (row-5) rather than one of the four armor-storage rows. */
+    public static boolean isSelectorSlot(int slot) {
+        return slot / 9 == SELECTOR_ROW;
+    }
+
+    public void open(Player p) {
+        Inventory inv = this.inventoryFor(p);
+        this.render(p, inv);
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        this.viewing.add(p.getUniqueId());
+    }
+
+    public boolean viewing(Player p) {
+        return this.viewing.contains(p.getUniqueId());
+    }
+
+    public void close(Player p) {
+        this.viewing.remove(p.getUniqueId());
+        this.persist(p);
+    }
+
+    public void handleQuit(Player p) {
+        this.viewing.remove(p.getUniqueId());
+        this.persist(p);
+        this.cache.remove(p.getUniqueId());
+    }
+
+    public void back(Player p) {
+        this.viewing.remove(p.getUniqueId());
+        this.persist(p);
+    }
+
+    /** Flushes every currently cached (online) player's Wardrobe to their PDC - see {@code QuiverService#saveAll}'s own doc, called from the same {@code FoodTooltipsPlugin#onDisable} spot. */
+    public void saveAll() {
+        for (UUID id : new ArrayList<>(this.cache.keySet())) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) {
+                this.persist(p);
+            }
+        }
+    }
+
+    /**
+     * Swaps {@code p}'s currently worn helmet/chestplate/leggings/boots with whatever
+     * {@code column} has stored (each slot independently - an empty stored slot simply
+     * unequips that piece, an empty worn slot simply leaves the stored one behind empty),
+     * then redraws the board so the swap is immediately visible. No-op for a locked column.
+     */
+    public void select(Player p, int column) {
+        if (column < 0 || column >= this.columns(p)) {
+            return;
+        }
+        Inventory inv = this.inventoryFor(p);
+        ItemStack storedHelmet = inv.getItem(HELMET_ROW * 9 + column);
+        ItemStack storedChest = inv.getItem(CHESTPLATE_ROW * 9 + column);
+        ItemStack storedLegs = inv.getItem(LEGGINGS_ROW * 9 + column);
+        ItemStack storedBoots = inv.getItem(BOOTS_ROW * 9 + column);
+        PlayerInventory pinv = p.getInventory();
+        ItemStack wornHelmet = pinv.getHelmet();
+        ItemStack wornChest = pinv.getChestplate();
+        ItemStack wornLegs = pinv.getLeggings();
+        ItemStack wornBoots = pinv.getBoots();
+        inv.setItem(HELMET_ROW * 9 + column, wornHelmet);
+        inv.setItem(CHESTPLATE_ROW * 9 + column, wornChest);
+        inv.setItem(LEGGINGS_ROW * 9 + column, wornLegs);
+        inv.setItem(BOOTS_ROW * 9 + column, wornBoots);
+        pinv.setHelmet(storedHelmet);
+        pinv.setChestplate(storedChest);
+        pinv.setLeggings(storedLegs);
+        pinv.setBoots(storedBoots);
+        this.render(p, inv);
+        p.updateInventory();
+    }
+
+    /** Rebuilds every locked-column filler cell and the selector row's own preview icons from {@code inv}'s current (already-swapped) contents - never touches an unlocked armor-row cell's real item. */
+    private void render(Player p, Inventory inv) {
+        Language l = Language.of(p);
+        int columns = this.columns(p);
+        for (int row = 0; row <= SELECTOR_ROW; row++) {
+            for (int column = 0; column < COLUMNS; column++) {
+                int slot = row * 9 + column;
+                if (isBackSlot(slot)) {
+                    continue;
+                }
+                if (column >= columns) {
+                    inv.setItem(slot, this.lockedFiller(l));
+                    continue;
+                }
+                if (row == SELECTOR_ROW) {
+                    inv.setItem(slot, this.selectorIcon(inv, column, l));
+                }
+            }
+        }
+        if (columns < COLUMNS) {
+            inv.setItem(BACK_SLOT, this.backButton(l));
+        }
+    }
+
+    private ItemStack selectorIcon(Inventory inv, int column, Language l) {
+        ItemStack helmet = inv.getItem(HELMET_ROW * 9 + column);
+        ItemStack base = helmet != null && !helmet.isEmpty() ? helmet.clone() : new ItemStack(Material.ARMOR_STAND);
+        ItemMeta meta = base.getItemMeta();
+        meta.displayName(Component.text(l.choose("Set ", "Set ") + (column + 1), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(l.choose("Clique para equipar este set!", "Click to equip this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        base.setItemMeta(meta);
+        return base;
+    }
+
+    private ItemStack lockedFiller(Language l) {
+        ItemStack f = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta m = f.getItemMeta();
+        m.displayName(Component.text(l.choose("Bloqueado", "Locked"), NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        f.setItemMeta(m);
+        return f;
+    }
+
+    private ItemStack backButton(Language l) {
+        ItemStack i = ItemStack.of(Material.PLAYER_HEAD);
+        var meta = (org.bukkit.inventory.meta.SkullMeta) i.getItemMeta();
+        try {
+            var profile = Bukkit.createProfile(UUID.randomUUID());
+            profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", dev.icaro.foodtooltips.item.HeadTexture.BACK));
+            meta.setPlayerProfile(profile);
+        } catch (Exception ignored) {
+            // Bad texture value: fall back to a plain player head rather than failing the screen.
+        }
+        meta.displayName(Component.text(l.choose("Voltar às skills", "Back to skills"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(meta);
+        return i;
+    }
+
+    /** The Skills menu's own Wardrobe button icon - a purple leather chestplate, per the player's own spec ("representado por um peitoral de couro roxo"), not a custom head like every other button here. "Wardrobe" is kept as a proper name in both languages, same as every other English feature name already in this plugin's own reward text (e.g. "Farmer Boots"). */
+    public static ItemStack menuIcon() {
+        ItemStack item = ItemStack.of(Material.LEATHER_CHESTPLATE);
+        ItemMeta meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(org.bukkit.Color.fromRGB(0x80, 0x00, 0x80));
+        }
+        meta.displayName(Component.text("Wardrobe", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private Inventory inventoryFor(Player p) {
+        return this.cache.computeIfAbsent(p.getUniqueId(), id -> {
+            Language l = Language.of(p);
+            Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, l.choose("Guarda-roupa", "Wardrobe"));
+            ItemStack[] saved = this.load(p);
+            if (saved != null) {
+                int limit = Math.min(saved.length, ARMOR_ROWS * COLUMNS);
+                for (int i = 0; i < limit; i++) {
+                    inv.setItem(i, saved[i]);
+                }
+            }
+            return inv;
+        });
+    }
+
+    private void persist(Player p) {
+        Inventory inv = this.cache.get(p.getUniqueId());
+        if (inv == null) {
+            return;
+        }
+        ItemStack[] storage = Arrays.copyOfRange(inv.getContents(), 0, ARMOR_ROWS * COLUMNS);
+        p.getPersistentDataContainer().set(this.contentsKey, PersistentDataType.STRING, this.serialize(storage));
+    }
+
+    private ItemStack[] load(Player p) {
+        String data = p.getPersistentDataContainer().get(this.contentsKey, PersistentDataType.STRING);
+        if (data == null || data.isEmpty()) {
+            return null;
+        }
+        try {
+            return this.deserialize(data);
+        } catch (IOException | ClassNotFoundException ex) {
+            this.plugin.getLogger().warning("Failed to load wardrobe contents for " + p.getUniqueId() + ": " + ex.getMessage());
+            return null;
+        }
+    }
+
+    private String serialize(ItemStack[] contents) {
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream(); BukkitObjectOutputStream out = new BukkitObjectOutputStream(bytes)) {
+            out.writeInt(contents.length);
+            for (ItemStack item : contents) {
+                out.writeObject(item);
+            }
+            return Base64.getEncoder().encodeToString(bytes.toByteArray());
+        } catch (IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private ItemStack[] deserialize(String data) throws IOException, ClassNotFoundException {
+        try (ByteArrayInputStream bytes = new ByteArrayInputStream(Base64.getDecoder().decode(data)); BukkitObjectInputStream in = new BukkitObjectInputStream(bytes)) {
+            int length = in.readInt();
+            ItemStack[] contents = new ItemStack[length];
+            for (int i = 0; i < length; i++) {
+                contents[i] = (ItemStack) in.readObject();
+            }
+            return contents;
+        }
+    }
+}

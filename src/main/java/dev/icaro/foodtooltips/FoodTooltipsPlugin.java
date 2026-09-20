@@ -90,6 +90,8 @@ import dev.icaro.foodtooltips.skills.PassiveAbilityService;
 import dev.icaro.foodtooltips.skills.PlayerStatsViewListener;
 import dev.icaro.foodtooltips.skills.QuiverListener;
 import dev.icaro.foodtooltips.skills.QuiverService;
+import dev.icaro.foodtooltips.skills.WardrobeListener;
+import dev.icaro.foodtooltips.skills.WardrobeService;
 import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillsListener;
@@ -124,6 +126,7 @@ extends JavaPlugin {
     private MobVisualService visuals;
     private SkillProgressBarService progressBar;
     private QuiverService quiver;
+    private WardrobeService wardrobe;
 
     public void onEnable() {
         this.saveDefaultConfig();
@@ -175,6 +178,8 @@ extends JavaPlugin {
         menus.collections(collectionsMenu);
         this.quiver = new QuiverService((Plugin)this, combat, menus::openMain);
         menus.quiver(this.quiver);
+        this.wardrobe = new WardrobeService((Plugin)this, collectionsProgress);
+        menus.wardrobe(this.wardrobe);
         PassiveAbilityService passives = new PassiveAbilityService();
         PassiveAbilityMenuService passiveAbilityMenu = new PassiveAbilityMenuService(passives, global, menus::openMain);
         menus.passiveAbilities(passiveAbilityMenu);
@@ -259,6 +264,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CollectionsListener(collectionsMenu, collectionsService), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsRecipeGateListener(collectionsService), (Plugin)this);
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
+        pm.registerEvents((Listener)new WardrobeListener(this.wardrobe, menus::openMain), (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
@@ -492,6 +498,7 @@ extends JavaPlugin {
         }
         if (this.quiver != null) {
             this.quiver.saveAll();
+            this.wardrobe.saveAll();
         }
     }
 
