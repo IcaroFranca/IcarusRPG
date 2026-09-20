@@ -278,8 +278,10 @@ implements Listener {
         } else if (m == Material.CACTUS) {
             // No regular Farming skill XP here on purpose - the player's own Collections
             // spec only ever defines milestones for Cactus, never a per-break skill XP
-            // amount the way every Ageable crop below already has one.
-            this.applyCollections(p, m, 1);
+            // amount the way every Ageable crop below already has one. Tracked (see
+            // #drops) so Farming Fortune's own copies multiplier - and Collections
+            // crediting itself - both read the real dropped amount, Telekinesis or not.
+            this.track(k, new Target(SkillType.FARMING, m), p);
         } else if (m == Material.SUGAR_CANE) {
             // Sugar cane's own Ageable#getAge() is an internal 0-15 "ticks until the next
             // segment grows" counter, not a wheat-style maturity gate - it resets to 0 the
@@ -292,27 +294,35 @@ implements Listener {
             // (cane can't float unsupported) - vanilla just drops those as a physics side
             // effect with no BlockBreakEvent of their own, so without this they'd give no
             // XP at all. Counted here (while they're still real blocks, right before this
-            // break resolves) and folded into one gain call.
+            // break resolves) and folded into one gain call. Collections crediting for the
+            // directly-broken segment itself happens in #drops instead (so Fortune's own
+            // copies multiplier applies to it too) - the cascaded segments above are NOT
+            // separately counted there (only #drops's own item list, which never includes
+            // them - see its own doc), so Collections slightly undercounts a tall cane
+            // harvest the same documented way Melon Slice's own Silk Touch yield does.
             this.gain(p, SkillType.FARMING, this.cropXp(m) * (1 + this.caneSegmentsAbove(e.getBlock())));
             this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
-            this.applyCollections(p, m, 1 + this.caneSegmentsAbove(e.getBlock()));
         } else if (m == Material.PUMPKIN) {
             // Not Ageable itself (only its stem is) - a mature stem spawns this block as a
             // one-off world event, never through a player-fired BlockPlaceEvent, so it's
             // never in this.placed and always counts. No regular Farming XP for the same
             // reason as Cactus above: the player's spec never gave Pumpkin one.
-            this.applyCollections(p, m, 1);
+            this.track(k, new Target(SkillType.FARMING, m), p);
         } else if (m == Material.MELON) {
             // Same story as Pumpkin just above, but the collected item (Melon Slice) isn't
             // this block's own Material - see this.cropDrop's own doc on block-vs-drop
-            // pairs. (A Silk Touch break yields a single Melon block instead of slices, but
-            // that's not specially counted as "9" here - see this class's own known
-            // simplification of counting 1 per qualifying event, not exact item yield.)
-            this.applyCollections(p, Material.MELON_SLICE, 1);
+            // pairs. Tracking this (unlike before) means a Silk Touch break - which yields
+            // the Melon block itself, not slices - naturally credits nothing here either
+            // (trackedDrop never matches what actually dropped), instead of the old flat
+            // "+1" this used to give even then.
+            this.track(k, new Target(SkillType.FARMING, Material.MELON_SLICE), p);
         } else if (m == Material.RED_MUSHROOM || m == Material.BROWN_MUSHROOM) {
             // Both mushroom colors feed the same catalog entry (keyed by RED_MUSHROOM) -
-            // the player never asked for separate Red/Brown milestone ladders.
-            this.applyCollections(p, Material.RED_MUSHROOM, 1);
+            // the player never asked for separate Red/Brown milestone ladders. Tracked
+            // under the block's own real color (#drops redirects Brown to Red's entry at
+            // credit time - see its own doc) rather than always RED_MUSHROOM here, since
+            // that's what actually has to match the real dropped item's Material.
+            this.track(k, new Target(SkillType.FARMING, m), p);
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
@@ -320,14 +330,9 @@ implements Listener {
                 this.gain(p, SkillType.FARMING, this.cropXp(m));
                 this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
                 this.tryReplenish(p, e.getBlock(), m);
-                this.applyCollections(p, this.cropDrop(m), 1);
-                if (m == Material.WHEAT) {
-                    // Wheat's own harvest also drops Wheat Seeds as a separate bonus item
-                    // from the same event - counted here as its own independent Collections
-                    // entry (Seeds), same "1 per event" simplification as everywhere else in
-                    // this method rather than reading the real random 0-3 seed yield.
-                    this.applyCollections(p, Material.WHEAT_SEEDS, 1);
-                }
+                // Wheat's own bonus Wheat Seeds (a separate item from the same harvest) is
+                // credited generically in #drops instead, from the real dropped amount -
+                // no special case needed here.
             }
         }
     }
@@ -335,13 +340,16 @@ implements Listener {
     /**
      * Records {@code amount} of {@code drop} towards its own Collections milestones (see
      * {@code collections.CollectionsService#record}) - a no-op for anything the Collections
-     * catalog doesn't track (every crop except Cactus/Carrot today), so this is safe to call
-     * unconditionally from every harvest branch above rather than gating each call site on
-     * "is this even a Collections material". Grants each freshly-crossed milestone's own
-     * Farming XP through {@link #gain} (so it gets the same level-up message/progress bar
-     * every other Farming XP source does - see {@code CollectionsService#record}'s own doc
-     * on why that part isn't granted inside the service itself) and announces every kind of
-     * unlock (XP, recipe, enchant discount alike) in one combined chat message.
+     * catalog doesn't track, so this is safe to call unconditionally rather than gating each
+     * call site on "is this even a Collections material". Called exclusively from {@link
+     * #drops}, for every tracked Farming target AND any other item bundled into the same
+     * harvest (e.g. Wheat's own bonus Wheat Seeds) - always the real dropped amount (Fortune's
+     * own copies included for the tracked target), never a flat guess - see that method's own
+     * doc. Grants each freshly-crossed milestone's own Farming XP through {@link #gain} (so it
+     * gets the same level-up message/progress bar every other Farming XP source does - see
+     * {@code CollectionsService#record}'s own doc on why that part isn't granted inside the
+     * service itself) and announces every kind of unlock (XP, recipe, enchant discount alike)
+     * in one combined chat message.
      */
     private void applyCollections(Player p, Material drop, int amount) {
         CollectionsService.Update update = this.collections.record(p, drop, amount);
@@ -367,10 +375,12 @@ implements Listener {
 
     /**
      * Registers {@code t} for {@code k} so the next {@link BlockDropItemEvent} at that
-     * location applies Fortune/Smelting Touch - except in Creative mode, which never
-     * fires that event (nothing actually drops there), so an entry registered anyway
-     * would sit in {@link #targets} forever with nothing left to ever remove it - an
-     * unbounded leak keyed by every block position a Creative player has ever broken.
+     * location applies Fortune/Smelting Touch - and, for a Farming target, Collections
+     * crediting itself (see {@link #drops}'s own doc on why that has to live there,
+     * not here) - except in Creative mode, which never fires that event (nothing
+     * actually drops there), so an entry registered anyway would sit in {@link #targets}
+     * forever with nothing left to ever remove it - an unbounded leak keyed by every
+     * block position a Creative player has ever broken.
      */
     private void track(String k, Target t, Player p) {
         if (p.getGameMode() != GameMode.CREATIVE) {
@@ -426,6 +436,13 @@ implements Listener {
             }
             int fortune = this.skills.fortune(p, t.skill) + (int) Math.round(enchantFortune);
             int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
+            // Real final amount of trackedDrop this harvest actually produces (original
+            // 1x plus copies more, same multiplier the loop below bakes into the real
+            // dropped items) - what Farming Collections credits below, instead of the old
+            // flat "+1" that never reflected Fortune doubling/tripling a harvest. Summed
+            // (not just the first match) in case more than one Item entity of this type
+            // ever lands in the same event.
+            int trackedTotal = 0;
             // Checked up front (not just below, right before the telekinesis sweep) so the
             // Fortune-copies loop right below can route ITS OWN overflow (beyond one max
             // stack) straight into the inventory too, instead of always spawning it as a
@@ -435,7 +452,9 @@ implements Listener {
             for (Item entity : new ArrayList<>(e.getItems())) {
                 ItemStack base = entity.getItemStack();
                 if (base.getType() != trackedDrop) continue;
-                int extra = base.getAmount() * copies;
+                int original = base.getAmount();
+                trackedTotal += original * (1 + copies);
+                int extra = original * copies;
                 int max = base.getMaxStackSize();
                 int add = Math.min(extra, max - base.getAmount());
                 base.setAmount(base.getAmount() + add);
@@ -450,6 +469,33 @@ implements Listener {
                     } else {
                         e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), overflow);
                     }
+                }
+            }
+            // Read from e.getItems() above (before the Telekinesis sweep below removes
+            // those entities), so this counts the real harvested amount - Fortune's own
+            // copies included - regardless of whether Telekinesis is on for this player;
+            // same reasoning as the overflow branch just above. Farming-only for now (see
+            // #applyCollections's own doc) - Mining/Foraging have no catalog entries yet.
+            // Brown Mushroom redirects to Red's own catalog entry (see the tracking site
+            // in #broken); every other tracked material already matches its entry directly.
+            if (t.skill == SkillType.FARMING) {
+                if (trackedTotal > 0) {
+                    this.applyCollections(p, trackedDrop == Material.BROWN_MUSHROOM ? Material.RED_MUSHROOM : trackedDrop, trackedTotal);
+                }
+                // Any OTHER item bundled into the same harvest (e.g. Wheat's own bonus
+                // Wheat Seeds, dropped alongside the tracked Wheat itself) - the real
+                // summed amount that actually dropped, not a flat "+1", same reasoning as
+                // trackedTotal above. #applyCollections already no-ops for anything the
+                // catalog doesn't track, so calling it for every distinct material found
+                // here is safe without checking the catalog first.
+                Map<Material, Integer> secondary = new HashMap<>();
+                for (Item entity : e.getItems()) {
+                    ItemStack stack = entity.getItemStack();
+                    if (stack.getType() == trackedDrop) continue;
+                    secondary.merge(stack.getType(), stack.getAmount(), Integer::sum);
+                }
+                for (Map.Entry<Material, Integer> entry : secondary.entrySet()) {
+                    this.applyCollections(p, entry.getKey(), entry.getValue());
                 }
             }
         }
