@@ -17,7 +17,6 @@ import dev.icaro.foodtooltips.builder.BuilderWandService;
 import dev.icaro.foodtooltips.combat.AnimalSeparationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.ElementalDamageListener;
-import dev.icaro.foodtooltips.combat.EnderCrystalExplosionListener;
 import dev.icaro.foodtooltips.combat.MinerVariantService;
 import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
@@ -302,7 +301,6 @@ extends JavaPlugin {
         pm.registerEvents((Listener)combatListener, (Plugin)this);
         pm.registerEvents((Listener)minerVariants, (Plugin)this);
         pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
-        pm.registerEvents((Listener)new EnderCrystalExplosionListener(), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsItemsMenuListener(collectionsItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
