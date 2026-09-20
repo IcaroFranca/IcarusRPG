@@ -147,8 +147,10 @@ extends JavaPlugin {
         lapisArmor.registerRecipes();
         LapisExperienceService lapisExperience = new LapisExperienceService((Plugin)this, tiers);
         lapisExperience.registerRecipes();
-        FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers);
+        FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers, general);
         farmingCollectionsItems.registerRecipes();
+        general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
+        armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomArmorService mushroomArmor = new MushroomArmorService();
         mushroomArmor.reforge(reforgeService);
         DurabilityService durability = new DurabilityService((Plugin)this);
@@ -420,6 +422,7 @@ extends JavaPlugin {
             legendary.refreshAttackSpeedLore((Player)p);
             reforgeService.applyArmorAttackSpeedModifiers((Player)p);
             mushroomArmor.applyToInventory((Player)p);
+            farmingCollectionsItems.applyFarmerBootsSpeed((Player)p);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
@@ -462,6 +465,7 @@ extends JavaPlugin {
             legendary.refreshAttackSpeedLore((Player)p);
             reforgeService.applyArmorAttackSpeedModifiers((Player)p);
             mushroomArmor.applyToInventory((Player)p);
+            farmingCollectionsItems.applyFarmerBootsSpeed((Player)p);
             bestiaryProgress.applyBonusHealth((Player)p);
             general.applyBonusHealth((Player)p);
             skillsStar.ensure((Player)p);

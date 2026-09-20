@@ -2,7 +2,10 @@ package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
+import dev.icaro.foodtooltips.skills.GeneralSkillService;
+import dev.icaro.foodtooltips.skills.SkillType;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -12,8 +15,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -63,24 +73,53 @@ public final class FarmingCollectionsItemsService {
     private static final UUID CHOCOLATE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:chocolate_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FEATHER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:feather_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID MUSHROOM_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mushroom_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID MELON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:melon_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potato_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID PUMPKIN_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pumpkin_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID WHEAT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_core".getBytes(StandardCharsets.UTF_8));
     private static final Color CACTUS_ARMOR_COLOR = Color.fromRGB(0x00, 0xFF, 0x00);
     /** No exact shade was specified ("tingida de marrom") - a plain chocolate brown, easy to retune. */
     private static final Color CHOCOLATE_ARMOR_COLOR = Color.fromRGB(0x5C, 0x3A, 0x21);
     /** No exact shade was specified ("tingida de vermelho") - matches Cactus Armor's own pure-color convention. */
     private static final Color MUSHROOM_ARMOR_COLOR = Color.fromRGB(0xFF, 0x00, 0x00);
+    private static final Color FARMHAND_HELMET_COLOR = Color.fromRGB(0xFD, 0xE8, 0x62);
+    private static final Color FARMHAND_CHESTPLATE_COLOR = Color.fromRGB(0xEC, 0x04, 0x1F);
+    private static final Color FARMHAND_LEGGINGS_COLOR = Color.fromRGB(0x4A, 0x48, 0x84);
+    private static final Color HAYMAKER_COLOR = Color.fromRGB(0xFF, 0xD7, 0x00);
+    private static final Color FARMER_BOOTS_COLOR = Color.fromRGB(0xCC, 0x55, 0x00);
     /** Neither Chocolate nor Mushroom Armor's own recipe ingredient was specified (only their unlock milestones and their Core items' ingredients were) - Chocolate uses Cocoa Beans and Mushroom uses Red Mushroom, matching Cactus Armor's own "the category's own drop material" precedent. */
     private static final int SPROUT_DEFENSE_PER_PIECE = 20;
     /** 8 minutes - see {@link #registerResistancePotionMix}'s own doc on why this is a judgment call. */
     private static final int RESISTANCE_DURATION_TICKS = 9600;
     /** See {@link #createSproutPiece} - not wired to a Farming Fortune source yet, since nothing can obtain this piece at all until a recipe exists. */
     public static final int SPROUT_FARMING_FORTUNE_PER_PIECE = 15;
+    private static final int FARMHAND_DEFENSE_PER_PIECE = 10;
+    private static final int FARMHAND_FARMING_FORTUNE_PER_PIECE = 5;
+    private static final int HAYMAKER_DEFENSE_PER_PIECE = 15;
+    private static final int HAYMAKER_FARMING_FORTUNE_PER_PIECE = 10;
+    private static final int FARMER_BOOTS_BASE_HEALTH = 40;
+    private static final int FARMER_BOOTS_BASE_DEFENSE = 20;
+    private static final int FARMER_BOOTS_BASE_SPEED = 10;
+    private static final int FARMER_BOOTS_DEFENSE_PER_LEVEL = 2;
+    private static final int FARMER_BOOTS_SPEED_PER_LEVEL = 4;
+    private static final int FARMER_BOOTS_FORTUNE_PER_LEVEL = 1;
+    /** Same "Speed point -> real Movement Speed" conversion {@code ReforgeService#AGILITY_SPEED_PER_POINT} already uses for Agility, so Farmer Boots' own "+10/+4 per level Speed" spec reads on the same scale as every other Speed-granting source in this plugin. */
+    private static final double SPEED_POINT_TO_ATTRIBUTE = 0.001;
+    private static final NamespacedKey SPROUT_ARMOR_KEY = new NamespacedKey("foodtooltips", "sprout_armor_piece");
+    private static final NamespacedKey FARMHAND_ARMOR_KEY = new NamespacedKey("foodtooltips", "farmhand_armor_piece");
+    private static final NamespacedKey HAYMAKER_ARMOR_KEY = new NamespacedKey("foodtooltips", "haymaker_armor_piece");
+    private static final NamespacedKey FARMER_BOOTS_KEY = new NamespacedKey("foodtooltips", "farmer_boots_piece");
+    private static final NamespacedKey FARMER_BOOTS_HEALTH_KEY = new NamespacedKey("foodtooltips", "farmer_boots_health");
+    private static final NamespacedKey FARMER_BOOTS_SPEED_KEY = new NamespacedKey("foodtooltips", "farmer_boots_speed");
 
     private final Plugin plugin;
     private final ItemTierService tiers;
+    private final GeneralSkillService general;
 
-    public FarmingCollectionsItemsService(Plugin plugin, ItemTierService tiers) {
+    public FarmingCollectionsItemsService(Plugin plugin, ItemTierService tiers, GeneralSkillService general) {
         this.plugin = plugin;
         this.tiers = tiers;
+        this.general = general;
     }
 
     /** Registers every recipe this class owns that's actually ready today (Cactus/Carrot Core, Cactus Armor, the Resistance Potion mix) - Sprout Armor is deliberately not included, see this class's own doc. */
@@ -140,6 +179,70 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
         this.newShapedRecipe(CollectionsCatalog.MUSHROOM_BOOTS_RECIPE, this.mushroomPiece(Material.LEATHER_BOOTS, "Mushroom Boots", 0),
                 new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
+
+        this.newShapedRecipe(CollectionsCatalog.MELON_CORE_RECIPE, this.melonCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.MELON_SLICE);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.POTATO_CORE_RECIPE, this.potatoCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.POTATO);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.PUMPKIN_CORE_RECIPE, this.pumpkinCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.PUMPKIN);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.WHEAT_CORE_RECIPE, this.wheatCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.WHEAT);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+
+        // Farmhand Armor's own recipe ingredient was never specified (only Farmer Boots'/
+        // Haymaker's own upgrade recipe were) - standard vanilla armor shapes using Wheat,
+        // matching Cactus/Chocolate/Mushroom Armor's own "the unlocking category's own
+        // drop material" precedent.
+        this.newShapedRecipe(CollectionsCatalog.FARMHAND_HELMET_RECIPE, this.farmhandPiece(Material.LEATHER_HELMET, "Farmhand Helmet", FARMHAND_HELMET_COLOR),
+                new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.WHEAT));
+        this.newShapedRecipe(CollectionsCatalog.FARMHAND_CHESTPLATE_RECIPE, this.farmhandPiece(Material.LEATHER_CHESTPLATE, "Farmhand Chestplate", FARMHAND_CHESTPLATE_COLOR),
+                new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.WHEAT));
+        this.newShapedRecipe(CollectionsCatalog.FARMHAND_LEGGINGS_RECIPE, this.farmhandPiece(Material.LEATHER_LEGGINGS, "Farmhand Leggings", FARMHAND_LEGGINGS_COLOR),
+                new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.WHEAT));
+        // "botas de couro na cor padrão" - the one Farmhand piece deliberately left undyed.
+        this.newShapedRecipe(CollectionsCatalog.FARMHAND_BOOTS_RECIPE, this.farmhandPiece(Material.LEATHER_BOOTS, "Farmhand Boots", null),
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.WHEAT));
+
+        // Haymaker Armor: an upgrade recipe, not a from-scratch one - the corresponding
+        // Farmhand piece exactly (RecipeChoice.ExactChoice, so a plain dyed leather piece
+        // that merely looks similar can't be substituted) surrounded by 8 Wheat Cores.
+        this.newHaymakerRecipe(CollectionsCatalog.HAYMAKER_HELMET_RECIPE, this.haymakerPiece(Material.LEATHER_HELMET, "Haymaker Helmet"),
+                this.farmhandPiece(Material.LEATHER_HELMET, "Farmhand Helmet", FARMHAND_HELMET_COLOR));
+        this.newHaymakerRecipe(CollectionsCatalog.HAYMAKER_CHESTPLATE_RECIPE, this.haymakerPiece(Material.LEATHER_CHESTPLATE, "Haymaker Chestplate"),
+                this.farmhandPiece(Material.LEATHER_CHESTPLATE, "Farmhand Chestplate", FARMHAND_CHESTPLATE_COLOR));
+        this.newHaymakerRecipe(CollectionsCatalog.HAYMAKER_LEGGINGS_RECIPE, this.haymakerPiece(Material.LEATHER_LEGGINGS, "Haymaker Leggings"),
+                this.farmhandPiece(Material.LEATHER_LEGGINGS, "Farmhand Leggings", FARMHAND_LEGGINGS_COLOR));
+        this.newHaymakerRecipe(CollectionsCatalog.HAYMAKER_BOOTS_RECIPE, this.haymakerPiece(Material.LEATHER_BOOTS, "Haymaker Boots"),
+                this.farmhandPiece(Material.LEATHER_BOOTS, "Farmhand Boots", null));
+
+        this.registerAdrenalinePotionMix();
+
+        // Farmer Boots' own recipe ingredient was never specified either - Pumpkin, since
+        // that's the collection it's unlocked from (same heuristic as Farmhand Armor above).
+        this.newShapedRecipe(CollectionsCatalog.FARMER_BOOTS_RECIPE, this.farmerBoots(),
+                new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.PUMPKIN));
+    }
+
+    /** Haymaker's own upgrade-recipe shape: the matching Farmhand piece exactly, dead center, surrounded by 8 Wheat Cores. */
+    private void newHaymakerRecipe(NamespacedKey key, ItemStack result, ItemStack farmhandPiece) {
+        Bukkit.removeRecipe(key);
+        ShapedRecipe recipe = new ShapedRecipe(key, result);
+        recipe.shape("WWW", "WFW", "WWW");
+        recipe.setIngredient('W', new RecipeChoice.ExactChoice(this.wheatCore()));
+        recipe.setIngredient('F', new RecipeChoice.ExactChoice(farmhandPiece));
+        Bukkit.addRecipe(recipe);
     }
 
     /**
@@ -171,6 +274,36 @@ public final class FarmingCollectionsItemsService {
         Bukkit.getPotionBrewer().removePotionMix(key);
         Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, resistance,
                 new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.CACTUS)));
+    }
+
+    /**
+     * "aumenta absorção e velocidade" - no ingredient or exact numbers were specified, so
+     * this follows the same judgment-call pattern {@link #registerResistancePotionMix} already
+     * set: an Awkward Potion base, Sugar as the "central material" (vanilla's own real Speed
+     * Potion ingredient, matching this potion's own Speed half), Absorption II + Speed II for
+     * {@link #RESISTANCE_DURATION_TICKS}' same 8-minute duration. Same "unlocked in name only,
+     * no real Brewing Stand gate" limitation as Resistance - see the catalog's own doc on
+     * {@code CollectionsCatalog}'s Cocoa Beans M2.
+     */
+    private void registerAdrenalinePotionMix() {
+        var awkward = new org.bukkit.inventory.ItemStack(Material.POTION);
+        PotionMeta awkwardMeta = (PotionMeta) awkward.getItemMeta();
+        awkwardMeta.setBasePotionType(PotionType.AWKWARD);
+        awkward.setItemMeta(awkwardMeta);
+
+        var adrenaline = new org.bukkit.inventory.ItemStack(Material.POTION);
+        PotionMeta adrenalineMeta = (PotionMeta) adrenaline.getItemMeta();
+        adrenalineMeta.setBasePotionType(PotionType.MUNDANE);
+        adrenalineMeta.addCustomEffect(new PotionEffect(PotionEffectType.ABSORPTION, RESISTANCE_DURATION_TICKS, 1), true);
+        adrenalineMeta.addCustomEffect(new PotionEffect(PotionEffectType.SPEED, RESISTANCE_DURATION_TICKS, 1), true);
+        adrenalineMeta.setColor(Color.fromRGB(0xE0, 0x1B, 0x24));
+        adrenalineMeta.displayName(Component.text("Adrenaline Potion", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        adrenaline.setItemMeta(adrenalineMeta);
+
+        NamespacedKey key = new NamespacedKey(this.plugin, "adrenaline_from_sugar");
+        Bukkit.getPotionBrewer().removePotionMix(key);
+        Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, adrenaline,
+                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.SUGAR)));
     }
 
     private org.bukkit.inventory.ItemStack cactusCore() {
@@ -265,16 +398,191 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
+    private org.bukkit.inventory.ItemStack melonCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.MELON_CORE, MELON_CORE_PROFILE);
+        meta.displayName(Component.text("Melon Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack potatoCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.POTATO_CORE, POTATO_CORE_PROFILE);
+        meta.displayName(Component.text("Potato Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack pumpkinCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.PUMPKIN_CORE, PUMPKIN_CORE_PROFILE);
+        meta.displayName(Component.text("Pumpkin Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private org.bukkit.inventory.ItemStack wheatCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.WHEAT_CORE, WHEAT_CORE_PROFILE);
+        meta.displayName(Component.text("Wheat Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** One piece of Farmhand Armor: +{@value #FARMHAND_DEFENSE_PER_PIECE} Defense/+{@value #FARMHAND_FARMING_FORTUNE_PER_PIECE} Farming Fortune, flat (see {@link #farmingFortuneBonus}) - {@code color} is {@code null} for the one piece left undyed ("cor padrão" - the boots). */
+    private org.bukkit.inventory.ItemStack farmhandPiece(Material material, String name, Color color) {
+        var item = new org.bukkit.inventory.ItemStack(material);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather && color != null) {
+            leather.setColor(color);
+        }
+        ArmorDefenseService.forceDefense(meta, FARMHAND_DEFENSE_PER_PIECE);
+        meta.getPersistentDataContainer().set(FARMHAND_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text(name, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** One piece of Haymaker Armor (the Farmhand upgrade): +{@value #HAYMAKER_DEFENSE_PER_PIECE} Defense/+{@value #HAYMAKER_FARMING_FORTUNE_PER_PIECE} Farming Fortune, flat - see {@link #farmingFortuneBonus} and {@link #newHaymakerRecipe}. */
+    private org.bukkit.inventory.ItemStack haymakerPiece(Material material, String name) {
+        var item = new org.bukkit.inventory.ItemStack(material);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(HAYMAKER_COLOR);
+        }
+        ArmorDefenseService.forceDefense(meta, HAYMAKER_DEFENSE_PER_PIECE);
+        meta.getPersistentDataContainer().set(HAYMAKER_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Farmer Boots: {@value #FARMER_BOOTS_BASE_HEALTH} Health baked once (flat, no per-level
+     * term in the player's own spec, unlike Defense/Speed/Fortune below) as a real {@link
+     * Attribute#MAX_HEALTH} modifier - Defense ({@link #farmerBootsDefenseBonus}, wired into
+     * {@code ArmorDefenseService#farmerBootsBonus}) and Speed ({@link #applyFarmerBootsSpeed},
+     * a per-tick baked modifier - see its own doc) both scale with the wearer's current
+     * Farming level, so they can't be baked once here the way Health can.
+     */
+    private org.bukkit.inventory.ItemStack farmerBoots() {
+        var item = new org.bukkit.inventory.ItemStack(Material.LEATHER_BOOTS);
+        var meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(FARMER_BOOTS_COLOR);
+        }
+        meta.addAttributeModifier(Attribute.MAX_HEALTH,
+                new AttributeModifier(FARMER_BOOTS_HEALTH_KEY, FARMER_BOOTS_BASE_HEALTH, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET));
+        meta.getPersistentDataContainer().set(FARMER_BOOTS_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text("Farmer Boots", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Sum of every equipped piece's own flat Farming Fortune (Sprout/Farmhand/Haymaker Armor)
+     * plus Farmer Boots' own {@value #FARMER_BOOTS_FORTUNE_PER_LEVEL}-per-Farming-level bonus -
+     * wired into {@code GeneralSkillService#armorFarmingFortuneBonus} from {@code
+     * FoodTooltipsPlugin}, the same late-bound callback shape {@code LapisArmorService
+     * #equippedMiningFortuneBonus} already uses for Mining.
+     */
+    public int farmingFortuneBonus(Player p) {
+        int total = 0;
+        for (ItemStack piece : new ItemStack[]{p.getInventory().getHelmet(), p.getInventory().getChestplate(),
+                p.getInventory().getLeggings(), p.getInventory().getBoots()}) {
+            if (piece == null || piece.isEmpty()) {
+                continue;
+            }
+            ItemMeta meta = piece.getItemMeta();
+            if (meta == null) {
+                continue;
+            }
+            var pdc = meta.getPersistentDataContainer();
+            if (pdc.has(SPROUT_ARMOR_KEY, PersistentDataType.BYTE)) {
+                total += SPROUT_FARMING_FORTUNE_PER_PIECE;
+            }
+            if (pdc.has(FARMHAND_ARMOR_KEY, PersistentDataType.BYTE)) {
+                total += FARMHAND_FARMING_FORTUNE_PER_PIECE;
+            }
+            if (pdc.has(HAYMAKER_ARMOR_KEY, PersistentDataType.BYTE)) {
+                total += HAYMAKER_FARMING_FORTUNE_PER_PIECE;
+            }
+            if (pdc.has(FARMER_BOOTS_KEY, PersistentDataType.BYTE)) {
+                total += this.general.progress(p, SkillType.FARMING).level() * FARMER_BOOTS_FORTUNE_PER_LEVEL;
+            }
+        }
+        return total;
+    }
+
+    /** Farmer Boots' own level-scaling Defense bonus - wired into {@code ArmorDefenseService#farmerBootsBonus}, added outside its own multiplier (see that field's own doc). 0 for anything but a player actually wearing Farmer Boots. */
+    public int farmerBootsDefenseBonus(LivingEntity e) {
+        if (!(e instanceof Player p) || !isFarmerBoots(p.getInventory().getBoots())) {
+            return 0;
+        }
+        return FARMER_BOOTS_BASE_DEFENSE + FARMER_BOOTS_DEFENSE_PER_LEVEL * this.general.progress(p, SkillType.FARMING).level();
+    }
+
+    private static boolean isFarmerBoots(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(FARMER_BOOTS_KEY, PersistentDataType.BYTE);
+    }
+
+    /**
+     * Refreshes Farmer Boots' own real {@link Attribute#MOVEMENT_SPEED} modifier to match
+     * {@code player}'s current Farming level - same "recompute every tick from current
+     * equipment" pattern {@code ReforgeService#updateArmorSpeedModifier} already uses for
+     * Attack Speed, needed here for the same reason: a level-scaling bonus can't just be
+     * baked once at crafting time. Call from the same periodic per-player pass.
+     */
+    public void applyFarmerBootsSpeed(Player player) {
+        ItemStack boots = player.getInventory().getBoots();
+        if (!isFarmerBoots(boots)) {
+            return;
+        }
+        ItemMeta meta = boots.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        int level = this.general.progress(player, SkillType.FARMING).level();
+        double amount = (FARMER_BOOTS_BASE_SPEED + FARMER_BOOTS_SPEED_PER_LEVEL * level) * SPEED_POINT_TO_ATTRIBUTE;
+        AttributeModifier existing = null;
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.MOVEMENT_SPEED);
+        if (modifiers != null) {
+            for (AttributeModifier m : modifiers) {
+                if (m.getKey().equals(FARMER_BOOTS_SPEED_KEY)) {
+                    existing = m;
+                    break;
+                }
+            }
+        }
+        boolean needsUpdate = existing == null || Math.abs(existing.getAmount() - amount) > 1.0E-6;
+        if (!needsUpdate) {
+            return;
+        }
+        if (existing != null) {
+            meta.removeAttributeModifier(Attribute.MOVEMENT_SPEED, existing);
+        }
+        meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
+                new AttributeModifier(FARMER_BOOTS_SPEED_KEY, amount, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET));
+        boots.setItemMeta(meta);
+    }
+
     /**
      * One piece of Sprout Armor: +{@value #SPROUT_DEFENSE_PER_PIECE} Defense (forced, same
      * per-item override {@code ArmorDefenseService#forceDefense} already gives Miner's/Lapis
      * Lazuli Armor) and +{@value #SPROUT_FARMING_FORTUNE_PER_PIECE} Farming Fortune per the
-     * player's own spec - the Fortune half isn't wired into {@code GeneralSkillService} yet
-     * (no late-bound hook call here), since nothing can obtain this piece at all until a
-     * recipe exists to craft it (see this class's own doc) - wiring an unreachable bonus
-     * would be dead code with nothing to verify it against. Not called from anywhere yet;
-     * exists so the moment a recipe (or admin gift) is added, the piece itself needs no
-     * further design work.
+     * player's own spec, now wired into {@link #farmingFortuneBonus} above like every other
+     * Farming Fortune source - nothing can obtain this piece at all until a recipe exists to
+     * craft it (see this class's own doc), so the bonus stays unreachable in practice, but no
+     * longer needs any further design work once one is added. Not called from anywhere yet.
      */
     public org.bukkit.inventory.ItemStack createSproutPiece(Material material, String name) {
         var item = new org.bukkit.inventory.ItemStack(material);
@@ -284,7 +592,7 @@ public final class FarmingCollectionsItemsService {
         }
         ArmorDefenseService.forceDefense(meta, SPROUT_DEFENSE_PER_PIECE);
         this.tiers.forceTier(meta, ItemTier.B);
-        meta.getPersistentDataContainer().set(new NamespacedKey("foodtooltips", "sprout_armor_piece"), PersistentDataType.BYTE, (byte) 1);
+        meta.getPersistentDataContainer().set(SPROUT_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;

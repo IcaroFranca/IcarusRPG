@@ -59,6 +59,8 @@ public final class GeneralSkillService {
     private java.util.function.ToIntFunction<Player> armorMiningSpeedBonus = p -> 0;
     /** Lapis Lazuli Armor's own Mining Fortune bonus (see {@code LapisArmorService#equippedMiningFortuneBonus}) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
     private java.util.function.ToIntFunction<Player> armorMiningFortuneBonus = p -> 0;
+    /** Sprout/Farmhand/Haymaker Armor and Farmer Boots' own Farming Fortune bonus (see {@code item.FarmingCollectionsItemsService}) - same late-bound idea as {@link #armorMiningFortuneBonus}, one combined function covering every piece since more than one of these can be worn at once. */
+    private java.util.function.ToIntFunction<Player> armorFarmingFortuneBonus = p -> 0;
     /** Lapis Lazuli Armor's own XP orb bonus, already expressed as the fraction {@link #xpOrbMultiplier} adds directly (0.5 per piece) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
     private java.util.function.ToDoubleFunction<Player> armorXpOrbBonus = p -> 0.0;
 
@@ -70,6 +72,11 @@ public final class GeneralSkillService {
     /** Wired in after construction - see {@link #armorMiningFortuneBonus}. */
     public void armorMiningFortuneBonus(java.util.function.ToIntFunction<Player> armorMiningFortuneBonus) {
         this.armorMiningFortuneBonus = armorMiningFortuneBonus;
+    }
+
+    /** Wired in after construction - see {@link #armorFarmingFortuneBonus}. */
+    public void armorFarmingFortuneBonus(java.util.function.ToIntFunction<Player> armorFarmingFortuneBonus) {
+        this.armorFarmingFortuneBonus = armorFarmingFortuneBonus;
     }
 
     /** Wired in after construction - see {@link #armorXpOrbBonus}. */
@@ -126,7 +133,13 @@ public final class GeneralSkillService {
             case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
-        return type == SkillType.MINING ? base + this.armorMiningFortuneBonus.applyAsInt(player) : base;
+        if (type == SkillType.MINING) {
+            return base + this.armorMiningFortuneBonus.applyAsInt(player);
+        }
+        if (type == SkillType.FARMING) {
+            return base + this.armorFarmingFortuneBonus.applyAsInt(player);
+        }
+        return base;
     }
 
     /** Farming and Fishing each grant {@value #HEALTH_PER_LEVEL} Max Health per level, on top of Farming's Fortune. */

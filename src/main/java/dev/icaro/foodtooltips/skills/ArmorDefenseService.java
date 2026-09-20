@@ -57,6 +57,8 @@ public final class ArmorDefenseService {
     private java.util.function.ToIntFunction<LivingEntity> lethalityPenalty = e -> 0;
     /** Multiplies armor + Protection Defense (not the general-skill bonus, and applied before Lethality's own subtraction) for a specific entity - late-bound the same way as {@link #protectionBonus}, used by the Zombie/Skeleton Miner's own Miner's Armor (doubled, per its own request). Defaults to always-1.0 (no change) for everyone else. */
     private java.util.function.ToDoubleFunction<LivingEntity> defenseMultiplier = e -> 1.0;
+    /** Farmer Boots' own level-scaling Defense bonus (see {@code item.FarmingCollectionsItemsService#farmerBootsDefenseBonus}) - added alongside {@link GeneralSkillService#bonusDefense}, outside {@link #defenseMultiplier}, since it's unrelated to Miner's/Mushroom Armor's own multiplier mechanic. Defaults to always-0. */
+    private java.util.function.ToIntFunction<LivingEntity> farmerBootsBonus = e -> 0;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
@@ -83,6 +85,11 @@ public final class ArmorDefenseService {
         this.defenseMultiplier = defenseMultiplier;
     }
 
+    /** Wired in after construction - see {@link #farmerBootsBonus}. */
+    public void farmerBootsBonus(java.util.function.ToIntFunction<LivingEntity> farmerBootsBonus) {
+        this.farmerBootsBonus = farmerBootsBonus;
+    }
+
     /**
      * Sum of the equipped helmet/chestplate/leggings/boots' Defense values plus the
      * Protection enchant's own Defense (see {@link #protectionBonus}), both scaled by
@@ -103,7 +110,8 @@ public final class ArmorDefenseService {
         int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
         int protection = this.protectionBonus.applyAsInt(e);
         double multiplier = this.defenseMultiplier.applyAsDouble(e);
-        int total = (int) Math.round((armorDefense + protection) * multiplier) + skillBonus - this.lethalityPenalty.applyAsInt(e);
+        int total = (int) Math.round((armorDefense + protection) * multiplier) + skillBonus
+                + this.farmerBootsBonus.applyAsInt(e) - this.lethalityPenalty.applyAsInt(e);
         return Math.max(0, total);
     }
 
