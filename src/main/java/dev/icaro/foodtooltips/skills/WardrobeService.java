@@ -41,10 +41,12 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * chestplates, leggings, boots, then a selector row whose {@code column}-th button equips
  * that column's own stored set onto the player in one click ({@link #select}) - the column
  * keeps showing that same set the whole time it's worn (a clone goes on the player, not the
- * stored item itself), so switching sets back and forth never loses anything, and its own
- * armor-row cells lock against removal while active ({@link #isLockedActiveSlot}) so the
- * stored master can never be pulled out alongside the identical worn copy for a free
- * duplicate.
+ * stored item itself), so switching sets back and forth never loses anything, and any cell
+ * that still holds the exact piece it's currently worn as locks against removal
+ * ({@link #isLockedActiveSlot}) so that one stored master can never be pulled out alongside
+ * its identical worn copy for a free duplicate - every other cell, worn match or not, empty
+ * or full, stays completely free to edit, so any column can always be freely built, rebuilt
+ * or mixed piece-by-piece from any set, active or not.
  *
  * <p>Persisted exactly like {@code QuiverService} (same {@code BukkitObjectOutputStream}-over-
  * {@code ItemStack[]} Base64 trick in the player's own PDC) - a full {@value #COLUMNS}-wide,
@@ -122,23 +124,42 @@ public final class WardrobeService {
     }
 
     /**
-     * Whether {@code slot} is an armor-row cell belonging to the column {@code p} currently
-     * has equipped ({@link #select}) - locked against every inventory interaction (see {@code
-     * WardrobeListener}) while active, since {@link #select} never actually removes that
-     * column's own items from storage when equipping (it clones them onto the player instead,
-     * precisely so the set "stays represented" there for a quick re-equip) - letting a player
-     * also pull the real stored copy out while wearing an identical worn copy would be a free
-     * duplicate.
+     * Whether {@code slot} (an armor-row cell) currently holds the exact same item {@code p}
+     * has worn in that piece slot right now - the one real duplication risk {@link #select}
+     * introduces (it clones the stored item onto the player instead of moving it, so the
+     * "master" copy and the worn copy can briefly be identical at once - see {@link #select}'s
+     * own doc). Locked against every inventory interaction (see {@code WardrobeListener}) only
+     * for that exact match, never for the rest of that same column: an empty cell, or one
+     * whose item no longer matches (the player changed it some other way, or it was never
+     * equipped to begin with - e.g. an unused column the player merely clicked once, storing
+     * nothing), stays fully free to edit. This is deliberately NOT "lock the whole active
+     * column" (this method's own first version) - that also locked an empty column the moment
+     * it became active, which made it impossible to ever store a new set there at all, directly
+     * contradicting the player's own spec that any column should stay freely editable
+     * ("devo ser livre para colocar os sets na coluna que eu quiser, e mesclar também").
      */
     public boolean isLockedActiveSlot(Player p, int slot) {
         if (isSelectorSlot(slot) || isBackSlot(slot)) {
             return false;
         }
-        Integer activeColumn = this.active.get(p.getUniqueId());
-        if (activeColumn == null) {
+        ItemStack stored = this.inventoryFor(p).getItem(slot);
+        if (stored == null || stored.isEmpty()) {
             return false;
         }
-        return slot % 9 == activeColumn;
+        ItemStack worn = this.wornPiece(p, slot / 9);
+        return worn != null && !worn.isEmpty() && stored.isSimilar(worn);
+    }
+
+    /** {@code p}'s own currently worn piece for armor {@code row} (helmet/chestplate/leggings/boots) - null for any other row (the selector row has no worn-piece counterpart). */
+    private ItemStack wornPiece(Player p, int row) {
+        PlayerInventory pinv = p.getInventory();
+        return switch (row) {
+            case HELMET_ROW -> pinv.getHelmet();
+            case CHESTPLATE_ROW -> pinv.getChestplate();
+            case LEGGINGS_ROW -> pinv.getLeggings();
+            case BOOTS_ROW -> pinv.getBoots();
+            default -> null;
+        };
     }
 
     public void open(Player p) {
