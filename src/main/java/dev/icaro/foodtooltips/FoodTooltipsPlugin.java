@@ -56,6 +56,7 @@ import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
 import dev.icaro.foodtooltips.item.MushroomArmorService;
+import dev.icaro.foodtooltips.item.MushroomSoupFlightService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -157,6 +158,7 @@ extends JavaPlugin {
         farmingCollectionsItems.registerRecipes();
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
+        MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();
         MushroomArmorService mushroomArmor = new MushroomArmorService();
         mushroomArmor.reforge(reforgeService);
         DurabilityService durability = new DurabilityService((Plugin)this);
@@ -271,6 +273,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
         pm.registerEvents((Listener)new WardrobeListener(this.wardrobe, menus::openMain), (Plugin)this);
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
+        pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
@@ -435,6 +438,7 @@ extends JavaPlugin {
             reforgeService.applyArmorAttackSpeedModifiers((Player)p);
             mushroomArmor.applyToInventory((Player)p);
             farmingCollectionsItems.applyFarmerBootsSpeed((Player)p);
+            mushroomSoupFlight.tick((Player)p, ticks);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
             // Last metadata writer: validates the real PROFILE component after every

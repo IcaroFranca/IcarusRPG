@@ -23,6 +23,7 @@ import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
@@ -111,6 +112,13 @@ public final class FarmingCollectionsItemsService {
     private static final NamespacedKey FARMER_BOOTS_KEY = new NamespacedKey("foodtooltips", "farmer_boots_piece");
     private static final NamespacedKey FARMER_BOOTS_HEALTH_KEY = new NamespacedKey("foodtooltips", "farmer_boots_health");
     private static final NamespacedKey FARMER_BOOTS_SPEED_KEY = new NamespacedKey("foodtooltips", "farmer_boots_speed");
+    /** See {@code MushroomSoupFlightService} - the actual flight-granting logic lives there, this class only builds the item and its recipe. */
+    public static final NamespacedKey MAGICAL_MUSHROOM_SOUP_KEY = new NamespacedKey("foodtooltips", "magical_mushroom_soup");
+    public static final NamespacedKey MYSTICAL_MUSHROOM_SOUP_KEY = new NamespacedKey("foodtooltips", "mystical_mushroom_soup");
+    /** 2 minutes, per the player's own spec. */
+    public static final int MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS = 2 * 60 * 20;
+    /** 200 minutes, per the player's own spec. */
+    public static final int MYSTICAL_MUSHROOM_SOUP_FLIGHT_TICKS = 200 * 60 * 20;
 
     private final Plugin plugin;
     private final ItemTierService tiers;
@@ -233,6 +241,42 @@ public final class FarmingCollectionsItemsService {
         // that's the collection it's unlocked from (same heuristic as Farmhand Armor above).
         this.newShapedRecipe(CollectionsCatalog.FARMER_BOOTS_RECIPE, this.farmerBoots(),
                 new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.PUMPKIN));
+
+        Bukkit.removeRecipe(CollectionsCatalog.MAGICAL_MUSHROOM_SOUP_RECIPE);
+        ShapelessRecipe magicalSoup = new ShapelessRecipe(CollectionsCatalog.MAGICAL_MUSHROOM_SOUP_RECIPE, this.magicalMushroomSoup());
+        magicalSoup.addIngredient(Material.BOWL);
+        magicalSoup.addIngredient(Material.RED_MUSHROOM);
+        magicalSoup.addIngredient(Material.BROWN_MUSHROOM);
+        magicalSoup.addIngredient(Material.REDSTONE);
+        Bukkit.addRecipe(magicalSoup);
+
+        Bukkit.removeRecipe(CollectionsCatalog.MYSTICAL_MUSHROOM_SOUP_RECIPE);
+        ShapelessRecipe mysticalSoup = new ShapelessRecipe(CollectionsCatalog.MYSTICAL_MUSHROOM_SOUP_RECIPE, this.mysticalMushroomSoup());
+        mysticalSoup.addIngredient(Material.BOWL);
+        mysticalSoup.addIngredient(new RecipeChoice.ExactChoice(this.mushroomCore()));
+        mysticalSoup.addIngredient(new RecipeChoice.ExactChoice(this.mushroomCore()));
+        mysticalSoup.addIngredient(Material.REDSTONE);
+        Bukkit.addRecipe(mysticalSoup);
+    }
+
+    /** Magical Mushroom Soup: grants {@value #MAGICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}, which reads {@link #MAGICAL_MUSHROOM_SOUP_KEY} to tell this apart from a plain Mushroom Stew. */
+    private ItemStack magicalMushroomSoup() {
+        var item = new ItemStack(Material.MUSHROOM_STEW);
+        var meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(MAGICAL_MUSHROOM_SOUP_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text("Magical Mushroom Soup", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Mystical Mushroom Soup: grants {@value #MYSTICAL_MUSHROOM_SOUP_FLIGHT_TICKS}-tick flight on drink, cumulative across multiple - see {@code MushroomSoupFlightService}. */
+    private ItemStack mysticalMushroomSoup() {
+        var item = new ItemStack(Material.MUSHROOM_STEW);
+        var meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(MYSTICAL_MUSHROOM_SOUP_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text("Mystical Mushroom Soup", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
     }
 
     /** Haymaker's own upgrade-recipe shape: the matching Farmhand piece exactly, dead center, surrounded by 8 Wheat Cores. */
