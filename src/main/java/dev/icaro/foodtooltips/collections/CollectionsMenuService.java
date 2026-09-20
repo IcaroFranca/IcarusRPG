@@ -17,10 +17,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
@@ -118,6 +120,7 @@ public final class CollectionsMenuService {
         summaryLore.add(this.text(l.choose("Coletado: ", "Collected: ") + collected, NamedTextColor.GREEN));
         summaryLore.add(this.text(l.choose("Milestones concluídas: ", "Milestones completed: ") + done + "/" + max, NamedTextColor.GOLD));
         inv.setItem(4, this.item(entry.drop(), entry.displayName(l == Language.PT), summaryLore));
+        Map<Integer, CollectionsMilestone> milestoneButtons = new HashMap<>();
         for (int i = 0; i < MILESTONE_SLOTS.length && i < max; i++) {
             CollectionsMilestone milestone = entry.milestones().get(i);
             boolean unlocked = i < done;
@@ -132,11 +135,14 @@ public final class CollectionsMenuService {
             lore.add(this.text("+" + this.global.milestoneXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
             lore.add(this.text(unlocked ? l.choose("CONCLUÍDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
             inv.setItem(MILESTONE_SLOTS[i], this.milestoneIcon(milestone, unlocked, "Milestone " + (i + 1), lore));
+            if (!this.previewItems(milestone).isEmpty()) {
+                milestoneButtons.put(MILESTONE_SLOTS[i], milestone);
+            }
         }
         inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
-        this.viewers.put(p.getUniqueId(), View.detail(back, page, entry));
+        this.viewers.put(p.getUniqueId(), View.detail(back, page, entry, milestoneButtons));
     }
 
     public boolean viewing(Player p) {
@@ -163,8 +169,17 @@ public final class CollectionsMenuService {
             return;
         }
         if (v.type() == ViewType.DETAIL) {
-            if (slot == 49) {
+            CollectionsMilestone milestone = v.milestoneButtons().get(slot);
+            if (milestone != null) {
+                this.openItemPreview(p, milestone, v.entry(), v.category(), v.page());
+            } else if (slot == 49) {
                 this.openCategory(p, v.category(), v.page());
+            }
+            return;
+        }
+        if (v.type() == ViewType.ITEM_PREVIEW) {
+            if (slot == 49) {
+                this.openEntry(p, v.entry(), v.category(), v.page());
             }
             return;
         }
@@ -190,14 +205,8 @@ public final class CollectionsMenuService {
      * the handful of "unlocked in name only" items - a PotionMix, or a recipe not added yet).
      */
     private ItemStack milestoneIcon(CollectionsMilestone milestone, boolean unlocked, String fallbackName, List<Component> statusLore) {
-        ItemStack preview = null;
-        for (org.bukkit.NamespacedKey key : milestone.recipes()) {
-            org.bukkit.inventory.Recipe recipe = Bukkit.getRecipe(key);
-            if (recipe != null) {
-                preview = recipe.getResult().clone();
-                break;
-            }
-        }
+        List<ItemStack> previews = this.previewItems(milestone);
+        ItemStack preview = previews.isEmpty() ? null : previews.get(0);
         if (preview == null) {
             return this.item(unlocked ? Material.LIME_DYE : Material.GRAY_DYE, fallbackName, statusLore);
         }
@@ -209,6 +218,41 @@ public final class CollectionsMenuService {
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         preview.setItemMeta(meta);
         return preview;
+    }
+
+    /** Every one of {@code milestone}'s own {@link CollectionsMilestone#recipes} that resolves to a real registered {@link Recipe} right now, as fresh clones (never the live registered instance) - a 4-piece armor set's own milestone returns all 4, in the same order the catalog lists them. Empty for anything with no real recipe to preview (see {@link #milestoneIcon}'s own doc). */
+    private List<ItemStack> previewItems(CollectionsMilestone milestone) {
+        List<ItemStack> items = new ArrayList<>();
+        for (NamespacedKey key : milestone.recipes()) {
+            Recipe recipe = Bukkit.getRecipe(key);
+            if (recipe != null) {
+                items.add(recipe.getResult().clone());
+            }
+        }
+        return items;
+    }
+
+    /**
+     * Opens a dedicated read-only screen showing every real item {@code milestone} unlocks
+     * (all 4 pieces at once for an armor set, not just one) - each already carrying its own
+     * real stat lore straight from {@code item.FarmingCollectionsItemsService}'s own item
+     * builders, per the player's own "uma tela com o item ou itens... com seus status" spec.
+     * Clicking a milestone tile in {@link #openEntry} that has no real preview (an XP/enchant-
+     * discount milestone) simply does nothing, same as before this existed.
+     */
+    public void openItemPreview(Player p, CollectionsMilestone milestone, CollectionsEntry entry, CollectionsCategory back, int page) {
+        Language l = Language.of(p);
+        List<ItemStack> items = this.previewItems(milestone);
+        Inventory inv = Bukkit.createInventory(null, 54, l.choose("Prévia do Item", "Item Preview"));
+        this.fill(inv);
+        List<Integer> slots = this.centeredSlots(items.size());
+        for (int i = 0; i < items.size(); i++) {
+            inv.setItem(slots.get(i), items.get(i));
+        }
+        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        this.viewers.put(p.getUniqueId(), View.itemPreview(back, page, entry));
     }
 
     private ItemStack entryItem(Player p, CollectionsEntry e, Language l) {
@@ -278,21 +322,26 @@ public final class CollectionsMenuService {
     }
 
     private record View(ViewType type, CollectionsCategory category, int page, CollectionsEntry entry,
-                         Map<Integer, CollectionsCategory> categoryButtons, Map<Integer, CollectionsEntry> entryButtons) {
+                         Map<Integer, CollectionsCategory> categoryButtons, Map<Integer, CollectionsEntry> entryButtons,
+                         Map<Integer, CollectionsMilestone> milestoneButtons) {
         static View categories(Map<Integer, CollectionsCategory> b) {
-            return new View(ViewType.CATEGORIES, null, 0, null, b, Map.of());
+            return new View(ViewType.CATEGORIES, null, 0, null, b, Map.of(), Map.of());
         }
 
         static View category(CollectionsCategory c, int p, Map<Integer, CollectionsEntry> b) {
-            return new View(ViewType.CATEGORY, c, p, null, Map.of(), b);
+            return new View(ViewType.CATEGORY, c, p, null, Map.of(), b, Map.of());
         }
 
-        static View detail(CollectionsCategory c, int p, CollectionsEntry e) {
-            return new View(ViewType.DETAIL, c, p, e, Map.of(), Map.of());
+        static View detail(CollectionsCategory c, int p, CollectionsEntry e, Map<Integer, CollectionsMilestone> milestoneButtons) {
+            return new View(ViewType.DETAIL, c, p, e, Map.of(), Map.of(), milestoneButtons);
+        }
+
+        static View itemPreview(CollectionsCategory c, int p, CollectionsEntry e) {
+            return new View(ViewType.ITEM_PREVIEW, c, p, e, Map.of(), Map.of(), Map.of());
         }
     }
 
     private enum ViewType {
-        CATEGORIES, CATEGORY, DETAIL
+        CATEGORIES, CATEGORY, DETAIL, ITEM_PREVIEW
     }
 }

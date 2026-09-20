@@ -5,7 +5,9 @@ import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillType;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -179,13 +181,13 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('X', anyMushroom);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
-        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_HELMET_RECIPE, this.mushroomPiece(Material.LEATHER_HELMET, "Mushroom Helmet", 0),
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_HELMET_RECIPE, this.mushroomPiece(Material.LEATHER_HELMET, "Mushroom Helmet", MushroomArmorService.HELMET_HEALTH, 0),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
-        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_CHESTPLATE_RECIPE, this.mushroomPiece(Material.LEATHER_CHESTPLATE, "Mushroom Chestplate", MushroomArmorService.CHESTPLATE_DEFENSE),
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_CHESTPLATE_RECIPE, this.mushroomPiece(Material.LEATHER_CHESTPLATE, "Mushroom Chestplate", MushroomArmorService.CHESTPLATE_HEALTH, MushroomArmorService.CHESTPLATE_DEFENSE),
                 new String[]{"X X", "XXX", "XXX"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
-        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_LEGGINGS_RECIPE, this.mushroomPiece(Material.LEATHER_LEGGINGS, "Mushroom Leggings", MushroomArmorService.LEGGINGS_DEFENSE),
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_LEGGINGS_RECIPE, this.mushroomPiece(Material.LEATHER_LEGGINGS, "Mushroom Leggings", MushroomArmorService.LEGGINGS_HEALTH, MushroomArmorService.LEGGINGS_DEFENSE),
                 new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
-        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_BOOTS_RECIPE, this.mushroomPiece(Material.LEATHER_BOOTS, "Mushroom Boots", 0),
+        this.newShapedRecipe(CollectionsCatalog.MUSHROOM_BOOTS_RECIPE, this.mushroomPiece(Material.LEATHER_BOOTS, "Mushroom Boots", MushroomArmorService.BOOTS_HEALTH, 0),
                 new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
 
         this.newShapedRecipe(CollectionsCatalog.MELON_CORE_RECIPE, this.melonCore(),
@@ -427,7 +429,7 @@ public final class FarmingCollectionsItemsService {
      * fresh every tick instead (base + this piece's own reforge Health, tripled at night),
      * so a value baked here would just be immediately overwritten anyway.
      */
-    private org.bukkit.inventory.ItemStack mushroomPiece(Material material, String name, int defense) {
+    private org.bukkit.inventory.ItemStack mushroomPiece(Material material, String name, int health, int defense) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
         if (meta instanceof LeatherArmorMeta leather) {
@@ -438,6 +440,16 @@ public final class FarmingCollectionsItemsService {
         }
         MushroomArmorService.markMushroomPiece(meta);
         meta.displayName(Component.text(name, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("Health: +" + health, NamedTextColor.RED));
+        if (defense > 0) {
+            lore.add(Component.text("Defense: +" + defense, NamedTextColor.GREEN));
+        }
+        lore.add(Component.text("×3 all stats at night (reforges included)", NamedTextColor.LIGHT_PURPLE));
+        if (material == Material.LEATHER_HELMET) {
+            lore.add(Component.text("Grants Night Vision while worn", NamedTextColor.AQUA));
+        }
+        addStatLore(meta, lore.toArray(new Component[0]));
         item.setItemMeta(meta);
         return item;
     }
@@ -488,6 +500,9 @@ public final class FarmingCollectionsItemsService {
         ArmorDefenseService.forceDefense(meta, FARMHAND_DEFENSE_PER_PIECE);
         meta.getPersistentDataContainer().set(FARMHAND_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Defense: +" + FARMHAND_DEFENSE_PER_PIECE, NamedTextColor.GREEN),
+                Component.text("☘ Farming Fortune: +" + FARMHAND_FARMING_FORTUNE_PER_PIECE, NamedTextColor.GOLD));
         item.setItemMeta(meta);
         return item;
     }
@@ -502,6 +517,9 @@ public final class FarmingCollectionsItemsService {
         ArmorDefenseService.forceDefense(meta, HAYMAKER_DEFENSE_PER_PIECE);
         meta.getPersistentDataContainer().set(HAYMAKER_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Defense: +" + HAYMAKER_DEFENSE_PER_PIECE, NamedTextColor.GREEN),
+                Component.text("☘ Farming Fortune: +" + HAYMAKER_FARMING_FORTUNE_PER_PIECE, NamedTextColor.GOLD));
         item.setItemMeta(meta);
         return item;
     }
@@ -524,6 +542,15 @@ public final class FarmingCollectionsItemsService {
                 new AttributeModifier(FARMER_BOOTS_HEALTH_KEY, FARMER_BOOTS_BASE_HEALTH, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET));
         meta.getPersistentDataContainer().set(FARMER_BOOTS_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Farmer Boots", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Health: +" + FARMER_BOOTS_BASE_HEALTH, NamedTextColor.RED),
+                Component.text("Defense: +" + FARMER_BOOTS_BASE_DEFENSE, NamedTextColor.GREEN),
+                Component.text("Speed: +" + FARMER_BOOTS_BASE_SPEED, NamedTextColor.WHITE),
+                Component.empty(),
+                Component.text("Per Farming level:", NamedTextColor.GRAY),
+                Component.text("☘ Farming Fortune: +" + FARMER_BOOTS_FORTUNE_PER_LEVEL, NamedTextColor.GOLD),
+                Component.text("Defense: +" + FARMER_BOOTS_DEFENSE_PER_LEVEL, NamedTextColor.GREEN),
+                Component.text("Speed: +" + FARMER_BOOTS_SPEED_PER_LEVEL, NamedTextColor.WHITE));
         item.setItemMeta(meta);
         return item;
     }
@@ -638,8 +665,30 @@ public final class FarmingCollectionsItemsService {
         this.tiers.forceTier(meta, ItemTier.B);
         meta.getPersistentDataContainer().set(SPROUT_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Defense: +" + SPROUT_DEFENSE_PER_PIECE, NamedTextColor.GREEN),
+                Component.text("☘ Farming Fortune: +" + SPROUT_FARMING_FORTUNE_PER_PIECE, NamedTextColor.GOLD));
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Appends {@code lines} to whatever lore {@code meta} already has - used to bake each
+     * item's own real gameplay stats directly into its tooltip at creation time, since none of
+     * these numbers (Farming Fortune especially - nothing else in this plugin ever puts it in
+     * an item's own lore at all) would otherwise be visible anywhere before the item is
+     * actually equipped, if ever ({@code ArmorDefenseService}'s own periodic Defense-tooltip
+     * pass only touches items already sitting in a player's live inventory - never a bare
+     * preview clone like {@code collections.CollectionsMenuService}'s own milestone tiles or
+     * {@code collections.CollectionsItemsMenuService}'s {@code /rpgitems} tiles read via {@code
+     * Bukkit#getRecipe}).
+     */
+    private static void addStatLore(ItemMeta meta, Component... lines) {
+        List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+        for (Component line : lines) {
+            lore.add(line.decoration(TextDecoration.ITALIC, false));
+        }
+        meta.lore(lore);
     }
 
     private void newShapedRecipe(NamespacedKey key, org.bukkit.inventory.ItemStack result, String[] shape, java.util.function.Consumer<ShapedRecipe> ingredients) {
