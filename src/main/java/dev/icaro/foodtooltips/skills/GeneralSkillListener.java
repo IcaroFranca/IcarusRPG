@@ -305,8 +305,8 @@ implements Listener {
         } else if (m == Material.PUMPKIN) {
             // Not Ageable itself (only its stem is) - a mature stem spawns this block as a
             // one-off world event, never through a player-fired BlockPlaceEvent, so it's
-            // never in this.placed and always counts. No regular Farming XP for the same
-            // reason as Cactus above: the player's spec never gave Pumpkin one.
+            // never in this.placed and always counts.
+            this.gain(p, SkillType.FARMING, this.cropXp(m));
             this.track(k, new Target(SkillType.FARMING, m), p);
         } else if (m == Material.MELON) {
             // Same story as Pumpkin just above, but the collected item (Melon Slice) isn't
@@ -315,6 +315,7 @@ implements Listener {
             // the Melon block itself, not slices - naturally credits nothing here either
             // (trackedDrop never matches what actually dropped), instead of the old flat
             // "+1" this used to give even then.
+            this.gain(p, SkillType.FARMING, this.cropXp(m));
             this.track(k, new Target(SkillType.FARMING, Material.MELON_SLICE), p);
         } else if (m == Material.RED_MUSHROOM || m == Material.BROWN_MUSHROOM) {
             // Both mushroom colors feed the same catalog entry (keyed by RED_MUSHROOM) -
