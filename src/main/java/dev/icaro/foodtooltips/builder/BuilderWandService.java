@@ -211,15 +211,15 @@ public final class BuilderWandService {
     /**
      * Sentinel {@link #range} value meaning "no cap at all" - the top preset in {@link
      * #rangePresets}, past the server's own max-length. Admin-only tool, so this is a deliberate
-     * opt-in, not a safety hole. Deliberately a bounded number, not {@code Integer.MAX_VALUE} or
-     * even a merely "large" one: {@link #extendLine}/{@link #extendFace} place every block
-     * synchronously, in the same tick, on the main server thread - each {@code setBlockData}
-     * call can trigger physics and lighting recalculation, so a few thousand blocks in one go is
-     * already enough to freeze the server for a noticeable moment, independent of ever looping
-     * forever. 1,000 blocks in one action is generous - several full builds' worth - while
-     * staying well short of a felt lag spike.
+     * opt-in, not a safety hole. Deliberately a bounded number, not {@code Integer.MAX_VALUE}:
+     * {@link #extendLine}/{@link #extendFace} place every block synchronously, in the same
+     * tick, on the main server thread - each {@code setBlockData} call can trigger physics and
+     * lighting recalculation, so tens of thousands of blocks in one go is already enough to
+     * freeze the server for a noticeable moment, independent of ever looping forever. 10,000
+     * blocks in one action is generous - many full builds' worth - while still keeping a
+     * worst case bounded.
      */
-    public static final int UNLIMITED = 1_000;
+    public static final int UNLIMITED = 10_000;
 
     /**
      * The wand's current per-item block limit: {@link #UNLIMITED} if that's what's picked in
