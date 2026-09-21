@@ -67,9 +67,18 @@ public final class BuilderWandService {
         LINE, FACE, COPY
     }
 
-    /** One player's last placement (extend or paste): the exact blocks it placed, and how much of each material it consumed (empty in Creative) so undo knows what to refund. */
+    /** One placement (extend or paste): the exact blocks it placed, and how much of each material it consumed (empty in Creative) so undo knows what to refund. */
     private record LastAction(List<Block> placed, Map<Material, Integer> consumed) {
     }
+
+    /**
+     * How many past actions {@link #undo} can walk back through per player, not just the
+     * very last one - each undo pops one step further back, like a normal editor's undo
+     * stack. Bounded (not unlimited) because every entry pins a full {@link List} of {@link
+     * Block} references in memory for as long as it's kept; 50 is generous - many minutes of
+     * continuous building - without letting an hours-long session's history grow forever.
+     */
+    private static final int MAX_UNDO_HISTORY = 50;
 
     /** One block from a {@link CopySession#buffer}: its offset from the buffer's own minimum corner, and its captured {@link BlockData}. Air blocks are never captured (see {@link #captureBuffer}), so a paste never punches holes in whatever it lands on beyond the copied shape itself. */
     private record CopiedBlock(int dx, int dy, int dz, BlockData data) {
@@ -104,7 +113,7 @@ public final class BuilderWandService {
     private final NamespacedKey rangeKey;
     private final int maxLength;
     private final ItemTierService tiers;
-    private final Map<UUID, LastAction> lastAction = new HashMap<>();
+    private final Map<UUID, Deque<LastAction>> undoHistory = new HashMap<>();
     private final Set<UUID> viewingMenu = new HashSet<>();
     private final Map<UUID, CopySession> copySessions = new HashMap<>();
 
@@ -142,7 +151,7 @@ public final class BuilderWandService {
         for (String part : LoreWrap.wrapText(l.choose("Clique esquerdo abre o menu de configurações.", "Left-click opens the settings menu."), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
-        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última ação.", "Shift + left-click undoes the last action."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última ação (repita pra desfazer mais).", "Shift + left-click undoes the last action (repeat to undo further back)."), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
@@ -162,7 +171,7 @@ public final class BuilderWandService {
 
     /** Drops the remembered last action for a player (call on quit - no point holding Block references for an offline player), and despawns any ghost preview entities left over from an in-progress {@link FillMode#COPY}. */
     public void forget(UUID playerId) {
-        this.lastAction.remove(playerId);
+        this.undoHistory.remove(playerId);
         this.viewingMenu.remove(playerId);
         CopySession session = this.copySessions.remove(playerId);
         if (session != null) {
@@ -403,7 +412,7 @@ public final class BuilderWandService {
                 : this.extendLine(p, clicked, face, material, data, creative, limit);
         if (!placedBlocks.isEmpty()) {
             Map<Material, Integer> consumed = creative ? Map.of() : Map.of(material, placedBlocks.size());
-            this.lastAction.put(p.getUniqueId(), new LastAction(placedBlocks, consumed));
+            this.pushUndo(p, new LastAction(placedBlocks, consumed));
         }
         return placedBlocks.size();
     }
@@ -490,17 +499,19 @@ public final class BuilderWandService {
     }
 
     /**
-     * Shift + left-click's counterpart to {@link #extend}: puts back air where the last
-     * extension placed blocks, and - only if that extension actually paid for them
-     * (Survival) - returns the same count of that material to the player's inventory,
-     * dropping anything that doesn't fit. Only remembers one action per player, matching
-     * "undo the last thing I did" rather than a full undo stack.
+     * Shift + left-click's counterpart to {@link #extend}: puts back air where the most
+     * recent not-yet-undone placement (extend or paste) put blocks, and - only for whatever
+     * it actually paid for (Survival) - returns that material to the player's inventory,
+     * dropping anything that doesn't fit. Walks one step further back in {@code p}'s history
+     * each time it's called (up to {@link #MAX_UNDO_HISTORY} steps), like a normal editor's
+     * undo - not just the single very last action.
      */
     public int undo(Player p) {
-        LastAction action = this.lastAction.remove(p.getUniqueId());
-        if (action == null) {
+        Deque<LastAction> history = this.undoHistory.get(p.getUniqueId());
+        if (history == null || history.isEmpty()) {
             return 0;
         }
+        LastAction action = history.removeFirst();
         for (Block b : action.placed()) {
             b.setType(Material.AIR);
         }
@@ -508,6 +519,15 @@ public final class BuilderWandService {
             this.giveBack(p, entry.getKey(), entry.getValue());
         }
         return action.placed().size();
+    }
+
+    /** Records {@code action} as {@code p}'s most recent undo-able step, trimming the oldest entry once {@link #MAX_UNDO_HISTORY} is exceeded. */
+    private void pushUndo(Player p, LastAction action) {
+        Deque<LastAction> history = this.undoHistory.computeIfAbsent(p.getUniqueId(), k -> new ArrayDeque<>());
+        history.addFirst(action);
+        while (history.size() > MAX_UNDO_HISTORY) {
+            history.removeLast();
+        }
     }
 
     /** Hands back {@code count} of {@code material}, splitting into full stacks and dropping whatever doesn't fit in the inventory. */
@@ -718,7 +738,7 @@ public final class BuilderWandService {
         if (placedBlocks.isEmpty()) {
             return this.line(l.choose("Nada pra colar aqui.", "Nothing to paste here."), NamedTextColor.RED);
         }
-        this.lastAction.put(p.getUniqueId(), new LastAction(placedBlocks, consumed));
+        this.pushUndo(p, new LastAction(placedBlocks, consumed));
         return this.line("+" + placedBlocks.size() + " " + l.choose("blocos colados", "blocks pasted"), NamedTextColor.GREEN);
     }
 
