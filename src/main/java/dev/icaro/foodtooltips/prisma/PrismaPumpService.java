@@ -93,10 +93,14 @@ public final class PrismaPumpService {
 
     /**
      * BFS across the same Y level as {@code seed}: air blocks get turned into water and
-     * counted, existing water is passed through (already "filled", but expansion keeps
-     * going through it), and anything else stops that branch cold. Mirrors the same {@code
-     * Pos}-keyed flood-fill idiom {@code BuilderWandService}/{@code DestroyerHandService}
-     * use for their own face fills.
+     * counted, and anything else stops that branch cold. Existing water is deliberately
+     * re-set to a plain full source too, not just left alone: a hole that was dug a while
+     * ago often already has some natural flowing (non-source) water sitting in it from
+     * vanilla's own spread physics, and leaving that as-is is exactly the "not uniform"
+     * look this tool exists to get rid of - the whole point is a flat, level pool/channel,
+     * not just air turned to water with old flowing water left lumpy in between. Mirrors
+     * the same {@code Pos}-keyed flood-fill idiom {@code BuilderWandService}/{@code
+     * DestroyerHandService} use for their own face fills.
      */
     private int floodFillWater(Block seed) {
         int y = seed.getY();
@@ -111,10 +115,10 @@ public final class PrismaPumpService {
                 continue;
             }
             Material type = b.getType();
-            if (type == Material.AIR) {
+            if (type == Material.AIR || type == Material.WATER) {
                 b.setType(Material.WATER);
                 filled++;
-            } else if (type != Material.WATER) {
+            } else {
                 continue;
             }
             for (BlockFace dir : HORIZONTAL_FACES) {
