@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.builder;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.prisma.PrismaPumpService;
 import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -58,13 +59,15 @@ import org.bukkit.util.RayTraceResult;
 public final class BuilderWandService {
     /**
      * Whether a right-click extends only along the clicked face's line/column, floods the
-     * whole connected area on that face, or - {@link FillMode#COPY} - copies an existing
-     * area to paste elsewhere with a live preview (see {@link #handleCopyClick}). Stored
-     * per-item (see {@link #modeKey}), not per-player - the wand itself remembers its own
-     * setting.
+     * whole connected area on that face, {@link FillMode#COPY} copies an existing area to
+     * paste elsewhere with a live preview (see {@link #handleCopyClick}), or {@link
+     * FillMode#WATER} levels a connected pocket of air into water next to the clicked block
+     * (see {@link #pumpWater} - the same {@link PrismaPumpService} logic backing the
+     * Prismapump item itself). Stored per-item (see {@link #modeKey}), not per-player - the
+     * wand itself remembers its own setting.
      */
     public enum FillMode {
-        LINE, FACE, COPY
+        LINE, FACE, COPY, WATER
     }
 
     /** One placement (extend or paste): the exact blocks it placed, and how much of each material it consumed (empty in Creative) so undo knows what to refund. */
@@ -102,22 +105,25 @@ public final class BuilderWandService {
         }
     }
 
-    // 3-row grid (27 slots); all 4 controls centered on the middle row (9-17).
+    // 3-row grid (27 slots); all 5 controls centered on the middle row (9-17).
     private static final int MODE_LINE_SLOT = 9;
     private static final int MODE_FACE_SLOT = 11;
     private static final int MODE_COPY_SLOT = 13;
-    private static final int RANGE_SLOT = 15;
+    private static final int MODE_WATER_SLOT = 15;
+    private static final int RANGE_SLOT = 17;
 
     private final NamespacedKey wandKey;
     private final NamespacedKey modeKey;
     private final NamespacedKey rangeKey;
     private final int maxLength;
     private final ItemTierService tiers;
+    private final PrismaPumpService prismaPump;
     private final Map<UUID, Deque<LastAction>> undoHistory = new HashMap<>();
     private final Set<UUID> viewingMenu = new HashSet<>();
     private final Map<UUID, CopySession> copySessions = new HashMap<>();
 
-    public BuilderWandService(Plugin plugin, ItemTierService tiers) {
+    public BuilderWandService(Plugin plugin, ItemTierService tiers, PrismaPumpService prismaPump) {
+        this.prismaPump = prismaPump;
         this.wandKey = new NamespacedKey(plugin, "builder_wand");
         this.modeKey = new NamespacedKey(plugin, "builder_wand_mode");
         this.rangeKey = new NamespacedKey(plugin, "builder_wand_range");
@@ -159,6 +165,7 @@ public final class BuilderWandService {
             case LINE -> l.choose("Linha/Coluna", "Line/Column");
             case FACE -> l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
             case COPY -> l.choose("Copiar & Colar", "Copy & Paste");
+            case WATER -> l.choose("Nivelar Água", "Level Water");
         }, NamedTextColor.YELLOW));
         lore.add(this.line(l.choose("Alcance: ", "Range: ") + this.rangeLabel(this.range(item), l), NamedTextColor.YELLOW));
         lore.add(this.line(l.choose("Criativo: não gasta blocos.", "Creative: doesn't use blocks."), NamedTextColor.DARK_GRAY));
@@ -269,6 +276,7 @@ public final class BuilderWandService {
         v.setItem(MODE_LINE_SLOT, this.modeOption(FillMode.LINE, current, l));
         v.setItem(MODE_FACE_SLOT, this.modeOption(FillMode.FACE, current, l));
         v.setItem(MODE_COPY_SLOT, this.modeOption(FillMode.COPY, current, l));
+        v.setItem(MODE_WATER_SLOT, this.modeOption(FillMode.WATER, current, l));
         v.setItem(RANGE_SLOT, this.rangeItem(this.range(item), l));
     }
 
@@ -297,6 +305,8 @@ public final class BuilderWandService {
             this.setMode(held, FillMode.FACE, l);
         } else if (slot == MODE_COPY_SLOT) {
             this.setMode(held, FillMode.COPY, l);
+        } else if (slot == MODE_WATER_SLOT) {
+            this.setMode(held, FillMode.WATER, l);
         } else if (slot == RANGE_SLOT) {
             this.cycleRange(held, click.isLeftClick(), l);
         } else {
@@ -332,11 +342,13 @@ public final class BuilderWandService {
             case LINE -> Material.LIGHT_BLUE_STAINED_GLASS_PANE;
             case FACE -> Material.ORANGE_STAINED_GLASS_PANE;
             case COPY -> Material.LIME_STAINED_GLASS_PANE;
+            case WATER -> Material.CYAN_STAINED_GLASS_PANE;
         };
         String label = switch (option) {
             case LINE -> l.choose("Linha/Coluna", "Line/Column");
             case FACE -> l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
             case COPY -> l.choose("Copiar & Colar", "Copy & Paste");
+            case WATER -> l.choose("Nivelar Água", "Level Water");
         };
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
@@ -347,6 +359,7 @@ public final class BuilderWandService {
             case LINE -> l.choose("Estende só na direção da face clicada.", "Extends only along the clicked face's direction.");
             case FACE -> l.choose("Copia a parede/chão existente pra camada de fora.", "Copies the existing wall/floor onto the layer beyond it.");
             case COPY -> l.choose("Copia uma área e cola em outro lugar, com preview.", "Copies an area and pastes it elsewhere, with a preview.");
+            case WATER -> l.choose("Clique num bloco do lado de uma água pra nivelar o buraco/canal.", "Click a block next to water to level the hole/channel.");
         };
         lore.add(this.line(description, NamedTextColor.GRAY));
         if (selected) {
@@ -748,6 +761,25 @@ public final class BuilderWandService {
         }
         this.pushUndo(p, new LastAction(placedBlocks, consumed));
         return this.line("+" + placedBlocks.size() + " " + l.choose("blocos colados", "blocks pasted"), NamedTextColor.GREEN);
+    }
+
+    // ---- Water leveling --------------------------------------------------------
+
+    /**
+     * {@link FillMode#WATER}'s whole job: right-clicking a block next to water levels the
+     * connected air pocket on that same layer into water, via the exact same {@link
+     * PrismaPumpService#fillAdjacentWater} logic the Prismapump item itself places to
+     * trigger. Not undo-able (unlike {@link #extend}/{@link #confirmPaste}) - reversing a
+     * flood fill would mean remembering every single block it touched, and turning water
+     * back into air one-for-one is trivial to do by hand if it ever goes wrong.
+     */
+    public Component pumpWater(Player p, Block clicked) {
+        Language l = Language.of(p);
+        int filled = this.prismaPump.fillAdjacentWater(clicked);
+        if (filled <= 0) {
+            return this.line(l.choose("Nenhuma água do lado pra nivelar.", "No water nearby to level."), NamedTextColor.RED);
+        }
+        return this.line("+" + filled + " " + l.choose("água", "water"), NamedTextColor.AQUA);
     }
 
     private Component line(String s, NamedTextColor c) {

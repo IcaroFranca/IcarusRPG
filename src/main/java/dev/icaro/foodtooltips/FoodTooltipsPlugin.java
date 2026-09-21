@@ -41,6 +41,8 @@ import dev.icaro.foodtooltips.enchant.EnchantMilestoneService;
 import dev.icaro.foodtooltips.potion.PotionMilestoneService;
 import dev.icaro.foodtooltips.potion.PotionGuideMenuService;
 import dev.icaro.foodtooltips.potion.PotionGuideMenuListener;
+import dev.icaro.foodtooltips.prisma.PrismaPumpListener;
+import dev.icaro.foodtooltips.prisma.PrismaPumpService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuListener;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuService;
@@ -189,7 +191,8 @@ extends JavaPlugin {
         SwordDamageService swordDamage = new SwordDamageService((Plugin)this, combat, reforgeService);
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
         PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this, combat);
-        BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers);
+        PrismaPumpService prismaPump = new PrismaPumpService((Plugin)this);
+        BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers, prismaPump);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
         CombatAbilityService abilities = new CombatAbilityService((Plugin)this, combat, stats, valor);
@@ -342,6 +345,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BuilderWandListener(builderWand), (Plugin)this);
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
+        pm.registerEvents((Listener)new PrismaPumpListener(prismaPump), (Plugin)this);
         GeyserSkullExport.export((Plugin)this, gems, global);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
@@ -414,6 +418,24 @@ extends JavaPlugin {
             }
             target.getInventory().addItem(biomeWand.create(Language.of(target)));
             s.sendMessage((Component)Component.text((String)(this.text(s, "Varinha de Biomas entregue a ", "Biome's Wand given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
+            return true;
+        });
+        this.getCommand("prismapump").setExecutor((s, c, l, a) -> {
+            Player target;
+            if (a.length >= 1) {
+                target = Bukkit.getPlayerExact((String)a[0]);
+                if (target == null) {
+                    s.sendMessage((Component)Component.text((String)this.text(s, "Jogador não encontrado ou offline.", "Player not found or offline."), (TextColor)NamedTextColor.RED));
+                    return true;
+                }
+            } else if (s instanceof Player) {
+                target = (Player)s;
+            } else {
+                s.sendMessage((Component)Component.text((String)"Usage: /prismapump [player]"));
+                return true;
+            }
+            target.getInventory().addItem(prismaPump.create(Language.of(target)));
+            s.sendMessage((Component)Component.text((String)(this.text(s, "Prismapump entregue a ", "Prismapump given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
             return true;
         });
         this.getCommand("skills").setExecutor((s, c, l, a) -> {

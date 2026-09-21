@@ -84,6 +84,10 @@ public final class BuilderWandListener implements Listener {
             p.sendActionBar(this.wand.handleCopyClick(p, clicked, face, p.isSneaking()));
             return;
         }
+        if (this.wand.mode(e.getItem()) == BuilderWandService.FillMode.WATER) {
+            p.sendActionBar(this.wand.pumpWater(p, clicked));
+            return;
+        }
         int placed = this.wand.extend(p, clicked, face, e.getItem());
         if (placed <= 0) {
             p.sendActionBar(Component.text(l.choose("Nada pra estender aqui.", "Nothing to extend here."), NamedTextColor.RED));
