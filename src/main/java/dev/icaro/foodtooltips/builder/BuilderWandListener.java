@@ -43,6 +43,10 @@ public final class BuilderWandListener implements Listener {
         }
         Language l = Language.of(p);
         if (p.isSneaking()) {
+            if (this.wand.cancelPreview(p)) {
+                p.sendActionBar(Component.text(l.choose("Preview cancelado.", "Preview cancelled."), NamedTextColor.RED));
+                return;
+            }
             int undone = this.wand.undo(p);
             if (undone <= 0) {
                 p.sendActionBar(Component.text(l.choose("Nada pra desfazer.", "Nothing to undo."), NamedTextColor.RED));
@@ -74,6 +78,10 @@ public final class BuilderWandListener implements Listener {
         Block clicked = e.getClickedBlock();
         BlockFace face = e.getBlockFace();
         if (clicked == null || face == null) {
+            return;
+        }
+        if (this.wand.mode(e.getItem()) == BuilderWandService.FillMode.COPY) {
+            p.sendActionBar(this.wand.handleCopyClick(p, e.getItem(), clicked, face, p.isSneaking()));
             return;
         }
         int placed = this.wand.extend(p, clicked, face, e.getItem());

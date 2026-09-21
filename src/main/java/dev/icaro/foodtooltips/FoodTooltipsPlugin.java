@@ -488,6 +488,7 @@ extends JavaPlugin {
             manaPotion.tick((Player)p, ticks);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
+            builderWand.tickPreview((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
             // other item service, so none can accidentally restore the Base64 profile
             // on Java (or the skin patch on Bedrock) until the next sweep.

@@ -17,12 +17,16 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
@@ -32,6 +36,7 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.RayTraceResult;
 
 /**
  * The Builder's Wand: right-click a placed block to extend it into a full line
@@ -41,22 +46,57 @@ import org.bukkit.plugin.Plugin;
  * in Survival it consumes one matching block from the player's inventory per block
  * placed and stops the moment it runs out.
  *
+ * <p>A third mode, {@link FillMode#COPY}, turns the wand into a copy/paste tool instead:
+ * right-click marks corner A, shift + right-click marks corner B and copies the box
+ * between them, then a plain right-click drops a live ghost preview of the copy that
+ * follows the player's crosshair (see {@link #tickPreview}) until another right-click
+ * confirms the paste - see {@link #handleCopyClick} for the full state machine.
+ *
  * <p>For now the wand is admin-only and only reachable via a command (see
  * {@code FoodTooltipsPlugin}'s {@code /builderwand} executor) - no drop/craft source yet.
  */
 public final class BuilderWandService {
-    /** Whether a right-click extends only along the clicked face's line/column, or floods the whole connected area on that face. Stored per-item (see {@link #modeKey}), not per-player - the wand itself remembers its own setting. */
+    /**
+     * Whether a right-click extends only along the clicked face's line/column, floods the
+     * whole connected area on that face, or - {@link FillMode#COPY} - copies an existing
+     * area to paste elsewhere with a live preview (see {@link #handleCopyClick}). Stored
+     * per-item (see {@link #modeKey}), not per-player - the wand itself remembers its own
+     * setting.
+     */
     public enum FillMode {
-        LINE, FACE
+        LINE, FACE, COPY
     }
 
-    /** One player's last extension: the exact blocks it placed, and whether it paid for them (so undo knows whether to refund). */
-    private record LastAction(List<Block> placed, Material material, boolean consumed) {
+    /** One player's last placement (extend or paste): the exact blocks it placed, and how much of each material it consumed (empty in Creative) so undo knows what to refund. */
+    private record LastAction(List<Block> placed, Map<Material, Integer> consumed) {
     }
 
-    // 3-row grid (27 slots); all 3 controls centered on the middle row (9-17).
-    private static final int MODE_LINE_SLOT = 11;
-    private static final int MODE_FACE_SLOT = 13;
+    /** One block from a {@link CopySession#buffer}: its offset from the buffer's own minimum corner, and its captured {@link BlockData}. Air blocks are never captured (see {@link #captureBuffer}), so a paste never punches holes in whatever it lands on beyond the copied shape itself. */
+    private record CopiedBlock(int dx, int dy, int dz, BlockData data) {
+    }
+
+    /**
+     * One player's in-progress {@link FillMode#COPY} state: the first corner picked (before
+     * the second completes the selection), the captured buffer once copied (kept across
+     * pastes, like a clipboard), and - while a live preview is up - the ghost {@link
+     * BlockDisplay} entities (index-aligned with {@code buffer}) and the last block position
+     * they were moved to.
+     */
+    private static final class CopySession {
+        private Block pos1;
+        private List<CopiedBlock> buffer;
+        private final List<BlockDisplay> previewEntities = new ArrayList<>();
+        private Block previewAnchor;
+
+        private boolean previewing() {
+            return !this.previewEntities.isEmpty();
+        }
+    }
+
+    // 3-row grid (27 slots); all 4 controls centered on the middle row (9-17).
+    private static final int MODE_LINE_SLOT = 9;
+    private static final int MODE_FACE_SLOT = 11;
+    private static final int MODE_COPY_SLOT = 13;
     private static final int RANGE_SLOT = 15;
 
     private final NamespacedKey wandKey;
@@ -66,6 +106,7 @@ public final class BuilderWandService {
     private final ItemTierService tiers;
     private final Map<UUID, LastAction> lastAction = new HashMap<>();
     private final Set<UUID> viewingMenu = new HashSet<>();
+    private final Map<UUID, CopySession> copySessions = new HashMap<>();
 
     public BuilderWandService(Plugin plugin, ItemTierService tiers) {
         this.wandKey = new NamespacedKey(plugin, "builder_wand");
@@ -105,10 +146,11 @@ public final class BuilderWandService {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Modo: ", "Mode: ") + (mode == FillMode.LINE
-                        ? l.choose("Linha/Coluna", "Line/Column")
-                        : l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)")),
-                NamedTextColor.YELLOW));
+        lore.add(this.line(l.choose("Modo: ", "Mode: ") + switch (mode) {
+            case LINE -> l.choose("Linha/Coluna", "Line/Column");
+            case FACE -> l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
+            case COPY -> l.choose("Copiar & Colar", "Copy & Paste");
+        }, NamedTextColor.YELLOW));
         lore.add(this.line(l.choose("Alcance: ", "Range: ") + this.rangeLabel(this.range(item), l), NamedTextColor.YELLOW));
         lore.add(this.line(l.choose("Criativo: não gasta blocos.", "Creative: doesn't use blocks."), NamedTextColor.DARK_GRAY));
         lore.add(this.line(l.choose("Sobrevivência: precisa ter os blocos.", "Survival: needs the blocks."), NamedTextColor.DARK_GRAY));
@@ -118,10 +160,14 @@ public final class BuilderWandService {
         item.setItemMeta(meta);
     }
 
-    /** Drops the remembered last action for a player (call on quit - no point holding Block references for an offline player). */
+    /** Drops the remembered last action for a player (call on quit - no point holding Block references for an offline player), and despawns any ghost preview entities left over from an in-progress {@link FillMode#COPY}. */
     public void forget(UUID playerId) {
         this.lastAction.remove(playerId);
         this.viewingMenu.remove(playerId);
+        CopySession session = this.copySessions.remove(playerId);
+        if (session != null) {
+            session.previewEntities.forEach(BlockDisplay::remove);
+        }
     }
 
     public boolean isWand(ItemStack item) {
@@ -213,6 +259,7 @@ public final class BuilderWandService {
         FillMode current = this.mode(item);
         v.setItem(MODE_LINE_SLOT, this.modeOption(FillMode.LINE, current, l));
         v.setItem(MODE_FACE_SLOT, this.modeOption(FillMode.FACE, current, l));
+        v.setItem(MODE_COPY_SLOT, this.modeOption(FillMode.COPY, current, l));
         v.setItem(RANGE_SLOT, this.rangeItem(this.range(item), l));
     }
 
@@ -239,6 +286,8 @@ public final class BuilderWandService {
             this.setMode(held, FillMode.LINE, l);
         } else if (slot == MODE_FACE_SLOT) {
             this.setMode(held, FillMode.FACE, l);
+        } else if (slot == MODE_COPY_SLOT) {
+            this.setMode(held, FillMode.COPY, l);
         } else if (slot == RANGE_SLOT) {
             this.cycleRange(held, click.isLeftClick(), l);
         } else {
@@ -270,18 +319,27 @@ public final class BuilderWandService {
 
     private ItemStack modeOption(FillMode option, FillMode current, Language l) {
         boolean selected = option == current;
-        Material material = option == FillMode.LINE ? Material.LIGHT_BLUE_STAINED_GLASS_PANE : Material.ORANGE_STAINED_GLASS_PANE;
-        String label = option == FillMode.LINE
-                ? l.choose("Linha/Coluna", "Line/Column")
-                : l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
+        Material material = switch (option) {
+            case LINE -> Material.LIGHT_BLUE_STAINED_GLASS_PANE;
+            case FACE -> Material.ORANGE_STAINED_GLASS_PANE;
+            case COPY -> Material.LIME_STAINED_GLASS_PANE;
+        };
+        String label = switch (option) {
+            case LINE -> l.choose("Linha/Coluna", "Line/Column");
+            case FACE -> l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
+            case COPY -> l.choose("Copiar & Colar", "Copy & Paste");
+        };
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(this.line((selected ? "✔ " : "") + label, selected ? NamedTextColor.GREEN : NamedTextColor.GRAY)
                 .decoration(TextDecoration.BOLD, selected));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(option == FillMode.LINE
-                ? l.choose("Estende só na direção da face clicada.", "Extends only along the clicked face's direction.")
-                : l.choose("Copia a parede/chão existente pra camada de fora.", "Copies the existing wall/floor onto the layer beyond it."), NamedTextColor.GRAY));
+        String description = switch (option) {
+            case LINE -> l.choose("Estende só na direção da face clicada.", "Extends only along the clicked face's direction.");
+            case FACE -> l.choose("Copia a parede/chão existente pra camada de fora.", "Copies the existing wall/floor onto the layer beyond it.");
+            case COPY -> l.choose("Copia uma área e cola em outro lugar, com preview.", "Copies an area and pastes it elsewhere, with a preview.");
+        };
+        lore.add(this.line(description, NamedTextColor.GRAY));
         if (selected) {
             lore.add(Component.empty());
             lore.add(this.line(l.choose("Modo atual", "Current mode"), NamedTextColor.GREEN));
@@ -344,7 +402,8 @@ public final class BuilderWandService {
                 ? this.extendFace(p, clicked, face, material, data, creative, limit)
                 : this.extendLine(p, clicked, face, material, data, creative, limit);
         if (!placedBlocks.isEmpty()) {
-            this.lastAction.put(p.getUniqueId(), new LastAction(placedBlocks, material, !creative));
+            Map<Material, Integer> consumed = creative ? Map.of() : Map.of(material, placedBlocks.size());
+            this.lastAction.put(p.getUniqueId(), new LastAction(placedBlocks, consumed));
         }
         return placedBlocks.size();
     }
@@ -445,8 +504,8 @@ public final class BuilderWandService {
         for (Block b : action.placed()) {
             b.setType(Material.AIR);
         }
-        if (action.consumed()) {
-            this.giveBack(p, action.material(), action.placed().size());
+        for (Map.Entry<Material, Integer> entry : action.consumed().entrySet()) {
+            this.giveBack(p, entry.getKey(), entry.getValue());
         }
         return action.placed().size();
     }
@@ -476,6 +535,191 @@ public final class BuilderWandService {
             }
         }
         return false;
+    }
+
+    // ---- Copy & Paste --------------------------------------------------------
+
+    /**
+     * Handles a right-click while the wand is in {@link FillMode#COPY}, driving the whole
+     * copy/paste state machine for {@code p}:
+     * <ul>
+     *   <li>No buffer yet, plain right-click: sets/replaces corner A.</li>
+     *   <li>No buffer yet, shift + right-click: requires corner A already set, and captures
+     *       the box between it and {@code clicked} into the buffer (see {@link #captureBuffer}).</li>
+     *   <li>Buffer ready, not previewing, plain right-click: starts a live preview anchored
+     *       one block beyond {@code clicked}'s {@code face} - the same "adjacent to the
+     *       clicked face" convention {@link #extend} uses.</li>
+     *   <li>Buffer ready, previewing, plain right-click: pastes for real at the preview's
+     *       current position (see {@link #confirmPaste}).</li>
+     *   <li>Buffer ready, shift + right-click: clears the buffer so a new area can be copied.</li>
+     * </ul>
+     * The buffer survives a confirmed paste (like a clipboard) so the same copy can be
+     * pasted repeatedly in different spots - that's the whole point of this mode.
+     */
+    public Component handleCopyClick(Player p, ItemStack item, Block clicked, BlockFace face, boolean sneaking) {
+        Language l = Language.of(p);
+        CopySession session = this.copySessions.computeIfAbsent(p.getUniqueId(), k -> new CopySession());
+        if (session.buffer == null) {
+            if (sneaking) {
+                if (session.pos1 == null) {
+                    return this.line(l.choose("Marque a posição A primeiro (clique direito).", "Mark position A first (right-click)."), NamedTextColor.RED);
+                }
+                return this.captureBuffer(session, session.pos1, clicked, this.range(item), l);
+            }
+            session.pos1 = clicked;
+            return this.line(l.choose("Posição A definida. Shift + clique direito na posição B.", "Position A set. Shift + right-click position B."), NamedTextColor.YELLOW);
+        }
+        if (sneaking) {
+            this.clearPreview(session);
+            session.buffer = null;
+            session.pos1 = null;
+            return this.line(l.choose("Cópia limpa.", "Copy cleared."), NamedTextColor.GOLD);
+        }
+        if (!session.previewing()) {
+            this.startPreview(session, clicked, face);
+            return this.line(l.choose("Preview iniciado - olhe ao redor pra posicionar, clique direito de novo pra colar.", "Preview started - look around to position it, right-click again to paste."), NamedTextColor.GREEN);
+        }
+        return this.confirmPaste(p, session);
+    }
+
+    /**
+     * Captures every non-air block in the box between {@code pos1} and {@code pos2} into
+     * {@code session}'s buffer, relative to the box's own minimum corner. Air blocks are
+     * deliberately skipped - a paste only ever adds the copied shape, it never punches holes
+     * in whatever it lands on. {@code limit} (the wand's own {@link #range}) caps the box's
+     * volume, reusing the same server-load rationale {@link #UNLIMITED} documents for {@link
+     * #extend}: capturing (and later pasting) tens of thousands of blocks synchronously on
+     * the main thread would freeze the server for a noticeable moment.
+     */
+    private Component captureBuffer(CopySession session, Block pos1, Block pos2, int limit, Language l) {
+        if (!pos1.getWorld().equals(pos2.getWorld())) {
+            return this.line(l.choose("As duas posições precisam estar no mesmo mundo.", "Both positions must be in the same world."), NamedTextColor.RED);
+        }
+        int minX = Math.min(pos1.getX(), pos2.getX());
+        int minY = Math.min(pos1.getY(), pos2.getY());
+        int minZ = Math.min(pos1.getZ(), pos2.getZ());
+        int maxX = Math.max(pos1.getX(), pos2.getX());
+        int maxY = Math.max(pos1.getY(), pos2.getY());
+        int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+        long volume = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+        if (volume > limit) {
+            return this.line(l.choose("Área grande demais (" + volume + " blocos, máximo " + limit + "). Aumente o alcance da varinha ou diminua a área.",
+                    "Area too large (" + volume + " blocks, max " + limit + "). Increase the wand's range or shrink the area."), NamedTextColor.RED);
+        }
+        World w = pos1.getWorld();
+        List<CopiedBlock> buffer = new ArrayList<>();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Block b = w.getBlockAt(x, y, z);
+                    if (b.getType().isAir()) {
+                        continue;
+                    }
+                    buffer.add(new CopiedBlock(x - minX, y - minY, z - minZ, b.getBlockData()));
+                }
+            }
+        }
+        session.pos1 = null;
+        session.buffer = buffer;
+        return this.line(l.choose("Área copiada: " + buffer.size() + " blocos.", "Area copied: " + buffer.size() + " blocks."), NamedTextColor.GREEN);
+    }
+
+    /** Spawns one ghost {@link BlockDisplay} per {@code session.buffer} entry, anchored at {@code anchor}. {@link #tickPreview} then keeps them following the player's crosshair every tick. */
+    private void startPreview(CopySession session, Block clicked, BlockFace face) {
+        Block anchor = clicked.getRelative(face);
+        session.previewAnchor = anchor;
+        for (CopiedBlock cb : session.buffer) {
+            Location loc = anchor.getRelative(cb.dx(), cb.dy(), cb.dz()).getLocation();
+            BlockDisplay display = anchor.getWorld().spawn(loc, BlockDisplay.class, e -> {
+                e.setBlock(cb.data());
+                e.setGlowing(true);
+            });
+            session.previewEntities.add(display);
+        }
+    }
+
+    /** Teleports every ghost entity to sit at {@code anchor} plus its own buffer offset - moving, not respawning, so following the player's crosshair every tick stays cheap. */
+    private void movePreview(CopySession session, Block anchor) {
+        session.previewAnchor = anchor;
+        for (int i = 0; i < session.buffer.size(); i++) {
+            CopiedBlock cb = session.buffer.get(i);
+            Block target = anchor.getRelative(cb.dx(), cb.dy(), cb.dz());
+            session.previewEntities.get(i).teleport(target.getLocation());
+        }
+    }
+
+    /** Despawns {@code session}'s ghost entities (if any) without touching the buffer itself. */
+    private void clearPreview(CopySession session) {
+        session.previewEntities.forEach(BlockDisplay::remove);
+        session.previewEntities.clear();
+        session.previewAnchor = null;
+    }
+
+    /**
+     * Called every tick (from the plugin's periodic loop) for every online player - a no-op
+     * unless {@code p} currently has a live {@link FillMode#COPY} preview up, in which case
+     * it re-raytraces {@code p}'s crosshair and moves the ghost blocks to follow it, exactly
+     * like the real paste target would track a right-click. Skips the move entirely when the
+     * targeted spot hasn't changed, since teleporting a whole buffer's worth of entities every
+     * tick for a player stood still and looking at the same block would be pure waste.
+     */
+    public void tickPreview(Player p) {
+        CopySession session = this.copySessions.get(p.getUniqueId());
+        if (session == null || !session.previewing()) {
+            return;
+        }
+        RayTraceResult ray = p.rayTraceBlocks(64.0, FluidCollisionMode.NEVER);
+        if (ray == null || ray.getHitBlock() == null || ray.getHitBlockFace() == null) {
+            return;
+        }
+        Block anchor = ray.getHitBlock().getRelative(ray.getHitBlockFace());
+        if (anchor.equals(session.previewAnchor)) {
+            return;
+        }
+        this.movePreview(session, anchor);
+    }
+
+    /** True if {@code p} had a live preview that got cancelled (despawns the ghost entities, keeps the buffer); false if there was nothing to cancel. */
+    public boolean cancelPreview(Player p) {
+        CopySession session = this.copySessions.get(p.getUniqueId());
+        if (session == null || !session.previewing()) {
+            return false;
+        }
+        this.clearPreview(session);
+        return true;
+    }
+
+    /**
+     * Places {@code session.buffer} at its current preview position for real, consuming one
+     * matching block per placement in Survival (stopping early, same as {@link #extend}, the
+     * moment {@code p} runs out of a needed material) and registering the result as this
+     * player's {@link #undo}-able last action. The buffer itself is kept afterwards, so the
+     * same copy can be pasted again elsewhere.
+     */
+    private Component confirmPaste(Player p, CopySession session) {
+        Language l = Language.of(p);
+        Block anchor = session.previewAnchor;
+        boolean creative = p.getGameMode() == GameMode.CREATIVE;
+        List<Block> placedBlocks = new ArrayList<>();
+        Map<Material, Integer> consumed = new HashMap<>();
+        for (CopiedBlock cb : session.buffer) {
+            Block target = anchor.getRelative(cb.dx(), cb.dy(), cb.dz());
+            Material material = cb.data().getMaterial();
+            if (!creative && !this.consume(p, material)) {
+                break;
+            }
+            target.setBlockData(cb.data());
+            placedBlocks.add(target);
+            if (!creative) {
+                consumed.merge(material, 1, Integer::sum);
+            }
+        }
+        this.clearPreview(session);
+        if (placedBlocks.isEmpty()) {
+            return this.line(l.choose("Nada pra colar aqui.", "Nothing to paste here."), NamedTextColor.RED);
+        }
+        this.lastAction.put(p.getUniqueId(), new LastAction(placedBlocks, consumed));
+        return this.line("+" + placedBlocks.size() + " " + l.choose("blocos colados", "blocks pasted"), NamedTextColor.GREEN);
     }
 
     private Component line(String s, NamedTextColor c) {
