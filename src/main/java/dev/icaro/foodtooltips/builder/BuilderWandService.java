@@ -697,27 +697,50 @@ public final class BuilderWandService {
     }
 
     /**
+     * How far in front of {@code p}'s eyes {@link #previewTarget} floats the preview when
+     * their crosshair isn't on any block at all (open sky, looking out past {@code
+     * BLOCK_RAY_DISTANCE}) - close enough to place comfortably, far enough not to sit
+     * awkwardly inside the player's own head.
+     */
+    private static final double FLOAT_DISTANCE = 5.0;
+    private static final double BLOCK_RAY_DISTANCE = 64.0;
+
+    /**
      * Called every tick (from the plugin's periodic loop) for every online player - a no-op
      * unless {@code p} currently has a live {@link FillMode#COPY} preview up, in which case
-     * it re-raytraces {@code p}'s crosshair and moves the ghost blocks to follow it, exactly
-     * like the real paste target would track a right-click. Skips the move entirely when the
-     * targeted spot hasn't changed, since teleporting a whole buffer's worth of entities every
-     * tick for a player stood still and looking at the same block would be pure waste.
+     * it re-targets {@code p}'s crosshair (see {@link #previewTarget}) and moves the ghost
+     * blocks to follow it, exactly like the real paste target would track a right-click.
+     * Skips the move entirely when the targeted spot hasn't changed, since teleporting a
+     * whole buffer's worth of entities every tick for a player stood still and looking at
+     * the same spot would be pure waste.
      */
     public void tickPreview(Player p) {
         CopySession session = this.copySessions.get(p.getUniqueId());
         if (session == null || !session.previewing()) {
             return;
         }
-        RayTraceResult ray = p.rayTraceBlocks(64.0, FluidCollisionMode.NEVER);
-        if (ray == null || ray.getHitBlock() == null || ray.getHitBlockFace() == null) {
-            return;
-        }
-        Block anchor = ray.getHitBlock().getRelative(ray.getHitBlockFace());
+        Block anchor = this.previewTarget(p);
         if (anchor.equals(session.previewAnchor)) {
             return;
         }
         this.movePreview(session, anchor);
+    }
+
+    /**
+     * Where the live preview should sit right now: the block just beyond whatever {@code p}
+     * is looking at, same convention a real right-click targets ({@link #extend}, {@link
+     * #startPreview}) - or, when the crosshair isn't on any block at all, a spot floating
+     * {@link #FLOAT_DISTANCE} blocks straight ahead of their eyes, so the preview (and the
+     * eventual paste, which lands wherever the preview currently is) can be positioned in
+     * mid-air too, not just against something solid.
+     */
+    private Block previewTarget(Player p) {
+        RayTraceResult ray = p.rayTraceBlocks(BLOCK_RAY_DISTANCE, FluidCollisionMode.NEVER);
+        if (ray != null && ray.getHitBlock() != null && ray.getHitBlockFace() != null) {
+            return ray.getHitBlock().getRelative(ray.getHitBlockFace());
+        }
+        Location eye = p.getEyeLocation();
+        return eye.clone().add(eye.getDirection().normalize().multiply(FLOAT_DISTANCE)).getBlock();
     }
 
     /** True if {@code p} had a live preview that got cancelled (despawns the ghost entities, keeps the buffer); false if there was nothing to cancel. */
