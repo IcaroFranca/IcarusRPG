@@ -81,7 +81,7 @@ public final class BuilderWandListener implements Listener {
             return;
         }
         if (this.wand.mode(e.getItem()) == BuilderWandService.FillMode.COPY) {
-            p.sendActionBar(this.wand.handleCopyClick(p, e.getItem(), clicked, face, p.isSneaking()));
+            p.sendActionBar(this.wand.handleCopyClick(p, clicked, face, p.isSneaking()));
             return;
         }
         int placed = this.wand.extend(p, clicked, face, e.getItem());

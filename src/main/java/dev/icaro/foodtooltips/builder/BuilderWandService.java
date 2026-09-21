@@ -576,7 +576,7 @@ public final class BuilderWandService {
      * The buffer survives a confirmed paste (like a clipboard) so the same copy can be
      * pasted repeatedly in different spots - that's the whole point of this mode.
      */
-    public Component handleCopyClick(Player p, ItemStack item, Block clicked, BlockFace face, boolean sneaking) {
+    public Component handleCopyClick(Player p, Block clicked, BlockFace face, boolean sneaking) {
         Language l = Language.of(p);
         CopySession session = this.copySessions.computeIfAbsent(p.getUniqueId(), k -> new CopySession());
         if (session.buffer == null) {
@@ -584,7 +584,7 @@ public final class BuilderWandService {
                 if (session.pos1 == null) {
                     return this.line(l.choose("Marque a posição A primeiro (clique direito).", "Mark position A first (right-click)."), NamedTextColor.RED);
                 }
-                return this.captureBuffer(session, session.pos1, clicked, this.range(item), l);
+                return this.captureBuffer(session, session.pos1, clicked, l);
             }
             session.pos1 = clicked;
             return this.line(l.choose("Posição A definida. Shift + clique direito na posição B.", "Position A set. Shift + right-click position B."), NamedTextColor.YELLOW);
@@ -603,15 +603,23 @@ public final class BuilderWandService {
     }
 
     /**
+     * Max block volume {@link #captureBuffer} will copy in one go. Deliberately its own
+     * constant, not {@link #range}: that field caps a 1D line/face extend's length (8 up to
+     * {@code builder-wand.max-length}, 64 by default), which would silently cap even a
+     * modest structure's copy - a plain 5x5x5 selection is already 125 blocks, well past a
+     * default range of 64. Capturing (and later pasting) still happens synchronously on the
+     * main thread, same as {@link #extend}, so this stays bounded rather than unlimited, but
+     * generous enough for a real build.
+     */
+    private static final int COPY_VOLUME_LIMIT = 20_000;
+
+    /**
      * Captures every non-air block in the box between {@code pos1} and {@code pos2} into
      * {@code session}'s buffer, relative to the box's own minimum corner. Air blocks are
      * deliberately skipped - a paste only ever adds the copied shape, it never punches holes
-     * in whatever it lands on. {@code limit} (the wand's own {@link #range}) caps the box's
-     * volume, reusing the same server-load rationale {@link #UNLIMITED} documents for {@link
-     * #extend}: capturing (and later pasting) tens of thousands of blocks synchronously on
-     * the main thread would freeze the server for a noticeable moment.
+     * in whatever it lands on. {@link #COPY_VOLUME_LIMIT} caps the box's volume.
      */
-    private Component captureBuffer(CopySession session, Block pos1, Block pos2, int limit, Language l) {
+    private Component captureBuffer(CopySession session, Block pos1, Block pos2, Language l) {
         if (!pos1.getWorld().equals(pos2.getWorld())) {
             return this.line(l.choose("As duas posições precisam estar no mesmo mundo.", "Both positions must be in the same world."), NamedTextColor.RED);
         }
@@ -622,9 +630,9 @@ public final class BuilderWandService {
         int maxY = Math.max(pos1.getY(), pos2.getY());
         int maxZ = Math.max(pos1.getZ(), pos2.getZ());
         long volume = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
-        if (volume > limit) {
-            return this.line(l.choose("Área grande demais (" + volume + " blocos, máximo " + limit + "). Aumente o alcance da varinha ou diminua a área.",
-                    "Area too large (" + volume + " blocks, max " + limit + "). Increase the wand's range or shrink the area."), NamedTextColor.RED);
+        if (volume > COPY_VOLUME_LIMIT) {
+            return this.line(l.choose("Área grande demais (" + volume + " blocos, máximo " + COPY_VOLUME_LIMIT + "). Diminua a área.",
+                    "Area too large (" + volume + " blocks, max " + COPY_VOLUME_LIMIT + "). Shrink the area."), NamedTextColor.RED);
         }
         World w = pos1.getWorld();
         List<CopiedBlock> buffer = new ArrayList<>();
