@@ -47,7 +47,11 @@ public final class BrewingMenuListener implements Listener {
         if (block == null || block.getType() != Material.BREWING_STAND) {
             return;
         }
-        if (!(block.getState() instanceof BrewingStand stand)) {
+        // getState(false) asks Paper for a LIVE view backed directly by the real tile
+        // entity, not a frozen-at-this-instant snapshot - BrewingMenuService keeps this
+        // exact object for as long as the menu stays open, so its reads (getBrewingTime())
+        // and writes (getInventory().set...) must track the real stand in real time.
+        if (!(block.getState(false) instanceof BrewingStand stand)) {
             return;
         }
         e.setCancelled(true);
