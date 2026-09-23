@@ -65,12 +65,15 @@ public final class DestroyerHandService {
     private static final int MODE_FACE_SLOT = 13;
     private static final int RANGE_SLOT = 15;
 
+    /** How many clears back {@link #undo} can walk, same cap as {@code BuilderWandService}'s own history. */
+    private static final int MAX_UNDO_HISTORY = 50;
+
     private final NamespacedKey handKey;
     private final NamespacedKey modeKey;
     private final NamespacedKey rangeKey;
     private final int maxLength;
     private final ItemTierService tiers;
-    private final Map<UUID, LastAction> lastAction = new HashMap<>();
+    private final Map<UUID, Deque<LastAction>> lastAction = new HashMap<>();
     private final Set<UUID> viewingMenu = new HashSet<>();
 
     public DestroyerHandService(Plugin plugin, ItemTierService tiers) {
@@ -351,7 +354,7 @@ public final class DestroyerHandService {
             if (!creative) {
                 this.give(p, material, result.cleared().size());
             }
-            this.lastAction.put(p.getUniqueId(), new LastAction(result.cleared(), result.data(), material, !creative));
+            this.pushUndo(p, new LastAction(result.cleared(), result.data(), material, !creative));
         }
         return result.cleared().size();
     }
@@ -462,17 +465,20 @@ public final class DestroyerHandService {
     }
 
     /**
-     * Shift + left-click's counterpart to {@link #clear}: puts the last cleared blocks
-     * back exactly as they were (same {@link BlockData}, orientation included) and -
-     * only if that clear actually paid the player (Survival) - takes back the same
-     * count of that material from their inventory. Only remembers one action per
-     * player, matching "undo the last thing I did" rather than a full undo stack.
+     * Shift + left-click's counterpart to {@link #clear}: puts the most recent
+     * not-yet-undone clear's blocks back exactly as they were (same {@link BlockData},
+     * orientation included) and - only for whatever it actually paid the player
+     * (Survival) - takes back the same count of that material from their inventory.
+     * Walks one step further back in {@code p}'s history each time it's called (up to
+     * {@link #MAX_UNDO_HISTORY} steps), like a normal editor's undo - not just the
+     * single very last clear.
      */
     public int undo(Player p) {
-        LastAction action = this.lastAction.remove(p.getUniqueId());
-        if (action == null) {
+        Deque<LastAction> history = this.lastAction.get(p.getUniqueId());
+        if (history == null || history.isEmpty()) {
             return 0;
         }
+        LastAction action = history.removeFirst();
         List<Block> cleared = action.cleared();
         List<BlockData> data = action.data();
         for (int i = 0; i < cleared.size(); i++) {
@@ -482,6 +488,15 @@ public final class DestroyerHandService {
             this.take(p, action.material(), cleared.size());
         }
         return cleared.size();
+    }
+
+    /** Records {@code action} as {@code p}'s most recent undo-able step, trimming the oldest entry once {@link #MAX_UNDO_HISTORY} is exceeded. */
+    private void pushUndo(Player p, LastAction action) {
+        Deque<LastAction> history = this.lastAction.computeIfAbsent(p.getUniqueId(), k -> new ArrayDeque<>());
+        history.addFirst(action);
+        while (history.size() > MAX_UNDO_HISTORY) {
+            history.removeLast();
+        }
     }
 
     /** Hands {@code count} of {@code material} to the player, splitting into full stacks and dropping whatever doesn't fit in the inventory. */

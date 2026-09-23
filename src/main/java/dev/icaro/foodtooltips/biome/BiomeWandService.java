@@ -4,7 +4,9 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.util.LoreWrap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -59,12 +61,15 @@ public final class BiomeWandService {
      */
     private static final int MAX_RADIUS_CEILING = 32;
 
+    /** How many paints back {@link #undo} can walk, same cap as {@code BuilderWandService}'s own history. */
+    private static final int MAX_UNDO_HISTORY = 50;
+
     private final NamespacedKey wandKey;
     private final NamespacedKey biomeKey;
     private final NamespacedKey radiusKey;
     private final int maxRadius;
     private final ItemTierService tiers;
-    private final Map<UUID, List<Snapshot>> lastAction = new HashMap<>();
+    private final Map<UUID, Deque<List<Snapshot>>> lastAction = new HashMap<>();
     private final Set<UUID> viewingMenu = new HashSet<>();
 
     /** One previously-different biome cell, captured before painting, for {@link #undo}. */
@@ -349,28 +354,39 @@ public final class BiomeWandService {
             }
         }
         if (!painted.isEmpty()) {
-            this.lastAction.put(p.getUniqueId(), painted);
+            this.pushUndo(p, painted);
             this.refreshChunks(painted);
         }
         return painted.size();
     }
 
     /**
-     * Shift + left-click's counterpart to {@link #paint}: restores every cell the last
-     * paint changed back to whatever biome it had before. Only remembers one action per
-     * player, matching {@code BuilderWandService#undo}'s "undo the last thing I did"
-     * rather than a full undo stack.
+     * Shift + left-click's counterpart to {@link #paint}: restores every cell the most
+     * recent not-yet-undone paint changed back to whatever biome it had before. Walks
+     * one step further back in {@code p}'s history each time it's called (up to {@link
+     * #MAX_UNDO_HISTORY} steps), like a normal editor's undo - not just the single very
+     * last paint.
      */
     public int undo(Player p) {
-        List<Snapshot> action = this.lastAction.remove(p.getUniqueId());
-        if (action == null) {
+        Deque<List<Snapshot>> history = this.lastAction.get(p.getUniqueId());
+        if (history == null || history.isEmpty()) {
             return 0;
         }
+        List<Snapshot> action = history.removeFirst();
         for (Snapshot s : action) {
             s.world().setBiome(s.x(), s.y(), s.z(), s.previous());
         }
         this.refreshChunks(action);
         return action.size();
+    }
+
+    /** Records {@code painted} as {@code p}'s most recent undo-able step, trimming the oldest entry once {@link #MAX_UNDO_HISTORY} is exceeded. */
+    private void pushUndo(Player p, List<Snapshot> painted) {
+        Deque<List<Snapshot>> history = this.lastAction.computeIfAbsent(p.getUniqueId(), k -> new ArrayDeque<>());
+        history.addFirst(painted);
+        while (history.size() > MAX_UNDO_HISTORY) {
+            history.removeLast();
+        }
     }
 
     /** Resends every distinct chunk the given cells touch, once each, so the color change is visible immediately instead of only after a relog. */

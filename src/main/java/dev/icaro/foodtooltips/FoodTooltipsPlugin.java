@@ -45,6 +45,8 @@ import dev.icaro.foodtooltips.brewing.BrewingMenuListener;
 import dev.icaro.foodtooltips.brewing.BrewingMenuService;
 import dev.icaro.foodtooltips.prisma.PrismaPumpListener;
 import dev.icaro.foodtooltips.prisma.PrismaPumpService;
+import dev.icaro.foodtooltips.sponge.MegaSpongeListener;
+import dev.icaro.foodtooltips.sponge.MegaSpongeService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuListener;
 import dev.icaro.foodtooltips.enchant.GrindstoneMenuService;
@@ -194,6 +196,7 @@ extends JavaPlugin {
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
         PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this, combat);
         PrismaPumpService prismaPump = new PrismaPumpService((Plugin)this);
+        MegaSpongeService megaSponge = new MegaSpongeService((Plugin)this);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers, prismaPump);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
@@ -351,6 +354,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new DestroyerHandListener(destroyerHand), (Plugin)this);
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
         pm.registerEvents((Listener)new PrismaPumpListener(prismaPump), (Plugin)this);
+        pm.registerEvents((Listener)new MegaSpongeListener(megaSponge), (Plugin)this);
         GeyserSkullExport.export((Plugin)this, gems, global);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
@@ -441,6 +445,24 @@ extends JavaPlugin {
             }
             target.getInventory().addItem(prismaPump.create(Language.of(target)));
             s.sendMessage((Component)Component.text((String)(this.text(s, "Prismapump entregue a ", "Prismapump given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
+            return true;
+        });
+        this.getCommand("megasponge").setExecutor((s, c, l, a) -> {
+            Player target;
+            if (a.length >= 1) {
+                target = Bukkit.getPlayerExact((String)a[0]);
+                if (target == null) {
+                    s.sendMessage((Component)Component.text((String)this.text(s, "Jogador não encontrado ou offline.", "Player not found or offline."), (TextColor)NamedTextColor.RED));
+                    return true;
+                }
+            } else if (s instanceof Player) {
+                target = (Player)s;
+            } else {
+                s.sendMessage((Component)Component.text((String)"Usage: /megasponge [player]"));
+                return true;
+            }
+            target.getInventory().addItem(megaSponge.create(Language.of(target)));
+            s.sendMessage((Component)Component.text((String)(this.text(s, "Mega Sponge entregue a ", "Mega Sponge given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
             return true;
         });
         this.getCommand("skills").setExecutor((s, c, l, a) -> {

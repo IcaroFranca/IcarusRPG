@@ -1,5 +1,5 @@
 name: IcarusRPG
-version: '0.76.61'
+version: '0.76.62'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
@@ -45,6 +45,10 @@ commands:
   prismapump:
     description: Gives the Prismapump (admin-only for now).
     usage: /prismapump [player]
+    permission: foodtooltips.admin
+  megasponge:
+    description: Gives the Mega Sponge (admin-only for now).
+    usage: /megasponge [player]
     permission: foodtooltips.admin
   resetstats:
     description: Resets a player's stats (Mana, Vitality, Combat/General skills, Combat Ability tree, Valor, Global Level, Bestiary) back to their initial values.
