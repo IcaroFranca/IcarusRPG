@@ -8,6 +8,7 @@ import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -362,6 +363,13 @@ public final class BuilderWandService {
             case WATER -> l.choose("Clique num bloco do lado de uma água pra nivelar o buraco/canal.", "Click a block next to water to level the hole/channel.");
         };
         lore.add(this.line(description, NamedTextColor.GRAY));
+        if (option == FillMode.LINE || option == FillMode.FACE) {
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Também planta trigo/cenoura/batata/beterraba/nether wart em terra arável já pronta, e cana-de-açúcar do lado de água.",
+                    "Also plants wheat/carrots/potatoes/beetroot/nether wart onto already-tilled farmland, and sugar cane next to water."), LoreWrap.DEFAULT_WIDTH)) {
+                lore.add(this.line(part, NamedTextColor.DARK_GRAY));
+            }
+        }
         if (selected) {
             lore.add(Component.empty());
             lore.add(this.line(l.choose("Modo atual", "Current mode"), NamedTextColor.GREEN));
@@ -404,17 +412,37 @@ public final class BuilderWandService {
     // ---- Extending ----------------------------------------------------------
 
     /**
+     * Crop-like plants {@link #extend} can place even though none of them are solid
+     * ({@link Material#isSolid()} is false for every one of these) - each still has its
+     * own real placement rule enforced by {@link #canPlantAt}, so extending one across
+     * the rest of an already-prepared field or canal (farmland already tilled, a dirt
+     * strip already dug next to water) plants exactly where planting it by hand would
+     * actually take, instead of forcing a floating crop onto whatever's beyond.
+     */
+    private static final Set<Material> PLANTABLE = EnumSet.of(
+            Material.WHEAT, Material.CARROTS, Material.POTATOES, Material.BEETROOTS,
+            Material.NETHER_WART, Material.SUGAR_CANE);
+
+    private static final BlockFace[] HORIZONTAL_FACES = {BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
+
+    /** Sugar Cane's own valid ground: vanilla's real base-block list, minus nothing - {@link #canPlantAt} still requires water adjacent to it (or another Sugar Cane stacked below, handled separately). */
+    private static final Set<Material> SUGAR_CANE_BASES = EnumSet.of(
+            Material.DIRT, Material.GRASS_BLOCK, Material.COARSE_DIRT, Material.PODZOL,
+            Material.ROOTED_DIRT, Material.MYCELIUM, Material.SAND, Material.RED_SAND, Material.FARMLAND);
+
+    /**
      * Extends {@code clicked}'s block starting from the block adjacent to it (in
      * {@code face}'s direction), replacing air only, per {@code item}'s current {@link
      * FillMode}: {@link FillMode#LINE} walks a straight line/column; {@link
-     * FillMode#FACE} traces the whole existing wall/floor {@code clicked} belongs to and
-     * paints a matching new layer one block further out (see {@link #extendFace}). Both
-     * stop at {@code item}'s own {@link #range}, or (Survival only) the moment {@code p}
-     * runs out of that material. Returns how many blocks were actually placed.
+     * FillMode#FACE} traces the whole existing wall/floor (or planted field) {@code
+     * clicked} belongs to and paints a matching new layer one block further out (see
+     * {@link #extendFace}). Both stop at {@code item}'s own {@link #range}, or
+     * (Survival only) the moment {@code p} runs out of the matching seed/material.
+     * Returns how many blocks were actually placed.
      */
     public int extend(Player p, Block clicked, BlockFace face, ItemStack item) {
         Material material = clicked.getType();
-        if (!material.isBlock() || !material.isSolid()) {
+        if (!material.isBlock() || (!material.isSolid() && !PLANTABLE.contains(material))) {
             return 0;
         }
         BlockData data = clicked.getBlockData();
@@ -424,20 +452,78 @@ public final class BuilderWandService {
                 ? this.extendFace(p, clicked, face, material, data, creative, limit)
                 : this.extendLine(p, clicked, face, material, data, creative, limit);
         if (!placedBlocks.isEmpty()) {
-            Map<Material, Integer> consumed = creative ? Map.of() : Map.of(material, placedBlocks.size());
+            Map<Material, Integer> consumed = creative ? Map.of() : Map.of(seedItemFor(material), placedBlocks.size());
             this.pushUndo(p, new LastAction(placedBlocks, consumed));
         }
         return placedBlocks.size();
     }
 
+    /**
+     * The inventory item {@link #consume}/{@link #giveBack} should use for {@code
+     * cropBlock} - almost always the block's own Material (a Stone block is consumed as
+     * a Stone item), except the 4 farmland row crops, whose planted-block Material
+     * differs from the seed item that actually sows them (there's no such thing as a
+     * "Wheat block" item, only {@link Material#WHEAT_SEEDS}).
+     */
+    private static Material seedItemFor(Material cropBlock) {
+        return switch (cropBlock) {
+            case WHEAT -> Material.WHEAT_SEEDS;
+            case CARROTS -> Material.CARROT;
+            case POTATOES -> Material.POTATO;
+            case BEETROOTS -> Material.BEETROOT_SEEDS;
+            default -> cropBlock;
+        };
+    }
+
+    /**
+     * Whether {@code plant} could actually take root at {@code target} right now,
+     * mirroring vanilla's own placement rule for each: the 4 farmland crops need {@link
+     * Material#FARMLAND} directly below, Nether Wart needs {@link Material#SOUL_SAND},
+     * and Sugar Cane needs either another Sugar Cane directly below (stacking taller is
+     * always legal) or one of {@link #SUGAR_CANE_BASES} with water horizontally adjacent
+     * to THAT base block (not to {@code target} itself, which sits one block above the
+     * water's own level) - see {@link #canHoldSugarCane}. Every other Material (the
+     * pre-existing solid-block extend path) never calls this at all - see {@link
+     * #extend}'s {@link #PLANTABLE} gate.
+     */
+    private boolean canPlantAt(Material plant, Block target) {
+        Block below = target.getRelative(BlockFace.DOWN);
+        return switch (plant) {
+            case WHEAT, CARROTS, POTATOES, BEETROOTS -> below.getType() == Material.FARMLAND;
+            case NETHER_WART -> below.getType() == Material.SOUL_SAND;
+            case SUGAR_CANE -> this.canHoldSugarCane(below);
+            default -> true;
+        };
+    }
+
+    private boolean canHoldSugarCane(Block below) {
+        if (below.getType() == Material.SUGAR_CANE) {
+            return true;
+        }
+        if (!SUGAR_CANE_BASES.contains(below.getType())) {
+            return false;
+        }
+        for (BlockFace face : HORIZONTAL_FACES) {
+            if (below.getRelative(face).getType() == Material.WATER) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private List<Block> extendLine(Player p, Block clicked, BlockFace face, Material material, BlockData data, boolean creative, int limit) {
+        boolean plant = PLANTABLE.contains(material);
+        Material item = seedItemFor(material);
         List<Block> placedBlocks = new ArrayList<>();
         Block cursor = clicked.getRelative(face);
         for (int i = 0; i < limit; i++) {
             if (!cursor.getType().isAir()) {
                 break;
             }
-            if (!creative && !this.consume(p, material)) {
+            if (plant && !this.canPlantAt(material, cursor)) {
+                break;
+            }
+            if (!creative && !this.consume(p, item)) {
                 break;
             }
             cursor.setBlockData(data);
@@ -480,13 +566,18 @@ public final class BuilderWandService {
                 }
             }
         }
+        boolean plant = PLANTABLE.contains(material);
+        Material item = seedItemFor(material);
         List<Block> placedBlocks = new ArrayList<>();
         for (Block wallBlock : wallBlocks) {
             Block target = wallBlock.getRelative(face);
             if (!target.getType().isAir()) {
                 continue;
             }
-            if (!creative && !this.consume(p, material)) {
+            if (plant && !this.canPlantAt(material, target)) {
+                continue;
+            }
+            if (!creative && !this.consume(p, item)) {
                 break;
             }
             target.setBlockData(data);
@@ -769,13 +860,14 @@ public final class BuilderWandService {
         for (CopiedBlock cb : session.buffer) {
             Block target = anchor.getRelative(cb.dx(), cb.dy(), cb.dz());
             Material material = cb.data().getMaterial();
-            if (!creative && !this.consume(p, material)) {
+            Material item = seedItemFor(material);
+            if (!creative && !this.consume(p, item)) {
                 break;
             }
             target.setBlockData(cb.data());
             placedBlocks.add(target);
             if (!creative) {
-                consumed.merge(material, 1, Integer::sum);
+                consumed.merge(item, 1, Integer::sum);
             }
         }
         this.clearPreview(session);
