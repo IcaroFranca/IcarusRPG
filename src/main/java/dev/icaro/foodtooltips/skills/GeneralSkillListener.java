@@ -668,7 +668,8 @@ implements Listener {
         return count;
     }
 
-    private void gain(Player p, SkillType t, double xp) {
+    /** Public so other skill-XP sources outside this listener's own events (e.g. {@code dev.icaro.foodtooltips.brewing.BrewingMenuService}'s Alchemy XP for a taken potion) can grant XP through the exact same path - progress bar, level-up message and Global XP credit included - instead of duplicating any of that. */
+    public void gain(Player p, SkillType t, double xp) {
         SkillProgress before = this.skills.progress(p, t);
         int levels = this.skills.addXp(p, t, xp);
         SkillProgress after = this.skills.progress(p, t);

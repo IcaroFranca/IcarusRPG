@@ -46,11 +46,22 @@ public final class BrewingStandFuelService implements Listener {
         if (e.getInventory() instanceof BrewerInventory inv) {
             BrewingStand stand = inv.getHolder();
             if (stand != null) {
-                this.tracked.add(stand.getLocation());
-                stand.setFuelLevel(FUEL_LEVEL);
-                stand.update();
+                this.track(stand);
             }
         }
+    }
+
+    /**
+     * Starts (or refreshes) tracking {@code stand} and immediately tops it up - call
+     * whenever a Brewing Stand is about to be used, whether that's the real vanilla UI
+     * ({@link #open}) or {@code dev.icaro.foodtooltips.brewing.BrewingMenuService}'s own
+     * custom one, which has no fuel slot to show the player at all and so relies entirely
+     * on this to keep the stand it's proxying able to brew.
+     */
+    public void track(BrewingStand stand) {
+        this.tracked.add(stand.getLocation());
+        stand.setFuelLevel(FUEL_LEVEL);
+        stand.update();
     }
 
     @EventHandler(ignoreCancelled = true)

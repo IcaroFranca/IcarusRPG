@@ -41,6 +41,8 @@ import dev.icaro.foodtooltips.enchant.EnchantMilestoneService;
 import dev.icaro.foodtooltips.potion.PotionMilestoneService;
 import dev.icaro.foodtooltips.potion.PotionGuideMenuService;
 import dev.icaro.foodtooltips.potion.PotionGuideMenuListener;
+import dev.icaro.foodtooltips.brewing.BrewingMenuListener;
+import dev.icaro.foodtooltips.brewing.BrewingMenuService;
 import dev.icaro.foodtooltips.prisma.PrismaPumpListener;
 import dev.icaro.foodtooltips.prisma.PrismaPumpService;
 import dev.icaro.foodtooltips.enchant.EnchantService;
@@ -302,7 +304,10 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
-        pm.registerEvents((Listener)new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives, collectionsService), (Plugin)this);
+        GeneralSkillListener generalSkillListener = new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives, collectionsService);
+        pm.registerEvents((Listener)generalSkillListener, (Plugin)this);
+        BrewingMenuService brewingMenu = new BrewingMenuService(brewingStandFuel, generalSkillListener, potionGuide);
+        pm.registerEvents((Listener)new BrewingMenuListener((Plugin)this, brewingMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsListener(collectionsMenu, collectionsService), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsRecipeGateListener(collectionsService), (Plugin)this);
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
@@ -511,6 +516,7 @@ extends JavaPlugin {
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);
             builderWand.tickPreview((Player)p);
+            brewingMenu.tick((Player)p);
             // Last metadata writer: validates the real PROFILE component after every
             // other item service, so none can accidentally restore the Base64 profile
             // on Java (or the skin patch on Bedrock) until the next sweep.
