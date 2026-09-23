@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -43,8 +44,8 @@ import org.bukkit.potion.PotionType;
  *       three potion bottles (real slots 0/1/2).</li>
  *   <li>Slot {@value #CLOSE_SLOT}: closes the menu.</li>
  *   <li>{@link #GLASS_SLOTS}: light blue by default, alternating yellow/orange while {@link
- *       BrewingStand#getBrewingTime()} says the stand is actively brewing (see {@link
- *       #tick}).</li>
+ *       BrewingStand#getBrewingTime()} says the stand is actively brewing, with a live
+ *       seconds-left countdown in each pane's lore (see {@link #tick}).</li>
  * </ul>
  *
  * <p>No fuel slot exists in this UI at all - {@link BrewingStandFuelService} keeps every
@@ -123,7 +124,7 @@ public final class BrewingMenuService {
         for (int slot : BOTTLE_SLOTS) {
             inv.setItem(slot, null);
         }
-        ItemStack idleGlass = this.glassPane(false, false);
+        ItemStack idleGlass = this.glassPane(0, l);
         for (int slot : GLASS_SLOTS) {
             inv.setItem(slot, idleGlass);
         }
@@ -183,8 +184,11 @@ public final class BrewingMenuService {
      * alternates {@link #GLASS_SLOTS} between yellow and orange - a plain blink timed off
      * the wall clock, not a per-holder counter, so every viewer's animation stays in sync -
      * whenever {@link BrewingStand#getBrewingTime()} says the stand is actively counting
-     * down toward a finished potion; light blue otherwise. Force-closes the menu if the
-     * block it's linked to isn't a Brewing Stand anymore (broken while open).
+     * down toward a finished potion; light blue otherwise. Each pane's lore also shows the
+     * seconds left, refreshed on every call of this same periodic loop, so hovering one
+     * reads as a live countdown rather than a number frozen at whatever it was when the
+     * menu opened. Force-closes the menu if the block it's linked to isn't a Brewing Stand
+     * anymore (broken while open).
      */
     public void tick(Player p) {
         BrewingMenuHolder holder = this.holderOf(p);
@@ -196,9 +200,8 @@ public final class BrewingMenuService {
             return;
         }
         this.pull(holder);
-        boolean brewing = holder.stand.getBrewingTime() > 0;
-        boolean useYellow = (System.currentTimeMillis() / 500L) % 2 == 0;
-        ItemStack pane = this.glassPane(brewing, useYellow);
+        Language l = Language.of(p);
+        ItemStack pane = this.glassPane(holder.stand.getBrewingTime(), l);
         for (int slot : GLASS_SLOTS) {
             holder.inventory.setItem(slot, pane);
         }
@@ -283,10 +286,22 @@ public final class BrewingMenuService {
         };
     }
 
-    private ItemStack glassPane(boolean brewing, boolean useYellow) {
-        Material material = !brewing ? Material.LIGHT_BLUE_STAINED_GLASS_PANE
-                : useYellow ? Material.YELLOW_STAINED_GLASS_PANE : Material.ORANGE_STAINED_GLASS_PANE;
-        return this.item(material, " ", List.of());
+    /**
+     * {@code brewTicks} is {@link BrewingStand#getBrewingTime()} as-is (ticks left until the
+     * current brew finishes, 0 when idle) so the caller never has to compute "is it brewing"
+     * separately from "how long is left" - both come from the same read. Rounds up to the
+     * next whole second (a stand at tick 1 still reads "1s", not "0s", until it actually
+     * finishes) so the count never visibly hits 0 a tick before the potion is done.
+     */
+    private ItemStack glassPane(int brewTicks, Language l) {
+        if (brewTicks <= 0) {
+            return this.item(Material.LIGHT_BLUE_STAINED_GLASS_PANE, " ", List.of());
+        }
+        boolean useYellow = (System.currentTimeMillis() / 500L) % 2 == 0;
+        Material material = useYellow ? Material.YELLOW_STAINED_GLASS_PANE : Material.ORANGE_STAINED_GLASS_PANE;
+        int secondsLeft = (brewTicks + 19) / 20;
+        Component lore = this.text(l.choose(secondsLeft + "s restantes", secondsLeft + "s left"), NamedTextColor.GOLD);
+        return this.item(material, " ", List.of(lore));
     }
 
     private ItemStack customHead(String texture, String name, List<Component> lore) {
@@ -318,5 +333,9 @@ public final class BrewingMenuService {
 
     private Component text(String s) {
         return Component.text(s).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private Component text(String s, NamedTextColor c) {
+        return this.text(s).color(c);
     }
 }
