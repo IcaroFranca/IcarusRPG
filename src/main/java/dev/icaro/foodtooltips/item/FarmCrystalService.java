@@ -92,6 +92,10 @@ public final class FarmCrystalService implements Listener {
         meta.setPlayerProfile(profile);
         meta.getPersistentDataContainer().set(CRYSTAL_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Farm Crystal", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        meta.lore(List.of(
+                Component.text("Place on top of a block near crops - matures a", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("random unripe crop within " + RANGE + " blocks every " + (PULSE_TICKS / 20) + "s.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("Sneak + right-click it to remove.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         item.setItemMeta(meta);
         return item;
     }
