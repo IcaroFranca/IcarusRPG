@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.enchant;
 
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.AbstractArrow;
@@ -18,6 +19,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 /**
@@ -170,20 +172,44 @@ public final class BowEnchantEffectListener implements Listener {
         }, 0L, 1L);
     }
 
-    /** The closest living {@link Enemy} within {@code range} blocks of {@code arrow}, or null if none qualify. */
+    /**
+     * The closest living {@link Enemy} within {@code range} blocks of {@code arrow}
+     * that {@code arrow} actually has a clear line to (see {@link #hasLineOfSight}),
+     * or null if none qualify. Without the line-of-sight check, a mob buried
+     * underground (or otherwise hidden behind terrain) but nominally "closer" in
+     * straight-line distance would steal the homing lock from a mob the player can
+     * actually see and is trying to hit, redirecting the arrow into the ground
+     * instead - the exact bug reported.
+     */
     private static LivingEntity nearestEnemy(AbstractArrow arrow, double range) {
         LivingEntity nearest = null;
         double nearestDistanceSquared = Double.MAX_VALUE;
-        for (Entity nearby : arrow.getWorld().getNearbyEntities(arrow.getLocation(), range, range, range)) {
+        Location arrowLocation = arrow.getLocation();
+        for (Entity nearby : arrow.getWorld().getNearbyEntities(arrowLocation, range, range, range)) {
             if (!(nearby instanceof Enemy enemy) || !enemy.isValid() || enemy.isDead()) {
                 continue;
             }
-            double distanceSquared = enemy.getLocation().distanceSquared(arrow.getLocation());
-            if (distanceSquared < nearestDistanceSquared) {
-                nearestDistanceSquared = distanceSquared;
-                nearest = enemy;
+            double distanceSquared = enemy.getLocation().distanceSquared(arrowLocation);
+            if (distanceSquared >= nearestDistanceSquared) {
+                continue;
             }
+            if (!hasLineOfSight(arrowLocation, enemy.getEyeLocation())) {
+                continue;
+            }
+            nearestDistanceSquared = distanceSquared;
+            nearest = enemy;
         }
         return nearest;
+    }
+
+    /** Whether a straight ray from {@code from} to {@code to} is unobstructed by any solid block - same idea as {@code LivingEntity#hasLineOfSight}, which {@link AbstractArrow} (not a {@link LivingEntity}) doesn't expose itself. */
+    private static boolean hasLineOfSight(Location from, Location to) {
+        Vector toTarget = to.toVector().subtract(from.toVector());
+        double distance = toTarget.length();
+        if (distance < 1.0E-4) {
+            return true;
+        }
+        RayTraceResult hit = from.getWorld().rayTraceBlocks(from, toTarget.normalize(), distance, FluidCollisionMode.NEVER, true);
+        return hit == null;
     }
 }
