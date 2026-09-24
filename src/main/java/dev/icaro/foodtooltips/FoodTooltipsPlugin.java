@@ -283,6 +283,23 @@ extends JavaPlugin {
                 .map(milestone -> new RecipeBookMenuService.Requirement(
                         collectionsService.hasUnlockedRecipe(viewer, recipeKey), milestone.rewardPt(), milestone.rewardEn()))
                 .orElse(null));
+        // Lapis Lazuli Armor/Experience Bottles have no Collections milestone at all (ungated,
+        // per LapisArmorService/LapisExperienceService's own recipe registration) so
+        // findGatingCategory can never place them - the player's own explicit call ("aquelas
+        // de Lapis podem ficar em mining") is hardcoded here rather than invented from nothing.
+        java.util.Set<String> lapisRecipeKeys = java.util.Set.of("lapis_lazuli_helmet", "lapis_lazuli_chestplate",
+                "lapis_lazuli_leggings", "lapis_lazuli_boots", "lapis_lazuli_experience_bottle");
+        recipeBook.categoryResolver(recipeKey -> collectionsService.findGatingCategory(recipeKey)
+                .map(category -> switch (category) {
+                    case COMBAT -> RecipeBookMenuService.RecipeCategory.COMBAT;
+                    case MINING -> RecipeBookMenuService.RecipeCategory.MINING;
+                    case FARMING -> RecipeBookMenuService.RecipeCategory.FARMING;
+                    case FORAGING -> RecipeBookMenuService.RecipeCategory.FORAGING;
+                    case FISHING -> RecipeBookMenuService.RecipeCategory.FISHING;
+                })
+                .orElseGet(() -> lapisRecipeKeys.contains(recipeKey.getKey())
+                        ? RecipeBookMenuService.RecipeCategory.MINING
+                        : RecipeBookMenuService.RecipeCategory.OTHER));
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);

@@ -52,14 +52,16 @@ public final class SkillsMenuService {
     private static final Map<Integer, SkillType> S = Map.of(21, SkillType.FARMING, 22, SkillType.MINING, 23, SkillType.FISHING, 24, SkillType.FORAGING, 30, SkillType.ALCHEMY, 32, SkillType.ENCHANTING);
     /** Bottom-right corner of the MAIN screen only (unused there - {@link #N} only places level nodes on this slot in the other screens). */
     private static final int TRASH_BUTTON_SLOT = 53;
-    /** The MAIN screen's Quiver button - see {@link QuiverService}. */
+    /** The MAIN screen's own "Your Bags" button - opens {@link #openBags}, which is where {@link #QUIVER_SLOT}/{@link #POTION_BAG_SLOT} actually live now (moved off MAIN once it had too many buttons crammed onto one screen). */
+    private static final int BAGS_BUTTON_SLOT = 29;
+    /** The BAGS screen's Quiver button - see {@link QuiverService}. */
     private static final int QUIVER_SLOT = 33;
     /** The MAIN screen's Wardrobe button, per the player's own spec - see {@link WardrobeService}. */
-    private static final int WARDROBE_SLOT = 34;
-    /** The MAIN screen's Potion Bag button, per the player's own spec - see {@link PotionBagService}. */
+    private static final int WARDROBE_SLOT = 32;
+    /** The BAGS screen's Potion Bag button, per the player's own spec - see {@link PotionBagService}. */
     private static final int POTION_BAG_SLOT = 28;
     /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
-    private static final int PASSIVE_ABILITIES_SLOT = 29;
+    private static final int PASSIVE_ABILITIES_SLOT = 30;
     /** The MAIN screen's Personal Storage button - see {@link PersonalStorageService}. */
     private static final int PERSONAL_STORAGE_SLOT = 16;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
@@ -214,7 +216,7 @@ public final class SkillsMenuService {
                 bookLore.add(this.text(part, NamedTextColor.GRAY));
             }
             bookLore.add(this.click(l));
-            v.setItem(25, this.item(Material.WRITTEN_BOOK, l.choose("Livro de Receitas", "Recipe Book"), bookLore));
+            v.setItem(21, this.item(Material.WRITTEN_BOOK, l.choose("Livro de Receitas", "Recipe Book"), bookLore));
         }
         if (this.collections != null) {
             List<Component> collectionsLore = new ArrayList<>();
@@ -239,15 +241,15 @@ public final class SkillsMenuService {
             passiveLore.add(this.click(l));
             v.setItem(PASSIVE_ABILITIES_SLOT, this.customHead(HeadTexture.SUPER_MUSHROOM, l.choose("Habilidades Passivas", "Passive Abilities"), passiveLore));
         }
-        if (this.quiver != null && this.quiver.unlocked(p)) {
-            List<Component> quiverLore = new ArrayList<>();
+        if ((this.quiver != null && this.quiver.unlocked(p)) || (this.potionBag != null && this.potionBag.unlocked(p))) {
+            List<Component> bagsLore = new ArrayList<>();
             for (String part : LoreWrap.wrapText(l.choose(
-                    "O arco puxa flechas daqui direto, sem precisar deixá-las no inventário.",
-                    "The bow pulls arrows from here directly, without needing to keep them in your inventory."), LoreWrap.DEFAULT_WIDTH)) {
-                quiverLore.add(this.text(part, NamedTextColor.GRAY));
+                    "Aljava e Bolsa de Poções, num só lugar.",
+                    "Quiver and Potion Bag, in one place."), LoreWrap.DEFAULT_WIDTH)) {
+                bagsLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            quiverLore.add(this.click(l));
-            v.setItem(QUIVER_SLOT, this.customHead(HeadTexture.QUIVER, this.quiver.displayName(p, l), quiverLore));
+            bagsLore.add(this.click(l));
+            v.setItem(BAGS_BUTTON_SLOT, this.customHead(HeadTexture.QUIVER, l.choose("Suas Bolsas", "Your Bags"), bagsLore));
         }
         if (this.wardrobe != null && this.wardrobe.unlocked(p)) {
             List<Component> wardrobeLore = new ArrayList<>();
@@ -259,17 +261,6 @@ public final class SkillsMenuService {
             wardrobeLore.add(this.text(this.wardrobe.columns(p) + "/" + WardrobeService.COLUMNS + " " + l.choose("colunas", "columns"), NamedTextColor.GOLD));
             wardrobeLore.add(this.click(l));
             v.setItem(WARDROBE_SLOT, this.wardrobeIcon(wardrobeLore));
-        }
-        if (this.potionBag != null && this.potionBag.unlocked(p)) {
-            List<Component> potionBagLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Guarde poções, garrafas de XP e garrafas d'água separadamente do seu inventário.",
-                    "Store potions, XP bottles and water bottles separately from your inventory."), LoreWrap.DEFAULT_WIDTH)) {
-                potionBagLore.add(this.text(part, NamedTextColor.GRAY));
-            }
-            potionBagLore.add(this.text(this.potionBag.storageSize(p) + "/" + PotionBagService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
-            potionBagLore.add(this.click(l));
-            v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
         }
         if (this.storage != null && this.storage.unlocked(p)) {
             List<Component> storageLore = new ArrayList<>();
@@ -283,6 +274,35 @@ public final class SkillsMenuService {
             v.setItem(PERSONAL_STORAGE_SLOT, this.item(Material.ENDER_CHEST, l.choose("Armazenamento Pessoal", "Personal Storage"), storageLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
+    }
+
+    /** The Quiver and Potion Bag buttons, previously directly on the MAIN screen - consolidated into their own screen (reached from MAIN's own "Your Bags" button, slot {@value #BAGS_BUTTON_SLOT}) once the main menu had too many buttons crammed onto one screen. */
+    public void openBags(Player p) {
+        Language l = Language.of(p);
+        Inventory v = this.inv(l.choose("Suas Bolsas", "Your Bags"));
+        if (this.quiver != null && this.quiver.unlocked(p)) {
+            List<Component> quiverLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "O arco puxa flechas daqui direto, sem precisar deixá-las no inventário.",
+                    "The bow pulls arrows from here directly, without needing to keep them in your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+                quiverLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            quiverLore.add(this.click(l));
+            v.setItem(QUIVER_SLOT, this.customHead(HeadTexture.QUIVER, this.quiver.displayName(p, l), quiverLore));
+        }
+        if (this.potionBag != null && this.potionBag.unlocked(p)) {
+            List<Component> potionBagLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Guarde poções, garrafas de XP e garrafas d'água separadamente do seu inventário.",
+                    "Store potions, XP bottles and water bottles separately from your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+                potionBagLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            potionBagLore.add(this.text(this.potionBag.storageSize(p) + "/" + PotionBagService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
+            potionBagLore.add(this.click(l));
+            v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
+        }
+        v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        this.open(p, v, new View(Type.BAGS, 0, null));
     }
 
     /** The Combat button plus every {@link #S} entry, previously scattered directly on the MAIN screen - consolidated into their own screen (reached from MAIN's own Skills button, slot 19) once the main menu had too many buttons crammed onto one screen. */
@@ -453,24 +473,21 @@ public final class SkillsMenuService {
                 } else if (slot == 31 && this.crafting != null) {
                     this.views.remove(p.getUniqueId());
                     this.crafting.open(p);
-                } else if (slot == 25 && this.recipeBook != null) {
+                } else if (slot == 21 && this.recipeBook != null) {
                     this.views.remove(p.getUniqueId());
-                    this.recipeBook.open(p, 0);
+                    this.recipeBook.open(p);
                 } else if (slot == 20 && this.collections != null) {
                     this.views.remove(p.getUniqueId());
                     this.collections.openCategories(p);
                 } else if (slot == TRASH_BUTTON_SLOT && this.trash != null) {
                     this.views.remove(p.getUniqueId());
                     this.trash.open(p);
-                } else if (slot == QUIVER_SLOT && this.quiver != null && this.quiver.unlocked(p)) {
-                    this.views.remove(p.getUniqueId());
-                    this.quiver.open(p);
+                } else if (slot == BAGS_BUTTON_SLOT
+                        && ((this.quiver != null && this.quiver.unlocked(p)) || (this.potionBag != null && this.potionBag.unlocked(p)))) {
+                    this.openBags(p);
                 } else if (slot == WARDROBE_SLOT && this.wardrobe != null && this.wardrobe.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.wardrobe.open(p);
-                } else if (slot == POTION_BAG_SLOT && this.potionBag != null && this.potionBag.unlocked(p)) {
-                    this.views.remove(p.getUniqueId());
-                    this.potionBag.open(p);
                 } else if (slot == PERSONAL_STORAGE_SLOT && this.storage != null && this.storage.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.storage.open(p);
@@ -486,6 +503,17 @@ public final class SkillsMenuService {
                     this.openCombat(p, 0);
                 } else if (S.containsKey(slot)) {
                     this.openGeneral(p, S.get(slot), 0);
+                }
+            }
+            case BAGS -> {
+                if (slot == 49) {
+                    this.openMain(p);
+                } else if (slot == QUIVER_SLOT && this.quiver != null && this.quiver.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.quiver.open(p);
+                } else if (slot == POTION_BAG_SLOT && this.potionBag != null && this.potionBag.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.potionBag.open(p);
                 }
             }
             case GLOBAL -> {
@@ -1301,6 +1329,6 @@ public final class SkillsMenuService {
     }
 
     private enum Type {
-        MAIN, SKILLS_LIST, COMBAT, GENERAL, GLOBAL, STATS, STAT_LIST
+        MAIN, SKILLS_LIST, BAGS, COMBAT, GENERAL, GLOBAL, STATS, STAT_LIST
     }
 }

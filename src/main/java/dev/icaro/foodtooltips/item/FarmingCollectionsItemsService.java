@@ -43,10 +43,10 @@ import org.bukkit.potion.PotionType;
  * scope). Every recipe here is registered unconditionally (same as every other custom
  * recipe in this plugin) - the actual per-player *unlock* gate is enforced elsewhere
  * ({@code collections.CollectionsRecipeGateListener} blocks crafting it, {@code
- * crafting.RecipeBookMenuService} shows the requirement) so it can still exist in Bukkit's
- * registry (and this plugin's own Recipe Book) for every player to see, per the player's
- * own explicit spec for Cactus Armor ("até será possível ver no livro de receitas, mas vai
- * ter um aviso dizendo os requisitos").
+ * crafting.RecipeBookMenuService} only lists it for a player who's actually crossed the
+ * milestone - see that class's own "SOMENTE RECEITAS DESBLOQUEADAS" doc) so it can still
+ * exist in Bukkit's registry for a player who has unlocked it, without this class needing
+ * any gating logic of its own.
  *
  * <ul>
  *   <li>Cactus Core / Carrot Core: 8 Cactus/Carrot around a Diamond Block - purely a

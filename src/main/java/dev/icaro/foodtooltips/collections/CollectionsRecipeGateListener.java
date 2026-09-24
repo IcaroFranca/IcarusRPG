@@ -12,13 +12,15 @@ import org.bukkit.inventory.Recipe;
  * Blocks crafting any {@link CraftingRecipe} {@link CollectionsService} gates behind a
  * milestone the viewer hasn't crossed yet - clears the result slot the instant the recipe
  * would otherwise complete, the same way an ordinary mismatched-ingredients grid shows no
- * result. This is the real crafting gate; {@code crafting.RecipeBookMenuService}'s own
- * requirement lore is only ever a preview, matching the player's own explicit spec that a
- * gated recipe is still visible in the book with a requirement warning, not actually
- * craftable until met. Real vanilla recipe discovery ({@link
+ * result. This is the real crafting gate; {@code crafting.RecipeBookMenuService}'s own book
+ * screen uses the same {@link CollectionsService#hasUnlockedRecipe} check to decide whether
+ * to list a gated recipe at all (never showing a locked one, per the player's own "SOMENTE
+ * RECEITAS DESBLOQUEADAS" spec), so this listener is really the belt to that belt-and-
+ * suspenders pairing - the actual enforcement layer for a player who arranges the
+ * ingredients by hand regardless, or via any other UI (a shulker box's own 3x3 crafting
+ * grid, say) this plugin doesn't otherwise gate. Real vanilla recipe discovery ({@link
  * CollectionsService#syncDiscoveredRecipes}) already keeps the crafting table's own recipe
- * book from suggesting it in the first place - this listener is the actual enforcement
- * layer for a player who arranges the ingredients by hand regardless.
+ * book from suggesting it in the first place.
  *
  * <p>Only ever looks at {@link CraftingRecipe}s (a crafting-table grid) - a {@link
  * org.bukkit.inventory.PotionMix} (the Resistance Potion) has no discovery or gating

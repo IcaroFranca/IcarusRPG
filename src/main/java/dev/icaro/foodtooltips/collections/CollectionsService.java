@@ -83,7 +83,7 @@ public final class CollectionsService {
         return new Update(unlocked, globalXp);
     }
 
-    /** Whether {@code player} has crossed the milestone that unlocks {@code recipe} - what {@code crafting.RecipeBookMenuService}'s own requirement lore and the crafting-table gate ({@code CollectionsRecipeGateListener}) both check. True for any recipe this catalog never gates at all (nothing claims it), so an ungated recipe is never accidentally blocked. */
+    /** Whether {@code player} has crossed the milestone that unlocks {@code recipe} - what {@code crafting.RecipeBookMenuService}'s own book listing (via its {@code RequirementCheck}) and the crafting-table gate ({@code CollectionsRecipeGateListener}) both check. True for any recipe this catalog never gates at all (nothing claims it), so an ungated recipe is never accidentally blocked. */
     public boolean hasUnlockedRecipe(Player player, NamespacedKey recipe) {
         boolean gated = false;
         for (CollectionsEntry entry : CollectionsCatalog.entries()) {
@@ -106,6 +106,18 @@ public final class CollectionsService {
             for (CollectionsMilestone milestone : entry.milestones()) {
                 if (milestone.recipes().contains(recipe)) {
                     return Optional.of(milestone);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The {@link CollectionsCategory} of the entry gating {@code recipe}, if any - same lookup as {@link #findGatingMilestone} but returning the owning entry's own category instead, for {@code crafting.RecipeBookMenuService}'s per-skill grouping (via its own {@code CategoryResolver}, wired in {@code FoodTooltipsPlugin}). */
+    public Optional<CollectionsCategory> findGatingCategory(NamespacedKey recipe) {
+        for (CollectionsEntry entry : CollectionsCatalog.entries()) {
+            for (CollectionsMilestone milestone : entry.milestones()) {
+                if (milestone.recipes().contains(recipe)) {
+                    return Optional.of(entry.category());
                 }
             }
         }
