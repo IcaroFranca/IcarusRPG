@@ -29,7 +29,7 @@ import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. */
+/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via sneak + right-click instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
 public final class SpruceAxeListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
@@ -75,22 +75,28 @@ public final class SpruceAxeListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void throwAxe(PlayerSwapHandItemsEvent e) {
-        Player p = e.getPlayer();
+        if (this.attemptThrow(e.getPlayer())) {
+            e.setCancelled(true);
+        }
+    }
+
+    /** The actual throw, extracted so {@link BedrockSpruceAxeThrowListener} can trigger it too - a Bedrock/Geyser client (a PS4 controller especially, with no "swap hands" input to send at all) can't rely on {@link #throwAxe}'s own F-key gesture, same reasoning {@code skills.SwordThrowListener#attemptThrow} already documents for its own Bedrock fallback. Returns whether {@code p} was even holding the Spruce Axe (regardless of cooldown outcome), so either caller knows whether to cancel its own triggering event. */
+    public boolean attemptThrow(Player p) {
         ItemStack held = p.getInventory().getItemInMainHand();
         if (!this.axe.isSpruceAxe(held)) {
-            return;
+            return false;
         }
-        e.setCancelled(true);
         Language l = Language.of(p);
         long now = System.currentTimeMillis();
         long ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L);
         if (now < ready) {
             p.sendActionBar(Component.text(l.choose("Arremesso em recarga: ", "Throw cooldown: ")
                     + String.format(Locale.US, "%.1fs", (ready - now) / 1000.0), (TextColor) NamedTextColor.RED));
-            return;
+            return true;
         }
         this.cooldowns.put(p.getUniqueId(), now + THROW_COOLDOWN_MILLIS);
         this.launch(p, held);
+        return true;
     }
 
     @EventHandler
