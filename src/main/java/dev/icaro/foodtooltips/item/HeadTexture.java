@@ -84,12 +84,14 @@ public final class HeadTexture {
     public static final String RABBIT_ARMOR_HELMET = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGEwY2EyYjkwZDgzMWYxN2Y3YzhiNzcxZmIzOTczY2NhMmQ3NmE0NTZiYjdiNDdiODBkNjg3MmIwNWIyNTFmNSJ9fX0=";
     /** "Sugar Cane" (minecraft-heads.com ID 20) - the Sugar Cane Core crafting item, see {@code FarmingCollectionsItemsService}. */
     public static final String SUGAR_CANE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODYyNGJhY2I1ZjE5ODZlNjQ3N2FiY2U0YWU3ZGNhMTgyMGE1MjYwYjYyMzNiNTViYTFkOWJhOTM2Yzg0YiJ9fX0=";
+    /** "Oak Log" (minecraft-heads.com Custom Head ID 89446) - the Oak Core crafting item, see {@code ForagingCollectionsItemsService}. */
+    public static final String OAK_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzI3ODU5YjdjZWEzODgzNjJjMTkyOThiZjIyMWFlZDAzOWVlNzQ5MDMzNWIyYTJlMmJhNmJlOGQxM2M0NTNhNyJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
-            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE);
+            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE);
 
     private HeadTexture() {
     }

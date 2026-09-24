@@ -79,6 +79,8 @@ import dev.icaro.foodtooltips.item.SpeedsterArmorService;
 import dev.icaro.foodtooltips.item.EnchantedCarrotStickService;
 import dev.icaro.foodtooltips.item.BrewingStandFuelService;
 import dev.icaro.foodtooltips.item.LapisArmorService;
+import dev.icaro.foodtooltips.item.LeafletArmorService;
+import dev.icaro.foodtooltips.item.ForagingCollectionsItemsService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
@@ -116,6 +118,8 @@ import dev.icaro.foodtooltips.skills.WardrobeListener;
 import dev.icaro.foodtooltips.skills.WardrobeService;
 import dev.icaro.foodtooltips.skills.PotionBagListener;
 import dev.icaro.foodtooltips.skills.PotionBagService;
+import dev.icaro.foodtooltips.skills.PersonalStorageListener;
+import dev.icaro.foodtooltips.skills.PersonalStorageService;
 import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
 import dev.icaro.foodtooltips.skills.SkillProgressBarService;
 import dev.icaro.foodtooltips.skills.SkillsListener;
@@ -152,6 +156,7 @@ extends JavaPlugin {
     private QuiverService quiver;
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
+    private PersonalStorageService storage;
 
     public void onEnable() {
         this.saveDefaultConfig();
@@ -221,6 +226,12 @@ extends JavaPlugin {
         menus.wardrobe(this.wardrobe);
         this.potionBag = new PotionBagService((Plugin)this, collectionsProgress, menus::openMain);
         menus.potionBag(this.potionBag);
+        LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
+        general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
+        ForagingCollectionsItemsService foragingItems = new ForagingCollectionsItemsService((Plugin)this, biomeWand);
+        foragingItems.registerRecipes();
+        this.storage = new PersonalStorageService((Plugin)this, collectionsProgress);
+        menus.storage(this.storage);
         PassiveAbilityService passives = new PassiveAbilityService();
         PassiveAbilityMenuService passiveAbilityMenu = new PassiveAbilityMenuService(passives, global, menus::openMain);
         menus.passiveAbilities(passiveAbilityMenu);
@@ -318,6 +329,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
         pm.registerEvents((Listener)new WardrobeListener(this.wardrobe, menus::openMain), (Plugin)this);
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
+        pm.registerEvents((Listener)new PersonalStorageListener(this.storage), (Plugin)this);
         pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
         pm.registerEvents((Listener)cowHat, (Plugin)this);
         pm.registerEvents((Listener)archeryPotion, (Plugin)this);
@@ -611,6 +623,7 @@ extends JavaPlugin {
             this.quiver.saveAll();
             this.wardrobe.saveAll();
             this.potionBag.saveAll();
+            this.storage.saveAll();
         }
     }
 

@@ -67,6 +67,8 @@ public final class BiomeWandService {
     private final NamespacedKey wandKey;
     private final NamespacedKey biomeKey;
     private final NamespacedKey radiusKey;
+    /** See {@link #createForestPlains}/{@link #availableOptions(ItemStack)} - comma-joined {@link BiomeOption} names this specific wand is allowed to paint, absent meaning "every biome" (the admin `/biomewand` item, unrestricted). */
+    private final NamespacedKey allowedBiomesKey;
     private final int maxRadius;
     private final ItemTierService tiers;
     private final Map<UUID, Deque<List<Snapshot>>> lastAction = new HashMap<>();
@@ -87,6 +89,7 @@ public final class BiomeWandService {
         this.wandKey = new NamespacedKey(plugin, "biome_wand");
         this.biomeKey = new NamespacedKey(plugin, "biome_wand_biome");
         this.radiusKey = new NamespacedKey(plugin, "biome_wand_radius");
+        this.allowedBiomesKey = new NamespacedKey(plugin, "biome_wand_allowed_biomes");
         this.maxRadius = Math.max(0, Math.min(MAX_RADIUS_CEILING, plugin.getConfig().getInt("biome-wand.max-radius", 10)));
         this.tiers = tiers;
     }
@@ -106,6 +109,34 @@ public final class BiomeWandService {
         item.setItemMeta(meta);
         this.refreshLore(item, l);
         return item;
+    }
+
+    /**
+     * The craftable Foraging Collections reward (Oak Log M5) - same wand, restricted to
+     * only {@link BiomeOption#PLAINS}/{@link BiomeOption#FOREST} via {@link
+     * #allowedBiomesKey}, checked by {@link #availableOptions(ItemStack)}. English-only
+     * name/lore, same convention every other Collections-reward item uses (registered once
+     * at recipe-registration time, long before any specific player/language is known - see
+     * {@code item.ForagingCollectionsItemsService}'s own doc).
+     */
+    public ItemStack createForestPlains() {
+        ItemStack item = this.create(Language.EN);
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(this.allowedBiomesKey, PersistentDataType.STRING,
+                BiomeOption.PLAINS.name() + "," + BiomeOption.FOREST.name());
+        item.setItemMeta(meta);
+        this.refreshLore(item, Language.EN);
+        return item;
+    }
+
+    /** {@link #allowedBiomesKey}'s own PDC value for {@code item}, split back into names - empty when the wand is unrestricted. */
+    private Set<String> allowedBiomeNames(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        String raw = meta == null ? null : meta.getPersistentDataContainer().get(this.allowedBiomesKey, PersistentDataType.STRING);
+        if (raw == null || raw.isEmpty()) {
+            return Set.of();
+        }
+        return Set.of(raw.split(","));
     }
 
     /** Rewrites the wand's name/lore to reflect its currently selected biome and radius - called on creation and whenever either changes. */
@@ -183,7 +214,7 @@ public final class BiomeWandService {
             v.setItem(i, filler);
         }
         BiomeOption selected = this.selectedBiome(item);
-        BiomeOption[] options = this.availableOptions();
+        BiomeOption[] options = this.availableOptions(item);
         for (int i = 0; i < options.length && i < BIOME_SLOTS.length; i++) {
             v.setItem(BIOME_SLOTS[i], this.biomeOption(options[i], options[i] == selected, l));
         }
@@ -209,7 +240,7 @@ public final class BiomeWandService {
             return;
         }
         Language l = Language.of(p);
-        BiomeOption picked = this.optionAtSlot(slot);
+        BiomeOption picked = this.optionAtSlot(slot, held);
         if (picked != null) {
             this.setBiomeOption(held, picked, l);
         } else if (slot == RADIUS_SLOT) {
@@ -221,8 +252,8 @@ public final class BiomeWandService {
     }
 
     /** Which {@link BiomeOption} (if any) sits at {@code slot} in {@link #BIOME_SLOTS} - mirrors {@link #renderMenu}'s placement exactly. */
-    private BiomeOption optionAtSlot(int slot) {
-        BiomeOption[] options = this.availableOptions();
+    private BiomeOption optionAtSlot(int slot, ItemStack item) {
+        BiomeOption[] options = this.availableOptions(item);
         for (int i = 0; i < BIOME_SLOTS.length && i < options.length; i++) {
             if (BIOME_SLOTS[i] == slot) {
                 return options[i];
@@ -231,9 +262,20 @@ public final class BiomeWandService {
         return null;
     }
 
-    /** Every {@link BiomeOption} whose biome actually exists on this server - a datapack-provided one drops out silently if that datapack isn't installed, instead of showing a broken menu button. */
-    private BiomeOption[] availableOptions() {
-        return java.util.Arrays.stream(BiomeOption.values()).filter(o -> o.biome() != null).toArray(BiomeOption[]::new);
+    /**
+     * Every {@link BiomeOption} {@code item} can actually paint: whose biome exists on this
+     * server (a datapack-provided one drops out silently if that datapack isn't installed,
+     * instead of showing a broken menu button) AND, if {@code item} carries an {@link
+     * #allowedBiomesKey} allow-list (see {@link #createForestPlains}), is in it - the
+     * unrestricted admin `/biomewand` item never sets that key, so it always sees every
+     * biome the server has.
+     */
+    private BiomeOption[] availableOptions(ItemStack item) {
+        Set<String> allowed = this.allowedBiomeNames(item);
+        return java.util.Arrays.stream(BiomeOption.values())
+                .filter(o -> o.biome() != null)
+                .filter(o -> allowed.isEmpty() || allowed.contains(o.name()))
+                .toArray(BiomeOption[]::new);
     }
 
     /** Whether {@code item}'s currently selected biome actually exists on this server - false means its datapack isn't installed, so {@link #paint} must not be called. */

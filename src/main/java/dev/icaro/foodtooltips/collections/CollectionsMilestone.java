@@ -39,6 +39,10 @@ public record CollectionsMilestone(
         return new CollectionsMilestone(threshold, RewardKind.FARMING_XP, xpAmount, List.of(), null, 0.0, rewardPt, rewardEn);
     }
 
+    public static CollectionsMilestone foragingXp(int threshold, int xpAmount, String rewardPt, String rewardEn) {
+        return new CollectionsMilestone(threshold, RewardKind.FORAGING_XP, xpAmount, List.of(), null, 0.0, rewardPt, rewardEn);
+    }
+
     public static CollectionsMilestone recipeUnlock(int threshold, String rewardPt, String rewardEn, NamespacedKey... recipes) {
         return new CollectionsMilestone(threshold, RewardKind.RECIPE_UNLOCK, 0, List.of(recipes), null, 0.0, rewardPt, rewardEn);
     }

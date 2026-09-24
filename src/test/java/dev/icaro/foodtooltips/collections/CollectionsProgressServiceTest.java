@@ -54,8 +54,11 @@ final class CollectionsProgressServiceTest {
         // without needing a Player, since achieved(entry, count) is already covered above.
         int farmingEntries = CollectionsCatalog.entries(CollectionsCategory.FARMING).size();
         assertEquals(17, farmingEntries);
-        for (var category : List.of(CollectionsCategory.COMBAT, CollectionsCategory.MINING,
-                CollectionsCategory.FORAGING, CollectionsCategory.FISHING)) {
+        // Foraging now has one entry per wood log type (Oak Log fully fleshed out, the
+        // other 10 still template-only with no milestones) - see CollectionsCatalog's own doc.
+        int foragingEntries = CollectionsCatalog.entries(CollectionsCategory.FORAGING).size();
+        assertEquals(11, foragingEntries);
+        for (var category : List.of(CollectionsCategory.COMBAT, CollectionsCategory.MINING, CollectionsCategory.FISHING)) {
             assertEquals(0, CollectionsCatalog.entries(category).size(), category + " should have no entries yet");
         }
     }

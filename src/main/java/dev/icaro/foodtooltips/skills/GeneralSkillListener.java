@@ -394,6 +394,8 @@ implements Listener {
         for (CollectionsMilestone milestone : update.unlocked()) {
             if (milestone.kind() == RewardKind.FARMING_XP) {
                 this.gain(p, SkillType.FARMING, milestone.xpAmount());
+            } else if (milestone.kind() == RewardKind.FORAGING_XP) {
+                this.gain(p, SkillType.FORAGING, milestone.xpAmount());
             }
         }
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
@@ -507,11 +509,11 @@ implements Listener {
             // Read from e.getItems() above (before the Telekinesis sweep below removes
             // those entities), so this counts the real harvested amount - Fortune's own
             // copies included - regardless of whether Telekinesis is on for this player;
-            // same reasoning as the overflow branch just above. Farming-only for now (see
-            // #applyCollections's own doc) - Mining/Foraging have no catalog entries yet.
+            // same reasoning as the overflow branch just above. Farming/Foraging only for
+            // now (see #applyCollections's own doc) - Mining has no catalog entries yet.
             // Brown Mushroom redirects to Red's own catalog entry (see the tracking site
             // in #broken); every other tracked material already matches its entry directly.
-            if (t.skill == SkillType.FARMING) {
+            if (t.skill == SkillType.FARMING || t.skill == SkillType.FORAGING) {
                 if (trackedTotal > 0) {
                     this.applyCollections(p, trackedDrop == Material.BROWN_MUSHROOM ? Material.RED_MUSHROOM : trackedDrop, trackedTotal);
                 }

@@ -84,6 +84,12 @@ public final class CollectionsCatalog {
     public static final NamespacedKey SPEEDSTER_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "speedster_chestplate");
     public static final NamespacedKey SPEEDSTER_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "speedster_leggings");
     public static final NamespacedKey SPEEDSTER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "speedster_boots");
+    public static final NamespacedKey OAK_CORE_RECIPE = new NamespacedKey("foodtooltips", "oak_core");
+    public static final NamespacedKey LEAFLET_HELMET_RECIPE = new NamespacedKey("foodtooltips", "leaflet_helmet");
+    public static final NamespacedKey LEAFLET_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "leaflet_chestplate");
+    public static final NamespacedKey LEAFLET_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "leaflet_leggings");
+    public static final NamespacedKey LEAFLET_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "leaflet_boots");
+    public static final NamespacedKey BIOME_WAND_FOREST_PLAINS_RECIPE = new NamespacedKey("foodtooltips", "biome_wand_forest_plains");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -334,7 +340,42 @@ public final class CollectionsCatalog {
                             WHEAT_CORE_RECIPE)),
                     at(5, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
                             "Desbloqueia a receita da Haymaker Armor", "Unlocks the Haymaker Armor recipe",
-                            HAYMAKER_HELMET_RECIPE, HAYMAKER_CHESTPLATE_RECIPE, HAYMAKER_LEGGINGS_RECIPE, HAYMAKER_BOOTS_RECIPE)))));
+                            HAYMAKER_HELMET_RECIPE, HAYMAKER_CHESTPLATE_RECIPE, HAYMAKER_LEGGINGS_RECIPE, HAYMAKER_BOOTS_RECIPE)))),
+            // Personal Storage unlock/expansion milestones carry no recipes, same reasoning
+            // as the Wardrobe (Leather)/Potion Bag (Nether Wart) entries above - see
+            // skills.PersonalStorageService. Custom thresholds (not DEFAULT_THRESHOLDS), per
+            // the player's own explicit spec.
+            new CollectionsEntry(Material.OAK_LOG, Material.OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho", "Oak Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(100,
+                            "Desbloqueia a receita da Leaflet Armor", "Unlocks the Leaflet Armor recipe",
+                            LEAFLET_HELMET_RECIPE, LEAFLET_CHESTPLATE_RECIPE, LEAFLET_LEGGINGS_RECIPE, LEAFLET_BOOTS_RECIPE),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Oak Core", "Unlocks the Oak Core recipe",
+                            OAK_CORE_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o Armazenamento Pessoal (9 slots)", "Unlocks Personal Storage (9 slots)"),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita da Varinha de Biomas (Floresta/Planície)", "Unlocks the Biome's Wand recipe (Forest/Plains)",
+                            BIOME_WAND_FOREST_PLAINS_RECIPE),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Armazenamento Pessoal: +18 slots (27 no total)", "Personal Storage: +18 slots (27 total)"),
+                    CollectionsMilestone.foragingXp(5000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    new CollectionsMilestone(25000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Armazenamento Pessoal: +18 slots (45 no total)", "Personal Storage: +18 slots (45 total)"))),
+            // Templates for the rest of the wood-log family - milestones to be filled in
+            // later ("os moldes deles por hora, que jajá te passo o que cada um vai ter").
+            new CollectionsEntry(Material.SPRUCE_LOG, Material.SPRUCE_LOG, CollectionsCategory.FORAGING, "Tora de Spruce", "Spruce Log", List.of()),
+            new CollectionsEntry(Material.BIRCH_LOG, Material.BIRCH_LOG, CollectionsCategory.FORAGING, "Tora de Bétula", "Birch Log", List.of()),
+            new CollectionsEntry(Material.JUNGLE_LOG, Material.JUNGLE_LOG, CollectionsCategory.FORAGING, "Tora de Jungle", "Jungle Log", List.of()),
+            new CollectionsEntry(Material.ACACIA_LOG, Material.ACACIA_LOG, CollectionsCategory.FORAGING, "Tora de Acácia", "Acacia Log", List.of()),
+            new CollectionsEntry(Material.DARK_OAK_LOG, Material.DARK_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Escuro", "Dark Oak Log", List.of()),
+            new CollectionsEntry(Material.MANGROVE_LOG, Material.MANGROVE_LOG, CollectionsCategory.FORAGING, "Tora de Mangue", "Mangrove Log", List.of()),
+            new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of()),
+            new CollectionsEntry(Material.PALE_OAK_LOG, Material.PALE_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Pálido", "Pale Oak Log", List.of()),
+            new CollectionsEntry(Material.CRIMSON_STEM, Material.CRIMSON_STEM, CollectionsCategory.FORAGING, "Talo Carmesim", "Crimson Stem", List.of()),
+            new CollectionsEntry(Material.WARPED_STEM, Material.WARPED_STEM, CollectionsCategory.FORAGING, "Talo Distorcido", "Warped Stem", List.of()));
 
     private CollectionsCatalog() {
     }

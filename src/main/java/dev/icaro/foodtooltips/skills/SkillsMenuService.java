@@ -60,6 +60,8 @@ public final class SkillsMenuService {
     private static final int POTION_BAG_SLOT = 28;
     /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
     private static final int PASSIVE_ABILITIES_SLOT = 29;
+    /** The MAIN screen's Personal Storage button - see {@link PersonalStorageService}. */
+    private static final int PERSONAL_STORAGE_SLOT = 16;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
@@ -97,6 +99,7 @@ public final class SkillsMenuService {
     private QuiverService quiver;
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
+    private PersonalStorageService storage;
     private PassiveAbilityMenuService passiveAbilities;
     private RecipeBookMenuService recipeBook;
     private ReforgeService reforge;
@@ -157,6 +160,10 @@ public final class SkillsMenuService {
 
     public void potionBag(PotionBagService potionBag) {
         this.potionBag = potionBag;
+    }
+
+    public void storage(PersonalStorageService storage) {
+        this.storage = storage;
     }
 
     public void passiveAbilities(PassiveAbilityMenuService passiveAbilities) {
@@ -264,6 +271,17 @@ public final class SkillsMenuService {
             potionBagLore.add(this.text(this.potionBag.storageSize(p) + "/" + PotionBagService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
             potionBagLore.add(this.click(l));
             v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
+        }
+        if (this.storage != null && this.storage.unlocked(p)) {
+            List<Component> storageLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Guarde qualquer item separado do seu inventário.",
+                    "Store any item separately from your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+                storageLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            storageLore.add(this.text(this.storage.storageSize(p) + "/" + PersonalStorageService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
+            storageLore.add(this.click(l));
+            v.setItem(PERSONAL_STORAGE_SLOT, this.item(Material.ENDER_CHEST, l.choose("Armazenamento Pessoal", "Personal Storage"), storageLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -443,6 +461,9 @@ public final class SkillsMenuService {
                 } else if (slot == POTION_BAG_SLOT && this.potionBag != null && this.potionBag.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.potionBag.open(p);
+                } else if (slot == PERSONAL_STORAGE_SLOT && this.storage != null && this.storage.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.storage.open(p);
                 } else if (slot == PASSIVE_ABILITIES_SLOT && this.passiveAbilities != null) {
                     this.views.remove(p.getUniqueId());
                     this.passiveAbilities.open(p);
