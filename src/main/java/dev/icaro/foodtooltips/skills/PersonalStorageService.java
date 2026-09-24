@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,23 +44,21 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * {@code WardrobeService} already use - never the old per-file YAML scheme the plugin's own
  * backpack mechanic used before it was removed.
  *
- * <p>Unlike {@link PotionBagService} (which grows the {@link Inventory} itself as more
- * slots unlock), this menu is a FIXED 54 slots at all times, because the close button has
- * to always sit at slot 49 regardless of how much storage is currently unlocked: slots
- * {@code [0, storageSize)} are real, usable storage; {@code [storageSize, 45)} are locked
- * (a plain "not unlocked yet" filler, click cancelled); {@code [45, 54)} is the decorative
- * row, with the close button at slot 49. Growing a milestone just moves that boundary the
- * next time the menu opens - the underlying {@link Inventory} object never needs resizing.
+ * <p>Same "grow the real {@link Inventory} itself, no locked filler at all" shape {@link
+ * PotionBagService} already uses, per the player's own "só apareçam as fileiras liberadas"
+ * spec - {@link #inventoryFor} sizes the menu to exactly {@code storageSize(p) + 9} (the
+ * unlocked rows plus one decorative/close-button row directly below them), rebuilding it
+ * (copying over whatever the player already had, cached or on disk) whenever a milestone
+ * crossed mid-session changes that size, rather than a single fixed 54-slot screen with a
+ * "not unlocked yet" barrier icon filling every future slot.
  */
 public final class PersonalStorageService {
-    /** Every storage cell this class will ever allocate, regardless of how many are currently unlocked - see this class's own doc on the fixed 54-slot layout. */
+    /** Every storage cell this class will ever allocate, regardless of how many are currently unlocked. */
     public static final int MAX_SLOTS = 45;
-    private static final int CLOSE_SLOT = 49;
 
     private final Plugin plugin;
     private final CollectionsProgressService collectionsProgress;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "personal_storage_contents");
-    private final NamespacedKey lockedFillerKey = new NamespacedKey("foodtooltips", "personal_storage_locked");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
@@ -90,8 +89,15 @@ public final class PersonalStorageService {
         return slot >= 0 && slot < this.storageSize(p);
     }
 
-    public boolean isCloseSlot(int slot) {
-        return slot == CLOSE_SLOT;
+    public boolean isCloseSlot(Player p, int slot) {
+        return slot == this.closeSlot(p);
+    }
+
+    /** Centered in the decorative row directly below the current storage size's own rows - same idea {@code PotionBagService#backSlot} already uses. */
+    private int closeSlot(Player p) {
+        int size = this.storageSize(p);
+        int rows = size / 9;
+        return rows * 9 + 4;
     }
 
     public void open(Player p) {
@@ -127,37 +133,34 @@ public final class PersonalStorageService {
     }
 
     /**
-     * Builds (or reuses, from cache) {@code p}'s 54-slot menu: real storage cells loaded
-     * from PDC in {@code [0, size)}, a locked filler in {@code [size, 45)}, a decorative
-     * filler in {@code [45, 54)} except the close button at {@link #CLOSE_SLOT} - the
-     * locked/unlocked boundary is re-drawn every time this runs (not just once), so a
-     * milestone crossed mid-session shows up correctly next time the player opens the menu.
+     * Builds {@code p}'s menu sized to exactly their currently unlocked rows plus one
+     * decorative/close-button row - reused from cache as-is if that size hasn't changed
+     * since it was last built, otherwise rebuilt at the new size with the old inventory's
+     * own live contents (not last-persisted-to-PDC state) carried over, so a milestone
+     * crossed mid-session grows the screen correctly the next time it's opened without
+     * losing whatever was already sitting in it.
      */
     private Inventory inventoryFor(Player p) {
-        Inventory inv = this.cache.get(p.getUniqueId());
         Language l = Language.of(p);
         int size = this.storageSize(p);
-        if (inv == null) {
-            inv = Bukkit.createInventory(null, 54, l.choose("Armazenamento Pessoal", "Personal Storage"));
-            ItemStack[] saved = this.load(p);
-            if (saved != null) {
-                for (int i = 0; i < Math.min(saved.length, MAX_SLOTS); i++) {
-                    inv.setItem(i, saved[i]);
-                }
-            }
-            this.cache.put(p.getUniqueId(), inv);
+        int totalSize = size + 9;
+        Inventory cached = this.cache.get(p.getUniqueId());
+        if (cached != null && cached.getSize() == totalSize) {
+            return cached;
         }
-        ItemStack locked = this.lockedFiller(l);
-        for (int i = size; i < MAX_SLOTS; i++) {
-            if (inv.getItem(i) == null) {
-                inv.setItem(i, locked);
+        Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Armazenamento Pessoal", "Personal Storage"));
+        ItemStack[] saved = cached != null ? cached.getContents() : this.load(p);
+        if (saved != null) {
+            for (int i = 0; i < Math.min(saved.length, size); i++) {
+                inv.setItem(i, saved[i]);
             }
         }
-        ItemStack decorative = this.filler();
-        for (int i = MAX_SLOTS; i < 54; i++) {
-            inv.setItem(i, decorative);
+        ItemStack filler = this.filler();
+        for (int i = size; i < totalSize; i++) {
+            inv.setItem(i, filler);
         }
-        inv.setItem(CLOSE_SLOT, this.closeButton(l));
+        inv.setItem(this.closeSlot(p), this.closeButton(l));
+        this.cache.put(p.getUniqueId(), inv);
         return inv;
     }
 
@@ -167,34 +170,8 @@ public final class PersonalStorageService {
             return;
         }
         int size = this.storageSize(p);
-        ItemStack[] storage = new ItemStack[MAX_SLOTS];
-        for (int i = 0; i < MAX_SLOTS; i++) {
-            // Never persists the locked-filler icon itself - only real slots (and any
-            // already-locked-again slot that still held something from before, left as-is).
-            storage[i] = i < size ? inv.getItem(i) : (this.isLockedFiller(inv.getItem(i)) ? null : inv.getItem(i));
-        }
+        ItemStack[] storage = Arrays.copyOfRange(inv.getContents(), 0, Math.min(size, inv.getSize()));
         p.getPersistentDataContainer().set(this.contentsKey, PersistentDataType.STRING, this.serialize(storage));
-    }
-
-    private boolean isLockedFiller(ItemStack item) {
-        if (item == null || item.getType() != Material.BARRIER) {
-            return false;
-        }
-        ItemMeta meta = item.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(this.lockedFillerKey, PersistentDataType.BYTE);
-    }
-
-    private ItemStack lockedFiller(Language l) {
-        ItemStack i = ItemStack.of(Material.BARRIER);
-        ItemMeta m = i.getItemMeta();
-        m.displayName(Component.text(l.choose("Bloqueado", "Locked"), NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
-        m.lore(java.util.List.of(Component.text(
-                l.choose("Desbloqueia com a Coleção de Tora de Carvalho.", "Unlocks with the Oak Log Collection."),
-                NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
-        m.getPersistentDataContainer().set(this.lockedFillerKey, PersistentDataType.BYTE, (byte) 1);
-        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
-        i.setItemMeta(m);
-        return i;
     }
 
     private ItemStack closeButton(Language l) {

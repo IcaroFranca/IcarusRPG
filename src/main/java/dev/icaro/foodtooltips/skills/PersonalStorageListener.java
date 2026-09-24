@@ -8,7 +8,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-/** Wires the Personal Storage screen ({@link PersonalStorageService}) - same shape as {@code PotionBagListener}, just with a fixed close slot instead of a size-dependent back row, and no item-type filter (any item is allowed here). */
+/** Wires the Personal Storage screen ({@link PersonalStorageService}) - same shape as {@code PotionBagListener} (a size-dependent close/back slot right below the currently unlocked rows), just with no item-type filter (any item is allowed here). */
 public final class PersonalStorageListener implements Listener {
     private final PersonalStorageService storage;
 
@@ -23,7 +23,7 @@ public final class PersonalStorageListener implements Listener {
         }
         int raw = e.getRawSlot();
         boolean topInventory = raw >= 0 && raw < e.getView().getTopInventory().getSize();
-        if (topInventory && this.storage.isCloseSlot(raw)) {
+        if (topInventory && this.storage.isCloseSlot(p, raw)) {
             e.setCancelled(true);
             p.closeInventory();
             return;

@@ -54,16 +54,20 @@ public final class SkillsMenuService {
     private static final int TRASH_BUTTON_SLOT = 53;
     /** The MAIN screen's own "Your Bags" button - opens {@link #openBags}, which is where {@link #QUIVER_SLOT}/{@link #POTION_BAG_SLOT} actually live now (moved off MAIN once it had too many buttons crammed onto one screen). */
     private static final int BAGS_BUTTON_SLOT = 29;
-    /** The BAGS screen's Quiver button - see {@link QuiverService}. */
-    private static final int QUIVER_SLOT = 33;
-    /** The MAIN screen's Wardrobe button, per the player's own spec - see {@link WardrobeService}. */
-    private static final int WARDROBE_SLOT = 32;
     /** The BAGS screen's Potion Bag button, per the player's own spec - see {@link PotionBagService}. */
     private static final int POTION_BAG_SLOT = 28;
+    /** The BAGS screen's own "coming soon" placeholder - not wired to anything yet, per the player's own "vai ficar desativada" spec. */
+    private static final int ACCESSORY_BAG_SLOT = 30;
+    /** The BAGS screen's own "coming soon" placeholder (one sack per skill, eventually) - not wired to anything yet, same as {@link #ACCESSORY_BAG_SLOT}. */
+    private static final int SACK_OF_SACKS_SLOT = 32;
+    /** The BAGS screen's Quiver button - see {@link QuiverService}. */
+    private static final int QUIVER_SLOT = 34;
+    /** The MAIN screen's Wardrobe button, per the player's own spec - see {@link WardrobeService}. */
+    private static final int WARDROBE_SLOT = 32;
     /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
     private static final int PASSIVE_ABILITIES_SLOT = 30;
-    /** The MAIN screen's Personal Storage button - see {@link PersonalStorageService}. */
-    private static final int PERSONAL_STORAGE_SLOT = 16;
+    /** The MAIN screen's Personal Storage button, per the player's own spec. */
+    private static final int PERSONAL_STORAGE_SLOT = 23;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
@@ -276,7 +280,16 @@ public final class SkillsMenuService {
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
 
-    /** The Quiver and Potion Bag buttons, previously directly on the MAIN screen - consolidated into their own screen (reached from MAIN's own "Your Bags" button, slot {@value #BAGS_BUTTON_SLOT}) once the main menu had too many buttons crammed onto one screen. */
+    /**
+     * The Quiver and Potion Bag buttons, previously directly on the MAIN screen -
+     * consolidated into their own screen (reached from MAIN's own "Your Bags" button, slot
+     * {@value #BAGS_BUTTON_SLOT}) once the main menu had too many buttons crammed onto one
+     * screen. Also shows the Accessory Bag and Sack of Sacks (one sack per skill, eventually)
+     * as inert "coming soon" placeholders - per the player's own explicit "vai ficar
+     * desativada" spec, neither is wired to anything yet ({@link #handleClick}'s own BAGS
+     * case never checks {@link #ACCESSORY_BAG_SLOT}/{@link #SACK_OF_SACKS_SLOT}, so a click
+     * on either is simply a no-op).
+     */
     public void openBags(Player p) {
         Language l = Language.of(p);
         Inventory v = this.inv(l.choose("Suas Bolsas", "Your Bags"));
@@ -301,8 +314,31 @@ public final class SkillsMenuService {
             potionBagLore.add(this.click(l));
             v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
         }
+        v.setItem(ACCESSORY_BAG_SLOT, this.comingSoon(l, Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), l.choose(
+                "Guarde acessórios separadamente do seu inventário.",
+                "Store accessories separately from your inventory.")));
+        v.setItem(SACK_OF_SACKS_SLOT, this.comingSoon(l, Material.BARREL, l.choose("Saco de Sacos", "Sack of Sacks"), l.choose(
+                "Um saco por skill, todos guardados aqui dentro.",
+                "One sack per skill, all stored inside here.")));
         v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
         this.open(p, v, new View(Type.BAGS, 0, null));
+    }
+
+    /** A greyed-out, unclickable placeholder for a feature that doesn't exist yet - same "locked" visual idiom {@link PassiveAbilityMenuService#toggleItem} already uses for a not-yet-unlocked toggle (dark grey name, {@code ✖} prefix), just for "not built yet" instead of "not unlocked yet". */
+    private ItemStack comingSoon(Language l, Material icon, String name, String description) {
+        List<Component> lore = new ArrayList<>();
+        for (String part : LoreWrap.wrapText(description, LoreWrap.DEFAULT_WIDTH)) {
+            lore.add(this.text(part, NamedTextColor.GRAY));
+        }
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("Em breve.", "Coming soon."), NamedTextColor.DARK_GRAY));
+        ItemStack item = ItemStack.of(icon);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(this.text("✖ " + name, NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore.stream().map(c -> c.decoration(TextDecoration.ITALIC, false)).toList());
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        item.setItemMeta(meta);
+        return item;
     }
 
     /** The Combat button plus every {@link #S} entry, previously scattered directly on the MAIN screen - consolidated into their own screen (reached from MAIN's own Skills button, slot 19) once the main menu had too many buttons crammed onto one screen. */
