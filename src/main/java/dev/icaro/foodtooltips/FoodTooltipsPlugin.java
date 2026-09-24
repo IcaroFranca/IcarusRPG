@@ -87,6 +87,7 @@ import dev.icaro.foodtooltips.item.SculptorsAxeListener;
 import dev.icaro.foodtooltips.item.SpruceAxeService;
 import dev.icaro.foodtooltips.item.SpruceAxeListener;
 import dev.icaro.foodtooltips.item.SavannaBowService;
+import dev.icaro.foodtooltips.item.MushroomGrowthService;
 import dev.icaro.foodtooltips.item.WoodcuttingCrystalService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -350,6 +351,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)manaPotion, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
         pm.registerEvents((Listener)new CactusArmorService(), (Plugin)this);
+        pm.registerEvents((Listener)new MushroomGrowthService(), (Plugin)this);
         pm.registerEvents((Listener)growthArmor, (Plugin)this);
         pm.registerEvents((Listener)brewingStandFuel, (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
