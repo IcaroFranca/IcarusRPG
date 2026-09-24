@@ -191,13 +191,12 @@ public final class SkillsMenuService {
     public void openMain(Player p) {
         Language l = Language.of(p);
         Inventory v = this.inv(l.choose("Habilidades", "Skills"));
-        v.setItem(4, this.head(p, l));
-        v.setItem(20, this.item(Material.IRON_SWORD, l.choose("Combate", "Combat"), List.of(this.combatLine(p, l), this.click(l))));
-        for (Map.Entry<Integer, SkillType> e : S.entrySet()) {
-            SkillType t = e.getValue();
-            v.setItem(e.getKey(), this.item(t.icon(), t.name(l == Language.PT), List.of(this.skillLine(p, t, l), this.click(l))));
-        }
-        v.setItem(13, this.globalLevelIcon(p, l));
+        v.setItem(13, this.head(p, l));
+        v.setItem(19, this.item(Material.DIAMOND_SWORD, l.choose("Skills", "Skills"), List.of(
+                this.text(l.choose("Combate, Mineração, Agricultura, Coleta,", "Combat, Mining, Farming, Foraging,"), NamedTextColor.GRAY),
+                this.text(l.choose("Pesca, Alquimia e Encantamento.", "Fishing, Alchemy and Enchanting."), NamedTextColor.GRAY),
+                this.click(l))));
+        v.setItem(22, this.globalLevelIcon(p, l));
         if (this.levelColors != null) {
             v.setItem(45, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
         }
@@ -225,7 +224,7 @@ public final class SkillsMenuService {
                 collectionsLore.add(this.text(part, NamedTextColor.GRAY));
             }
             collectionsLore.add(this.click(l));
-            v.setItem(19, this.customHead(HeadTexture.BUNDLE, l.choose("Coleções", "Collections"), collectionsLore));
+            v.setItem(20, this.customHead(HeadTexture.BUNDLE, l.choose("Coleções", "Collections"), collectionsLore));
         }
         if (this.trash != null) {
             v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
@@ -284,6 +283,19 @@ public final class SkillsMenuService {
             v.setItem(PERSONAL_STORAGE_SLOT, this.item(Material.ENDER_CHEST, l.choose("Armazenamento Pessoal", "Personal Storage"), storageLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
+    }
+
+    /** The Combat button plus every {@link #S} entry, previously scattered directly on the MAIN screen - consolidated into their own screen (reached from MAIN's own Skills button, slot 19) once the main menu had too many buttons crammed onto one screen. */
+    public void openSkillsList(Player p) {
+        Language l = Language.of(p);
+        Inventory v = this.inv(l.choose("Tipos de Skill", "Skill Types"));
+        v.setItem(20, this.item(Material.IRON_SWORD, l.choose("Combate", "Combat"), List.of(this.combatLine(p, l), this.click(l))));
+        for (Map.Entry<Integer, SkillType> e : S.entrySet()) {
+            SkillType t = e.getValue();
+            v.setItem(e.getKey(), this.item(t.icon(), t.name(l == Language.PT), List.of(this.skillLine(p, t, l), this.click(l))));
+        }
+        v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        this.open(p, v, new View(Type.SKILLS_LIST, 0, null));
     }
 
     public void openCombat(Player p, int page) {
@@ -426,14 +438,12 @@ public final class SkillsMenuService {
         }
         switch (v.type()) {
             case MAIN -> {
-                if (slot == 4) {
+                if (slot == 13) {
                     this.openStats(p, p);
-                } else if (slot == 13) {
+                } else if (slot == 22) {
                     this.openGlobal(p, 0);
-                } else if (slot == 20) {
-                    this.openCombat(p, 0);
-                } else if (S.containsKey(slot)) {
-                    this.openGeneral(p, S.get(slot), 0);
+                } else if (slot == 19) {
+                    this.openSkillsList(p);
                 } else if (slot == 45 && this.levelColors != null) {
                     this.views.remove(p.getUniqueId());
                     this.levelColors.open(p);
@@ -446,7 +456,7 @@ public final class SkillsMenuService {
                 } else if (slot == 25 && this.recipeBook != null) {
                     this.views.remove(p.getUniqueId());
                     this.recipeBook.open(p, 0);
-                } else if (slot == 19 && this.collections != null) {
+                } else if (slot == 20 && this.collections != null) {
                     this.views.remove(p.getUniqueId());
                     this.collections.openCategories(p);
                 } else if (slot == TRASH_BUTTON_SLOT && this.trash != null) {
@@ -467,6 +477,15 @@ public final class SkillsMenuService {
                 } else if (slot == PASSIVE_ABILITIES_SLOT && this.passiveAbilities != null) {
                     this.views.remove(p.getUniqueId());
                     this.passiveAbilities.open(p);
+                }
+            }
+            case SKILLS_LIST -> {
+                if (slot == 49) {
+                    this.openMain(p);
+                } else if (slot == 20) {
+                    this.openCombat(p, 0);
+                } else if (S.containsKey(slot)) {
+                    this.openGeneral(p, S.get(slot), 0);
                 }
             }
             case GLOBAL -> {
@@ -1282,6 +1301,6 @@ public final class SkillsMenuService {
     }
 
     private enum Type {
-        MAIN, COMBAT, GENERAL, GLOBAL, STATS, STAT_LIST
+        MAIN, SKILLS_LIST, COMBAT, GENERAL, GLOBAL, STATS, STAT_LIST
     }
 }

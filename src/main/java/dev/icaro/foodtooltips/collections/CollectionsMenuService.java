@@ -34,7 +34,7 @@ import org.bukkit.inventory.meta.SkullMeta;
  * conventions, same {@code View}/{@code ViewType} state map, copied here rather than shared
  * since the two catalogs' data shapes differ enough that a common base would need more
  * indirection than it saves). Opened from the Skills menu's own Collections button ({@code
- * SkillsMenuService}, slot 19).
+ * SkillsMenuService}, slot 20).
  *
  * <p>{@link #openEntry} shows every milestone as a stained glass pane colored by its own
  * status - red for locked, yellow for the one milestone currently in progress (the first
