@@ -39,14 +39,16 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * CollectionsCatalog}'s own Leather entry), opened from the Skills star menu's own slot 34.
  * Five fixed rows, exactly the player's own spec ("não haverá sexta fileira"): helmets,
  * chestplates, leggings, boots, then a selector row whose {@code column}-th button equips
- * that column's own stored set onto the player in one click ({@link #select}) - the column
- * keeps showing that same set the whole time it's worn (a clone goes on the player, not the
- * stored item itself), so switching sets back and forth never loses anything, and any cell
- * that still holds the exact piece it's currently worn as locks against removal
- * ({@link #isLockedActiveSlot}) so that one stored master can never be pulled out alongside
- * its identical worn copy for a free duplicate - every other cell, worn match or not, empty
- * or full, stays completely free to edit, so any column can always be freely built, rebuilt
- * or mixed piece-by-piece from any set, active or not.
+ * that column's own stored set onto the player in one click, or takes it back off (bare,
+ * never whatever was worn before) if that same column is already the active one ({@link
+ * #select}/{@link #unequip}) - the column keeps showing that same set the whole time it's
+ * worn (a clone goes on the player, not the stored item itself), so switching sets back and
+ * forth never loses anything, and any cell that still holds the exact piece it's currently
+ * worn as locks against removal ({@link #isLockedActiveSlot} in this board, {@code
+ * WardrobeArmorLockListener} on the body itself) so that one stored master can never be
+ * pulled out alongside its identical worn copy for a free duplicate - every other cell, worn
+ * match or not, empty or full, stays completely free to edit, so any column can always be
+ * freely built, rebuilt or mixed piece-by-piece from any set, active or not.
  *
  * <p>Persisted exactly like {@code QuiverService} (same {@code BukkitObjectOutputStream}-over-
  * {@code ItemStack[]} Base64 trick in the player's own PDC) - a full {@value #COLUMNS}-wide,
@@ -217,13 +219,24 @@ public final class WardrobeService {
      * given back to {@code p}'s own inventory (never silently lost) when nothing was
      * previously active, meaning the current gear isn't backed by any column's own storage at
      * all. No-op for a locked column.
+     *
+     * <p>Clicking the already-active column's own selector again is a toggle, not a re-equip -
+     * see {@link #unequip} - per the player's own explicit spec: the only sanctioned way to
+     * take an active set off is through this button, never by pulling pieces off the body
+     * directly (see {@code WardrobeArmorLockListener}, which blocks that exact thing - without
+     * it, a player could strip the worn clone via their own inventory screen and then also
+     * pull the identical master copy out of this column's own storage, a free duplicate).
      */
     public void select(Player p, int column) {
         if (column < 0 || column >= this.columns(p)) {
             return;
         }
-        Inventory inv = this.inventoryFor(p);
         UUID id = p.getUniqueId();
+        if (Integer.valueOf(column).equals(this.active.get(id))) {
+            this.unequip(p);
+            return;
+        }
+        Inventory inv = this.inventoryFor(p);
         PlayerInventory pinv = p.getInventory();
         if (this.active.get(id) == null) {
             this.giveBack(p, pinv.getHelmet());
@@ -239,6 +252,53 @@ public final class WardrobeService {
         this.persistActive(p);
         this.render(p, inv);
         p.updateInventory();
+    }
+
+    /**
+     * Takes the currently active column's set off {@code p}'s body entirely (bare after this,
+     * never whatever was worn before the player's very first {@link #select} - that original
+     * gear was already returned to their inventory back then, so there's nothing meaningful
+     * left to restore) and clears the active column - the column's own storage is never
+     * touched, so {@link #isLockedActiveSlot} immediately stops locking it (nothing is worn to
+     * match anymore), freeing the player to pull the real set out of the board and into their
+     * inventory, exactly the player's own spec.
+     */
+    private void unequip(Player p) {
+        PlayerInventory pinv = p.getInventory();
+        pinv.setHelmet(null);
+        pinv.setChestplate(null);
+        pinv.setLeggings(null);
+        pinv.setBoots(null);
+        this.active.remove(p.getUniqueId());
+        this.persistActive(p);
+        this.render(p, this.inventoryFor(p));
+        p.updateInventory();
+    }
+
+    /**
+     * Whether {@code item} (typically an {@code InventoryClickEvent}'s own current item at an
+     * armor slot) is the exact piece {@code p} currently has equipped from their active
+     * Wardrobe column - what {@code WardrobeArmorLockListener} checks to block removing it
+     * straight from the body, the whole reason {@link #select}/{@link #unequip} exist as the
+     * only sanctioned way to change it (see {@link #select}'s own doc on the duplicate this
+     * prevents). False whenever nothing is active, regardless of {@code item}.
+     */
+    public boolean isActiveWornPiece(Player p, ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        Integer column = this.active.get(p.getUniqueId());
+        if (column == null) {
+            return false;
+        }
+        Inventory inv = this.inventoryFor(p);
+        for (int row = HELMET_ROW; row <= BOOTS_ROW; row++) {
+            ItemStack stored = inv.getItem(row * 9 + column);
+            if (stored != null && !stored.isEmpty() && stored.isSimilar(item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private ItemStack cloneOrNull(ItemStack item) {
@@ -297,8 +357,10 @@ public final class WardrobeService {
         List<Component> lore = new ArrayList<>();
         if (active) {
             lore.add(Component.text(l.choose("Atualmente equipado!", "Currently equipped!"), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text(l.choose("Clique para remover este set!", "Click to remove this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        } else {
+            lore.add(Component.text(l.choose("Clique para equipar este set!", "Click to equip this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         }
-        lore.add(Component.text(l.choose("Clique para equipar este set!", "Click to equip this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         base.setItemMeta(meta);
         return base;

@@ -126,6 +126,7 @@ import dev.icaro.foodtooltips.skills.PassiveAbilityService;
 import dev.icaro.foodtooltips.skills.PlayerStatsViewListener;
 import dev.icaro.foodtooltips.skills.QuiverListener;
 import dev.icaro.foodtooltips.skills.QuiverService;
+import dev.icaro.foodtooltips.skills.WardrobeArmorLockListener;
 import dev.icaro.foodtooltips.skills.WardrobeListener;
 import dev.icaro.foodtooltips.skills.WardrobeService;
 import dev.icaro.foodtooltips.skills.PotionBagListener;
@@ -366,6 +367,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CollectionsRecipeGateListener(collectionsService), (Plugin)this);
         pm.registerEvents((Listener)new QuiverListener(this.quiver), (Plugin)this);
         pm.registerEvents((Listener)new WardrobeListener(this.wardrobe, menus::openMain), (Plugin)this);
+        pm.registerEvents((Listener)new WardrobeArmorLockListener(this.wardrobe), (Plugin)this);
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
         pm.registerEvents((Listener)new PersonalStorageListener(this.storage), (Plugin)this);
         pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
