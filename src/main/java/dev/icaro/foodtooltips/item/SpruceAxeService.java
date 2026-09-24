@@ -35,10 +35,16 @@ import org.bukkit.plugin.Plugin;
  * this class's own {@code BlockBreakEvent} listener recursively - same idea as Vein's own
  * {@code veinActive} guard.
  *
- * <p>Right-click throws the axe instead of chopping normally (see {@code
+ * <p>Swap Hands (F) throws the axe instead of chopping normally (see {@code
  * SpruceAxeListener#launch}, the same {@code ItemDisplay}-ray-march visual {@code
- * skills.SwordThrowListener} already uses) - felling only {@link #THROWN_TOTAL} logs
- * ("-50% do sweep"), since nothing else breaks the block the thrown axe actually hits.
+ * skills.SwordThrowListener} already uses - deliberately {@link
+ * org.bukkit.event.player.PlayerSwapHandItemsEvent}, not right-click: {@code
+ * PlayerInteractEvent} simply doesn't reliably fire for a right-click into open air with
+ * nothing in reach - a long-standing, Spigot-acknowledged "intended, no workaround"
+ * client-side limitation - which would have made the throw effectively unusable unless
+ * aimed at something within melee range, defeating the whole point of a ranged ability)
+ * - felling only {@link #THROWN_TOTAL} logs ("-50% do sweep"), since nothing else breaks
+ * the block the thrown axe actually hits.
  */
 public final class SpruceAxeService {
     public static final int BASE_SWEEP = 1;
@@ -61,8 +67,8 @@ public final class SpruceAxeService {
                 this.line("Sweep: +" + SWEEP_BONUS, NamedTextColor.DARK_GREEN),
                 this.line("Foraging Fortune: +50", NamedTextColor.GOLD),
                 Component.empty(),
-                this.line("Right-click: throw the axe to fell a", NamedTextColor.GRAY),
-                this.line("tree remotely, at half the Sweep.", NamedTextColor.GRAY)));
+                this.line("Swap Hands (F): throw the axe up to 50", NamedTextColor.GRAY),
+                this.line("blocks to fell a tree, at half the Sweep.", NamedTextColor.GRAY)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;

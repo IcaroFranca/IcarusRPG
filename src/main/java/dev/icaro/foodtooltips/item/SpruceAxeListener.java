@@ -17,11 +17,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -31,10 +29,11 @@ import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on right-click. */
+/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. */
 public final class SpruceAxeListener implements Listener {
-    private static final long THROW_COOLDOWN_MILLIS = 3000L;
-    private static final int THROW_MAX_TICKS = 30;
+    private static final long THROW_COOLDOWN_MILLIS = 1000L;
+    /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
+    private static final int THROW_MAX_TICKS = 50;
 
     private final Plugin plugin;
     private final SpruceAxeService axe;
@@ -58,26 +57,30 @@ public final class SpruceAxeListener implements Listener {
     }
 
     /**
-     * {@code priority = HIGH}, same as {@code BuilderWandListener}/{@code
-     * DestroyerHandListener}/{@code BiomeWandListener}/{@code BrewingMenuListener}'s own
-     * interact handlers - deliberately NOT the default (NORMAL) priority every other
-     * item-ability listener in this class's own package uses, so this specific ability
-     * still fires even if something else (a protection plugin's own build/use-deny
-     * check, most commonly - WorldGuard is a soft-depend of this plugin) cancels the
-     * event first at a lower priority. Without this, right-clicking with the Spruce Axe
-     * silently did nothing in exactly that case, since {@code ignoreCancelled = true}
-     * skips a handler whose event already came in cancelled.
+     * Swap Hands (F), not right-click: {@code PlayerInteractEvent}'s {@code
+     * RIGHT_CLICK_AIR} is a long-standing, Spigot-acknowledged "intended, no workaround"
+     * client-side limitation - the client simply doesn't reliably send the interact
+     * packet for a right-click with nothing (no block, no entity) within reach - which
+     * would make a ranged throw ability effectively only usable at melee range, the
+     * opposite of the point. Same fix {@code skills.SwordThrowListener} already uses for
+     * its own throw, for the exact same reason (see that class's own {@code
+     * throwSword}). {@code priority = HIGH, ignoreCancelled = true} mirrors that class
+     * too - and every other "must always fire" item-ability listener in this plugin
+     * ({@code BuilderWandListener}, {@code DestroyerHandListener}, {@code
+     * BiomeWandListener}, {@code BrewingMenuListener}) - so a protection plugin's own
+     * cancellation (WorldGuard, a soft-depend of this plugin, most commonly) can't
+     * silently swallow this ability either. Cancels the event (so a normal hand-swap
+     * never sneaks through) whenever the Spruce Axe is held, regardless of cooldown -
+     * only lets it fall through to vanilla's own hand-swap when a different item is held.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void throwAxe(PlayerInteractEvent e) {
-        if (e.getHand() != EquipmentSlot.HAND || !this.axe.isSpruceAxe(e.getItem())) {
-            return;
-        }
-        if (e.getAction() != Action.RIGHT_CLICK_BLOCK && e.getAction() != Action.RIGHT_CLICK_AIR) {
+    public void throwAxe(PlayerSwapHandItemsEvent e) {
+        Player p = e.getPlayer();
+        ItemStack held = p.getInventory().getItemInMainHand();
+        if (!this.axe.isSpruceAxe(held)) {
             return;
         }
         e.setCancelled(true);
-        Player p = e.getPlayer();
         Language l = Language.of(p);
         long now = System.currentTimeMillis();
         long ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L);
@@ -87,7 +90,7 @@ public final class SpruceAxeListener implements Listener {
             return;
         }
         this.cooldowns.put(p.getUniqueId(), now + THROW_COOLDOWN_MILLIS);
-        this.launch(p, e.getItem());
+        this.launch(p, held);
     }
 
     @EventHandler
