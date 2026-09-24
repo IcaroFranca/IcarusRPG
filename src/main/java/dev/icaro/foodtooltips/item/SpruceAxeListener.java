@@ -29,7 +29,7 @@ import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via sneak + right-click instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
+/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
 public final class SpruceAxeListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
