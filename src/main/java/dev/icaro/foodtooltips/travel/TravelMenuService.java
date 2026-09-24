@@ -39,8 +39,19 @@ import org.bukkit.plugin.Plugin;
  * the player - each destination gets a human-readable name instead.
  */
 public final class TravelMenuService {
-    /** How far {@link #travelToNearestBirchForest} searches for a Birch Forest before giving up - a moderate bound so a search launched far from any match can't hang the main thread for long (this runs synchronously, same as every other destination here). */
-    private static final int BIOME_SEARCH_RADIUS = 512;
+    /**
+     * How far {@link #travelToNearestBirchForest}/{@link #travelToNearestTaiga}/{@link
+     * #travelToNearestDarkForest}/{@link #travelToNearestSavanna} search for their own
+     * biome before giving up - {@code World#locateNearestBiome} is synchronous and MUST
+     * run on the main thread (like every other {@code World} lookup), so this bounds its
+     * worst-case cost. 512 turned out to be nowhere near "moderate" in practice - a
+     * player confirmed it can force enough uncached chunk generation in one search to
+     * blow past the Watchdog's timeout and crash the whole server, not just lag it. 100
+     * bounds the worst case to a ~200x200 column scan (~25x less area than 512 gave),
+     * comfortably inside a single tick even with generation, at the cost of the button
+     * occasionally reporting "not found" a bit closer to home than before.
+     */
+    private static final int BIOME_SEARCH_RADIUS = 100;
 
     private final Plugin plugin;
     private final Consumer<Player> back;
