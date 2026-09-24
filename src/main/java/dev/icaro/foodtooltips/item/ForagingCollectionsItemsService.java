@@ -42,9 +42,10 @@ import org.bukkit.plugin.Plugin;
  *   <li>Oak Core: 8 Oak Log around a Diamond Block, a custom head (minecraft-heads.com
  *   Custom Head ID 89446) - same shape every other Core item in {@code
  *   FarmingCollectionsItemsService} uses.
- *   <li>Biome's Wand (Forest/Plains): the one crafting recipe for {@link BiomeWandService}
- *   in the whole plugin (the admin one is command-only, no recipe at all) - restricted to
- *   only Forest/Plains via {@link BiomeWandService#createForestPlains()}.
+ *   <li>Biome's Wand (restricted): the one crafting recipe for {@link BiomeWandService} in
+ *   the whole plugin (the admin one is command-only, no recipe at all) - which biomes it
+ *   can actually paint is checked live per player, not baked in here, see {@link
+ *   BiomeWandService#createRestricted()}.
  * </ul>
  *
  * <p>Names/lore are hardcoded English, no {@code Language} parameter - same convention
@@ -54,6 +55,8 @@ import org.bukkit.plugin.Plugin;
  */
 public final class ForagingCollectionsItemsService {
     private static final UUID OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:oak_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID BIRCH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:birch_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID SPRUCE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spruce_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -63,13 +66,20 @@ public final class ForagingCollectionsItemsService {
 
     private final Plugin plugin;
     private final BiomeWandService biomeWand;
+    private final SculptorsAxeService sculptorsAxe;
+    private final SpruceAxeService spruceAxe;
+    private final WoodcuttingCrystalService woodcuttingCrystal;
 
-    public ForagingCollectionsItemsService(Plugin plugin, BiomeWandService biomeWand) {
+    public ForagingCollectionsItemsService(Plugin plugin, BiomeWandService biomeWand, SculptorsAxeService sculptorsAxe,
+            SpruceAxeService spruceAxe, WoodcuttingCrystalService woodcuttingCrystal) {
         this.plugin = plugin;
         this.biomeWand = biomeWand;
+        this.sculptorsAxe = sculptorsAxe;
+        this.spruceAxe = spruceAxe;
+        this.woodcuttingCrystal = woodcuttingCrystal;
     }
 
-    /** Registers every recipe this class owns - Oak Core, the 4 Leaflet Armor pieces, and the restricted Biome's Wand. */
+    /** Registers every recipe this class owns - Oak/Birch/Spruce Core, the 4 Leaflet Armor pieces, the restricted Biome's Wand, both Foraging axes, and the Woodcutting Crystal. */
     public void registerRecipes() {
         this.newShapedRecipe(CollectionsCatalog.OAK_CORE_RECIPE, this.oakCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
@@ -84,11 +94,36 @@ public final class ForagingCollectionsItemsService {
                 new String[]{"XXX", "X X", "X X"}, r -> r.setIngredient('X', Material.OAK_LEAVES));
         this.newShapedRecipe(CollectionsCatalog.LEAFLET_BOOTS_RECIPE, this.leafletPiece(Material.LEATHER_BOOTS, "Leaflet Boots", LEAFLET_BOOTS_HEALTH),
                 new String[]{"X X", "X X"}, r -> r.setIngredient('X', Material.OAK_LEAVES));
-        this.newShapedRecipe(CollectionsCatalog.BIOME_WAND_FOREST_PLAINS_RECIPE, this.biomeWand.createForestPlains(),
+        this.newShapedRecipe(CollectionsCatalog.BIOME_WAND_FOREST_PLAINS_RECIPE, this.biomeWand.createRestricted(),
                 new String[]{"SGS", "GTG", "SGS"}, r -> {
                     r.setIngredient('S', Material.OAK_SAPLING);
                     r.setIngredient('G', Material.GRASS_BLOCK);
                     r.setIngredient('T', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.SCULPTORS_AXE_RECIPE, this.sculptorsAxe.create(),
+                new String[]{"LL", "LS", " S"}, r -> {
+                    r.setIngredient('L', Material.BIRCH_LOG);
+                    r.setIngredient('S', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.BIRCH_CORE_RECIPE, this.birchCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.BIRCH_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.SPRUCE_AXE_RECIPE, this.spruceAxe.create(),
+                new String[]{"LL", "LS", " S"}, r -> {
+                    r.setIngredient('L', Material.SPRUCE_LOG);
+                    r.setIngredient('S', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.SPRUCE_CORE_RECIPE, this.spruceCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.SPRUCE_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.WOODCUTTING_CRYSTAL_RECIPE, this.woodcuttingCrystal.createItem(),
+                new String[]{"CCC", "CDC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceCore()));
+                    r.setIngredient('D', Material.DIAMOND);
                 });
     }
 
@@ -143,6 +178,24 @@ public final class ForagingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.OAK_CORE, OAK_CORE_PROFILE);
         meta.displayName(Component.text("Oak Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack birchCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.BIRCH_CORE, BIRCH_CORE_PROFILE);
+        meta.displayName(Component.text("Birch Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack spruceCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.SPRUCE_CORE, SPRUCE_CORE_PROFILE);
+        meta.displayName(Component.text("Spruce Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

@@ -90,6 +90,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey LEAFLET_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "leaflet_leggings");
     public static final NamespacedKey LEAFLET_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "leaflet_boots");
     public static final NamespacedKey BIOME_WAND_FOREST_PLAINS_RECIPE = new NamespacedKey("foodtooltips", "biome_wand_forest_plains");
+    public static final NamespacedKey SCULPTORS_AXE_RECIPE = new NamespacedKey("foodtooltips", "sculptors_axe");
+    public static final NamespacedKey BIRCH_CORE_RECIPE = new NamespacedKey("foodtooltips", "birch_core");
+    public static final NamespacedKey SPRUCE_AXE_RECIPE = new NamespacedKey("foodtooltips", "spruce_axe");
+    public static final NamespacedKey SPRUCE_CORE_RECIPE = new NamespacedKey("foodtooltips", "spruce_core");
+    public static final NamespacedKey WOODCUTTING_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "woodcutting_crystal");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -366,8 +371,39 @@ public final class CollectionsCatalog {
                             "Armazenamento Pessoal: +18 slots (45 no total)", "Personal Storage: +18 slots (45 total)"))),
             // Templates for the rest of the wood-log family - milestones to be filled in
             // later ("os moldes deles por hora, que jajá te passo o que cada um vai ter").
-            new CollectionsEntry(Material.SPRUCE_LOG, Material.SPRUCE_LOG, CollectionsCategory.FORAGING, "Tora de Spruce", "Spruce Log", List.of()),
-            new CollectionsEntry(Material.BIRCH_LOG, Material.BIRCH_LOG, CollectionsCategory.FORAGING, "Tora de Bétula", "Birch Log", List.of()),
+            new CollectionsEntry(Material.SPRUCE_LOG, Material.SPRUCE_LOG, CollectionsCategory.FORAGING, "Tora de Spruce", "Spruce Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(100,
+                            "Desbloqueia a receita do Spruce Axe", "Unlocks the Spruce Axe recipe",
+                            SPRUCE_AXE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Spruce Core", "Unlocks the Spruce Core recipe",
+                            SPRUCE_CORE_RECIPE),
+                    CollectionsMilestone.foragingXp(500, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
+                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Taiga e Taiga Antiga na Varinha de Biomas", "Unlocks Taiga and Old Growth Pine Taiga on the Biome's Wand"),
+                    CollectionsMilestone.foragingXp(2000, 3000, "+3000 XP de Coleta", "+3000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(5000,
+                            "Desbloqueia a receita do Woodcutting Crystal", "Unlocks the Woodcutting Crystal recipe",
+                            WOODCUTTING_CRYSTAL_RECIPE),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
+            new CollectionsEntry(Material.BIRCH_LOG, Material.BIRCH_LOG, CollectionsCategory.FORAGING, "Tora de Bétula", "Birch Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
+                    new CollectionsMilestone(250, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para a Floresta de Bétulas mais próxima", "Unlocks fast travel to the nearest Birch Forest"),
+                    CollectionsMilestone.recipeUnlock(500,
+                            "Desbloqueia a receita do Sculptor's Axe", "Unlocks the Sculptor's Axe recipe",
+                            SCULPTORS_AXE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita do Birch Core", "Unlocks the Birch Core recipe",
+                            BIRCH_CORE_RECIPE),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Floresta de Bétulas na Varinha de Biomas", "Unlocks Birch Forest on the Biome's Wand"),
+                    CollectionsMilestone.foragingXp(5000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.JUNGLE_LOG, Material.JUNGLE_LOG, CollectionsCategory.FORAGING, "Tora de Jungle", "Jungle Log", List.of()),
             new CollectionsEntry(Material.ACACIA_LOG, Material.ACACIA_LOG, CollectionsCategory.FORAGING, "Tora de Acácia", "Acacia Log", List.of()),
             new CollectionsEntry(Material.DARK_OAK_LOG, Material.DARK_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Escuro", "Dark Oak Log", List.of()),

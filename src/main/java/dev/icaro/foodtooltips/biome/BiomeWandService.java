@@ -1,5 +1,7 @@
 package dev.icaro.foodtooltips.biome;
 
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.collections.CollectionsProgressService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
@@ -7,8 +9,10 @@ import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,12 +71,30 @@ public final class BiomeWandService {
     private final NamespacedKey wandKey;
     private final NamespacedKey biomeKey;
     private final NamespacedKey radiusKey;
-    /** See {@link #createForestPlains}/{@link #availableOptions(ItemStack)} - comma-joined {@link BiomeOption} names this specific wand is allowed to paint, absent meaning "every biome" (the admin `/biomewand` item, unrestricted). */
-    private final NamespacedKey allowedBiomesKey;
+    /** See {@link #createRestricted}/{@link #isRestricted} - marks a wand as the craftable Foraging Collections reward, whose paintable biomes are checked live per player (see {@link #BIOME_UNLOCKS}) instead of the admin `/biomewand` item's own unrestricted "every biome" access. */
+    private final NamespacedKey restrictedKey;
     private final int maxRadius;
     private final ItemTierService tiers;
+    /** Wired in after construction (it's built later in {@code FoodTooltipsPlugin#onEnable} than this service) - see {@link #availableOptions(ItemStack, Player)}. */
+    private CollectionsProgressService collectionsProgress;
     private final Map<UUID, Deque<List<Snapshot>>> lastAction = new HashMap<>();
     private final Set<UUID> viewingMenu = new HashSet<>();
+
+    /** One wood-log Collections entry's own milestone unlocking a set of {@link BiomeOption}s on a restricted wand - see {@link #BIOME_UNLOCKS}. */
+    private record BiomeUnlock(Material logMaterial, int milestoneNumber, Set<BiomeOption> options) {
+    }
+
+    /**
+     * Every Foraging Collections milestone that unlocks more biomes on an already-crafted
+     * restricted wand ({@link #createRestricted}) - checked live against {@link
+     * #collectionsProgress} every time {@link #availableOptions(ItemStack, Player)} runs,
+     * not baked into the item at craft time, so the SAME wand instance gains Birch Forest
+     * the moment Birch Log's own Milestone 6 is crossed, with no need to craft a new one.
+     */
+    private static final List<BiomeUnlock> BIOME_UNLOCKS = List.of(
+            new BiomeUnlock(Material.OAK_LOG, 5, EnumSet.of(BiomeOption.PLAINS, BiomeOption.FOREST)),
+            new BiomeUnlock(Material.BIRCH_LOG, 6, EnumSet.of(BiomeOption.BIRCH_FOREST)),
+            new BiomeUnlock(Material.SPRUCE_LOG, 5, EnumSet.of(BiomeOption.TAIGA, BiomeOption.OLD_GROWTH_PINE_TAIGA)));
 
     /** One previously-different biome cell, captured before painting, for {@link #undo}. */
     private record Snapshot(World world, int x, int y, int z, Biome previous) {
@@ -89,9 +111,14 @@ public final class BiomeWandService {
         this.wandKey = new NamespacedKey(plugin, "biome_wand");
         this.biomeKey = new NamespacedKey(plugin, "biome_wand_biome");
         this.radiusKey = new NamespacedKey(plugin, "biome_wand_radius");
-        this.allowedBiomesKey = new NamespacedKey(plugin, "biome_wand_allowed_biomes");
+        this.restrictedKey = new NamespacedKey(plugin, "biome_wand_restricted");
         this.maxRadius = Math.max(0, Math.min(MAX_RADIUS_CEILING, plugin.getConfig().getInt("biome-wand.max-radius", 10)));
         this.tiers = tiers;
+    }
+
+    /** Wired in after construction, same pattern as {@code GeneralSkillService#armorFarmingFortuneBonus} - see {@link #collectionsProgress}. */
+    public void collectionsProgress(CollectionsProgressService collectionsProgress) {
+        this.collectionsProgress = collectionsProgress;
     }
 
     // ---- Creation -------------------------------------------------------
@@ -112,31 +139,27 @@ public final class BiomeWandService {
     }
 
     /**
-     * The craftable Foraging Collections reward (Oak Log M5) - same wand, restricted to
-     * only {@link BiomeOption#PLAINS}/{@link BiomeOption#FOREST} via {@link
-     * #allowedBiomesKey}, checked by {@link #availableOptions(ItemStack)}. English-only
-     * name/lore, same convention every other Collections-reward item uses (registered once
-     * at recipe-registration time, long before any specific player/language is known - see
-     * {@code item.ForagingCollectionsItemsService}'s own doc).
+     * The craftable Foraging Collections reward (Oak Log M5) - same wand, but every
+     * biome it can paint is checked live per player via {@link #BIOME_UNLOCKS} (see
+     * {@link #availableOptions(ItemStack, Player)}) instead of being fixed at craft time,
+     * so the very same wand instance keeps gaining more biomes as its owner crosses more
+     * wood-log Collections milestones. English-only name/lore, same convention every
+     * other Collections-reward item uses (registered once at recipe-registration time,
+     * long before any specific player/language is known - see {@code
+     * item.ForagingCollectionsItemsService}'s own doc).
      */
-    public ItemStack createForestPlains() {
+    public ItemStack createRestricted() {
         ItemStack item = this.create(Language.EN);
         ItemMeta meta = item.getItemMeta();
-        meta.getPersistentDataContainer().set(this.allowedBiomesKey, PersistentDataType.STRING,
-                BiomeOption.PLAINS.name() + "," + BiomeOption.FOREST.name());
+        meta.getPersistentDataContainer().set(this.restrictedKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         this.refreshLore(item, Language.EN);
         return item;
     }
 
-    /** {@link #allowedBiomesKey}'s own PDC value for {@code item}, split back into names - empty when the wand is unrestricted. */
-    private Set<String> allowedBiomeNames(ItemStack item) {
+    private boolean isRestricted(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
-        String raw = meta == null ? null : meta.getPersistentDataContainer().get(this.allowedBiomesKey, PersistentDataType.STRING);
-        if (raw == null || raw.isEmpty()) {
-            return Set.of();
-        }
-        return Set.of(raw.split(","));
+        return meta != null && meta.getPersistentDataContainer().has(this.restrictedKey, PersistentDataType.BYTE);
     }
 
     /** Rewrites the wand's name/lore to reflect its currently selected biome and radius - called on creation and whenever either changes. */
@@ -202,19 +225,19 @@ public final class BiomeWandService {
     public void openMenu(Player p, ItemStack item) {
         Language l = Language.of(p);
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Varinha de Biomas", "Biome's Wand"));
-        this.renderMenu(v, item, l);
+        this.renderMenu(v, item, p, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewingMenu.add(p.getUniqueId());
     }
 
-    private void renderMenu(Inventory v, ItemStack item, Language l) {
+    private void renderMenu(Inventory v, ItemStack item, Player p, Language l) {
         ItemStack filler = this.filler();
         for (int i = 0; i < 54; i++) {
             v.setItem(i, filler);
         }
         BiomeOption selected = this.selectedBiome(item);
-        BiomeOption[] options = this.availableOptions(item);
+        BiomeOption[] options = this.availableOptions(item, p);
         for (int i = 0; i < options.length && i < BIOME_SLOTS.length; i++) {
             v.setItem(BIOME_SLOTS[i], this.biomeOption(options[i], options[i] == selected, l));
         }
@@ -240,7 +263,7 @@ public final class BiomeWandService {
             return;
         }
         Language l = Language.of(p);
-        BiomeOption picked = this.optionAtSlot(slot, held);
+        BiomeOption picked = this.optionAtSlot(slot, held, p);
         if (picked != null) {
             this.setBiomeOption(held, picked, l);
         } else if (slot == RADIUS_SLOT) {
@@ -248,12 +271,12 @@ public final class BiomeWandService {
         } else {
             return;
         }
-        this.renderMenu(p.getOpenInventory().getTopInventory(), held, l);
+        this.renderMenu(p.getOpenInventory().getTopInventory(), held, p, l);
     }
 
     /** Which {@link BiomeOption} (if any) sits at {@code slot} in {@link #BIOME_SLOTS} - mirrors {@link #renderMenu}'s placement exactly. */
-    private BiomeOption optionAtSlot(int slot, ItemStack item) {
-        BiomeOption[] options = this.availableOptions(item);
+    private BiomeOption optionAtSlot(int slot, ItemStack item, Player p) {
+        BiomeOption[] options = this.availableOptions(item, p);
         for (int i = 0; i < BIOME_SLOTS.length && i < options.length; i++) {
             if (BIOME_SLOTS[i] == slot) {
                 return options[i];
@@ -263,19 +286,35 @@ public final class BiomeWandService {
     }
 
     /**
-     * Every {@link BiomeOption} {@code item} can actually paint: whose biome exists on this
-     * server (a datapack-provided one drops out silently if that datapack isn't installed,
-     * instead of showing a broken menu button) AND, if {@code item} carries an {@link
-     * #allowedBiomesKey} allow-list (see {@link #createForestPlains}), is in it - the
-     * unrestricted admin `/biomewand` item never sets that key, so it always sees every
-     * biome the server has.
+     * Every {@link BiomeOption} {@code item} can actually paint for {@code p} right now:
+     * whose biome exists on this server (a datapack-provided one drops out silently if
+     * that datapack isn't installed, instead of showing a broken menu button) AND, if
+     * {@code item} {@link #isRestricted}, is currently unlocked for {@code p} per {@link
+     * #BIOME_UNLOCKS} - the unrestricted admin `/biomewand` item always sees every biome
+     * the server has, no player-specific check at all.
      */
-    private BiomeOption[] availableOptions(ItemStack item) {
-        Set<String> allowed = this.allowedBiomeNames(item);
+    private BiomeOption[] availableOptions(ItemStack item, Player p) {
+        Set<BiomeOption> unlocked = this.unlockedBiomes(item, p);
         return java.util.Arrays.stream(BiomeOption.values())
                 .filter(o -> o.biome() != null)
-                .filter(o -> allowed.isEmpty() || allowed.contains(o.name()))
+                .filter(o -> unlocked == null || unlocked.contains(o))
                 .toArray(BiomeOption[]::new);
+    }
+
+    /** {@code null} means "no restriction, every biome" (the admin item) - otherwise the live union of every {@link #BIOME_UNLOCKS} entry {@code p} has crossed the milestone for. */
+    private Set<BiomeOption> unlockedBiomes(ItemStack item, Player p) {
+        if (!this.isRestricted(item)) {
+            return null;
+        }
+        Set<BiomeOption> unlocked = new LinkedHashSet<>();
+        for (BiomeUnlock unlock : BIOME_UNLOCKS) {
+            var entry = CollectionsCatalog.find(unlock.logMaterial());
+            if (entry.isPresent() && this.collectionsProgress != null
+                    && this.collectionsProgress.achieved(p, entry.get()) >= unlock.milestoneNumber()) {
+                unlocked.addAll(unlock.options());
+            }
+        }
+        return unlocked;
     }
 
     /** Whether {@code item}'s currently selected biome actually exists on this server - false means its datapack isn't installed, so {@link #paint} must not be called. */

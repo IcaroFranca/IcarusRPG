@@ -6,6 +6,9 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.collections.CollectionsEntry;
+import dev.icaro.foodtooltips.collections.CollectionsProgressService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
 import java.util.ArrayList;
@@ -20,6 +23,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -35,13 +39,18 @@ import org.bukkit.plugin.Plugin;
  * the player - each destination gets a human-readable name instead.
  */
 public final class TravelMenuService {
+    /** How far {@link #travelToNearestBirchForest} searches for a Birch Forest before giving up - a moderate bound so a search launched far from any match can't hang the main thread for long (this runs synchronously, same as every other destination here). */
+    private static final int BIOME_SEARCH_RADIUS = 512;
+
     private final Plugin plugin;
     private final Consumer<Player> back;
+    private final CollectionsProgressService collectionsProgress;
     private final String defaultWorld;
 
-    public TravelMenuService(Plugin plugin, Consumer<Player> back) {
+    public TravelMenuService(Plugin plugin, Consumer<Player> back, CollectionsProgressService collectionsProgress) {
         this.plugin = plugin;
         this.back = back;
+        this.collectionsProgress = collectionsProgress;
         // Blank/unset falls back to the server's actual primary world (server.properties'
         // level-name, always Bukkit.getWorlds().get(0)) instead of a hardcoded guess like
         // "world" - Multiverse and similar setups often name it something else entirely.
@@ -69,6 +78,12 @@ public final class TravelMenuService {
         pane.addItem(new GuiItem(this.item(Material.RED_BED, l.choose("Respawn (Cama/Âncora)", "Bed/Anchor Spawn"),
                 List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                 event -> this.travelToBedSpawn(p)), 5, 1);
+
+        if (this.collectionsProgress.achieved(p, this.birchLogEntry()) >= 3) {
+            pane.addItem(new GuiItem(this.item(Material.BIRCH_SAPLING, l.choose("Floresta de Bétulas Mais Próxima", "Nearest Birch Forest"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestBirchForest(p)), 1, 1);
+        }
 
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
@@ -102,6 +117,23 @@ public final class TravelMenuService {
         Location destination = p.getRespawnLocation();
         if (destination == null || destination.getWorld() == null) {
             p.sendMessage(Component.text(l.choose("Você não tem uma cama ou âncora de respawn marcada.", "You don't have a bed or respawn anchor set."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    private CollectionsEntry birchLogEntry() {
+        return CollectionsCatalog.find(Material.BIRCH_LOG).orElseThrow();
+    }
+
+    /** Birch Log Collections Milestone 3's own reward (gated in {@link #open} before this button is even shown) - a synchronous {@link World#locateNearestBiome} search, same "no async hop" choice every other destination here already makes, bounded by {@link #BIOME_SEARCH_RADIUS} so a search launched somewhere with no Birch Forest nearby can't hang the server for long. */
+    private void travelToNearestBirchForest(Player p) {
+        Language l = Language.of(p);
+        Location origin = p.getLocation();
+        Location destination = origin.getWorld().locateNearestBiome(origin, Biome.BIRCH_FOREST, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhuma Floresta de Bétulas encontrada por perto.", "No Birch Forest found nearby."), NamedTextColor.RED));
             return;
         }
         p.closeInventory();
