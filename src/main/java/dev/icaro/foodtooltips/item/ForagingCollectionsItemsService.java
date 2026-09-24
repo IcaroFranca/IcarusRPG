@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
 import java.nio.charset.StandardCharsets;
@@ -57,12 +58,23 @@ public final class ForagingCollectionsItemsService {
     private static final UUID OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:oak_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID BIRCH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:birch_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID SPRUCE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spruce_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID DARK_OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:dark_oak_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
     private static final int LEAFLET_LEGGINGS_HEALTH = 20;
     private static final int LEAFLET_BOOTS_HEALTH = 25;
     private static final org.bukkit.NamespacedKey LEAFLET_HEALTH_KEY = new org.bukkit.NamespacedKey("foodtooltips", "leaflet_armor_health");
+    private static final Color GROWTH_ARMOR_COLOR = Color.fromRGB(0x00, 0xBE, 0x00);
+    private static final int GROWTH_HELMET_HEALTH = 50;
+    private static final int GROWTH_HELMET_DEFENSE = 30;
+    private static final int GROWTH_CHESTPLATE_HEALTH = 100;
+    private static final int GROWTH_CHESTPLATE_DEFENSE = 50;
+    private static final int GROWTH_LEGGINGS_HEALTH = 80;
+    private static final int GROWTH_LEGGINGS_DEFENSE = 40;
+    private static final int GROWTH_BOOTS_HEALTH = 50;
+    private static final int GROWTH_BOOTS_DEFENSE = 25;
+    private static final org.bukkit.NamespacedKey GROWTH_HEALTH_KEY = new org.bukkit.NamespacedKey("foodtooltips", "growth_armor_piece_health");
 
     private final Plugin plugin;
     private final BiomeWandService biomeWand;
@@ -125,6 +137,84 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceCore()));
                     r.setIngredient('D', Material.DIAMOND);
                 });
+        this.newShapedRecipe(CollectionsCatalog.DARK_OAK_CORE_RECIPE, this.darkOakCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.DARK_OAK_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        // Same "vanilla-empty center slot filled with the set's own power ingredient"
+        // trick LapisArmorService uses for its own Diamond-piece center - here it's a
+        // single Dark Oak Core per piece instead, the same custom head every recipe
+        // above reuses via RecipeChoice.ExactChoice.
+        this.newShapedRecipe(CollectionsCatalog.GROWTH_HELMET_RECIPE,
+                this.growthPiece(Material.LEATHER_HELMET, "Growth Helmet", GROWTH_HELMET_HEALTH, GROWTH_HELMET_DEFENSE),
+                new String[]{"XXX", "XCX"}, r -> {
+                    r.setIngredient('X', Material.LEATHER);
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.GROWTH_CHESTPLATE_RECIPE,
+                this.growthPiece(Material.LEATHER_CHESTPLATE, "Growth Chestplate", GROWTH_CHESTPLATE_HEALTH, GROWTH_CHESTPLATE_DEFENSE),
+                new String[]{"XCX", "XXX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.LEATHER);
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.GROWTH_LEGGINGS_RECIPE,
+                this.growthPiece(Material.LEATHER_LEGGINGS, "Growth Leggings", GROWTH_LEGGINGS_HEALTH, GROWTH_LEGGINGS_DEFENSE),
+                new String[]{"XXX", "XCX", "X X"}, r -> {
+                    r.setIngredient('X', Material.LEATHER);
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.GROWTH_BOOTS_RECIPE,
+                this.growthPiece(Material.LEATHER_BOOTS, "Growth Boots", GROWTH_BOOTS_HEALTH, GROWTH_BOOTS_DEFENSE),
+                new String[]{"X X", "XCX"}, r -> {
+                    r.setIngredient('X', Material.LEATHER);
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                });
+    }
+
+    /**
+     * One piece of Armor of Growth: dyed #00BE00 leather, {@code health}/{@code defense}
+     * forced (flat, same "real {@link Attribute#MAX_HEALTH} modifier plus {@code
+     * ArmorDefenseService#forceDefense}" pattern {@code FarmingCollectionsItemsService
+     * #cactusPiece} already uses) plus the full-set bonus ({@link GrowthArmorService}: +1
+     * permanent Max Health per mob killed while the full set is worn, capped at +{@value
+     * GrowthArmorService#MAX_BONUS_HEALTH}, and increased Regeneration) mentioned in every
+     * piece's own lore regardless of which one the player is looking at.
+     */
+    private ItemStack growthPiece(Material material, String name, int health, int defense) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(GROWTH_ARMOR_COLOR);
+        }
+        EquipmentSlotGroup slot = material.name().endsWith("_HELMET") ? EquipmentSlotGroup.HEAD
+                : material.name().endsWith("_CHESTPLATE") ? EquipmentSlotGroup.CHEST
+                : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
+                : EquipmentSlotGroup.FEET;
+        meta.addAttributeModifier(Attribute.MAX_HEALTH,
+                new AttributeModifier(GROWTH_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, slot));
+        ArmorDefenseService.forceDefense(meta, defense);
+        ArmorDefenseService.markOwnDefenseLore(meta);
+        GrowthArmorService.markGrowthPiece(meta);
+        meta.displayName(Component.text(name, NamedTextColor.DARK_GREEN).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Health: +" + health, NamedTextColor.RED),
+                Component.text("Defense: +" + defense, NamedTextColor.GREEN),
+                Component.empty(),
+                Component.text("Full Set Bonus:", NamedTextColor.GRAY),
+                Component.text("Each mob killed grants +1 Max Health (up to +" + GrowthArmorService.MAX_BONUS_HEALTH + ")", NamedTextColor.LIGHT_PURPLE),
+                Component.text("Increased Regeneration", NamedTextColor.LIGHT_PURPLE));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack darkOakCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.DARK_OAK_CORE, DARK_OAK_CORE_PROFILE);
+        meta.displayName(Component.text("Dark Oak Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
     }
 
     /** One piece of Leaflet Armor: dyed-green leather, {@code health} forced (a real {@link Attribute#MAX_HEALTH} modifier) plus +3 Foraging Fortune ({@link LeafletArmorService}) - no forced Defense, kept as plain Leather's own default. */

@@ -85,6 +85,18 @@ public final class TravelMenuService {
                     event -> this.travelToNearestBirchForest(p)), 1, 1);
         }
 
+        if (this.collectionsProgress.achieved(p, this.spruceLogEntry()) >= 4) {
+            pane.addItem(new GuiItem(this.item(Material.SPRUCE_SAPLING, l.choose("Taiga Mais Próximo", "Nearest Taiga"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestTaiga(p)), 2, 1);
+        }
+
+        if (this.collectionsProgress.achieved(p, this.darkOakLogEntry()) >= 4) {
+            pane.addItem(new GuiItem(this.item(Material.DARK_OAK_SAPLING, l.choose("Floresta Sombria Mais Próxima", "Nearest Dark Forest"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestDarkForest(p)), 6, 1);
+        }
+
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
@@ -127,6 +139,14 @@ public final class TravelMenuService {
         return CollectionsCatalog.find(Material.BIRCH_LOG).orElseThrow();
     }
 
+    private CollectionsEntry spruceLogEntry() {
+        return CollectionsCatalog.find(Material.SPRUCE_LOG).orElseThrow();
+    }
+
+    private CollectionsEntry darkOakLogEntry() {
+        return CollectionsCatalog.find(Material.DARK_OAK_LOG).orElseThrow();
+    }
+
     /** Birch Log Collections Milestone 3's own reward (gated in {@link #open} before this button is even shown) - a synchronous {@link World#locateNearestBiome} search, same "no async hop" choice every other destination here already makes, bounded by {@link #BIOME_SEARCH_RADIUS} so a search launched somewhere with no Birch Forest nearby can't hang the server for long. */
     private void travelToNearestBirchForest(Player p) {
         Language l = Language.of(p);
@@ -134,6 +154,32 @@ public final class TravelMenuService {
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.BIRCH_FOREST, BIOME_SEARCH_RADIUS);
         if (destination == null) {
             p.sendMessage(Component.text(l.choose("Nenhuma Floresta de Bétulas encontrada por perto.", "No Birch Forest found nearby."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /** Spruce Log Collections Milestone 4's own reward - same shape as {@link #travelToNearestBirchForest}. */
+    private void travelToNearestTaiga(Player p) {
+        Language l = Language.of(p);
+        Location origin = p.getLocation();
+        Location destination = origin.getWorld().locateNearestBiome(origin, Biome.TAIGA, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhum Taiga encontrado por perto.", "No Taiga found nearby."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /** Dark Oak Log Collections Milestone 4's own reward - same shape as {@link #travelToNearestBirchForest}. */
+    private void travelToNearestDarkForest(Player p) {
+        Language l = Language.of(p);
+        Location origin = p.getLocation();
+        Location destination = origin.getWorld().locateNearestBiome(origin, Biome.DARK_FOREST, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhuma Floresta Sombria encontrada por perto.", "No Dark Forest found nearby."), NamedTextColor.RED));
             return;
         }
         p.closeInventory();

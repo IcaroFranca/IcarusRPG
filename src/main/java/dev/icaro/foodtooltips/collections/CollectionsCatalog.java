@@ -95,6 +95,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey SPRUCE_AXE_RECIPE = new NamespacedKey("foodtooltips", "spruce_axe");
     public static final NamespacedKey SPRUCE_CORE_RECIPE = new NamespacedKey("foodtooltips", "spruce_core");
     public static final NamespacedKey WOODCUTTING_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "woodcutting_crystal");
+    public static final NamespacedKey DARK_OAK_CORE_RECIPE = new NamespacedKey("foodtooltips", "dark_oak_core");
+    public static final NamespacedKey GROWTH_HELMET_RECIPE = new NamespacedKey("foodtooltips", "growth_helmet");
+    public static final NamespacedKey GROWTH_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "growth_chestplate");
+    public static final NamespacedKey GROWTH_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "growth_leggings");
+    public static final NamespacedKey GROWTH_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "growth_boots");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -379,7 +384,8 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(250,
                             "Desbloqueia a receita do Spruce Core", "Unlocks the Spruce Core recipe",
                             SPRUCE_CORE_RECIPE),
-                    CollectionsMilestone.foragingXp(500, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para o Taiga mais próximo", "Unlocks fast travel to the nearest Taiga"),
                     new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Taiga e Taiga Antiga na Varinha de Biomas", "Unlocks Taiga and Old Growth Pine Taiga on the Biome's Wand"),
                     CollectionsMilestone.foragingXp(2000, 3000, "+3000 XP de Coleta", "+3000 Foraging XP"),
@@ -406,7 +412,23 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.JUNGLE_LOG, Material.JUNGLE_LOG, CollectionsCategory.FORAGING, "Tora de Jungle", "Jungle Log", List.of()),
             new CollectionsEntry(Material.ACACIA_LOG, Material.ACACIA_LOG, CollectionsCategory.FORAGING, "Tora de Acácia", "Acacia Log", List.of()),
-            new CollectionsEntry(Material.DARK_OAK_LOG, Material.DARK_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Escuro", "Dark Oak Log", List.of()),
+            new CollectionsEntry(Material.DARK_OAK_LOG, Material.DARK_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Escuro", "Dark Oak Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Dark Oak Core", "Unlocks the Dark Oak Core recipe",
+                            DARK_OAK_CORE_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para a Floresta Sombria mais próxima", "Unlocks fast travel to the nearest Dark Forest"),
+                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Floresta Sombria na Varinha de Biomas", "Unlocks Dark Forest on the Biome's Wand"),
+                    CollectionsMilestone.foragingXp(2000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
+                    CollectionsMilestone.enchantDiscount(5000, IcarusEnchant.GROWTH, 25.0,
+                            "-25% de custo em XP para Crescimento", "-25% XP cost for Growth"),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(25000,
+                            "Desbloqueia a receita da Armor of Growth", "Unlocks the Armor of Growth recipe",
+                            GROWTH_HELMET_RECIPE, GROWTH_CHESTPLATE_RECIPE, GROWTH_LEGGINGS_RECIPE, GROWTH_BOOTS_RECIPE))),
             new CollectionsEntry(Material.MANGROVE_LOG, Material.MANGROVE_LOG, CollectionsCategory.FORAGING, "Tora de Mangue", "Mangrove Log", List.of()),
             new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of()),
             new CollectionsEntry(Material.PALE_OAK_LOG, Material.PALE_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Pálido", "Pale Oak Log", List.of()),

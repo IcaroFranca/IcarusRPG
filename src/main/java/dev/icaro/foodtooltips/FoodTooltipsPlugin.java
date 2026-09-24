@@ -71,6 +71,7 @@ import dev.icaro.foodtooltips.item.MushroomSoupFlightService;
 import dev.icaro.foodtooltips.item.FarmCrystalService;
 import dev.icaro.foodtooltips.item.CactusArmorService;
 import dev.icaro.foodtooltips.item.ChocolateArmorService;
+import dev.icaro.foodtooltips.item.GrowthArmorService;
 import dev.icaro.foodtooltips.item.CowHatService;
 import dev.icaro.foodtooltips.item.ArcheryPotionService;
 import dev.icaro.foodtooltips.item.ManaPotionService;
@@ -195,6 +196,7 @@ extends JavaPlugin {
         ManaPotionService manaPotion = new ManaPotionService();
         RabbitArmorService rabbitArmor = new RabbitArmorService();
         ChocolateArmorService chocolateArmor = new ChocolateArmorService();
+        GrowthArmorService growthArmor = new GrowthArmorService();
         SpeedsterArmorService speedsterArmor = new SpeedsterArmorService();
         EnchantedCarrotStickService enchantedCarrotStick = new EnchantedCarrotStickService();
         FarmCrystalService farmCrystal = new FarmCrystalService((Plugin)this);
@@ -346,6 +348,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)manaPotion, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
         pm.registerEvents((Listener)new CactusArmorService(), (Plugin)this);
+        pm.registerEvents((Listener)growthArmor, (Plugin)this);
         pm.registerEvents((Listener)brewingStandFuel, (Plugin)this);
         pm.registerEvents((Listener)new PassiveAbilityListener(passiveAbilityMenu), (Plugin)this);
         pm.registerEvents((Listener)gems, (Plugin)this);
@@ -558,6 +561,7 @@ extends JavaPlugin {
             farmingCollectionsItems.applyLanternHelmetHealth((Player)p);
             rabbitArmor.applyToInventory((Player)p);
             chocolateArmor.applyToInventory((Player)p);
+            growthArmor.applyToInventory((Player)p);
             speedsterArmor.applyFullSetSpeed((Player)p);
             enchantedCarrotStick.applyMountSpeed((Player)p);
             mushroomSoupFlight.tick((Player)p, ticks);
