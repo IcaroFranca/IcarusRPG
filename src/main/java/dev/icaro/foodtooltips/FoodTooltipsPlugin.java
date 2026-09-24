@@ -232,7 +232,8 @@ extends JavaPlugin {
         CollectionsService collectionsService = new CollectionsService(collectionsProgress, global);
         CollectionsMenuService collectionsMenu = new CollectionsMenuService(collectionsProgress, global, menus::openMain);
         menus.collections(collectionsMenu);
-        this.quiver = new QuiverService((Plugin)this, combat, menus::openMain);
+        SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
+        this.quiver = new QuiverService((Plugin)this, combat, skillsStar, menus::openMain);
         menus.quiver(this.quiver);
         this.wardrobe = new WardrobeService((Plugin)this, collectionsProgress);
         menus.wardrobe(this.wardrobe);
@@ -253,7 +254,6 @@ extends JavaPlugin {
         PassiveAbilityService passives = new PassiveAbilityService();
         PassiveAbilityMenuService passiveAbilityMenu = new PassiveAbilityMenuService(passives, global, menus::openMain);
         menus.passiveAbilities(passiveAbilityMenu);
-        SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         LegendaryWeaponService legendary = new LegendaryWeaponService((Plugin)this, stats, tiers, combat, reforgeService);
         reforgeService.legendary(legendary);
         stats.legendary(legendary);

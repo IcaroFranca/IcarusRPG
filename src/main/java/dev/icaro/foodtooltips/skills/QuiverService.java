@@ -77,6 +77,18 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * rather than letting it sit as a permanent, player-owned arrow - which is exactly the
  * "arrow leaks from the Quiver into my inventory" behavior this tagging exists to
  * prevent.
+ *
+ * <p>The topped-up arrow specifically targets {@link SkillsStarService#SLOT} (displacing
+ * the pinned "★ Menu" Nether Star out of the inventory entirely, same as {@code
+ * SkillsStarListener} never actually deleting it either) whenever that slot still holds
+ * the star, so the arrow always lands somewhere obvious - the last hotbar slot - rather
+ * than wherever {@link PlayerInventory#addItem} happens to pick. {@link #starHeldAside}
+ * remembers that displacement across ticks (the slot goes empty the instant vanilla
+ * fires/consumes the arrow, at which point nothing marks it as "the star's slot" anymore)
+ * so every subsequent top-up while the bow stays drawn keeps reusing that same slot, and
+ * {@link SkillsStarService#ensure} re-creates the star there the moment the bow comes back
+ * down ({@link #reclaimVirtual}) - even if the Quiver ran dry in the meantime and there's
+ * no arrow left to physically reclaim.
  */
 public final class QuiverService {
     /** The arrow-only storage area - the first {@value #STORAGE_SIZE} slots, the same as a single chest. */
@@ -90,6 +102,7 @@ public final class QuiverService {
 
     private final Plugin plugin;
     private final CombatSkillService combat;
+    private final SkillsStarService star;
     private final Consumer<Player> back;
     private final NamespacedKey contentsKey;
     /**
@@ -109,10 +122,13 @@ public final class QuiverService {
     private final NamespacedKey virtualKey;
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
+    /** Whose {@link SkillsStarService#SLOT} currently holds a topped-up arrow instead of the star - see this class's own doc. */
+    private final Set<UUID> starHeldAside = new HashSet<>();
 
-    public QuiverService(Plugin plugin, CombatSkillService combat, Consumer<Player> back) {
+    public QuiverService(Plugin plugin, CombatSkillService combat, SkillsStarService star, Consumer<Player> back) {
         this.plugin = plugin;
         this.combat = combat;
+        this.star = star;
         this.back = back;
         this.contentsKey = new NamespacedKey("foodtooltips", "quiver_contents");
         this.legacyContentsKey = new NamespacedKey(plugin, "quiver_contents");
@@ -175,6 +191,7 @@ public final class QuiverService {
     /** Called on {@code PlayerQuitEvent} - persists and evicts the cached {@link Inventory}, same memory-cleanup shape every other session-scoped {@code Map<UUID, ...>} in this plugin already follows. */
     public void handleQuit(Player p) {
         this.viewing.remove(p.getUniqueId());
+        this.starHeldAside.remove(p.getUniqueId());
         this.persist(p);
         this.cache.remove(p.getUniqueId());
     }
@@ -245,6 +262,14 @@ public final class QuiverService {
         if (pulled == null) {
             return;
         }
+        if (this.star.isStar(inv.getItem(SkillsStarService.SLOT)) || this.starHeldAside.contains(p.getUniqueId())) {
+            // Displace the star rather than route through addItem - keeps the arrow
+            // landing in the same obvious slot every top-up for as long as the bow
+            // stays drawn, instead of wherever addItem's first-empty-slot search picks.
+            inv.setItem(SkillsStarService.SLOT, pulled);
+            this.starHeldAside.add(p.getUniqueId());
+            return;
+        }
         for (ItemStack overflow : inv.addItem(pulled).values()) {
             // No room after all - put it back rather than scatter it on the ground;
             // this is a silent top-up, not a player-initiated action.
@@ -261,13 +286,19 @@ public final class QuiverService {
                 ItemStack found = contents[i];
                 inv.setItem(i, null);
                 this.giveBack(p, this.stripVirtual(found));
-                return;
+                break;
             }
         }
         ItemStack off = inv.getItemInOffHand();
         if (this.isVirtual(off)) {
             inv.setItemInOffHand(null);
             this.giveBack(p, this.stripVirtual(off));
+        }
+        if (this.starHeldAside.remove(p.getUniqueId())) {
+            // Restores the star even if the Quiver ran dry while the bow was drawn (no
+            // arrow left above to physically find/reclaim) - the slot was still ours to
+            // give back.
+            this.star.ensure(p);
         }
     }
 
