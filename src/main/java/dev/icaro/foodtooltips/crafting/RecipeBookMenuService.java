@@ -64,7 +64,8 @@ public final class RecipeBookMenuService {
     private static final int PREV_SLOT = 48;
     private static final int NEXT_SLOT = 50;
 
-    private record View(int page, NamespacedKey detail) {
+    /** {@code externalBack}, when set, is who opened the detail screen directly (see {@link #openDetail(Player, NamespacedKey, Runnable)}) rather than this book's own list - its Back button runs that instead of returning to {@code page}. */
+    private record View(int page, NamespacedKey detail, Runnable externalBack) {
     }
 
     /** Whether {@code viewer} has met a gated recipe's own unlock condition, plus the human-readable requirement text (see {@link #requirementCheck}) - {@code met} true still gets a lore line ("requirement already met"), matching the player's own spec that a gated recipe stays visible either way, just with a requirement notice attached. */
@@ -124,7 +125,7 @@ public final class RecipeBookMenuService {
         }
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
-        this.views.put(p.getUniqueId(), new View(page, null));
+        this.views.put(p.getUniqueId(), new View(page, null, null));
     }
 
     private void openDetail(Player p, int fromPage, NamespacedKey key) {
@@ -136,6 +137,37 @@ public final class RecipeBookMenuService {
             return;
         }
         Language l = Language.of(p);
+        Inventory v = this.renderDetail(crafting, l, l.choose("Voltar ao livro", "Back to the book"));
+        p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        this.views.put(p.getUniqueId(), new View(fromPage, key, null));
+    }
+
+    /**
+     * Opens the same read-only recipe detail screen directly for {@code key}, skipping this
+     * book's own list/page entirely - lets another menu (e.g. {@code
+     * collections.CollectionsMenuService}'s own item preview screen) show a milestone's real
+     * recipe shape without becoming part of this book's list flow. {@code onBack} runs instead
+     * of returning to a list page when the player clicks Back (see {@link View#externalBack}) -
+     * typically re-opening whatever screen the caller opened this from. Silently defers to
+     * {@code onBack} instead of opening anything if {@code key} doesn't resolve to a real,
+     * currently-registered recipe.
+     */
+    public void openDetail(Player p, NamespacedKey key, Runnable onBack) {
+        Recipe recipe = Bukkit.getRecipe(key);
+        if (!(recipe instanceof CraftingRecipe crafting)) {
+            onBack.run();
+            return;
+        }
+        Language l = Language.of(p);
+        Inventory v = this.renderDetail(crafting, l, l.choose("Voltar", "Back"));
+        p.openInventory(v);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        this.views.put(p.getUniqueId(), new View(0, key, onBack));
+    }
+
+    /** The shared 3x3-grid-plus-arrow-plus-result layout both {@link #openDetail(Player, int, NamespacedKey)} and {@link #openDetail(Player, NamespacedKey, Runnable)} render, differing only in the Back button's own label. */
+    private Inventory renderDetail(CraftingRecipe crafting, Language l, String backLabel) {
         Inventory v = this.blank(l.choose("Receita", "Recipe"));
         ItemStack[] grid = this.gridFor(crafting);
         for (int i = 0; i < DETAIL_MATRIX_SLOTS.length; i++) {
@@ -143,10 +175,8 @@ public final class RecipeBookMenuService {
         }
         v.setItem(DETAIL_ARROW_SLOT, this.item(Material.ARROW, l.choose("Resultado", "Result"), List.of()));
         v.setItem(DETAIL_RESULT_SLOT, crafting.getResult().clone());
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar ao livro", "Back to the book"), List.of()));
-        p.openInventory(v);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
-        this.views.put(p.getUniqueId(), new View(fromPage, key));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, backLabel, List.of()));
+        return v;
     }
 
     /** Dispatches a raw top-inventory slot click - {@link RecipeBookListener} cancels everything before calling this, so there's never anything to actually move. */
@@ -157,7 +187,12 @@ public final class RecipeBookMenuService {
         }
         if (view.detail() != null) {
             if (rawSlot == BACK_SLOT) {
-                this.open(p, view.page());
+                if (view.externalBack() != null) {
+                    this.views.remove(p.getUniqueId());
+                    view.externalBack().run();
+                } else {
+                    this.open(p, view.page());
+                }
             }
             return;
         }

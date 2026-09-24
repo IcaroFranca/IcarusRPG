@@ -276,6 +276,7 @@ extends JavaPlugin {
         menus.crafting(craftingMenu);
         RecipeBookMenuService recipeBook = new RecipeBookMenuService((Plugin)this, menus::openMain);
         menus.recipeBook(recipeBook);
+        collectionsMenu.recipeBook(recipeBook);
         recipeBook.requirementCheck((viewer, recipeKey) -> collectionsService.findGatingMilestone(recipeKey)
                 .map(milestone -> new RecipeBookMenuService.Requirement(
                         collectionsService.hasUnlockedRecipe(viewer, recipeKey), milestone.rewardPt(), milestone.rewardEn()))

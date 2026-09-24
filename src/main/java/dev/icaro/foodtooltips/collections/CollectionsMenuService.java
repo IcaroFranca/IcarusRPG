@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.collections;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
@@ -45,17 +46,28 @@ import org.bukkit.inventory.meta.SkullMeta;
  * CollectionsItemsMenuService} uses for its own {@code /rpgitems} tiles) still opens a
  * dedicated preview screen ({@link #openItemPreview}) on click - the pane is only what
  * represents the milestone in the ladder itself, not a replacement for seeing the real item.
+ * Clicking one of {@link #openItemPreview}'s own item tiles goes one level deeper still,
+ * opening that exact recipe's real shape via {@link RecipeBookMenuService#openDetail(Player,
+ * NamespacedKey, Runnable)} - the same read-only 3x3-grid screen the Recipe Book itself uses,
+ * reused rather than duplicated here, with its own Back button wired to reopen this same
+ * preview screen instead of the Recipe Book's own list.
  */
 public final class CollectionsMenuService {
     private final CollectionsProgressService progress;
     private final GlobalLevelService global;
     private final Consumer<Player> back;
     private final Map<UUID, View> viewers = new HashMap<>();
+    private RecipeBookMenuService recipeBook;
 
     public CollectionsMenuService(CollectionsProgressService progress, GlobalLevelService global, Consumer<Player> back) {
         this.progress = progress;
         this.global = global;
         this.back = back;
+    }
+
+    /** Late-bound, same "no direct constructor dependency" shape every cross-menu wiring in this plugin uses ({@code SkillsMenuService#reforge}, etc.) - lets a real item preview tile in {@link #openItemPreview} open that recipe's actual shape via {@link RecipeBookMenuService#openDetail(Player, NamespacedKey, Runnable)}. */
+    public void recipeBook(RecipeBookMenuService recipeBook) {
+        this.recipeBook = recipeBook;
     }
 
     public void openCategories(Player p) {
@@ -184,7 +196,10 @@ public final class CollectionsMenuService {
             return;
         }
         if (v.type() == ViewType.ITEM_PREVIEW) {
-            if (slot == 49) {
+            NamespacedKey key = v.recipeButtons().get(slot);
+            if (key != null) {
+                this.recipeBook.openDetail(p, key, () -> this.openItemPreview(p, v.milestone(), v.entry(), v.category(), v.page()));
+            } else if (slot == 49) {
                 this.openEntry(p, v.entry(), v.category(), v.page());
             }
             return;
@@ -213,6 +228,17 @@ public final class CollectionsMenuService {
         return items;
     }
 
+    /** The same filter as {@link #previewItems}, same order, but the recipe keys themselves - used to open a real recipe's shape ({@link RecipeBookMenuService#openDetail(Player, NamespacedKey, Runnable)}) from {@link #openItemPreview}'s own tiles. */
+    private List<NamespacedKey> previewKeys(CollectionsMilestone milestone) {
+        List<NamespacedKey> keys = new ArrayList<>();
+        for (NamespacedKey key : milestone.recipes()) {
+            if (Bukkit.getRecipe(key) != null) {
+                keys.add(key);
+            }
+        }
+        return keys;
+    }
+
     /**
      * Opens a dedicated read-only screen showing every real item {@code milestone} unlocks
      * (all 4 pieces at once for an armor set, not just one) - each already carrying its own
@@ -224,16 +250,31 @@ public final class CollectionsMenuService {
     public void openItemPreview(Player p, CollectionsMilestone milestone, CollectionsEntry entry, CollectionsCategory back, int page) {
         Language l = Language.of(p);
         List<ItemStack> items = this.previewItems(milestone);
+        List<NamespacedKey> keys = this.previewKeys(milestone);
         Inventory inv = Bukkit.createInventory(null, 54, l.choose("Prévia do Item", "Item Preview"));
         this.fill(inv);
         List<Integer> slots = this.centeredSlots(items.size());
+        Map<Integer, NamespacedKey> recipeButtons = new HashMap<>();
         for (int i = 0; i < items.size(); i++) {
-            inv.setItem(slots.get(i), items.get(i));
+            int slot = slots.get(i);
+            inv.setItem(slot, this.withRecipeHint(items.get(i), l));
+            recipeButtons.put(slot, keys.get(i));
         }
         inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
-        this.viewers.put(p.getUniqueId(), View.itemPreview(back, page, entry));
+        this.viewers.put(p.getUniqueId(), View.itemPreview(back, page, entry, milestone, recipeButtons));
+    }
+
+    /** Appends a "click to see the recipe" hint to {@code item}'s own lore - every tile in {@link #openItemPreview} now opens the real recipe shape on click (see {@link #recipeBook}). Mutates and returns the same instance, which is already a fresh clone from {@link #previewItems}. */
+    private ItemStack withRecipeHint(ItemStack item, Language l) {
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+        lore.add(Component.empty());
+        lore.add(this.text(l.choose("Clique para ver a receita.", "Click to see the recipe."), NamedTextColor.YELLOW));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack entryItem(Player p, CollectionsEntry e, Language l) {
@@ -302,23 +343,23 @@ public final class CollectionsMenuService {
         return Component.text(value, color).decoration(TextDecoration.ITALIC, false);
     }
 
-    private record View(ViewType type, CollectionsCategory category, int page, CollectionsEntry entry,
+    private record View(ViewType type, CollectionsCategory category, int page, CollectionsEntry entry, CollectionsMilestone milestone,
                          Map<Integer, CollectionsCategory> categoryButtons, Map<Integer, CollectionsEntry> entryButtons,
-                         Map<Integer, CollectionsMilestone> milestoneButtons) {
+                         Map<Integer, CollectionsMilestone> milestoneButtons, Map<Integer, NamespacedKey> recipeButtons) {
         static View categories(Map<Integer, CollectionsCategory> b) {
-            return new View(ViewType.CATEGORIES, null, 0, null, b, Map.of(), Map.of());
+            return new View(ViewType.CATEGORIES, null, 0, null, null, b, Map.of(), Map.of(), Map.of());
         }
 
         static View category(CollectionsCategory c, int p, Map<Integer, CollectionsEntry> b) {
-            return new View(ViewType.CATEGORY, c, p, null, Map.of(), b, Map.of());
+            return new View(ViewType.CATEGORY, c, p, null, null, Map.of(), b, Map.of(), Map.of());
         }
 
         static View detail(CollectionsCategory c, int p, CollectionsEntry e, Map<Integer, CollectionsMilestone> milestoneButtons) {
-            return new View(ViewType.DETAIL, c, p, e, Map.of(), Map.of(), milestoneButtons);
+            return new View(ViewType.DETAIL, c, p, e, null, Map.of(), Map.of(), milestoneButtons, Map.of());
         }
 
-        static View itemPreview(CollectionsCategory c, int p, CollectionsEntry e) {
-            return new View(ViewType.ITEM_PREVIEW, c, p, e, Map.of(), Map.of(), Map.of());
+        static View itemPreview(CollectionsCategory c, int p, CollectionsEntry e, CollectionsMilestone m, Map<Integer, NamespacedKey> recipeButtons) {
+            return new View(ViewType.ITEM_PREVIEW, c, p, e, m, Map.of(), Map.of(), Map.of(), recipeButtons);
         }
     }
 
