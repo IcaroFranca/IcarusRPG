@@ -130,6 +130,8 @@ public final class FarmingCollectionsItemsService {
     private static final NamespacedKey FARMER_BOOTS_HEALTH_KEY = new NamespacedKey("foodtooltips", "farmer_boots_health");
     private static final NamespacedKey FARMER_BOOTS_SPEED_KEY = new NamespacedKey("foodtooltips", "farmer_boots_speed");
     private static final NamespacedKey CACTUS_HEALTH_KEY = new NamespacedKey("foodtooltips", "cactus_armor_health");
+    private static final NamespacedKey CHOCOLATE_HEALTH_KEY = new NamespacedKey("foodtooltips", "chocolate_armor_health");
+    public static final int CHOCOLATE_HEALTH_PER_PIECE = 20;
     /** See {@code MushroomSoupFlightService} - the actual flight-granting logic lives there, this class only builds the item and its recipe. */
     public static final NamespacedKey MAGICAL_MUSHROOM_SOUP_KEY = new NamespacedKey("foodtooltips", "magical_mushroom_soup");
     public static final NamespacedKey MYSTICAL_MUSHROOM_SOUP_KEY = new NamespacedKey("foodtooltips", "mystical_mushroom_soup");
@@ -599,6 +601,7 @@ public final class FarmingCollectionsItemsService {
         meta.addAttributeModifier(Attribute.MAX_HEALTH,
                 new AttributeModifier(CACTUS_HEALTH_KEY, health, AttributeModifier.Operation.ADD_NUMBER, slot));
         ArmorDefenseService.forceDefense(meta, defense);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         CactusArmorService.markCactusPiece(meta);
         meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         addStatLore(meta,
@@ -638,14 +641,31 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
-    /** One piece of Chocolate Armor: dyed-brown leather, purely cosmetic - same "no forced stats" spec as Cactus Armor (only Sprout/Mushroom Armor have explicit stats). */
+    /**
+     * One piece of Chocolate Armor: dyed-brown leather, +{@value #CHOCOLATE_HEALTH_PER_PIECE}
+     * Health forced (a real {@link Attribute#MAX_HEALTH} modifier, same pattern as Cactus
+     * Armor's own) plus the full-set permanent Saturation bonus ({@link ChocolateArmorService})
+     * mentioned in every piece's own lore regardless of which one the player is looking at.
+     */
     private org.bukkit.inventory.ItemStack chocolatePiece(Material material, String name) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(CHOCOLATE_ARMOR_COLOR);
         }
+        EquipmentSlotGroup slot = material.name().endsWith("_HELMET") ? EquipmentSlotGroup.HEAD
+                : material.name().endsWith("_CHESTPLATE") ? EquipmentSlotGroup.CHEST
+                : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
+                : EquipmentSlotGroup.FEET;
+        meta.addAttributeModifier(Attribute.MAX_HEALTH,
+                new AttributeModifier(CHOCOLATE_HEALTH_KEY, CHOCOLATE_HEALTH_PER_PIECE, AttributeModifier.Operation.ADD_NUMBER, slot));
+        ChocolateArmorService.markChocolatePiece(meta);
         meta.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        addStatLore(meta,
+                Component.text("Health: +" + CHOCOLATE_HEALTH_PER_PIECE, NamedTextColor.RED),
+                Component.empty(),
+                Component.text("Full Set Bonus:", NamedTextColor.GRAY),
+                Component.text("Permanent Saturation", NamedTextColor.LIGHT_PURPLE));
         item.setItemMeta(meta);
         return item;
     }
@@ -666,6 +686,7 @@ public final class FarmingCollectionsItemsService {
         }
         if (defense > 0) {
             ArmorDefenseService.forceDefense(meta, defense);
+            ArmorDefenseService.markOwnDefenseLore(meta);
         }
         MushroomArmorService.markMushroomPiece(meta);
         meta.displayName(Component.text(name, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
@@ -826,6 +847,7 @@ public final class FarmingCollectionsItemsService {
         meta.addAttributeModifier(Attribute.MAX_HEALTH,
                 new AttributeModifier(LANTERN_HELMET_HEALTH_KEY, LANTERN_HELMET_BASE_HEALTH, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD));
         ArmorDefenseService.forceDefense(meta, LANTERN_HELMET_BASE_DEFENSE);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.getPersistentDataContainer().set(LANTERN_HELMET_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Lantern Helmet", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         addStatLore(meta,
@@ -858,6 +880,7 @@ public final class FarmingCollectionsItemsService {
                 : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
                 : EquipmentSlotGroup.FEET;
         ArmorDefenseService.forceDefense(meta, defense);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
                 new AttributeModifier(RABBIT_ARMOR_SPEED_KEY, RABBIT_ARMOR_SPEED_PER_PIECE * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER, slot));
         RabbitArmorService.markRabbitPiece(meta);
@@ -878,6 +901,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.RABBIT_ARMOR_HELMET, RABBIT_ARMOR_HELMET_PROFILE);
         ArmorDefenseService.forceDefense(meta, RABBIT_HELMET_DEFENSE);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
                 new AttributeModifier(RABBIT_ARMOR_SPEED_KEY, RABBIT_ARMOR_SPEED_PER_PIECE * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HEAD));
         RabbitArmorService.markRabbitPiece(meta);
@@ -910,6 +934,7 @@ public final class FarmingCollectionsItemsService {
                 : material.name().endsWith("_LEGGINGS") ? EquipmentSlotGroup.LEGS
                 : EquipmentSlotGroup.FEET;
         ArmorDefenseService.forceDefense(meta, defense);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.addAttributeModifier(Attribute.MOVEMENT_SPEED,
                 new AttributeModifier(SPEEDSTER_ARMOR_SPEED_KEY, SPEEDSTER_SPEED_PER_PIECE * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER, slot));
         SpeedsterArmorService.markSpeedsterPiece(meta);
@@ -932,6 +957,7 @@ public final class FarmingCollectionsItemsService {
             leather.setColor(color);
         }
         ArmorDefenseService.forceDefense(meta, FARMHAND_DEFENSE_PER_PIECE);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.getPersistentDataContainer().set(FARMHAND_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         addStatLore(meta,
@@ -949,6 +975,7 @@ public final class FarmingCollectionsItemsService {
             leather.setColor(HAYMAKER_COLOR);
         }
         ArmorDefenseService.forceDefense(meta, HAYMAKER_DEFENSE_PER_PIECE);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.getPersistentDataContainer().set(HAYMAKER_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         addStatLore(meta,
@@ -974,6 +1001,7 @@ public final class FarmingCollectionsItemsService {
         }
         meta.addAttributeModifier(Attribute.MAX_HEALTH,
                 new AttributeModifier(FARMER_BOOTS_HEALTH_KEY, FARMER_BOOTS_BASE_HEALTH, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.FEET));
+        ArmorDefenseService.markOwnDefenseLore(meta);
         meta.getPersistentDataContainer().set(FARMER_BOOTS_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Farmer Boots", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         addStatLore(meta,
@@ -1167,6 +1195,7 @@ public final class FarmingCollectionsItemsService {
             leather.setColor(color);
         }
         ArmorDefenseService.forceDefense(meta, SPROUT_DEFENSE_PER_PIECE);
+        ArmorDefenseService.markOwnDefenseLore(meta);
         this.tiers.forceTier(meta, ItemTier.B);
         meta.getPersistentDataContainer().set(SPROUT_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));

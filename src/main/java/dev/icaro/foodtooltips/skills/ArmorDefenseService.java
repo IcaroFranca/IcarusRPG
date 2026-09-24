@@ -47,6 +47,8 @@ public final class ArmorDefenseService {
     private final NamespacedKey tooltipKey = new NamespacedKey("foodtooltips", "defense_tooltip_applied");
     /** See {@link #forceDefense}/{@link #pieceDefense} - same per-item override idea as {@code ItemTierService#forceTier}. */
     private static final NamespacedKey FORCED_DEFENSE_KEY = new NamespacedKey("foodtooltips", "forced_defense");
+    /** See {@link #markOwnDefenseLore} and {@link #tooltip} - items that already bake their own "Defense: +N" lore line at creation time. */
+    private static final NamespacedKey OWN_DEFENSE_LORE_KEY = new NamespacedKey("foodtooltips", "own_defense_lore");
     /** See {@link #markMinerArmor}/{@link #isMinerPiece} - deliberately separate from {@link #FORCED_DEFENSE_KEY}, which by itself only means "this piece's Defense doesn't come from its Material" and is NOT unique to Miner's Armor (Lapis Lazuli Armor - {@code LapisArmorService} - forces its own Defense too, and must never get Miner's Armor's own doubled-Defense-underground bonus). */
     private static final NamespacedKey MINER_ARMOR_KEY = new NamespacedKey("foodtooltips", "miner_armor_piece");
     private GeneralSkillService general;
@@ -118,6 +120,20 @@ public final class ArmorDefenseService {
     /** Forces {@code item}'s Defense to {@code value} regardless of its own Material - same per-item override idea as {@code ItemTierService#forceTier}, used by an item whose Defense shouldn't come from its (often purely cosmetic) Material, e.g. the Zombie/Skeleton Miner's leather-dyed-gray Miner's Armor, which reads as Diamond's own numbers instead. */
     public static void forceDefense(ItemMeta meta, int value) {
         meta.getPersistentDataContainer().set(FORCED_DEFENSE_KEY, PersistentDataType.INTEGER, value);
+    }
+
+    /**
+     * Marks {@code meta} as an item that already bakes its own "Defense: +N" lore line at
+     * creation time (Cactus/Rabbit/Speedster/Farmhand/Haymaker/Sprout Armor, Lantern
+     * Helmet, Farmer Boots - all via {@code FarmingCollectionsItemsService}'s own {@code
+     * addStatLore} calls), so it shows correctly in a preview {@link #applyDefenseTooltip}
+     * never touches (a recipe-book tile, a milestone reward preview). {@link #tooltip}
+     * still hides the item's real attributes and marks itself done for these items, exactly
+     * like any other piece, but skips prepending a second, redundant Defense line on top of
+     * the one already sitting in the lore.
+     */
+    public static void markOwnDefenseLore(ItemMeta meta) {
+        meta.getPersistentDataContainer().set(OWN_DEFENSE_LORE_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
     /** Marks {@code meta} as a genuine Miner's Armor piece - called once by {@code MinerVariantService#minerPiece} at creation time (and retroactively, on the periodic sweep, for a piece crafted/dropped before this marker existed - see {@code MinerVariantService#localize}), so {@link #isMinerPiece} can tell it apart from any other item that merely also happens to force its own Defense (Lapis Lazuli Armor included). */
@@ -255,9 +271,11 @@ public final class ArmorDefenseService {
             return null;
         }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-        lore.add(0, Component.text(l.choose("Defesa: +", "Defense: +") + def, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        meta.lore(lore);
+        if (!meta.getPersistentDataContainer().has(OWN_DEFENSE_LORE_KEY, PersistentDataType.BYTE)) {
+            List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+            lore.add(0, Component.text(l.choose("Defesa: +", "Defense: +") + def, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+        }
         meta.getPersistentDataContainer().set(this.tooltipKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
