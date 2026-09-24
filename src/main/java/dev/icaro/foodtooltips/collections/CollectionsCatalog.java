@@ -102,6 +102,8 @@ public final class CollectionsCatalog {
     public static final NamespacedKey GROWTH_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "growth_boots");
     public static final NamespacedKey ACACIA_CORE_RECIPE = new NamespacedKey("foodtooltips", "acacia_core");
     public static final NamespacedKey SAVANNA_BOW_RECIPE = new NamespacedKey("foodtooltips", "savanna_bow");
+    public static final NamespacedKey JUNGLE_CORE_RECIPE = new NamespacedKey("foodtooltips", "jungle_core");
+    public static final NamespacedKey TREECAPITATOR_RECIPE = new NamespacedKey("foodtooltips", "treecapitator");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -412,7 +414,22 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.foragingXp(5000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
                     CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
                     CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
-            new CollectionsEntry(Material.JUNGLE_LOG, Material.JUNGLE_LOG, CollectionsCategory.FORAGING, "Tora de Jungle", "Jungle Log", List.of()),
+            new CollectionsEntry(Material.JUNGLE_LOG, Material.JUNGLE_LOG, CollectionsCategory.FORAGING, "Tora de Jungle", "Jungle Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Jungle Core", "Unlocks the Jungle Core recipe",
+                            JUNGLE_CORE_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para o Jungle mais próximo", "Unlocks fast travel to the nearest Jungle"),
+                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Selva na Varinha de Biomas", "Unlocks Jungle on the Biome's Wand"),
+                    CollectionsMilestone.foragingXp(2000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(5000,
+                            "Desbloqueia a receita do Treecapitator", "Unlocks the Treecapitator recipe",
+                            TREECAPITATOR_RECIPE),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.ACACIA_LOG, Material.ACACIA_LOG, CollectionsCategory.FORAGING, "Tora de Acácia", "Acacia Log", List.of(
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),

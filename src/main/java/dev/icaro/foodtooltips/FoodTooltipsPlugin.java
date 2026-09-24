@@ -88,6 +88,8 @@ import dev.icaro.foodtooltips.item.SpruceAxeService;
 import dev.icaro.foodtooltips.item.SpruceAxeListener;
 import dev.icaro.foodtooltips.item.SavannaBowService;
 import dev.icaro.foodtooltips.item.MushroomGrowthService;
+import dev.icaro.foodtooltips.item.TreecapitatorService;
+import dev.icaro.foodtooltips.item.TreecapitatorListener;
 import dev.icaro.foodtooltips.item.WoodcuttingCrystalService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
@@ -243,7 +245,8 @@ extends JavaPlugin {
         WoodcuttingCrystalService woodcuttingCrystal = new WoodcuttingCrystalService((Plugin)this);
         woodcuttingCrystal.start();
         SavannaBowService savannaBow = new SavannaBowService();
-        ForagingCollectionsItemsService foragingItems = new ForagingCollectionsItemsService((Plugin)this, biomeWand, sculptorsAxe, spruceAxe, woodcuttingCrystal, savannaBow);
+        TreecapitatorService treecapitator = new TreecapitatorService();
+        ForagingCollectionsItemsService foragingItems = new ForagingCollectionsItemsService((Plugin)this, biomeWand, sculptorsAxe, spruceAxe, woodcuttingCrystal, savannaBow, treecapitator);
         foragingItems.registerRecipes();
         this.storage = new PersonalStorageService((Plugin)this, collectionsProgress);
         menus.storage(this.storage);
@@ -389,6 +392,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new SculptorsAxeListener(sculptorsAxe), (Plugin)this);
         pm.registerEvents((Listener)new SpruceAxeListener((Plugin)this, spruceAxe), (Plugin)this);
         pm.registerEvents((Listener)savannaBow, (Plugin)this);
+        pm.registerEvents((Listener)new TreecapitatorListener((Plugin)this, treecapitator), (Plugin)this);
         pm.registerEvents((Listener)woodcuttingCrystal, (Plugin)this);
         GeyserSkullExport.export((Plugin)this, gems, global);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);

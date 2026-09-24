@@ -60,6 +60,7 @@ public final class ForagingCollectionsItemsService {
     private static final UUID SPRUCE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spruce_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID DARK_OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:dark_oak_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID ACACIA_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:acacia_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID JUNGLE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:jungle_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -83,15 +84,18 @@ public final class ForagingCollectionsItemsService {
     private final SpruceAxeService spruceAxe;
     private final WoodcuttingCrystalService woodcuttingCrystal;
     private final SavannaBowService savannaBow;
+    private final TreecapitatorService treecapitator;
 
     public ForagingCollectionsItemsService(Plugin plugin, BiomeWandService biomeWand, SculptorsAxeService sculptorsAxe,
-            SpruceAxeService spruceAxe, WoodcuttingCrystalService woodcuttingCrystal, SavannaBowService savannaBow) {
+            SpruceAxeService spruceAxe, WoodcuttingCrystalService woodcuttingCrystal, SavannaBowService savannaBow,
+            TreecapitatorService treecapitator) {
         this.plugin = plugin;
         this.biomeWand = biomeWand;
         this.sculptorsAxe = sculptorsAxe;
         this.spruceAxe = spruceAxe;
         this.woodcuttingCrystal = woodcuttingCrystal;
         this.savannaBow = savannaBow;
+        this.treecapitator = treecapitator;
     }
 
     /** Registers every recipe this class owns - Oak/Birch/Spruce Core, the 4 Leaflet Armor pieces, the restricted Biome's Wand, both Foraging axes, and the Woodcutting Crystal. */
@@ -187,6 +191,19 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.acaciaCore()));
                     r.setIngredient('T', Material.STRING);
                 });
+        this.newShapedRecipe(CollectionsCatalog.JUNGLE_CORE_RECIPE, this.jungleCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.JUNGLE_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        // Explicit request: a Spruce Axe in the center surrounded by 8 Jungle Cores,
+        // not the "vanilla-empty center slot" trick every other axe/armor recipe in
+        // this class uses - Treecapitator's own power ingredient IS the previous axe.
+        this.newShapedRecipe(CollectionsCatalog.TREECAPITATOR_RECIPE, this.treecapitator.create(),
+                new String[]{"JJJ", "JSJ", "JJJ"}, r -> {
+                    r.setIngredient('J', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.jungleCore()));
+                    r.setIngredient('S', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceAxe.create()));
+                });
     }
 
     private ItemStack acaciaCore() {
@@ -194,6 +211,15 @@ public final class ForagingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.ACACIA_CORE, ACACIA_CORE_PROFILE);
         meta.displayName(Component.text("Acacia Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack jungleCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.JUNGLE_CORE, JUNGLE_CORE_PROFILE);
+        meta.displayName(Component.text("Jungle Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }
