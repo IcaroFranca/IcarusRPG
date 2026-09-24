@@ -11,8 +11,7 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,12 +23,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
-/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ItemDisplay}-ray-march visual as {@code skills.SwordThrowListener}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
+/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same dropped-{@code Item}-ray-march visual as {@code skills.SwordThrowListener} - see that method's own doc for why not an {@code ItemDisplay}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
 public final class SpruceAxeListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
@@ -104,16 +100,33 @@ public final class SpruceAxeListener implements Listener {
         this.cooldowns.remove(e.getPlayer().getUniqueId());
     }
 
+    /**
+     * The thrown axe's visual - a plain dropped-{@link Item} entity (its own vanilla bob/spin
+     * animation is free, no manual rotation needed), not an {@link org.bukkit.entity.ItemDisplay}
+     * like this class's own first version. Display entities (added in 1.19.4) are still poorly
+     * supported through Geyser for a Bedrock player - invisible outright on some versions
+     * (GeyserMC/Geyser#3810, #5452), and even when visible, a per-tick {@code Entity#teleport}
+     * like this ray-march needs often just doesn't visually move for them at all
+     * (GeyserMC/Geyser#6723, "sliding display entity...updates...do not visually apply on
+     * Bedrock") - exactly this ability's own symptom once the throw itself started working via
+     * the double-crouch fix. A dropped item is one of the oldest, most universally-supported
+     * entity types in the game, Bedrock included, so this trades a bit of visual flair (no
+     * fixed-billboard orientation, no custom spin rate) for actually being seen at all.
+     */
     private void launch(Player p, ItemStack heldAxe) {
         Location start = p.getEyeLocation().add(p.getEyeLocation().getDirection().multiply(0.6));
         Vector direction = p.getEyeLocation().getDirection().normalize();
-        ItemDisplay display = p.getWorld().spawn(start, ItemDisplay.class, d -> {
-            ItemStack visual = heldAxe.clone();
-            visual.setAmount(1);
+        ItemStack visual = heldAxe.clone();
+        visual.setAmount(1);
+        Item display = p.getWorld().spawn(start, Item.class, d -> {
             d.setItemStack(visual);
+            d.setGravity(false);
+            d.setInvulnerable(true);
             d.setPersistent(false);
-            d.setBillboard(Display.Billboard.FIXED);
-            d.setViewRange(0.5f);
+            d.setUnlimitedLifetime(true);
+            d.setCanPlayerPickup(false);
+            d.setCanMobPickup(false);
+            d.setVelocity(new Vector(0, 0, 0));
         });
         new BukkitRunnable() {
             int ticks;
@@ -136,8 +149,6 @@ public final class SpruceAxeListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at);
-                float angle = (float) (this.ticks * Math.PI / 3.0);
-                display.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateX(angle), new Vector3f(1.0f, 1.0f, 1.0f), new Quaternionf()));
             }
 
             private void finish() {

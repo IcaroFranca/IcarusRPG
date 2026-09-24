@@ -11,8 +11,7 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,12 +23,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
-/** Wires the Treecapitator's two effects: normal felling ({@link TreecapitatorService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}) on Swap Hands (F) - same shape as {@code SpruceAxeListener}, see that class's own doc for why F, not right-click. {@link BedrockTreecapitatorThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
+/** Wires the Treecapitator's two effects: normal felling ({@link TreecapitatorService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}) on Swap Hands (F) - same shape as {@code SpruceAxeListener}, see that class's own doc for why F, not right-click, and for why {@link #launch} uses a dropped {@code Item} entity, not an {@code ItemDisplay}. {@link BedrockTreecapitatorThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
 public final class TreecapitatorListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
@@ -87,16 +83,21 @@ public final class TreecapitatorListener implements Listener {
         this.cooldowns.remove(e.getPlayer().getUniqueId());
     }
 
+    /** The thrown axe's visual - see {@code SpruceAxeListener#launch}'s own doc for why a dropped {@code Item} entity, not an {@code ItemDisplay}. */
     private void launch(Player p, ItemStack heldAxe) {
         Location start = p.getEyeLocation().add(p.getEyeLocation().getDirection().multiply(0.6));
         Vector direction = p.getEyeLocation().getDirection().normalize();
-        ItemDisplay display = p.getWorld().spawn(start, ItemDisplay.class, d -> {
-            ItemStack visual = heldAxe.clone();
-            visual.setAmount(1);
+        ItemStack visual = heldAxe.clone();
+        visual.setAmount(1);
+        Item display = p.getWorld().spawn(start, Item.class, d -> {
             d.setItemStack(visual);
+            d.setGravity(false);
+            d.setInvulnerable(true);
             d.setPersistent(false);
-            d.setBillboard(Display.Billboard.FIXED);
-            d.setViewRange(0.5f);
+            d.setUnlimitedLifetime(true);
+            d.setCanPlayerPickup(false);
+            d.setCanMobPickup(false);
+            d.setVelocity(new Vector(0, 0, 0));
         });
         new BukkitRunnable() {
             int ticks;
@@ -119,8 +120,6 @@ public final class TreecapitatorListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at);
-                float angle = (float) (this.ticks * Math.PI / 3.0);
-                display.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateX(angle), new Vector3f(1.0f, 1.0f, 1.0f), new Quaternionf()));
             }
 
             private void finish() {

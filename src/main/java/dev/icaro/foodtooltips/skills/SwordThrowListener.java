@@ -15,9 +15,8 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,10 +28,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 public final class SwordThrowListener
 implements Listener {
@@ -88,16 +84,21 @@ implements Listener {
         return true;
     }
 
+    /** The thrown sword's visual - a plain dropped-{@link Item} entity, not an {@code ItemDisplay}: Display entities (1.19.4+) are still poorly supported through Geyser for a Bedrock player, invisible outright on some versions (GeyserMC/Geyser#3810, #5452) and, even when visible, a per-tick {@code Entity#teleport} like this ray-march needs often just doesn't visually move for them at all (GeyserMC/Geyser#6723). A dropped item is one of the oldest, most universally-supported entity types in the game, Bedrock included - its own free bob/spin animation replaces the manual rotation an {@code ItemDisplay} needed. */
     private void launch(final Player p, ItemStack sword) {
         final Location start = p.getEyeLocation().add(p.getEyeLocation().getDirection().multiply(0.6));
         final Vector direction = p.getEyeLocation().getDirection().normalize();
-        final ItemDisplay display = (ItemDisplay)p.getWorld().spawn(start, ItemDisplay.class, d -> {
-            ItemStack visual = sword.clone();
-            visual.setAmount(1);
+        final ItemStack visual = sword.clone();
+        visual.setAmount(1);
+        final Item display = p.getWorld().spawn(start, Item.class, d -> {
             d.setItemStack(visual);
+            d.setGravity(false);
+            d.setInvulnerable(true);
             d.setPersistent(false);
-            d.setBillboard(Display.Billboard.FIXED);
-            d.setViewRange(0.5f);
+            d.setUnlimitedLifetime(true);
+            d.setCanPlayerPickup(false);
+            d.setCanMobPickup(false);
+            d.setVelocity(new Vector(0, 0, 0));
         });
         new BukkitRunnable(){
             int ticks;
@@ -129,8 +130,6 @@ implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at);
-                float angle = (float)((double)this.ticks * Math.PI / 3.0);
-                display.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateX(angle), new Vector3f(1.0f, 1.0f, 1.0f), new Quaternionf()));
             }
 
             private void finish() {
