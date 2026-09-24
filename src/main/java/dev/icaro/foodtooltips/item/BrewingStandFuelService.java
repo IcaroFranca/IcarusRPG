@@ -17,15 +17,23 @@ import org.bukkit.plugin.Plugin;
 /**
  * No Brewing Stand on this server ever needs Blaze Powder - every one this plugin has seen
  * (opened by a player, or placed - {@link #open}/{@link #place}) is tracked by location and
- * kept comfortably topped up ({@value #FUEL_LEVEL}, far more than the handful of charges a
- * real Blaze Powder would ever give) by {@link #refill}'s own periodic pass, so brewing simply
- * never stalls waiting on fuel. A stand nobody has opened or placed since this feature existed
- * (already sitting in the world before an update, say) only starts getting refilled the first
- * time a player opens it - a minor, acceptable gap next to the alternative of scanning every
- * loaded chunk's tile entities on a timer.
+ * kept comfortably topped up ({@value #FUEL_LEVEL}, vanilla's own max per Blaze Powder charge)
+ * by {@link #refill}'s own periodic pass, so brewing simply never stalls waiting on fuel. A
+ * stand nobody has opened or placed since this feature existed (already sitting in the world
+ * before an update, say) only starts getting refilled the first time a player opens it - a
+ * minor, acceptable gap next to the alternative of scanning every loaded chunk's tile entities
+ * on a timer.
  */
 public final class BrewingStandFuelService implements Listener {
-    private static final int FUEL_LEVEL = 999;
+    /**
+     * Vanilla persists fuel level as a single NBT byte - anything above 127 gets silently
+     * truncated (and, interpreted as signed, goes negative) the moment the chunk saves and
+     * reloads, which would read back as "out of fuel" until this class's own {@link #refill}
+     * next runs. 20 (one full Blaze Powder charge) stays well inside that range and is
+     * refreshed every {@value #REFILL_TICKS} ticks anyway, so there's no reason to risk the
+     * overflow for a "999" that was never actually needed.
+     */
+    private static final int FUEL_LEVEL = 20;
     private static final int REFILL_TICKS = 100;
     private static final int REFILL_THRESHOLD = FUEL_LEVEL / 2;
 

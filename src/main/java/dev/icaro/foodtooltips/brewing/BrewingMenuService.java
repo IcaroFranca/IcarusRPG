@@ -91,6 +91,9 @@ public final class BrewingMenuService {
     static final class BrewingMenuHolder implements InventoryHolder {
         final BrewingStand stand;
         Inventory inventory;
+        /** What the real stand held as of the last {@link #pull} - lets {@link #push} tell "the player edited this slot" apart from "vanilla's own brewing tick changed it since we last looked", so it only ever overwrites the real stand with a slot the player actually touched. */
+        ItemStack knownIngredient;
+        final ItemStack[] knownBottles = new ItemStack[BOTTLE_SLOTS.length];
 
         BrewingMenuHolder(BrewingStand stand) {
             this.stand = stand;
@@ -154,19 +157,40 @@ public final class BrewingMenuService {
         this.pull(holder);
     }
 
+    /**
+     * Only writes a linked slot into the real stand if the GUI's cached copy no longer
+     * matches {@link BrewingMenuHolder#knownIngredient}/{@code knownBottles} - i.e. only a
+     * slot the player actually edited since the last {@link #pull}. Without this guard, any
+     * click anywhere in the view (including the player's own bottom inventory, which {@link
+     * BrewingMenuListener#click} also schedules a resync for) would blindly overwrite the
+     * real stand's current ingredient/bottles with whatever the GUI last cached - silently
+     * reverting a bottle vanilla had *just* finished brewing into a potion, or an ingredient
+     * it had just consumed, back to its pre-brew state every time the player touched their
+     * own inventory. That's what made brewing appear to never finish.
+     */
     private void push(BrewingMenuHolder holder) {
         BrewerInventory real = holder.stand.getInventory();
-        real.setIngredient(holder.inventory.getItem(INGREDIENT_SLOT));
+        ItemStack guiIngredient = holder.inventory.getItem(INGREDIENT_SLOT);
+        if (!Objects.equals(guiIngredient, holder.knownIngredient)) {
+            real.setIngredient(guiIngredient);
+        }
         for (int i = 0; i < BOTTLE_SLOTS.length; i++) {
-            real.setItem(i, holder.inventory.getItem(BOTTLE_SLOTS[i]));
+            ItemStack guiBottle = holder.inventory.getItem(BOTTLE_SLOTS[i]);
+            if (!Objects.equals(guiBottle, holder.knownBottles[i])) {
+                real.setItem(i, guiBottle);
+            }
         }
     }
 
     private void pull(BrewingMenuHolder holder) {
         BrewerInventory real = holder.stand.getInventory();
-        this.setIfChanged(holder.inventory, INGREDIENT_SLOT, real.getIngredient());
+        ItemStack ingredient = real.getIngredient();
+        this.setIfChanged(holder.inventory, INGREDIENT_SLOT, ingredient);
+        holder.knownIngredient = ingredient;
         for (int i = 0; i < BOTTLE_SLOTS.length; i++) {
-            this.setIfChanged(holder.inventory, BOTTLE_SLOTS[i], real.getItem(i));
+            ItemStack bottle = real.getItem(i);
+            this.setIfChanged(holder.inventory, BOTTLE_SLOTS[i], bottle);
+            holder.knownBottles[i] = bottle;
         }
     }
 
