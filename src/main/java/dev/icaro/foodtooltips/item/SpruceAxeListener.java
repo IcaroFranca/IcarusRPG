@@ -57,7 +57,18 @@ public final class SpruceAxeListener implements Listener {
         this.axe.chop(this.plugin, p, e.getBlock());
     }
 
-    @EventHandler(ignoreCancelled = true)
+    /**
+     * {@code priority = HIGH}, same as {@code BuilderWandListener}/{@code
+     * DestroyerHandListener}/{@code BiomeWandListener}/{@code BrewingMenuListener}'s own
+     * interact handlers - deliberately NOT the default (NORMAL) priority every other
+     * item-ability listener in this class's own package uses, so this specific ability
+     * still fires even if something else (a protection plugin's own build/use-deny
+     * check, most commonly - WorldGuard is a soft-depend of this plugin) cancels the
+     * event first at a lower priority. Without this, right-clicking with the Spruce Axe
+     * silently did nothing in exactly that case, since {@code ignoreCancelled = true}
+     * skips a handler whose event already came in cancelled.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void throwAxe(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND || !this.axe.isSpruceAxe(e.getItem())) {
             return;

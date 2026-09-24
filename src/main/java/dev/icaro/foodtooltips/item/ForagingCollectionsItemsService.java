@@ -59,6 +59,7 @@ public final class ForagingCollectionsItemsService {
     private static final UUID BIRCH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:birch_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID SPRUCE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spruce_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID DARK_OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:dark_oak_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID ACACIA_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:acacia_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -81,14 +82,16 @@ public final class ForagingCollectionsItemsService {
     private final SculptorsAxeService sculptorsAxe;
     private final SpruceAxeService spruceAxe;
     private final WoodcuttingCrystalService woodcuttingCrystal;
+    private final SavannaBowService savannaBow;
 
     public ForagingCollectionsItemsService(Plugin plugin, BiomeWandService biomeWand, SculptorsAxeService sculptorsAxe,
-            SpruceAxeService spruceAxe, WoodcuttingCrystalService woodcuttingCrystal) {
+            SpruceAxeService spruceAxe, WoodcuttingCrystalService woodcuttingCrystal, SavannaBowService savannaBow) {
         this.plugin = plugin;
         this.biomeWand = biomeWand;
         this.sculptorsAxe = sculptorsAxe;
         this.spruceAxe = spruceAxe;
         this.woodcuttingCrystal = woodcuttingCrystal;
+        this.savannaBow = savannaBow;
     }
 
     /** Registers every recipe this class owns - Oak/Birch/Spruce Core, the 4 Leaflet Armor pieces, the restricted Biome's Wand, both Foraging axes, and the Woodcutting Crystal. */
@@ -170,6 +173,29 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('X', Material.LEATHER);
                     r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
                 });
+        this.newShapedRecipe(CollectionsCatalog.ACACIA_CORE_RECIPE, this.acaciaCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.ACACIA_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        // Vanilla's own bow shape (3 Stick + 3 String, in the same diagonal zigzag) with
+        // the Acacia Core standing in for every Stick - same "power ingredient replaces
+        // the plain one" idea as this class's own Growth Armor/Woodcutting Crystal
+        // recipes above, just applied to a weapon instead of an armor piece/block.
+        this.newShapedRecipe(CollectionsCatalog.SAVANNA_BOW_RECIPE, this.savannaBow.create(),
+                new String[]{" CT", "C T", " CT"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.acaciaCore()));
+                    r.setIngredient('T', Material.STRING);
+                });
+    }
+
+    private ItemStack acaciaCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.ACACIA_CORE, ACACIA_CORE_PROFILE);
+        meta.displayName(Component.text("Acacia Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
     }
 
     /**

@@ -100,6 +100,8 @@ public final class CollectionsCatalog {
     public static final NamespacedKey GROWTH_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "growth_chestplate");
     public static final NamespacedKey GROWTH_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "growth_leggings");
     public static final NamespacedKey GROWTH_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "growth_boots");
+    public static final NamespacedKey ACACIA_CORE_RECIPE = new NamespacedKey("foodtooltips", "acacia_core");
+    public static final NamespacedKey SAVANNA_BOW_RECIPE = new NamespacedKey("foodtooltips", "savanna_bow");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -411,7 +413,22 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
                     CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.JUNGLE_LOG, Material.JUNGLE_LOG, CollectionsCategory.FORAGING, "Tora de Jungle", "Jungle Log", List.of()),
-            new CollectionsEntry(Material.ACACIA_LOG, Material.ACACIA_LOG, CollectionsCategory.FORAGING, "Tora de Acácia", "Acacia Log", List.of()),
+            new CollectionsEntry(Material.ACACIA_LOG, Material.ACACIA_LOG, CollectionsCategory.FORAGING, "Tora de Acácia", "Acacia Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Acacia Core", "Unlocks the Acacia Core recipe",
+                            ACACIA_CORE_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para o Savana mais próximo", "Unlocks fast travel to the nearest Savanna"),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita do Savanna Bow", "Unlocks the Savanna Bow recipe",
+                            SAVANNA_BOW_RECIPE),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Savana na Varinha de Biomas", "Unlocks Savanna on the Biome's Wand"),
+                    CollectionsMilestone.foragingXp(5000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.DARK_OAK_LOG, Material.DARK_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Escuro", "Dark Oak Log", List.of(
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),

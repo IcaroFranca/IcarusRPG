@@ -97,6 +97,12 @@ public final class TravelMenuService {
                     event -> this.travelToNearestDarkForest(p)), 6, 1);
         }
 
+        if (this.collectionsProgress.achieved(p, this.acaciaLogEntry()) >= 4) {
+            pane.addItem(new GuiItem(this.item(Material.ACACIA_SAPLING, l.choose("Savana Mais Próximo", "Nearest Savanna"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestSavanna(p)), 7, 1);
+        }
+
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
@@ -147,6 +153,10 @@ public final class TravelMenuService {
         return CollectionsCatalog.find(Material.DARK_OAK_LOG).orElseThrow();
     }
 
+    private CollectionsEntry acaciaLogEntry() {
+        return CollectionsCatalog.find(Material.ACACIA_LOG).orElseThrow();
+    }
+
     /** Birch Log Collections Milestone 3's own reward (gated in {@link #open} before this button is even shown) - a synchronous {@link World#locateNearestBiome} search, same "no async hop" choice every other destination here already makes, bounded by {@link #BIOME_SEARCH_RADIUS} so a search launched somewhere with no Birch Forest nearby can't hang the server for long. */
     private void travelToNearestBirchForest(Player p) {
         Language l = Language.of(p);
@@ -180,6 +190,19 @@ public final class TravelMenuService {
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.DARK_FOREST, BIOME_SEARCH_RADIUS);
         if (destination == null) {
             p.sendMessage(Component.text(l.choose("Nenhuma Floresta Sombria encontrada por perto.", "No Dark Forest found nearby."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /** Acacia Log Collections Milestone 4's own reward - same shape as {@link #travelToNearestBirchForest}. */
+    private void travelToNearestSavanna(Player p) {
+        Language l = Language.of(p);
+        Location origin = p.getLocation();
+        Location destination = origin.getWorld().locateNearestBiome(origin, Biome.SAVANNA, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhum Savana encontrado por perto.", "No Savanna found nearby."), NamedTextColor.RED));
             return;
         }
         p.closeInventory();
