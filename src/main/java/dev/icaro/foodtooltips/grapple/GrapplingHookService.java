@@ -169,7 +169,11 @@ public final class GrapplingHookService {
                 if (this.ticks++ >= MAX_RANGE) {
                     GrapplingHookService.this.active.remove(id);
                     Language l = Language.of(p);
-                    p.sendActionBar(GrapplingHookService.this.line(
+                    // A chat message, not an actionbar one - StatsHudService's own HP/Mana
+                    // HUD overwrites the actionbar every 5 ticks (see FoodTooltipsPlugin's
+                    // master per-player sweep), so anything sent there gets blotted out
+                    // within a quarter second and is effectively invisible in practice.
+                    p.sendMessage(GrapplingHookService.this.line(
                             l.choose("Gancho não alcançou nada.", "Hook found nothing to grab."), NamedTextColor.RED));
                     this.cancel();
                     return;
@@ -191,8 +195,13 @@ public final class GrapplingHookService {
         state.location = blockLocation;
         UUID id = p.getUniqueId();
         p.getWorld().playSound(blockLocation, Sound.ITEM_ARMOR_EQUIP_CHAIN, SoundCategory.PLAYERS, 0.8f, 0.7f);
+        // A small burst (not just the thin line toward the player) so it's visible even
+        // head-on, looking straight down the rope where a single-file particle line all
+        // but disappears into one point from the shooter's own point of view.
+        p.getWorld().spawnParticle(Particle.END_ROD, blockLocation.clone().add(0.5, 0.5, 0.5), 12, 0.2, 0.2, 0.2, 0.02);
+        // Chat, not actionbar - see the miss message's own doc in #launch on why.
         Language l = Language.of(p);
-        p.sendActionBar(this.line(l.choose("Gancho preso! Clique de novo para se puxar.", "Hook attached! Right-click again to pull."), NamedTextColor.GREEN));
+        p.sendMessage(this.line(l.choose("Gancho preso! Clique de novo para se puxar.", "Hook attached! Right-click again to pull."), NamedTextColor.GREEN));
         state.task = new BukkitRunnable() {
             int ticks = 0;
 
