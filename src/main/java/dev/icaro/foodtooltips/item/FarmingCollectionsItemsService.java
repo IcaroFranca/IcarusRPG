@@ -1035,9 +1035,10 @@ public final class FarmingCollectionsItemsService {
     /**
      * Pumpkin Collection M2's own standalone accessory (no Talisman → Ring → Artifact line of
      * its own, unlike Feather/Vaccine/Potion Affinity - see {@code item.AccessoryType#ORB}'s
-     * own doc), Tier D: stored in the Accessory Bag, matures every immature crop in a 5x5 area
-     * around the wearer every 3 seconds (see {@code skills.AccessoryBagService#pulseFarmerOrbs})
-     * with the same particle effect as the Farm Crystal, per the player's own explicit spec.
+     * own doc), Tier D: stored in the Accessory Bag, matures one random immature crop within a
+     * 5x5 radius around the wearer every 3 seconds (see {@code
+     * skills.AccessoryBagService#pulseFarmerOrbs} - one crop per pulse, not the whole area at
+     * once, per the player's own correction) with the same particle effect as the Farm Crystal.
      */
     private org.bukkit.inventory.ItemStack farmerOrb() {
         var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
@@ -1047,8 +1048,8 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.ORB, "farmer_orb", 0, 0.0, 0.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
-                Component.text("Amadurece plantações instantaneamente numa área 5x5", NamedTextColor.AQUA),
-                Component.text("ao seu redor a cada 3 segundos", NamedTextColor.AQUA),
+                Component.text("Amadurece instantaneamente uma plantação a cada 3 segundos", NamedTextColor.AQUA),
+                Component.text("num raio de 5x5 ao seu redor", NamedTextColor.AQUA),
                 Component.empty(),
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
         item.setItemMeta(meta);

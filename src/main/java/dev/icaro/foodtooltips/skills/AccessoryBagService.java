@@ -13,9 +13,11 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -156,23 +158,35 @@ public final class AccessoryBagService {
 
     /**
      * Pumpkin Collection M2's own Farmer Orb: every {@value #FARMER_ORB_PULSE_TICKS} ticks
-     * (3s), matures every immature crop in a {@value #FARMER_ORB_HORIZONTAL_RADIUS}-block
+     * (3s), matures one random immature crop in a {@value #FARMER_ORB_HORIZONTAL_RADIUS}-block
      * horizontal radius (a 5x5 area, per the player's own spec) around every online player
      * who has one stored, {@value #FARMER_ORB_VERTICAL_RANGE} blocks up/down to still catch
-     * crops on slightly uneven ground - unlike {@code FarmCrystalService#pulseOne} (one random
-     * crop per pulse, from a placed block), this matures every immature crop the area has at
-     * once, since the Orb is a passive personal aura rather than a shared, placed structure.
+     * crops on slightly uneven ground - same "one crop per pulse" pacing as {@code
+     * FarmCrystalService#pulseOne}, just centered on the player instead of a placed block.
      */
     private void pulseFarmerOrbs() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (this.hasFamily(p, FARMER_ORB_FAMILY)) {
-                this.growCropsAround(p);
+                this.growCropAround(p);
             }
         }
     }
 
-    private void growCropsAround(Player p) {
+    private void growCropAround(Player p) {
         Location center = p.getLocation();
+        Block crop = this.randomImmatureCrop(center);
+        if (crop == null) {
+            return;
+        }
+        Ageable ageable = (Ageable) crop.getBlockData();
+        ageable.setAge(ageable.getMaximumAge());
+        crop.setBlockData(ageable);
+        this.beamEffect(center, crop.getLocation().add(0.5, 0.5, 0.5));
+    }
+
+    /** One random immature {@link Ageable} crop within {@value #FARMER_ORB_HORIZONTAL_RADIUS} blocks of {@code center} horizontally and {@value #FARMER_ORB_VERTICAL_RANGE} vertically - null if none, same shape as {@code FarmCrystalService#randomImmatureCrop}. */
+    private Block randomImmatureCrop(Location center) {
+        List<Block> candidates = new ArrayList<>();
         World world = center.getWorld();
         int cx = center.getBlockX();
         int cy = center.getBlockY();
@@ -182,14 +196,16 @@ public final class AccessoryBagService {
                 for (int dz = -FARMER_ORB_HORIZONTAL_RADIUS; dz <= FARMER_ORB_HORIZONTAL_RADIUS; dz++) {
                     Block block = world.getBlockAt(cx + dx, cy + dy, cz + dz);
                     BlockData data = block.getBlockData();
-                    if (data instanceof Ageable ageable && ageable.getAge() < ageable.getMaximumAge()) {
-                        ageable.setAge(ageable.getMaximumAge());
-                        block.setBlockData(ageable);
-                        this.beamEffect(center, block.getLocation().add(0.5, 0.5, 0.5));
+                    if (data instanceof Ageable a && a.getAge() < a.getMaximumAge()) {
+                        candidates.add(block);
                     }
                 }
             }
         }
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
     }
 
     /** Same one-shot {@link Particle#END_ROD} trail {@code item.FarmCrystalService#beamEffect} draws - "o mesmo efeito de partículas que o Farm Crystal tem" per the player's own explicit spec for the Farmer Orb. */

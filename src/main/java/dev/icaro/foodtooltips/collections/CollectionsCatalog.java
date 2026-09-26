@@ -385,8 +385,8 @@ public final class CollectionsCatalog {
                             VACCINE_ARTIFACT_RECIPE)))),
             new CollectionsEntry(Material.PUMPKIN, Material.PUMPKIN, CollectionsCategory.FARMING, "Abóbora", "Pumpkin", genericXpWithOverrides(
                     at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
-                            "Desbloqueia a receita do Farmer Orb: amadurece plantações instantaneamente numa área 5x5 ao seu redor a cada 3 segundos quando guardado na Bolsa de Acessórios",
-                            "Unlocks the Farmer Orb recipe: instantly matures crops in a 5x5 area around you every 3 seconds while stored in the Accessory Bag",
+                            "Desbloqueia a receita do Farmer Orb: amadurece instantaneamente uma plantação a cada 3 segundos num raio de 5x5 ao seu redor quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Farmer Orb recipe: instantly matures one crop every 3 seconds within a 5x5 radius around you while stored in the Accessory Bag",
                             FARMER_ORB_RECIPE)),
                     at(3, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[2], IcarusEnchant.CUBISM, 25.0,
                             "-25% de custo em XP para Cubismo", "-25% XP cost for Cubism")),
