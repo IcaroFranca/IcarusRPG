@@ -216,6 +216,14 @@ public final class GrapplingHookService {
         state.phase = Phase.PULLING;
         Location hookCenter = state.location.clone().add(0.5, 0.5, 0.5);
         UUID id = p.getUniqueId();
+        // A flying Creative/Survival player's own client-side flight movement overrides
+        // any server-set velocity almost immediately, which would make the pull look like
+        // it does nothing at all - the exact symptom the player reported testing with. A
+        // Spectator has no physical body for setVelocity to move in the first place, so
+        // there's nothing to turn off for them.
+        if (p.isFlying() && p.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+            p.setFlying(false);
+        }
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, SoundCategory.PLAYERS, 0.8f, 1.0f);
         state.task = new BukkitRunnable() {
             int ticks = 0;
