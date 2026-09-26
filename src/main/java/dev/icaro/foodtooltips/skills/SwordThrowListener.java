@@ -39,6 +39,8 @@ implements Listener {
     /** See {@code item.SpruceAxeListener}'s own doc on this exact field. */
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /** See {@code item.SpruceAxeListener}'s own doc on this exact field. */
+    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
+    /** See {@code item.SpruceAxeListener}'s own doc on this exact field. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
     private final Plugin plugin;
     private final CombatAbilityService abilities;
@@ -129,6 +131,7 @@ implements Listener {
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
             d.getPersistentDataContainer().set(THROWN_VISUAL_KEY, PersistentDataType.BYTE, (byte) 1);
+            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
         });
         new BukkitRunnable(){
             int ticks;
@@ -161,7 +164,7 @@ implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, 0, 0));
+                display.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, this.ticks * SPIN_RADIANS_PER_TICK));
             }
 
             private void finish() {

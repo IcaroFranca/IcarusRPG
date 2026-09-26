@@ -44,7 +44,24 @@ public final class SpruceAxeListener implements Listener {
      * inconsistent across versions - nudge this a little if it's ever visibly off.
      */
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
-    /** One full tumble every 6 ticks (60°/tick) - a fast, clearly visible end-over-end spin for the thrown axe, applied via {@link ArmorStand#setHeadPose} since its equipped item has no spin animation of its own (unlike a dropped {@code Item}). */
+    /**
+     * A generic tool item (parented to {@code item/handheld.json}) has no dedicated "head slot"
+     * transform, so Minecraft renders it at identity pose there - a flat, near-zero-thickness
+     * quad standing edge-on to whatever the stand is facing, exactly the "de lado" (sideways)
+     * look reported. {@code ArmorStand#setHeadPose}'s Y component rotates that quad around the
+     * head bone's own original up/down axis; 90° swings its flat face from side-on to
+     * forward-facing, pointed the same way {@code start.setDirection} already aims the stand's
+     * own body - see {@link #launch}.
+     */
+    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
+    /**
+     * headPose's Z component is the outermost rotation in its own composition order, about the
+     * bone's original forward/back axis - which {@link #FORWARD_FACING_RADIANS} has just
+     * aligned with the travel direction - so animating it spins the axe around its own
+     * handle-to-blade axis (a drill-bit/dart spin) instead of tumbling it edge-on through
+     * invisible frames the way rotating the X component alone (this class's own first
+     * version) did. One full spin every 6 ticks (60°/tick).
+     */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
     private final Plugin plugin;
@@ -154,6 +171,7 @@ public final class SpruceAxeListener implements Listener {
             d.setCanMove(false);
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
+            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
         });
         new BukkitRunnable() {
             int ticks;
@@ -176,7 +194,7 @@ public final class SpruceAxeListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, 0, 0));
+                display.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, this.ticks * SPIN_RADIANS_PER_TICK));
             }
 
             private void finish() {

@@ -34,6 +34,8 @@ public final class TreecapitatorListener implements Listener {
     /** See {@code SpruceAxeListener}'s own doc on this exact field. */
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /** See {@code SpruceAxeListener}'s own doc on this exact field. */
+    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
+    /** See {@code SpruceAxeListener}'s own doc on this exact field. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
     private final Plugin plugin;
@@ -108,6 +110,7 @@ public final class TreecapitatorListener implements Listener {
             d.setCanMove(false);
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
+            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
         });
         new BukkitRunnable() {
             int ticks;
@@ -130,7 +133,7 @@ public final class TreecapitatorListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, 0, 0));
+                display.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, this.ticks * SPIN_RADIANS_PER_TICK));
             }
 
             private void finish() {
