@@ -43,7 +43,7 @@ import org.bukkit.plugin.Plugin;
  *   <li>Grand Experience Bottle: same shape as the plain Experience Bottle recipe ({@code
  *   LapisArmorService#registerExperienceBottleRecipe}), but with Lapis Core in place of
  *   raw Lapis Lazuli.
- *   <li>True Lapis Core: 8 Lapis Core around a Netherite Block.
+ *   <li>True Lapis Core: 8 Lapis Core around a Netherite Ingot.
  *   <li>Titanic Experience Bottle: same shape again, with True Lapis Core in place of
  *   Lapis Core.
  * </ul>
@@ -171,7 +171,7 @@ public final class LapisExperienceService implements Listener {
         });
         this.newRecipe("true_lapis_core", trueLapisCore, new String[]{"LLL", "LDL", "LLL"}, recipe -> {
             recipe.setIngredient('L', new RecipeChoice.ExactChoice(lapisCore));
-            recipe.setIngredient('D', Material.NETHERITE_BLOCK);
+            recipe.setIngredient('D', Material.NETHERITE_INGOT);
         });
         this.newRecipe("grand_experience_bottle", this.grandBottle(), new String[]{" L ", "LBL", "LLL"}, recipe -> {
             recipe.setIngredient('L', new RecipeChoice.ExactChoice(lapisCore));

@@ -56,6 +56,10 @@ public final class CollectionsCatalog {
     public static final NamespacedKey MYSTICAL_MUSHROOM_SOUP_RECIPE = new NamespacedKey("foodtooltips", "mystical_mushroom_soup");
     public static final NamespacedKey MELON_CORE_RECIPE = new NamespacedKey("foodtooltips", "melon_core");
     public static final NamespacedKey POTATO_CORE_RECIPE = new NamespacedKey("foodtooltips", "potato_core");
+    public static final NamespacedKey VACCINE_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "vaccine_talisman");
+    public static final NamespacedKey VACCINE_RING_RECIPE = new NamespacedKey("foodtooltips", "vaccine_ring");
+    public static final NamespacedKey BAKED_POTATO_CORE_RECIPE = new NamespacedKey("foodtooltips", "baked_potato_core");
+    public static final NamespacedKey VACCINE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "vaccine_artifact");
     public static final NamespacedKey PUMPKIN_CORE_RECIPE = new NamespacedKey("foodtooltips", "pumpkin_core");
     public static final NamespacedKey WHEAT_CORE_RECIPE = new NamespacedKey("foodtooltips", "wheat_core");
     public static final NamespacedKey FARMER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "farmer_boots");
@@ -319,9 +323,24 @@ public final class CollectionsCatalog {
                     at(9, new CollectionsMilestone(DEFAULT_THRESHOLDS[8], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Potion Bag: +9 slots (45 no total)", "Potion Bag: +9 slots (45 total)")))),
             new CollectionsEntry(Material.POTATOES, Material.POTATO, CollectionsCategory.FARMING, "Batata", "Potato", genericXpWithOverrides(
+                    at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Vaccine Talisman: reduz o dano de envenenamento em 10% quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Vaccine Talisman recipe: reduces poison damage by 10% while stored in the Accessory Bag",
+                            VACCINE_TALISMAN_RECIPE)),
                     at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
                             "Desbloqueia a receita do Potato Core", "Unlocks the Potato Core recipe",
-                            POTATO_CORE_RECIPE)))),
+                            POTATO_CORE_RECIPE)),
+                    at(5, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Vaccine Ring: reduz o dano de envenenamento em 25% quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Vaccine Ring recipe: reduces poison damage by 25% while stored in the Accessory Bag",
+                            VACCINE_RING_RECIPE)),
+                    at(6, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Baked Potato Core", "Unlocks the Baked Potato Core recipe",
+                            BAKED_POTATO_CORE_RECIPE)),
+                    at(7, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Vaccine Artifact: reduz o dano de envenenamento em 50% quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Vaccine Artifact recipe: reduces poison damage by 50% while stored in the Accessory Bag",
+                            VACCINE_ARTIFACT_RECIPE)))),
             new CollectionsEntry(Material.PUMPKIN, Material.PUMPKIN, CollectionsCategory.FARMING, "Abóbora", "Pumpkin", genericXpWithOverrides(
                     at(3, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[2], IcarusEnchant.CUBISM, 25.0,
                             "-25% de custo em XP para Cubismo", "-25% XP cost for Cubism")),

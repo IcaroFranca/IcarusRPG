@@ -14,7 +14,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
  * Wires {@link AccessoryBagService} into the world: the equip screen's own click/drag/close
  * handling (same "resolve first, sweep after" shape {@code PotionBagListener} already uses -
  * see {@link AccessoryBagService#scheduleFilterSweep}'s own doc), and the actual fall-damage
- * reduction every equipped accessory grants (see {@link #fall}).
+ * (see {@link #fall}, the Feather line) and poison-damage (see {@link #poison}, the Vaccine
+ * line) reduction every equipped accessory grants.
  */
 public final class AccessoryBagListener implements Listener {
     private final AccessoryBagService bag;
@@ -89,6 +90,31 @@ public final class AccessoryBagListener implements Listener {
             return;
         }
         double damage = Math.max(0.0, e.getDamage() - bonusHeight) * (1.0 - reductionPercent / 100.0);
+        if (damage <= 0.0) {
+            e.setCancelled(true);
+            return;
+        }
+        e.setDamage(damage);
+    }
+
+    /**
+     * Every equipped Vaccine-line accessory's own {@code DamageCause.POISON} reduction,
+     * summed and applied as a straight percentage cut - same "sum every stored accessory's
+     * own bonus" shape as {@link #fall}, just a single multiplicative step instead of a flat
+     * subtraction first (poison damage has no "free buffer" equivalent to fall height).
+     * {@link EventPriority#HIGHEST} for the same reason {@link #fall} uses it: apply on top of
+     * whatever else already touched this damage instance, never before it.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void poison(EntityDamageEvent e) {
+        if (e.getCause() != EntityDamageEvent.DamageCause.POISON || !(e.getEntity() instanceof Player p)) {
+            return;
+        }
+        double reductionPercent = this.bag.totalPoisonReductionPercent(p);
+        if (reductionPercent <= 0.0) {
+            return;
+        }
+        double damage = e.getDamage() * (1.0 - reductionPercent / 100.0);
         if (damage <= 0.0) {
             e.setCancelled(true);
             return;

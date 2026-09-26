@@ -81,6 +81,9 @@ public final class FarmingCollectionsItemsService {
     private static final UUID MUSHROOM_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mushroom_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID MELON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:melon_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potato_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID VACCINE_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_ring".getBytes(StandardCharsets.UTF_8));
+    private static final UUID BAKED_POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:baked_potato_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID VACCINE_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_artifact".getBytes(StandardCharsets.UTF_8));
     private static final UUID PUMPKIN_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pumpkin_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID WHEAT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID COW_HAT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cow_hat".getBytes(StandardCharsets.UTF_8));
@@ -197,7 +200,7 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.FLOWER_CACTUS_CORE_RECIPE, this.flowerCactusCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.cactusCore()));
-                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.CARROT_CORE_RECIPE, this.carrotCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
@@ -207,7 +210,7 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.GOLDEN_CARROT_CORE_RECIPE, this.goldenCarrotCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.carrotCore()));
-                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.CACTUS_HELMET_RECIPE, this.cactusPiece(Material.LEATHER_HELMET, "Cactus Helmet", 5, 10),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.CACTUS));
@@ -227,7 +230,7 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.TRUE_CHOCOLATE_CORE_RECIPE, this.trueChocolateCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.chocolateCore()));
-                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_HELMET_RECIPE, this.chocolatePiece(Material.LEATHER_HELMET, "Chocolate Helmet"),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.COCOA_BEANS));
@@ -290,6 +293,32 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('X', Material.POTATO);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
+
+        Bukkit.removeRecipe(CollectionsCatalog.VACCINE_TALISMAN_RECIPE);
+        ShapelessRecipe vaccineTalisman = new ShapelessRecipe(CollectionsCatalog.VACCINE_TALISMAN_RECIPE, this.vaccineTalisman());
+        for (int i = 0; i < 9; i++) {
+            vaccineTalisman.addIngredient(Material.POISONOUS_POTATO);
+        }
+        Bukkit.addRecipe(vaccineTalisman);
+
+        this.newShapedRecipe(CollectionsCatalog.VACCINE_RING_RECIPE, this.vaccineRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.potatoCore()));
+                    r.setIngredient('T', new RecipeChoice.ExactChoice(this.vaccineTalisman()));
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.BAKED_POTATO_CORE_RECIPE, this.bakedPotatoCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.potatoCore()));
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.VACCINE_ARTIFACT_RECIPE, this.vaccineArtifact(),
+                new String[]{"CCC", "CRC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.bakedPotatoCore()));
+                    r.setIngredient('R', new RecipeChoice.ExactChoice(this.vaccineRing()));
+                });
+
         this.newShapedRecipe(CollectionsCatalog.PUMPKIN_CORE_RECIPE, this.pumpkinCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', Material.PUMPKIN);
@@ -388,7 +417,7 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.MILKSHAKE_CORE_RECIPE, this.milkshakeCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.milkCore()));
-                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
 
         this.newShapedRecipe(CollectionsCatalog.WOOL_CORE_RECIPE, this.woolCore(),
@@ -399,7 +428,7 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.RAINBOW_WOOL_CORE_RECIPE, this.rainbowWoolCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.woolCore()));
-                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
 
         this.newShapedRecipe(CollectionsCatalog.NETHER_WART_CORE_RECIPE, this.netherWartCore(),
@@ -410,7 +439,7 @@ public final class FarmingCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.MUTANT_NETHER_WART_CORE_RECIPE, this.mutantNetherWartCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.netherWartCore()));
-                    r.setIngredient('D', Material.NETHERITE_BLOCK);
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
 
         this.newShapedRecipe(CollectionsCatalog.SUGAR_CANE_CORE_RECIPE, this.sugarCaneCore(),
@@ -614,7 +643,7 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
-    /** Cactus Collection M8's own upgrade to {@link #cactusCore()} - same "8 of the base Core around a Netherite Block" shape {@link #mutantNetherWartCore()}/{@link #milkshakeCore()}/{@link #rainbowWoolCore()} already use for their own second-tier core, per the player's own explicit spec. */
+    /** Cactus Collection M8's own upgrade to {@link #cactusCore()} - same "8 of the base Core around a Netherite Ingot" shape {@link #mutantNetherWartCore()}/{@link #milkshakeCore()}/{@link #rainbowWoolCore()} already use for their own second-tier core, per the player's own explicit spec. */
     private org.bukkit.inventory.ItemStack flowerCactusCore() {
         var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -633,7 +662,7 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
-    /** Carrot Collection M7's own upgrade to {@link #carrotCore()} - same "8 of the base Core around a Netherite Block" shape as {@link #flowerCactusCore()}, per the player's own explicit spec. */
+    /** Carrot Collection M7's own upgrade to {@link #carrotCore()} - same "8 of the base Core around a Netherite Ingot" shape as {@link #flowerCactusCore()}, per the player's own explicit spec. */
     private org.bukkit.inventory.ItemStack goldenCarrotCore() {
         var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -653,6 +682,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack cactusPiece(Material material, String name, int health, int defense) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(CACTUS_ARMOR_COLOR);
         }
@@ -685,7 +715,7 @@ public final class FarmingCollectionsItemsService {
         return item;
     }
 
-    /** Cocoa Beans Collection M7's own upgrade to {@link #chocolateCore()} - same "8 of the base Core around a Netherite Block" shape as {@link #flowerCactusCore()}/{@link #goldenCarrotCore()}, per the player's own explicit spec. */
+    /** Cocoa Beans Collection M7's own upgrade to {@link #chocolateCore()} - same "8 of the base Core around a Netherite Ingot" shape as {@link #flowerCactusCore()}/{@link #goldenCarrotCore()}, per the player's own explicit spec. */
     private org.bukkit.inventory.ItemStack trueChocolateCore() {
         var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -719,7 +749,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("+5 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -739,7 +769,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("+7 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -759,7 +789,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("+10 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -789,6 +819,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack chocolatePiece(Material material, String name) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(CHOCOLATE_ARMOR_COLOR);
         }
@@ -820,6 +851,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack mushroomPiece(Material material, String name, int health, int defense) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(MUSHROOM_ARMOR_COLOR);
         }
@@ -857,6 +889,82 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.POTATO_CORE, POTATO_CORE_PROFILE);
         meta.displayName(Component.text("Potato Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Potato Collection M2's own accessory, the first of the Talisman → Ring → Artifact line
+     * ({@link #vaccineRing}/{@link #vaccineArtifact} each upgrade the one before, consuming it
+     * as an ingredient) - stored in any of the Accessory Bag's 9 generic slots ({@code
+     * skills.AccessoryBagService}), Tier D. Reduces {@code DamageCause.POISON} damage rather
+     * than fall damage (the Feather line's own stat) - see {@code item.AccessoryItems#mark}'s
+     * own doc. No custom head texture was given for this one (unlike the Core/Ring/Artifact
+     * items), so it's represented by a plain Poisonous Potato instead, same "reuse the
+     * ingredient's own material" choice {@code featherTalisman} makes with a plain Feather.
+     */
+    private org.bukkit.inventory.ItemStack vaccineTalisman() {
+        var item = new org.bukkit.inventory.ItemStack(Material.POISONOUS_POTATO);
+        var meta = item.getItemMeta();
+        meta.displayName(Component.text("Vaccine Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("-10% de dano de envenenamento", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Potato Collection M5's own upgrade to {@link #vaccineTalisman}, Tier C - same {@code
+     * "vaccine"} family tag as the rest of this line, so it can't sit in the bag next to a
+     * Vaccine Talisman or Vaccine Artifact either.
+     */
+    private org.bukkit.inventory.ItemStack vaccineRing() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.VACCINE_RING, VACCINE_RING_PROFILE);
+        meta.displayName(Component.text("Vaccine Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "vaccine", 0, 0.0, 25.0);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("-25% de dano de envenenamento", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Potato Collection M6's own second-tier Core upgrade (1 Netherite Ingot, 8 Potato Cores), same shape as {@link #flowerCactusCore}/{@link #goldenCarrotCore}/{@link #trueChocolateCore} - a Vaccine Ring's own crafting ingredient, not part of the accessory line itself. */
+    private org.bukkit.inventory.ItemStack bakedPotatoCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.BAKED_POTATO_CORE, BAKED_POTATO_CORE_PROFILE);
+        meta.displayName(Component.text("Baked Potato Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Potato Collection M7's own upgrade to {@link #vaccineRing}, Tier B - the top of this
+     * Collection's accessory line, same {@code "vaccine"} family tag as the rest of it.
+     */
+    private org.bukkit.inventory.ItemStack vaccineArtifact() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.VACCINE_ARTIFACT, VACCINE_ARTIFACT_PROFILE);
+        meta.displayName(Component.text("Vaccine Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "vaccine", 0, 0.0, 50.0);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("-50% de dano de envenenamento", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return item;
     }
@@ -1011,6 +1119,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack rabbitPiece(Material material, String name, int defense) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(RABBIT_ARMOR_COLOR);
         }
@@ -1065,6 +1174,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack speedsterPiece(Material material, String name, int defense) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(SPEEDSTER_ARMOR_COLOR);
         }
@@ -1092,6 +1202,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack farmhandPiece(Material material, String name, Color color) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather && color != null) {
             leather.setColor(color);
         }
@@ -1110,6 +1221,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack haymakerPiece(Material material, String name) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(HAYMAKER_COLOR);
         }
@@ -1135,6 +1247,7 @@ public final class FarmingCollectionsItemsService {
     private org.bukkit.inventory.ItemStack farmerBoots() {
         var item = new org.bukkit.inventory.ItemStack(Material.LEATHER_BOOTS);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(FARMER_BOOTS_COLOR);
         }
@@ -1326,6 +1439,7 @@ public final class FarmingCollectionsItemsService {
     public org.bukkit.inventory.ItemStack createSproutPiece(Material material, String name) {
         var item = new org.bukkit.inventory.ItemStack(material);
         var meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             Color color = material.name().endsWith("_CHESTPLATE") ? SPROUT_CHESTPLATE_COLOR
                     : material.name().endsWith("_LEGGINGS") ? SPROUT_LEGGINGS_COLOR

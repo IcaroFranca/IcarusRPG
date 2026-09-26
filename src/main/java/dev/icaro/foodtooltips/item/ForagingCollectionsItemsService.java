@@ -236,6 +236,7 @@ public final class ForagingCollectionsItemsService {
     private ItemStack growthPiece(Material material, String name, int health, int defense) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(GROWTH_ARMOR_COLOR);
         }
@@ -273,6 +274,7 @@ public final class ForagingCollectionsItemsService {
     private ItemStack leafletPiece(Material material, String name, int health) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
+        meta.setUnbreakable(true);
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(LEAFLET_ARMOR_COLOR);
         }

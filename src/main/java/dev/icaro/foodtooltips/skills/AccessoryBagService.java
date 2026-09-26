@@ -196,6 +196,15 @@ public final class AccessoryBagService {
         return total;
     }
 
+    /** Sum of {@link AccessoryItems#poisonReductionPercent} across every accessory {@code p} currently has stored (the Vaccine line) - read by {@code AccessoryBagListener#poison} on every {@code DamageCause.POISON} hit, same shape as {@link #totalFallHeightBonus}. */
+    public double totalPoisonReductionPercent(Player p) {
+        double total = 0.0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.poisonReductionPercent(item);
+        }
+        return total;
+    }
+
     /** {@code p}'s own {@value #STORAGE_SIZE} storage slots - from the live cached screen if {@code p} has one (so a change lands immediately, before the bag is ever closed/persisted), otherwise from their last-persisted PDC state. */
     private ItemStack[] stored(Player p) {
         Inventory cached = this.cache.get(p.getUniqueId());

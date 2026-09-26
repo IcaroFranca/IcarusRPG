@@ -248,6 +248,15 @@ final class CollectionsCatalogTest {
     }
 
     @Test
+    void potatoUnlocksVaccineLineAndBakedPotatoCore() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.POTATOES).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.VACCINE_TALISMAN_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.VACCINE_RING_RECIPE), m.get(4).recipes());
+        assertEquals(List.of(CollectionsCatalog.BAKED_POTATO_CORE_RECIPE), m.get(5).recipes());
+        assertEquals(List.of(CollectionsCatalog.VACCINE_ARTIFACT_RECIPE), m.get(6).recipes());
+    }
+
+    @Test
     void melonSliceUnlocksCoreAtMilestoneFour() {
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.MELON_SLICE).orElseThrow().milestones();
         assertEquals(List.of(CollectionsCatalog.MELON_CORE_RECIPE), m.get(3).recipes());
