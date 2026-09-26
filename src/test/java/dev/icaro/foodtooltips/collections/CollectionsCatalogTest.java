@@ -59,8 +59,8 @@ final class CollectionsCatalogTest {
         assertEquals(RewardKind.ENCHANT_DISCOUNT, m.get(6).kind());
         assertEquals(IcarusEnchant.THORNS, m.get(6).discountEnchant());
         assertEquals(25.0, m.get(6).discountPercent());
-        assertEquals(RewardKind.FARMING_XP, m.get(7).kind());
-        assertEquals(25000, m.get(7).xpAmount());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(7).kind());
+        assertEquals(List.of(CollectionsCatalog.FLOWER_CACTUS_CORE_RECIPE), m.get(7).recipes());
         assertEquals(RewardKind.FARMING_XP, m.get(8).kind());
         assertEquals(50000, m.get(8).xpAmount());
     }

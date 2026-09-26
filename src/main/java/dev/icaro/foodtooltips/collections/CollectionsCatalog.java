@@ -27,6 +27,7 @@ import org.bukkit.NamespacedKey;
  */
 public final class CollectionsCatalog {
     public static final NamespacedKey CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "cactus_core");
+    public static final NamespacedKey FLOWER_CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "flower_cactus_core");
     public static final NamespacedKey CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "carrot_core");
     public static final NamespacedKey CACTUS_HELMET_RECIPE = new NamespacedKey("foodtooltips", "cactus_helmet");
     public static final NamespacedKey CACTUS_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "cactus_chestplate");
@@ -158,7 +159,9 @@ public final class CollectionsCatalog {
                             "-25% de custo em XP para Penetrante", "-25% XP cost for Piercing"),
                     CollectionsMilestone.enchantDiscount(10000, IcarusEnchant.THORNS, 25.0,
                             "-25% de custo em XP para Espinhos", "-25% XP cost for Thorns"),
-                    CollectionsMilestone.farmingXp(25000, 25000, "+25000 XP de Agricultura", "+25000 Farming XP"),
+                    CollectionsMilestone.recipeUnlock(25000,
+                            "Desbloqueia a receita do Flower Cactus Core", "Unlocks the Flower Cactus Core recipe",
+                            FLOWER_CACTUS_CORE_RECIPE),
                     CollectionsMilestone.farmingXp(50000, 50000, "+50000 XP de Agricultura", "+50000 Farming XP"))),
             new CollectionsEntry(Material.CARROTS, Material.CARROT, CollectionsCategory.FARMING, "Cenoura", "Carrot", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),

@@ -72,6 +72,7 @@ import org.bukkit.potion.PotionType;
  */
 public final class FarmingCollectionsItemsService {
     private static final UUID CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cactus_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID FLOWER_CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flower_cactus_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CARROT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:carrot_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CHOCOLATE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:chocolate_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FEATHER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:feather_core".getBytes(StandardCharsets.UTF_8));
@@ -190,6 +191,11 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', Material.CACTUS);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.FLOWER_CACTUS_CORE_RECIPE, this.flowerCactusCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.cactusCore()));
+                    r.setIngredient('D', Material.NETHERITE_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.CARROT_CORE_RECIPE, this.carrotCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
@@ -572,6 +578,16 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.CACTUS_CORE, CACTUS_CORE_PROFILE);
         meta.displayName(Component.text("Cactus Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Cactus Collection M8's own upgrade to {@link #cactusCore()} - same "8 of the base Core around a Netherite Block" shape {@link #mutantNetherWartCore()}/{@link #milkshakeCore()}/{@link #rainbowWoolCore()} already use for their own second-tier core, per the player's own explicit spec. */
+    private org.bukkit.inventory.ItemStack flowerCactusCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.FLOWER_CACTUS_CORE, FLOWER_CACTUS_CORE_PROFILE);
+        meta.displayName(Component.text("Flower Cactus Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }
