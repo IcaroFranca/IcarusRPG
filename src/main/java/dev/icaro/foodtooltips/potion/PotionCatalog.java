@@ -20,12 +20,8 @@ import org.bukkit.potion.PotionEffectType;
  * of tripling the catalog's size, the same "the guide explains the whole chain, not one
  * frozen snapshot of it" idea a real wiki page would use.
  *
- * <p>The four newer mob-head-brewed potions (Oozing/Weaving/Infested/Wind Charged) are
- * listed with a deliberately brief, hedged description instead of a specific ingredient -
- * confidently stating the wrong mob head would teach the player something false, worse than
- * just pointing them at the wiki for that one detail. Luck has no real Brewing Stand recipe
- * at all and is noted as such rather than omitted outright (the player did ask for "every
- * potion in the game").
+ * <p>Luck has no real Brewing Stand recipe at all and is noted as such rather than omitted
+ * outright (the player did ask for "every potion in the game").
  */
 public final class PotionCatalog {
     private static Predicate<ItemStack> vanillaFamily(String family) {
@@ -170,10 +166,12 @@ public final class PotionCatalog {
                             "Redstone Dust → extended duration", "Glowstone Dust → Leaping II"),
                     vanillaFamily("LEAPING")),
             new PotionEntry("turtle_master", Material.TURTLE_HELMET, "Mestre Tartaruga", "Turtle Master",
-                    List.of("Poção Estranha + Elmo de Tartaruga → Mestre Tartaruga (Resistência + Lentidão)",
-                            "Pó de Redstone → duração estendida", "Pó de Glowstone → Mestre Tartaruga III"),
-                    List.of("Awkward Potion + Turtle Shell → Turtle Master (Resistance + Slowness)",
-                            "Redstone Dust → extended duration", "Glowstone Dust → Turtle Master III"),
+                    List.of("Poção Estranha + Casco de Tartaruga → Mestre Tartaruga (já vem com Resistência III + Lentidão IV, 0:20)",
+                            "Pó de Redstone → estende para 0:40 (mesmos níveis)",
+                            "Pó de Glowstone → Resistência IV + Lentidão VI (continua 0:20)"),
+                    List.of("Awkward Potion + Turtle Shell → Turtle Master (already Resistance III + Slowness IV, 0:20)",
+                            "Redstone Dust → extends to 0:40 (same levels)",
+                            "Glowstone Dust → Resistance IV + Slowness VI (still 0:20)"),
                     vanillaFamily("TURTLE_MASTER")),
             new PotionEntry("luck", Material.NAME_TAG, "Sorte", "Luck",
                     List.of("Não pode ser fabricada num Suporte de Fermentação normalmente.",
@@ -181,14 +179,14 @@ public final class PotionCatalog {
                     List.of("Can't normally be brewed in a Brewing Stand.",
                             "Only obtainable via commands or certain special mechanics."),
                     null),
-            new PotionEntry("oozing_weaving_infested_wind_charged", Material.PLAYER_HEAD,
-                    "Poções de Mob (Escorrendo/Tecelagem/Infestada/Rajada)", "Mob Potions (Oozing/Weaving/Infested/Wind Charged)",
-                    List.of("Poção Estranha + cabeça de um mob específico → efeito (mecânica do Trial Chamber)",
-                            "Só surtem efeito ao serem lançadas (versão de arremesso) em alguém.",
-                            "Consulte um wiki atualizado para a cabeça exata de cada uma - detalhe recente demais para garantir aqui."),
-                    List.of("Awkward Potion + a specific mob's head → effect (Trial Chamber mechanic)",
-                            "Only trigger when thrown (splash version) at someone.",
-                            "Check an up-to-date wiki for the exact head each one needs - too recent a detail to guarantee here."),
+            new PotionEntry("oozing_weaving_infested_wind_charged", Material.SLIME_BALL,
+                    "Poções de Escorrendo/Tecelagem/Infestada/Rajada de Vento", "Potions of Oozing/Weaving/Infestation/Wind Charging",
+                    List.of("Poção Estranha + Bloco de Lodo → Escorrendo", "Poção Estranha + Teia de Aranha → Tecelagem",
+                            "Poção Estranha + Pedra → Infestada", "Poção Estranha + Bastão de Brisa → Rajada de Vento",
+                            "Também funcionam bebidas normalmente, não só como poção de arremesso."),
+                    List.of("Awkward Potion + Slime Block → Oozing", "Awkward Potion + Cobweb → Weaving",
+                            "Awkward Potion + Stone → Infestation", "Awkward Potion + Breeze Rod → Wind Charging",
+                            "Also work when drunk normally, not just as a splash potion."),
                     null),
             new PotionEntry("resistance", Material.CACTUS, "Resistência", "Resistance",
                     List.of("Poção Estranha + Cacto → Poção de Resistência",
