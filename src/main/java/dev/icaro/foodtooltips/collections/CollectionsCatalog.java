@@ -10,11 +10,14 @@ import org.bukkit.NamespacedKey;
 /**
  * Every collectible material's own milestone ladder, grouped by {@link CollectionsCategory} -
  * same "static final list, never built per-call" shape as {@code bestiary.BestiaryCatalog}/
- * {@code mining.MiningCatalog}. Only Farming is populated today - the player's own explicit
- * "o resto vai passando com o tempo" ("the rest will come with time"): Combat/Mining/
- * Foraging/Fishing are real {@link CollectionsCategory} values already (so {@link
- * CollectionsMenuService}'s category screen never has to change shape once they're filled
- * in), they just have no entries yet.
+ * {@code mining.MiningCatalog}. Farming and Foraging are populated today - the player's own
+ * explicit "o resto vai passando com o tempo" ("the rest will come with time"). Combat's own
+ * entries exist too, but every one starts as an inert template (empty milestone list, same
+ * convention as Foraging's later wood-log entries below, from Mangrove Log onward) per the
+ * player's own "vou te falar com o tempo o que cada um vai ter" - Mining/Fishing still have
+ * no entries at all, though both are real {@link CollectionsCategory} values already (so
+ * {@link CollectionsMenuService}'s category screen never has to change shape once any of
+ * them are filled in).
  *
  * <p>The recipe keys below are this class's own - {@code
  * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService} registers its actual {@code
@@ -158,6 +161,22 @@ public final class CollectionsCatalog {
     }
 
     private static final List<CollectionsEntry> ENTRIES = List.of(
+            // Combat Collections - inert templates for now (the player's own explicit "vou
+            // te falar com o tempo o que cada um vai ter"): every entry exists already so
+            // CollectionsMenuService's category screen never has to change shape once real
+            // milestones are decided, but each starts with an empty list, same "collect
+            // freely, nothing unlocks yet" convention Foraging's own wood-log templates
+            // below (Mangrove Log onward) already use.
+            new CollectionsEntry(Material.ROTTEN_FLESH, Material.ROTTEN_FLESH, CollectionsCategory.COMBAT, "Carne Podre", "Rotten Flesh", List.of()),
+            new CollectionsEntry(Material.BONE, Material.BONE, CollectionsCategory.COMBAT, "Osso", "Bone", List.of()),
+            new CollectionsEntry(Material.STRING, Material.STRING, CollectionsCategory.COMBAT, "Barbante", "String", List.of()),
+            new CollectionsEntry(Material.SPIDER_EYE, Material.SPIDER_EYE, CollectionsCategory.COMBAT, "Olho de Aranha", "Spider Eye", List.of()),
+            new CollectionsEntry(Material.GUNPOWDER, Material.GUNPOWDER, CollectionsCategory.COMBAT, "Pólvora", "Gunpowder", List.of()),
+            new CollectionsEntry(Material.ENDER_PEARL, Material.ENDER_PEARL, CollectionsCategory.COMBAT, "Pérola do Fim", "Ender Pearl", List.of()),
+            new CollectionsEntry(Material.GHAST_TEAR, Material.GHAST_TEAR, CollectionsCategory.COMBAT, "Lágrima de Ghast", "Ghast Tear", List.of()),
+            new CollectionsEntry(Material.SLIME_BALL, Material.SLIME_BALL, CollectionsCategory.COMBAT, "Bola de Slime", "Slime Ball", List.of()),
+            new CollectionsEntry(Material.BLAZE_ROD, Material.BLAZE_ROD, CollectionsCategory.COMBAT, "Bastão de Blaze", "Blaze Rod", List.of()),
+            new CollectionsEntry(Material.MAGMA_CREAM, Material.MAGMA_CREAM, CollectionsCategory.COMBAT, "Creme de Magma", "Magma Cream", List.of()),
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),
                     CollectionsMilestone.recipeUnlock(250,
