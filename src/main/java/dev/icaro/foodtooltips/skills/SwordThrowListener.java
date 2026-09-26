@@ -37,7 +37,7 @@ implements Listener {
     /** Tags the visual {@code ArmorStand} {@link #launch} spawns, since it's a {@link LivingEntity} itself (an {@code ArmorStand} quirk) - without this, a concurrent throw's own {@code rayTraceEntities} entity filter below could mistake one player's flying decorative stand for a valid target and "hit" it. */
     private static final org.bukkit.NamespacedKey THROWN_VISUAL_KEY = new org.bukkit.NamespacedKey("foodtooltips", "thrown_sword_visual");
     /** See {@code item.SpruceAxeListener}'s own doc on this exact field. */
-    private static final double HEAD_HEIGHT_OFFSET = 1.2;
+    private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /** See {@code item.SpruceAxeListener}'s own doc on this exact field. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
     private final Plugin plugin;

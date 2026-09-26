@@ -32,7 +32,7 @@ public final class TreecapitatorListener implements Listener {
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
     private static final int THROW_MAX_TICKS = 50;
     /** See {@code SpruceAxeListener}'s own doc on this exact field. */
-    private static final double HEAD_HEIGHT_OFFSET = 1.2;
+    private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /** See {@code SpruceAxeListener}'s own doc on this exact field. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 

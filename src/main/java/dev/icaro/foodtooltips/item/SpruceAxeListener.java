@@ -33,12 +33,17 @@ public final class SpruceAxeListener implements Listener {
     private static final int THROW_MAX_TICKS = 50;
     /**
      * {@code World#spawn}/{@code Entity#teleport} position an {@link ArmorStand} by its own
-     * feet, not its head - a small stand's helmet-slot item actually renders roughly this many
-     * blocks above that point in its default pose, so every spawn/teleport in {@link #launch}
-     * subtracts it back off, keeping the visible axe lined up with the ray-march's own travel
-     * point (starting at the player's own eye/hand height) instead of floating above it.
+     * feet, not its head - a small stand's own standing eye height (vanilla's real formula,
+     * {@code ArmorStand#getStandingEyeHeight}: {@code height * 0.9}, and a small stand's own
+     * height is exactly half a full-size one's 1.975 - see the Minecraft Wiki's own Armor
+     * Stand hitbox dimensions) puts its helmet-slot item about {@code 0.9875 * 0.9 ≈ 0.889}
+     * blocks above that spawn point in its default pose. Every spawn/teleport in {@link
+     * #launch} subtracts this back off, keeping the visible axe lined up with the ray-march's
+     * own travel point (starting at the player's own eye/hand height) instead of floating
+     * above it. Mojang's own MC-107156 documents the small-stand formula as slightly
+     * inconsistent across versions - nudge this a little if it's ever visibly off.
      */
-    private static final double HEAD_HEIGHT_OFFSET = 1.2;
+    private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /** One full tumble every 6 ticks (60°/tick) - a fast, clearly visible end-over-end spin for the thrown axe, applied via {@link ArmorStand#setHeadPose} since its equipped item has no spin animation of its own (unlike a dropped {@code Item}). */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
