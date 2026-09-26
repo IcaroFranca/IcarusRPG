@@ -58,11 +58,11 @@ final class CollectionsProgressServiceTest {
         // other 10 still template-only with no milestones) - see CollectionsCatalog's own doc.
         int foragingEntries = CollectionsCatalog.entries(CollectionsCategory.FORAGING).size();
         assertEquals(11, foragingEntries);
-        // Combat has its own 10 template entries (empty milestone lists, per the player's
+        // Combat has its own 14 template entries (empty milestone lists, per the player's
         // own "vou te falar com o tempo o que cada um vai ter") - see CollectionsCatalog's
         // own doc.
         int combatEntries = CollectionsCatalog.entries(CollectionsCategory.COMBAT).size();
-        assertEquals(10, combatEntries);
+        assertEquals(14, combatEntries);
         for (var category : List.of(CollectionsCategory.MINING, CollectionsCategory.FISHING)) {
             assertEquals(0, CollectionsCatalog.entries(category).size(), category + " should have no entries yet");
         }

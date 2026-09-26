@@ -12,9 +12,12 @@ import org.bukkit.NamespacedKey;
  * same "static final list, never built per-call" shape as {@code bestiary.BestiaryCatalog}/
  * {@code mining.MiningCatalog}. Farming and Foraging are populated today - the player's own
  * explicit "o resto vai passando com o tempo" ("the rest will come with time"). Combat's own
- * entries exist too, but every one starts as an inert template (empty milestone list, same
- * convention as Foraging's later wood-log entries below, from Mangrove Log onward) per the
- * player's own "vou te falar com o tempo o que cada um vai ter" - Mining/Fishing still have
+ * entries exist too (14 of them - every material a real hostile {@code
+ * bestiary.BestiaryCatalog} mob commonly drops, minus one-off boss loot and anything an
+ * aquatic mob drops, reserved for Fishing instead), but every one starts as an inert
+ * template (empty milestone list, same convention as Foraging's later wood-log entries
+ * below, from Mangrove Log onward) per the player's own "vou te falar com o tempo o que
+ * cada um vai ter" - Mining/Fishing still have
  * no entries at all, though both are real {@link CollectionsCategory} values already (so
  * {@link CollectionsMenuService}'s category screen never has to change shape once any of
  * them are filled in).
@@ -177,6 +180,17 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.SLIME_BALL, Material.SLIME_BALL, CollectionsCategory.COMBAT, "Bola de Slime", "Slime Ball", List.of()),
             new CollectionsEntry(Material.BLAZE_ROD, Material.BLAZE_ROD, CollectionsCategory.COMBAT, "Bastão de Blaze", "Blaze Rod", List.of()),
             new CollectionsEntry(Material.MAGMA_CREAM, Material.MAGMA_CREAM, CollectionsCategory.COMBAT, "Creme de Magma", "Magma Cream", List.of()),
+            // Same common-drop-from-a-real-Bestiary-mob criterion as the 10 above (see
+            // BestiaryCatalog's own drop tables) - added after the player's own review
+            // flagged the initial 10 as incomplete. Deliberately excludes Prismarine Shard/
+            // Crystal (Guardian is BestiaryCategory.AQUATIC, not a Combat mob - reserved for
+            // whenever Fishing gets its own entries) and one-off boss loot (Totem of
+            // Undying, Nether Star, Sculk Catalyst - not something farmed in bulk like every
+            // other entry here).
+            new CollectionsEntry(Material.SHULKER_SHELL, Material.SHULKER_SHELL, CollectionsCategory.COMBAT, "Casco de Shulker", "Shulker Shell", List.of()),
+            new CollectionsEntry(Material.BREEZE_ROD, Material.BREEZE_ROD, CollectionsCategory.COMBAT, "Bastão de Brisa", "Breeze Rod", List.of()),
+            new CollectionsEntry(Material.PHANTOM_MEMBRANE, Material.PHANTOM_MEMBRANE, CollectionsCategory.COMBAT, "Membrana de Phantom", "Phantom Membrane", List.of()),
+            new CollectionsEntry(Material.WITHER_SKELETON_SKULL, Material.WITHER_SKELETON_SKULL, CollectionsCategory.COMBAT, "Crânio de Esqueleto Wither", "Wither Skeleton Skull", List.of()),
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),
                     CollectionsMilestone.recipeUnlock(250,
