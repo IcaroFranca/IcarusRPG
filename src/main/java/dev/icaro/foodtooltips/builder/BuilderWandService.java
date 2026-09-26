@@ -258,7 +258,11 @@ public final class BuilderWandService {
     /** Opens the small 1-row settings menu (fill mode + range) for {@code item} (the wand currently in the player's hand). */
     public void openModeMenu(Player p, ItemStack item) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 27, l.choose("Varinha: Configurações", "Wand: Settings"));
+        // 54 (6 rows), not 27 (3 rows): menu.MenuBackground#apply only actually renders
+        // its background for a 3- or 6-row inventory, and the 3-row variant was found to
+        // render blank white in practice (see skills.PersonalStorageService's own doc on
+        // LARGE_CANVAS) - the extra rows below stay pure filler.
+        Inventory v = Bukkit.createInventory(null, 54, l.choose("Varinha: Configurações", "Wand: Settings"));
         this.renderMenu(v, item, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -270,7 +274,7 @@ public final class BuilderWandService {
         ItemMeta fillerMeta = filler.getItemMeta();
         fillerMeta.displayName(Component.text(" "));
         filler.setItemMeta(fillerMeta);
-        for (int i = 0; i < 27; i++) {
+        for (int i = 0; i < 54; i++) {
             v.setItem(i, filler);
         }
         FillMode current = this.mode(item);

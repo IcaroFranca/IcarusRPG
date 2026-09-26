@@ -322,10 +322,11 @@ public final class SkillsMenuService {
         if (this.accessoryBag != null && this.accessoryBag.unlocked(p)) {
             List<Component> accessoryLore = new ArrayList<>();
             for (String part : LoreWrap.wrapText(l.choose(
-                    "Equipe um Talismã, um Anel e um Artefato ao mesmo tempo.",
-                    "Equip one Talisman, one Ring and one Artifact at the same time."), LoreWrap.DEFAULT_WIDTH)) {
+                    "Guarde vários acessórios (Talismãs, Anéis, Artefatos) aqui dentro.",
+                    "Store several accessories (Talismans, Rings, Artifacts) in here."), LoreWrap.DEFAULT_WIDTH)) {
                 accessoryLore.add(this.text(part, NamedTextColor.GRAY));
             }
+            accessoryLore.add(this.text(AccessoryBagService.STORAGE_SIZE + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
             accessoryLore.add(this.click(l));
             v.setItem(ACCESSORY_BAG_SLOT, this.item(Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), accessoryLore));
         } else {

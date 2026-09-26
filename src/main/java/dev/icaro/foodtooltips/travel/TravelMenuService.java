@@ -71,12 +71,16 @@ public final class TravelMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        ChestGui gui = new ChestGui(3, l.choose("Locais", "Locations"), this.plugin);
+        // 6 rows, not 3: menu.MenuBackground#apply only actually renders its background
+        // for a 3- or 6-row inventory, and the 3-row variant was found to render blank
+        // white in practice (see skills.PersonalStorageService's own doc on LARGE_CANVAS)
+        // - the extra rows below the real buttons stay pure filler.
+        ChestGui gui = new ChestGui(6, l.choose("Locais", "Locations"), this.plugin);
         gui.setOnGlobalClick(e -> e.setCancelled(true));
 
-        StaticPane pane = new StaticPane(9, 3);
+        StaticPane pane = new StaticPane(9, 6);
         ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of(), NamedTextColor.GRAY);
-        for (int y = 0; y < 3; y++) {
+        for (int y = 0; y < 6; y++) {
             for (int x = 0; x < 9; x++) {
                 pane.addItem(new GuiItem(filler), x, y);
             }

@@ -35,7 +35,7 @@ public final class AccessoryBagListener implements Listener {
             this.bag.backButtonClicked(p);
             return;
         }
-        if (topInventory && this.bag.typeOf(raw) == null) {
+        if (topInventory && !this.bag.isStorageSlot(raw)) {
             e.setCancelled(true);
             return;
         }
@@ -48,7 +48,7 @@ public final class AccessoryBagListener implements Listener {
             return;
         }
         int topSize = e.getView().getTopInventory().getSize();
-        boolean touchesLockedOrDecorative = e.getRawSlots().stream().anyMatch(slot -> slot < topSize && this.bag.typeOf(slot) == null);
+        boolean touchesLockedOrDecorative = e.getRawSlots().stream().anyMatch(slot -> slot < topSize && !this.bag.isStorageSlot(slot));
         if (touchesLockedOrDecorative) {
             e.setCancelled(true);
             return;

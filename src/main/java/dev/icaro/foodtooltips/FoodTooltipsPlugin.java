@@ -246,7 +246,7 @@ extends JavaPlugin {
         menus.wardrobe(this.wardrobe);
         this.potionBag = new PotionBagService((Plugin)this, collectionsProgress, menus::openMain);
         menus.potionBag(this.potionBag);
-        this.accessoryBag = new AccessoryBagService((Plugin)this, collectionsProgress, menus::openMain);
+        this.accessoryBag = new AccessoryBagService((Plugin)this, menus::openMain);
         menus.accessoryBag(this.accessoryBag);
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);

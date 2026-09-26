@@ -93,8 +93,15 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 public final class QuiverService {
     /** The arrow-only storage area - the first {@value #STORAGE_SIZE} slots, the same as a single chest. */
     public static final int STORAGE_SIZE = 27;
-    /** Storage plus the decorative back-button row below it. */
-    private static final int TOTAL_SIZE = 36;
+    /**
+     * The full canvas size - {@code menu.MenuBackground#apply} only actually renders its
+     * background for a 3- or 6-row inventory, and the 3-row variant was found to render
+     * blank white in practice (see {@code skills.PersonalStorageService}'s own doc on
+     * {@code LARGE_CANVAS}), so this stays 54 (6 rows) even though only the first 4 rows
+     * ({@value #STORAGE_SIZE} storage slots plus the back-button row) hold anything real -
+     * the remaining rows are pure blend filler, same as every other custom menu.
+     */
+    private static final int TOTAL_SIZE = 54;
     /** Centered in the back-button row. */
     private static final int BACK_SLOT = 31;
     private static final int MIN_COMBAT_LEVEL = 5;
