@@ -84,6 +84,11 @@ public final class FarmingCollectionsItemsService {
     private static final UUID VACCINE_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_ring".getBytes(StandardCharsets.UTF_8));
     private static final UUID BAKED_POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:baked_potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_artifact".getBytes(StandardCharsets.UTF_8));
+    private static final UUID FARMER_ORB_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:farmer_orb".getBytes(StandardCharsets.UTF_8));
+    private static final UUID NIGHT_VISION_CHARM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:night_vision_charm".getBytes(StandardCharsets.UTF_8));
+    private static final UUID POTION_AFFINITY_TALISMAN_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potion_affinity_talisman".getBytes(StandardCharsets.UTF_8));
+    private static final UUID POTION_AFFINITY_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potion_affinity_ring".getBytes(StandardCharsets.UTF_8));
+    private static final UUID POTION_AFFINITY_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potion_affinity_artifact".getBytes(StandardCharsets.UTF_8));
     private static final UUID PUMPKIN_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pumpkin_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID WHEAT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID COW_HAT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cow_hat".getBytes(StandardCharsets.UTF_8));
@@ -274,6 +279,9 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('X', anyMushroom);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
+        this.newShapedRecipe(CollectionsCatalog.NIGHT_VISION_CHARM_RECIPE, this.nightVisionCharm(),
+                new String[]{"MMM", "M M", "MMM"}, r ->
+                        r.setIngredient('M', new RecipeChoice.ExactChoice(this.mushroomCore())));
         this.newShapedRecipe(CollectionsCatalog.MUSHROOM_HELMET_RECIPE, this.mushroomPiece(Material.LEATHER_HELMET, "Mushroom Helmet", MushroomArmorService.HELMET_HEALTH, 0),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.RED_MUSHROOM));
         this.newShapedRecipe(CollectionsCatalog.MUSHROOM_CHESTPLATE_RECIPE, this.mushroomPiece(Material.LEATHER_CHESTPLATE, "Mushroom Chestplate", MushroomArmorService.CHESTPLATE_HEALTH, MushroomArmorService.CHESTPLATE_DEFENSE),
@@ -323,6 +331,11 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', Material.PUMPKIN);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.FARMER_ORB_RECIPE, this.farmerOrb(),
+                new String[]{"PPP", "PHP", "PPP"}, r -> {
+                    r.setIngredient('P', Material.PUMPKIN);
+                    r.setIngredient('H', Material.HAY_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.WHEAT_CORE_RECIPE, this.wheatCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
@@ -436,10 +449,30 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('X', Material.NETHER_WART);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
+
+        Bukkit.removeRecipe(CollectionsCatalog.POTION_AFFINITY_TALISMAN_RECIPE);
+        ShapelessRecipe potionAffinityTalisman = new ShapelessRecipe(CollectionsCatalog.POTION_AFFINITY_TALISMAN_RECIPE, this.potionAffinityTalisman());
+        for (int i = 0; i < 9; i++) {
+            potionAffinityTalisman.addIngredient(Material.NETHER_WART);
+        }
+        Bukkit.addRecipe(potionAffinityTalisman);
+
+        this.newShapedRecipe(CollectionsCatalog.POTION_AFFINITY_RING_RECIPE, this.potionAffinityRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.netherWartCore()));
+                    r.setIngredient('T', new RecipeChoice.ExactChoice(this.potionAffinityTalisman()));
+                });
+
         this.newShapedRecipe(CollectionsCatalog.MUTANT_NETHER_WART_CORE_RECIPE, this.mutantNetherWartCore(),
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.netherWartCore()));
                     r.setIngredient('D', Material.NETHERITE_INGOT);
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.POTION_AFFINITY_ARTIFACT_RECIPE, this.potionAffinityArtifact(),
+                new String[]{"CCC", "CRC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.mutantNetherWartCore()));
+                    r.setIngredient('R', new RecipeChoice.ExactChoice(this.potionAffinityRing()));
                 });
 
         this.newShapedRecipe(CollectionsCatalog.SUGAR_CANE_CORE_RECIPE, this.sugarCaneCore(),
@@ -749,7 +782,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0, 0.0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0, 0.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("+5 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -769,7 +802,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0, 0.0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0, 0.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("+7 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -789,7 +822,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0, 0.0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0, 0.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("+10 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -806,6 +839,27 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.MUSHROOM_CORE, MUSHROOM_CORE_PROFILE);
         meta.displayName(Component.text("Mushroom Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Mushroom Collection M7's own standalone accessory (see {@code
+     * item.AccessoryType#CHARM}'s own doc), Tier D: stored in the Accessory Bag, grants
+     * permanent Night Vision (topped up every sweep by {@code
+     * skills.AccessoryBagService#refreshStandingEffects}) per the player's own explicit spec.
+     */
+    private org.bukkit.inventory.ItemStack nightVisionCharm() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.NIGHT_VISION_CHARM, NIGHT_VISION_CHARM_PROFILE);
+        meta.displayName(Component.text("Night Vision Charm", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.CHARM, "night_vision", 0, 0.0, 0.0, 0.0);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Visão noturna permanente", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
         item.setItemMeta(meta);
         return item;
     }
@@ -907,7 +961,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.POISONOUS_POTATO);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Vaccine Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("-10% de dano de envenenamento", NamedTextColor.AQUA),
@@ -928,7 +982,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.VACCINE_RING, VACCINE_RING_PROFILE);
         meta.displayName(Component.text("Vaccine Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "vaccine", 0, 0.0, 25.0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "vaccine", 0, 0.0, 25.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("-25% de dano de envenenamento", NamedTextColor.AQUA),
@@ -958,7 +1012,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.VACCINE_ARTIFACT, VACCINE_ARTIFACT_PROFILE);
         meta.displayName(Component.text("Vaccine Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "vaccine", 0, 0.0, 50.0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "vaccine", 0, 0.0, 50.0, 0.0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("-50% de dano de envenenamento", NamedTextColor.AQUA),
@@ -974,6 +1028,29 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.PUMPKIN_CORE, PUMPKIN_CORE_PROFILE);
         meta.displayName(Component.text("Pumpkin Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Pumpkin Collection M2's own standalone accessory (no Talisman → Ring → Artifact line of
+     * its own, unlike Feather/Vaccine/Potion Affinity - see {@code item.AccessoryType#ORB}'s
+     * own doc), Tier D: stored in the Accessory Bag, matures every immature crop in a 5x5 area
+     * around the wearer every 3 seconds (see {@code skills.AccessoryBagService#pulseFarmerOrbs})
+     * with the same particle effect as the Farm Crystal, per the player's own explicit spec.
+     */
+    private org.bukkit.inventory.ItemStack farmerOrb() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.FARMER_ORB, FARMER_ORB_PROFILE);
+        meta.displayName(Component.text("Farmer Orb", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ORB, "farmer_orb", 0, 0.0, 0.0, 0.0);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Amadurece plantações instantaneamente numa área 5x5", NamedTextColor.AQUA),
+                Component.text("ao seu redor a cada 3 segundos", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
         item.setItemMeta(meta);
         return item;
     }
@@ -1037,6 +1114,77 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.MUTANT_NETHER_WART_CORE, MUTANT_NETHER_WART_CORE_PROFILE);
         meta.displayName(Component.text("Mutant Nether Wart Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Nether Wart Collection M2's own accessory, the first of the Talisman → Ring → Artifact
+     * line ({@link #potionAffinityRing}/{@link #potionAffinityArtifact} each upgrade the one
+     * before, consuming it as an ingredient) - stored in any of the Accessory Bag's 9 generic
+     * slots, Tier D. Extends the duration of any potion effect gained by drinking a potion
+     * (see {@code skills.AccessoryBagListener#potionEffect}), rather than fall damage
+     * (Feather) or poison damage (Vaccine) - see {@code item.AccessoryItems#mark}'s own doc.
+     */
+    private org.bukkit.inventory.ItemStack potionAffinityTalisman() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.POTION_AFFINITY_TALISMAN, POTION_AFFINITY_TALISMAN_PROFILE);
+        meta.displayName(Component.text("Potion Affinity Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "potion_affinity", 0, 0.0, 0.0, 10.0);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("+10% de duração de poções", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Nether Wart Collection M4's own upgrade to {@link #potionAffinityTalisman}, Tier C - same
+     * {@code "potion_affinity"} family tag as the rest of this line, so it can't sit in the bag
+     * next to a Potion Affinity Talisman or Artifact either.
+     */
+    private org.bukkit.inventory.ItemStack potionAffinityRing() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.POTION_AFFINITY_RING_AND_ARTIFACT, POTION_AFFINITY_RING_PROFILE);
+        meta.displayName(Component.text("Potion Affinity Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "potion_affinity", 0, 0.0, 0.0, 25.0);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("+25% de duração de poções", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Nether Wart Collection M7's own upgrade to {@link #potionAffinityRing}, Tier B - the top
+     * of this Collection's accessory line, same {@code "potion_affinity"} family tag as the
+     * rest of it. Named "Artifact" (not "Ring" again) to match the Talisman → Ring → Artifact
+     * naming every other accessory line in this plugin uses, even though the player's own spec
+     * for this specific tier said "Ring" a second time and gave the same head texture as
+     * {@link #potionAffinityRing} - almost certainly copied from that same tier's own spec by
+     * mistake rather than an intentional shared name/texture (see {@code
+     * item.HeadTexture#POTION_AFFINITY_RING_AND_ARTIFACT}'s own doc on the shared texture).
+     */
+    private org.bukkit.inventory.ItemStack potionAffinityArtifact() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.POTION_AFFINITY_RING_AND_ARTIFACT, POTION_AFFINITY_ARTIFACT_PROFILE);
+        meta.displayName(Component.text("Potion Affinity Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "potion_affinity", 0, 0.0, 0.0, 50.0);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("+50% de duração de poções", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return item;
     }

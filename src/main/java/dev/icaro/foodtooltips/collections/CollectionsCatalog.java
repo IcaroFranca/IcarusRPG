@@ -60,6 +60,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey VACCINE_RING_RECIPE = new NamespacedKey("foodtooltips", "vaccine_ring");
     public static final NamespacedKey BAKED_POTATO_CORE_RECIPE = new NamespacedKey("foodtooltips", "baked_potato_core");
     public static final NamespacedKey VACCINE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "vaccine_artifact");
+    public static final NamespacedKey FARMER_ORB_RECIPE = new NamespacedKey("foodtooltips", "farmer_orb");
+    public static final NamespacedKey NIGHT_VISION_CHARM_RECIPE = new NamespacedKey("foodtooltips", "night_vision_charm");
+    public static final NamespacedKey POTION_AFFINITY_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "potion_affinity_talisman");
+    public static final NamespacedKey POTION_AFFINITY_RING_RECIPE = new NamespacedKey("foodtooltips", "potion_affinity_ring");
+    public static final NamespacedKey POTION_AFFINITY_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "potion_affinity_artifact");
     public static final NamespacedKey PUMPKIN_CORE_RECIPE = new NamespacedKey("foodtooltips", "pumpkin_core");
     public static final NamespacedKey WHEAT_CORE_RECIPE = new NamespacedKey("foodtooltips", "wheat_core");
     public static final NamespacedKey FARMER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "farmer_boots");
@@ -282,8 +287,10 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita da Mystical Mushroom Soup", "Unlocks the Mystical Mushroom Soup recipe"),
                     new CollectionsMilestone(10000, RewardKind.FARMING_XP, 5000, List.of(), null, 0.0,
                             "+5000 XP de Agricultura", "+5000 Farming XP"),
-                    new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
-                            "+10000 XP de Agricultura", "+10000 Farming XP"),
+                    new CollectionsMilestone(25000, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(NIGHT_VISION_CHARM_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do Night Vision Charm: visão noturna permanente quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Night Vision Charm recipe: permanent night vision while stored in the Accessory Bag"),
                     new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
                             "+25000 XP de Agricultura", "+25000 Farming XP"),
                     new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
@@ -302,24 +309,40 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Rainbow Wool Core", "Unlocks the Rainbow Wool Core recipe",
                             RAINBOW_WOOL_CORE_RECIPE)))),
             // Potion Bag unlock/expansion milestones carry no recipes, same reasoning as
-            // the Wardrobe (Leather) entry above - see skills.PotionBagService. M4/M6 carry
-            // real crafted rewards (Nether Wart Core/Mutant Nether Wart Core) instead of the
-            // generic ladder's own plain Farming XP.
+            // the Wardrobe (Leather) entry above - see skills.PotionBagService (its own
+            // storageSize() ladder counts milestones crossed directly, 1/3/5/7/9, completely
+            // independent of what these milestones' own text says - so M3/M7 below can freely
+            // carry a real recipe reward too without silently losing that slot growth, and
+            // their own text below just narrates it alongside the recipe rather than alone).
+            // M3/M6 carry real crafted rewards (Nether Wart Core/Mutant Nether Wart Core)
+            // instead of the generic ladder's own plain Farming XP - Nether Wart Core moved
+            // here from its own original M4 (see the player's own "empurrar pra outros marcos
+            // livres" spec) specifically so it's unlocked before M4's own Potion Affinity Ring
+            // recipe, which needs 8 of it as an ingredient.
             new CollectionsEntry(Material.NETHER_WART, Material.NETHER_WART, CollectionsCategory.FARMING, "Verruga do Nether", "Nether Wart", genericXpWithOverrides(
                     at(1, new CollectionsMilestone(DEFAULT_THRESHOLDS[0], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia a Potion Bag (9 slots)", "Unlocks the Potion Bag (9 slots)")),
-                    at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
-                            "Potion Bag: +9 slots (18 no total)", "Potion Bag: +9 slots (18 total)")),
-                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
-                            "Desbloqueia a receita do Nether Wart Core", "Unlocks the Nether Wart Core recipe",
+                    at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Potion Affinity Talisman: aumenta a duração das poções em 10% quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Potion Affinity Talisman recipe: +10% potion duration while stored in the Accessory Bag",
+                            POTION_AFFINITY_TALISMAN_RECIPE)),
+                    at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Nether Wart Core. Potion Bag: +9 slots (18 no total)",
+                            "Unlocks the Nether Wart Core recipe. Potion Bag: +9 slots (18 total)",
                             NETHER_WART_CORE_RECIPE)),
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Potion Affinity Ring: aumenta a duração das poções em 25% quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Potion Affinity Ring recipe: +25% potion duration while stored in the Accessory Bag",
+                            POTION_AFFINITY_RING_RECIPE)),
                     at(5, new CollectionsMilestone(DEFAULT_THRESHOLDS[4], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Potion Bag: +9 slots (27 no total)", "Potion Bag: +9 slots (27 total)")),
                     at(6, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
                             "Desbloqueia a receita do Mutant Nether Wart Core", "Unlocks the Mutant Nether Wart Core recipe",
                             MUTANT_NETHER_WART_CORE_RECIPE)),
-                    at(7, new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
-                            "Potion Bag: +9 slots (36 no total)", "Potion Bag: +9 slots (36 total)")),
+                    at(7, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Potion Affinity Artifact: aumenta a duração das poções em 50% quando guardado na Bolsa de Acessórios. Potion Bag: +9 slots (36 no total)",
+                            "Unlocks the Potion Affinity Artifact recipe: +50% potion duration while stored in the Accessory Bag. Potion Bag: +9 slots (36 total)",
+                            POTION_AFFINITY_ARTIFACT_RECIPE)),
                     at(9, new CollectionsMilestone(DEFAULT_THRESHOLDS[8], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Potion Bag: +9 slots (45 no total)", "Potion Bag: +9 slots (45 total)")))),
             new CollectionsEntry(Material.POTATOES, Material.POTATO, CollectionsCategory.FARMING, "Batata", "Potato", genericXpWithOverrides(
@@ -342,6 +365,10 @@ public final class CollectionsCatalog {
                             "Unlocks the Vaccine Artifact recipe: reduces poison damage by 50% while stored in the Accessory Bag",
                             VACCINE_ARTIFACT_RECIPE)))),
             new CollectionsEntry(Material.PUMPKIN, Material.PUMPKIN, CollectionsCategory.FARMING, "Abóbora", "Pumpkin", genericXpWithOverrides(
+                    at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Farmer Orb: amadurece plantações instantaneamente numa área 5x5 ao seu redor a cada 3 segundos quando guardado na Bolsa de Acessórios",
+                            "Unlocks the Farmer Orb recipe: instantly matures crops in a 5x5 area around you every 3 seconds while stored in the Accessory Bag",
+                            FARMER_ORB_RECIPE)),
                     at(3, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[2], IcarusEnchant.CUBISM, 25.0,
                             "-25% de custo em XP para Cubismo", "-25% XP cost for Cubism")),
                     at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],

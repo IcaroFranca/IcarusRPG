@@ -242,6 +242,18 @@ final class CollectionsCatalogTest {
     }
 
     @Test
+    void pumpkinUnlocksFarmerOrbAtMilestoneTwo() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.PUMPKIN).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.FARMER_ORB_RECIPE), m.get(1).recipes());
+    }
+
+    @Test
+    void mushroomUnlocksNightVisionCharmAtMilestoneSeven() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.RED_MUSHROOM).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.NIGHT_VISION_CHARM_RECIPE), m.get(6).recipes());
+    }
+
+    @Test
     void potatoUnlocksCoreAtMilestoneFour() {
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.POTATOES).orElseThrow().milestones();
         assertEquals(List.of(CollectionsCatalog.POTATO_CORE_RECIPE), m.get(3).recipes());
@@ -277,12 +289,26 @@ final class CollectionsCatalogTest {
     }
 
     @Test
-    void netherWartUnlocksPotionBagAtOneThreeFiveSevenNine() {
+    void netherWartUnlocksPotionBagAtOneFiveNine() {
+        // Only M1/M5/M9 are still purely descriptive Potion Bag milestones (no real recipe) -
+        // M3 and M7 now also carry a real recipe (Nether Wart Core, Potion Affinity Artifact)
+        // alongside that same Potion Bag capacity growth, which PotionBagService#storageSize
+        // grants independent of what these milestones' own text says (see this class's own
+        // doc on the Nether Wart entry).
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.NETHER_WART).orElseThrow().milestones();
-        for (int i : new int[]{0, 2, 4, 6, 8}) {
+        for (int i : new int[]{0, 4, 8}) {
             assertEquals(RewardKind.RECIPE_UNLOCK, m.get(i).kind(), "milestone index " + i);
             assertTrue(m.get(i).recipes().isEmpty(), "milestone index " + i);
         }
-        assertEquals(RewardKind.FARMING_XP, m.get(1).kind());
+    }
+
+    @Test
+    void netherWartUnlocksPotionAffinityLineAndCores() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.NETHER_WART).orElseThrow().milestones();
+        assertEquals(List.of(CollectionsCatalog.POTION_AFFINITY_TALISMAN_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.NETHER_WART_CORE_RECIPE), m.get(2).recipes());
+        assertEquals(List.of(CollectionsCatalog.POTION_AFFINITY_RING_RECIPE), m.get(3).recipes());
+        assertEquals(List.of(CollectionsCatalog.MUTANT_NETHER_WART_CORE_RECIPE), m.get(5).recipes());
+        assertEquals(List.of(CollectionsCatalog.POTION_AFFINITY_ARTIFACT_RECIPE), m.get(6).recipes());
     }
 }

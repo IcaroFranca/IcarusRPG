@@ -36,17 +36,23 @@ import org.bukkit.inventory.meta.SkullMeta;
  * indirection than it saves). Opened from the Skills menu's own Collections button ({@code
  * SkillsMenuService}, slot 20).
  *
- * <p>{@link #openEntry} shows every milestone as a stained glass pane colored by its own
- * status - red for locked, yellow for the one milestone currently in progress (the first
- * not yet reached; every milestone past it is still red even though the same collected
- * count is quietly working toward it too), green for already reached - per the player's
- * own "painél de vidro vermelho para bloqueados, amarelo para os que estão em progresso e
- * verde para os liberados" spec. A milestone with a real recipe behind it ({@link
- * #previewItems}, the same generic {@link Bukkit#getRecipe} lookup {@code
- * CollectionsItemsMenuService} uses for its own {@code /rpgitems} tiles) still opens a
- * dedicated preview screen ({@link #openItemPreview}) on click - the pane is only what
- * represents the milestone in the ladder itself, not a replacement for seeing the real item.
- * Clicking one of {@link #openItemPreview}'s own item tiles goes one level deeper still,
+ * <p>{@link #openEntry} shows every milestone with no real item behind it (an XP/enchant-
+ * discount/feature-unlock milestone) as a stained glass pane colored by its own status - red
+ * for locked, yellow for the one milestone currently in progress (the first not yet reached;
+ * every milestone past it is still red even though the same collected count is quietly
+ * working toward it too), green for already reached - per the player's own original "painél
+ * de vidro vermelho para bloqueados, amarelo para os que estão em progresso e verde para os
+ * liberados" spec. A milestone with a real recipe behind it ({@link #previewItems}, the same
+ * generic {@link Bukkit#getRecipe} lookup {@code CollectionsItemsMenuService} uses for its own
+ * {@code /rpgitems} tiles) shows that real item instead, in every status - locked and
+ * in-progress included - per the player's own later "mostrar o item sempre, em qualquer
+ * status" follow-up, which retired the pane convention for exactly these milestones; the
+ * item's own stat lore stays intact, with the same status lines the pane used to carry
+ * appended below it ({@link #withMilestoneStatusLore}). Either way, clicking a milestone tile
+ * that has a real item still opens a dedicated, bigger preview screen ({@link
+ * #openItemPreview} - useful for a 4-piece armor set's milestone, which only has room for one
+ * of its four pieces as the ladder tile's own icon). Clicking one of {@link #openItemPreview}'s
+ * own item tiles goes one level deeper still,
  * opening that exact recipe's real shape via {@link RecipeBookMenuService#openDetail(Player,
  * NamespacedKey, Runnable)} - the same read-only 3x3-grid screen the Recipe Book itself uses,
  * reused rather than duplicated here, with its own Back button wired to reopen this same
@@ -149,13 +155,22 @@ public final class CollectionsMenuService {
             lore.add(this.text(milestone.reward(l == Language.PT), unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
             lore.add(this.text("+" + this.global.milestoneXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
             lore.add(this.text(unlocked ? l.choose("CONCLUÍDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
-            Material pane = unlocked ? Material.LIME_STAINED_GLASS_PANE
-                    : inProgress ? Material.YELLOW_STAINED_GLASS_PANE
-                    : Material.RED_STAINED_GLASS_PANE;
-            inv.setItem(MILESTONE_SLOTS[i], this.item(pane, "Milestone " + (i + 1), lore));
-            if (!this.previewItems(milestone).isEmpty()) {
-                milestoneButtons.put(MILESTONE_SLOTS[i], milestone);
+            List<ItemStack> preview = this.previewItems(milestone);
+            if (preview.isEmpty()) {
+                Material pane = unlocked ? Material.LIME_STAINED_GLASS_PANE
+                        : inProgress ? Material.YELLOW_STAINED_GLASS_PANE
+                        : Material.RED_STAINED_GLASS_PANE;
+                inv.setItem(MILESTONE_SLOTS[i], this.item(pane, "Milestone " + (i + 1), lore));
+                continue;
             }
+            // A real recipe reward shows the actual item (its own name/stat lore kept intact,
+            // this milestone's own status lore appended below it) instead of a status-colored
+            // pane, regardless of locked/in-progress/unlocked - per the player's own explicit
+            // "mostrar o item sempre, em qualquer status" spec, which retires the pane's own
+            // red/yellow/green convention for exactly these milestones (everything else, XP/
+            // enchant-discount/feature-unlock milestones with no physical item, still uses it).
+            inv.setItem(MILESTONE_SLOTS[i], this.withMilestoneStatusLore(preview.get(0), lore));
+            milestoneButtons.put(MILESTONE_SLOTS[i], milestone);
         }
         inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
         p.openInventory(inv);
@@ -264,6 +279,17 @@ public final class CollectionsMenuService {
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.itemPreview(back, page, entry, milestone, recipeButtons));
+    }
+
+    /** Appends {@code statusLore} (the "Reached at/Need N more", reward text, Global XP, LOCKED/COMPLETED lines {@link #openEntry} already built for this milestone) below {@code item}'s own existing lore, separated by a blank line - keeps the crafted item's own real stat lore fully intact while still showing the ladder's own per-milestone status underneath it. Mutates and returns the same instance, which is already a fresh clone from {@link #previewItems}. */
+    private ItemStack withMilestoneStatusLore(ItemStack item, List<Component> statusLore) {
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+        lore.add(Component.empty());
+        lore.addAll(statusLore);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
 
     /** Appends a "click to see the recipe" hint to {@code item}'s own lore - every tile in {@link #openItemPreview} now opens the real recipe shape on click (see {@link #recipeBook}). Mutates and returns the same instance, which is already a fresh clone from {@link #previewItems}. */

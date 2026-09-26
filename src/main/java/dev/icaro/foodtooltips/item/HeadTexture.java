@@ -110,13 +110,27 @@ public final class HeadTexture {
     public static final String BAKED_POTATO_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDczZGUwYjBlZTViOWM2MWFhZWM3NjNhZTU0OGVjOTkyZDIwZDM0NWE5NzRlZWJjMjI2OWQ1MGZhZmRjM2QxYSJ9fX0=";
     /** "Vaccine Artifact" (minecraft-heads.com Custom Head ID 59340) - the Potato Collection's Vaccine Artifact accessory, see {@code FarmingCollectionsItemsService}. */
     public static final String VACCINE_ARTIFACT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzQzMzIwNjdmOWZhMTY5NWMzZDU3N2MzZWYyNjQzNTViZWUxNjFiNWUzYTMwMTkwNmE0ZjQ0M2IwMDJiOTJmYSJ9fX0=";
+    /** "Pumpkin" (minecraft-heads.com Custom Head ID 4598) - the Pumpkin Collection's Farmer Orb accessory, see {@code FarmingCollectionsItemsService}. */
+    public static final String FARMER_ORB = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzNiMTcyYTk3OWVmZjliZjViZmI4MGViODUxNWQ5M2U0ODg4Y2M0MWNkODA2NDczZjJhOWEwZDhiZDI5ZTMifX19";
+    /** "Brown Mushroom Cap" (minecraft-heads.com Custom Head ID 94344) - the Mushroom Collection's Night Vision Charm accessory, see {@code FarmingCollectionsItemsService}. */
+    public static final String NIGHT_VISION_CHARM = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmZkMmJkMmI1ZjhhYWViZjlmM2UwMjI1NzNkMjVmMDAxOGI5YmY1NmU1MjdiMzdiZjM3NmE5NGU0ZjAxZmZjOSJ9fX0=";
+    /** "Potion of Invisibility" (minecraft-heads.com Custom Head ID 129621) - the Nether Wart Collection's Potion Affinity Talisman accessory, see {@code FarmingCollectionsItemsService}. */
+    public static final String POTION_AFFINITY_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWE0NTc4ZjNlN2Q2ZjA0MWIzNTVmNWYyZDAwYzk1MzQ2YmNlZThiYTNhMzg4MzNhZDQ0ODdmN2Q1YmNiNTY5ZiJ9fX0=";
+    /**
+     * "Potion of Swiftness" (minecraft-heads.com Custom Head ID 129618) - the Nether Wart
+     * Collection's Potion Affinity Ring AND Artifact accessories both, see {@code
+     * FarmingCollectionsItemsService}: the player gave the exact same {@code /give} texture for
+     * both, so both share this one constant rather than two identical copies of it.
+     */
+    public static final String POTION_AFFINITY_RING_AND_ARTIFACT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTRkMWE0MTA4ZTc5MGUxMjQxYTNkMjNlM2QxNjM3ZTkyMDI2OWYyMDRlM2U0Zjg5MjcwZWQ3MTIzNGZiODVlYiJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
             RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE,
-            FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT);
+            FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
+            FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT);
 
     private HeadTexture() {
     }

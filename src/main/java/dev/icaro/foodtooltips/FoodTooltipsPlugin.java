@@ -248,6 +248,7 @@ extends JavaPlugin {
         menus.potionBag(this.potionBag);
         this.accessoryBag = new AccessoryBagService((Plugin)this, menus::openMain);
         menus.accessoryBag(this.accessoryBag);
+        this.accessoryBag.start();
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
         SculptorsAxeService sculptorsAxe = new SculptorsAxeService();
@@ -619,6 +620,7 @@ extends JavaPlugin {
             // other item service, so none can accidentally restore the Base64 profile
             // on Java (or the skin patch on Bedrock) until the next sweep.
             minerVariants.applyToInventory((Player)p);
+            this.accessoryBag.refreshStandingEffects((Player)p);
             this.quiver.topUp((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);

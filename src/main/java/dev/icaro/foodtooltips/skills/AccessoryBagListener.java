@@ -1,24 +1,35 @@
 package dev.icaro.foodtooltips.skills;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.potion.PotionEffect;
 
 /**
  * Wires {@link AccessoryBagService} into the world: the equip screen's own click/drag/close
  * handling (same "resolve first, sweep after" shape {@code PotionBagListener} already uses -
- * see {@link AccessoryBagService#scheduleFilterSweep}'s own doc), and the actual fall-damage
- * (see {@link #fall}, the Feather line) and poison-damage (see {@link #poison}, the Vaccine
- * line) reduction every equipped accessory grants.
+ * see {@link AccessoryBagService#scheduleFilterSweep}'s own doc), the fall-damage (see
+ * {@link #fall}, the Feather line) and poison-damage (see {@link #poison}, the Vaccine line)
+ * reduction every equipped accessory grants, and the potion-duration extension the Potion
+ * Affinity line grants (see {@link #potionEffect}). The Farmer Orb's crop-growth aura and the
+ * Night Vision Charm's permanent effect live in {@link AccessoryBagService} itself instead
+ * ({@link AccessoryBagService#pulseFarmerOrbs}/{@link AccessoryBagService#refreshStandingEffects}) -
+ * both are periodic maintenance, not a reaction to a Bukkit event the way every effect here is.
  */
 public final class AccessoryBagListener implements Listener {
     private final AccessoryBagService bag;
+    /** Re-entrancy guard for {@link #potionEffect} - see that method's own doc on why. */
+    private final Set<UUID> extendingPotionDuration = new HashSet<>();
 
     public AccessoryBagListener(AccessoryBagService bag) {
         this.bag = bag;
@@ -120,5 +131,42 @@ public final class AccessoryBagListener implements Listener {
             return;
         }
         e.setDamage(damage);
+    }
+
+    /**
+     * Extends the duration of any effect gained by actually drinking a potion ({@code
+     * Cause.POTION_DRINK}) by every equipped Potion Affinity accessory's own bonus percent,
+     * summed. Only {@code Action.ADDED} (a fresh effect, not already affected) - extending an
+     * upgrade/refresh ({@code Action.CHANGED}, e.g. drinking a second potion of the same type
+     * before the first wears off) is a known v1 simplification, left for later rather than
+     * guessing at how "extend an already-extended, already-ticking-down duration" should even
+     * compose. Bukkit gives no way to just change a {@link PotionEffect}'s own duration in
+     * place, so this cancels the original and re-applies an extended clone instead - which
+     * would otherwise fire this exact same handler again for the extended effect, so {@link
+     * #extendingPotionDuration} guards against re-extending what's already been extended once.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void potionEffect(EntityPotionEffectEvent e) {
+        if (e.getCause() != EntityPotionEffectEvent.Cause.POTION_DRINK
+                || e.getAction() != EntityPotionEffectEvent.Action.ADDED
+                || !(e.getEntity() instanceof Player p)
+                || this.extendingPotionDuration.contains(p.getUniqueId())) {
+            return;
+        }
+        double bonusPercent = this.bag.totalPotionDurationBonusPercent(p);
+        PotionEffect original = e.getNewEffect();
+        if (bonusPercent <= 0.0 || original == null) {
+            return;
+        }
+        int extendedDuration = (int) Math.round(original.getDuration() * (1.0 + bonusPercent / 100.0));
+        PotionEffect extended = new PotionEffect(original.getType(), extendedDuration, original.getAmplifier(),
+                original.isAmbient(), original.hasParticles(), original.hasIcon());
+        e.setCancelled(true);
+        this.extendingPotionDuration.add(p.getUniqueId());
+        try {
+            p.addPotionEffect(extended);
+        } finally {
+            this.extendingPotionDuration.remove(p.getUniqueId());
+        }
     }
 }

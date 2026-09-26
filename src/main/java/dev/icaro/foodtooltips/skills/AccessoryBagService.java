@@ -21,8 +21,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -31,6 +37,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
@@ -69,6 +77,15 @@ public final class AccessoryBagService {
      * player reported their Personal Storage's own empty cells doing exactly that).
      */
     private static final int[] STORAGE_SLOTS = java.util.stream.IntStream.range(0, STORAGE_SIZE).toArray();
+    /** {@link AccessoryItems#family} for the Pumpkin Collection's own standalone Farmer Orb - see {@link #pulseFarmerOrbs}. */
+    private static final String FARMER_ORB_FAMILY = "farmer_orb";
+    /** {@link AccessoryItems#family} for the Mushroom Collection's own standalone Night Vision Charm - see {@link #refreshStandingEffects}. */
+    private static final String NIGHT_VISION_FAMILY = "night_vision";
+    private static final int FARMER_ORB_PULSE_TICKS = 60;
+    private static final int FARMER_ORB_HORIZONTAL_RADIUS = 2;
+    private static final int FARMER_ORB_VERTICAL_RANGE = 2;
+    private static final double FARMER_ORB_BEAM_PARTICLE_SPACING = 0.3;
+    private static final int NIGHT_VISION_DURATION_TICKS = 220;
 
     private final Plugin plugin;
     private final Consumer<Player> back;
@@ -129,6 +146,69 @@ public final class AccessoryBagService {
             if (p != null) {
                 this.persist(p);
             }
+        }
+    }
+
+    /** Starts {@link #pulseFarmerOrbs}'s own repeating task - call once from {@code FoodTooltipsPlugin#onEnable}, same shape as {@code FarmCrystalService#start}. The Night Vision Charm has no timer of its own - {@link #refreshStandingEffects} instead rides the plugin's existing every-few-ticks per-player sweep, since a potion effect just needs re-topping-up well before it would otherwise expire, not a dedicated cadence. */
+    public void start() {
+        Bukkit.getScheduler().runTaskTimer(this.plugin, this::pulseFarmerOrbs, FARMER_ORB_PULSE_TICKS, FARMER_ORB_PULSE_TICKS);
+    }
+
+    /**
+     * Pumpkin Collection M2's own Farmer Orb: every {@value #FARMER_ORB_PULSE_TICKS} ticks
+     * (3s), matures every immature crop in a {@value #FARMER_ORB_HORIZONTAL_RADIUS}-block
+     * horizontal radius (a 5x5 area, per the player's own spec) around every online player
+     * who has one stored, {@value #FARMER_ORB_VERTICAL_RANGE} blocks up/down to still catch
+     * crops on slightly uneven ground - unlike {@code FarmCrystalService#pulseOne} (one random
+     * crop per pulse, from a placed block), this matures every immature crop the area has at
+     * once, since the Orb is a passive personal aura rather than a shared, placed structure.
+     */
+    private void pulseFarmerOrbs() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (this.hasFamily(p, FARMER_ORB_FAMILY)) {
+                this.growCropsAround(p);
+            }
+        }
+    }
+
+    private void growCropsAround(Player p) {
+        Location center = p.getLocation();
+        World world = center.getWorld();
+        int cx = center.getBlockX();
+        int cy = center.getBlockY();
+        int cz = center.getBlockZ();
+        for (int dx = -FARMER_ORB_HORIZONTAL_RADIUS; dx <= FARMER_ORB_HORIZONTAL_RADIUS; dx++) {
+            for (int dy = -FARMER_ORB_VERTICAL_RANGE; dy <= FARMER_ORB_VERTICAL_RANGE; dy++) {
+                for (int dz = -FARMER_ORB_HORIZONTAL_RADIUS; dz <= FARMER_ORB_HORIZONTAL_RADIUS; dz++) {
+                    Block block = world.getBlockAt(cx + dx, cy + dy, cz + dz);
+                    BlockData data = block.getBlockData();
+                    if (data instanceof Ageable ageable && ageable.getAge() < ageable.getMaximumAge()) {
+                        ageable.setAge(ageable.getMaximumAge());
+                        block.setBlockData(ageable);
+                        this.beamEffect(center, block.getLocation().add(0.5, 0.5, 0.5));
+                    }
+                }
+            }
+        }
+    }
+
+    /** Same one-shot {@link Particle#END_ROD} trail {@code item.FarmCrystalService#beamEffect} draws - "o mesmo efeito de partículas que o Farm Crystal tem" per the player's own explicit spec for the Farmer Orb. */
+    private void beamEffect(Location from, Location to) {
+        World world = from.getWorld();
+        double distance = from.distance(to);
+        int steps = Math.max(1, (int) (distance / FARMER_ORB_BEAM_PARTICLE_SPACING));
+        double dx = (to.getX() - from.getX()) / steps;
+        double dy = (to.getY() - from.getY()) / steps;
+        double dz = (to.getZ() - from.getZ()) / steps;
+        for (int i = 0; i <= steps; i++) {
+            world.spawnParticle(Particle.END_ROD, from.getX() + dx * i, from.getY() + dy * i, from.getZ() + dz * i, 1, 0, 0, 0, 0);
+        }
+    }
+
+    /** Mushroom Collection M7's own Night Vision Charm: tops up {@value #NIGHT_VISION_DURATION_TICKS} ticks of hidden (no particles/ambient/icon - same convention {@code ChocolateArmorService}'s own permanent Saturation uses) Night Vision on {@code p} every time this runs, as long as they still have one stored - called from {@code FoodTooltipsPlugin}'s existing per-player sweep, frequent enough that the effect never visibly runs out between calls. */
+    public void refreshStandingEffects(Player p) {
+        if (this.hasFamily(p, NIGHT_VISION_FAMILY)) {
+            p.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, NIGHT_VISION_DURATION_TICKS, 0, false, false, false));
         }
     }
 
@@ -203,6 +283,34 @@ public final class AccessoryBagService {
             total += AccessoryItems.poisonReductionPercent(item);
         }
         return total;
+    }
+
+    /** Sum of {@link AccessoryItems#potionDurationBonusPercent} across every accessory {@code p} currently has stored (the Potion Affinity line) - read by {@code AccessoryBagListener#potionEffect} whenever {@code p} drinks a potion, same shape as {@link #totalFallHeightBonus}. */
+    public double totalPotionDurationBonusPercent(Player p) {
+        double total = 0.0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.potionDurationBonusPercent(item);
+        }
+        return total;
+    }
+
+    /**
+     * Whether {@code p} currently has any stored accessory belonging to {@code family} - a
+     * plain existence check, unlike {@link #totalFallHeightBonus}/{@link
+     * #totalPoisonReductionPercent}/{@link #totalPotionDurationBonusPercent}'s numeric sums,
+     * for a standalone accessory whose own effect isn't a stackable stat at all: the Farmer
+     * Orb's crop-growth aura ({@link #pulseFarmerOrbs}) and the Night Vision Charm's permanent
+     * effect ({@link #refreshStandingEffects}) are each either fully on or fully off, never
+     * "how much" - carrying two Farmer Orbs (not that the family restriction in {@link
+     * #scheduleFilterSweep} would ever let that happen) wouldn't grow crops any faster.
+     */
+    public boolean hasFamily(Player p, String family) {
+        for (ItemStack item : this.stored(p)) {
+            if (family.equals(AccessoryItems.family(item))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** {@code p}'s own {@value #STORAGE_SIZE} storage slots - from the live cached screen if {@code p} has one (so a change lands immediately, before the bag is ever closed/persisted), otherwise from their last-persisted PDC state. */
