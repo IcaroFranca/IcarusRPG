@@ -10,17 +10,18 @@ import org.bukkit.NamespacedKey;
 /**
  * Every collectible material's own milestone ladder, grouped by {@link CollectionsCategory} -
  * same "static final list, never built per-call" shape as {@code bestiary.BestiaryCatalog}/
- * {@code mining.MiningCatalog}. Farming and Foraging are populated today - the player's own
- * explicit "o resto vai passando com o tempo" ("the rest will come with time"). Combat's own
- * entries exist too (14 of them - every material a real hostile {@code
- * bestiary.BestiaryCatalog} mob commonly drops, minus one-off boss loot and anything an
- * aquatic mob drops, reserved for Fishing instead), but every one starts as an inert
- * template (empty milestone list, same convention as Foraging's later wood-log entries
- * below, from Mangrove Log onward) per the player's own "vou te falar com o tempo o que
- * cada um vai ter" - Mining/Fishing still have
- * no entries at all, though both are real {@link CollectionsCategory} values already (so
- * {@link CollectionsMenuService}'s category screen never has to change shape once any of
- * them are filled in).
+ * {@code mining.MiningCatalog}. Farming and Foraging are mostly populated today - the
+ * player's own explicit "o resto vai passando com o tempo" ("the rest will come with
+ * time") - though each now also carries a handful of inert templates (empty milestone
+ * list) for a real material that was missing from the original lineup (Farming's own
+ * Beetroot/Bamboo/Kelp/Sweet Berries/Glow Berries/Torchflower/Pitcher Pod; Foraging's later
+ * wood-log entries below, from Mangrove Log onward) - milestones to be filled in later, same
+ * as Combat's own 14 entries (every material a real hostile {@code bestiary.BestiaryCatalog}
+ * mob commonly drops, minus one-off boss loot and anything an aquatic mob drops, reserved
+ * for Fishing instead), all inert too per the player's own "vou te falar com o tempo o que
+ * cada um vai ter". Mining/Fishing still have no entries at all, though both are real
+ * {@link CollectionsCategory} values already (so {@link CollectionsMenuService}'s category
+ * screen never has to change shape once any of them are filled in).
  *
  * <p>The recipe keys below are this class's own - {@code
  * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService} registers its actual {@code
@@ -446,6 +447,19 @@ public final class CollectionsCatalog {
                     at(5, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
                             "Desbloqueia a receita da Haymaker Armor", "Unlocks the Haymaker Armor recipe",
                             HAYMAKER_HELMET_RECIPE, HAYMAKER_CHESTPLATE_RECIPE, HAYMAKER_LEGGINGS_RECIPE, HAYMAKER_BOOTS_RECIPE)))),
+            // Every other real farmable crop the game has, added after the player's own
+            // review flagged the original Farming lineup as incomplete (Beetroot/Bamboo
+            // named explicitly, the rest found by the same "every real crop material"
+            // sweep). Inert templates for now (empty milestone list, same convention as
+            // the Foraging wood-log templates and the newer Combat entries below/above) -
+            // milestones to be filled in later.
+            new CollectionsEntry(Material.BEETROOTS, Material.BEETROOT, CollectionsCategory.FARMING, "Beterraba", "Beetroot", List.of()),
+            new CollectionsEntry(Material.BAMBOO, Material.BAMBOO, CollectionsCategory.FARMING, "Bambu", "Bamboo", List.of()),
+            new CollectionsEntry(Material.KELP_PLANT, Material.KELP, CollectionsCategory.FARMING, "Kelp", "Kelp", List.of()),
+            new CollectionsEntry(Material.SWEET_BERRY_BUSH, Material.SWEET_BERRIES, CollectionsCategory.FARMING, "Frutas Silvestres", "Sweet Berries", List.of()),
+            new CollectionsEntry(Material.CAVE_VINES, Material.GLOW_BERRIES, CollectionsCategory.FARMING, "Frutas Brilhantes", "Glow Berries", List.of()),
+            new CollectionsEntry(Material.TORCHFLOWER_CROP, Material.TORCHFLOWER, CollectionsCategory.FARMING, "Flor-Tocha", "Torchflower", List.of()),
+            new CollectionsEntry(Material.PITCHER_CROP, Material.PITCHER_POD, CollectionsCategory.FARMING, "Vagem de Jarro", "Pitcher Pod", List.of()),
             // Personal Storage unlock/expansion milestones carry no recipes, same reasoning
             // as the Wardrobe (Leather)/Potion Bag (Nether Wart) entries above - see
             // skills.PersonalStorageService. Custom thresholds (not DEFAULT_THRESHOLDS), per

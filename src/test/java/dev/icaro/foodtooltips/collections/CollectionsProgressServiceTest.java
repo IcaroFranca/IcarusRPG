@@ -53,7 +53,7 @@ final class CollectionsProgressServiceTest {
         // static structure this sums over (every catalog entry counted, not just Farming's)
         // without needing a Player, since achieved(entry, count) is already covered above.
         int farmingEntries = CollectionsCatalog.entries(CollectionsCategory.FARMING).size();
-        assertEquals(17, farmingEntries);
+        assertEquals(24, farmingEntries);
         // Foraging now has one entry per wood log type (Oak Log fully fleshed out, the
         // other 10 still template-only with no milestones) - see CollectionsCatalog's own doc.
         int foragingEntries = CollectionsCatalog.entries(CollectionsCategory.FORAGING).size();

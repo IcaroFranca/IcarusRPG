@@ -124,9 +124,13 @@ final class CollectionsCatalogTest {
     @Test
     void everyFarmingEntryIsPresent() {
         List<CollectionsEntry> farming = CollectionsCatalog.entries(CollectionsCategory.FARMING);
-        assertEquals(17, farming.size());
+        assertEquals(24, farming.size());
         for (CollectionsEntry entry : farming) {
-            assertEquals(9, entry.milestones().size(), entry.nameEn() + " should have exactly 9 milestones");
+            // The 7 newest crops (Beetroot, Bamboo, Kelp, Sweet Berries, Glow Berries,
+            // Torchflower, Pitcher Pod) are inert templates for now, same as Foraging's
+            // wood-log templates and Combat's own entries - see CollectionsCatalog's own doc.
+            int size = entry.milestones().size();
+            assertTrue(size == 0 || size == 9, entry.nameEn() + " should have either 0 (template) or 9 milestones");
         }
     }
 
