@@ -49,11 +49,7 @@ public final class ReforgeMenuService {
     }
 
     public void open(Player player) {
-        // 54 (6 rows), not a snugger 45: menu.MenuBackground#apply only actually renders
-        // its background for a 3- or 6-row inventory, and the 3-row variant was found to
-        // render blank white in practice (see skills.PersonalStorageService's own doc on
-        // LARGE_CANVAS) - the extra rows below stay pure filler.
-        Inventory inventory = Bukkit.createInventory(null, 54, "Reforge");
+        Inventory inventory = Bukkit.createInventory(null, 45, "Reforge");
         ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             inventory.setItem(slot, filler);
@@ -96,7 +92,7 @@ public final class ReforgeMenuService {
                 return;
             }
             Inventory inventory = player.getOpenInventory().getTopInventory();
-            if (inventory.getSize() != 54) {
+            if (inventory.getSize() != 45) {
                 return;
             }
             this.refreshReforgeIcon(inventory, player);

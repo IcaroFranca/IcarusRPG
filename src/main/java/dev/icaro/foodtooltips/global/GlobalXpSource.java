@@ -7,6 +7,7 @@ public enum GlobalXpSource {
     ENCHANT_MILESTONE,
     POTION_MILESTONE,
     COLLECTIONS_MILESTONE,
+    ACCESSORY_CRAFT,
     MIGRATION,
     ADMIN;
 

@@ -65,16 +65,8 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 public final class WardrobeService {
     public static final int COLUMNS = 9;
     private static final int ARMOR_ROWS = 4;
-    /** The board's own 5 real rows (helmets/chestplates/leggings/boots/selector). */
+    /** The board's own 5 real rows (helmets/chestplates/leggings/boots/selector) - also the exact canvas size, since {@code menu.MenuBackground#apply} has a working background glyph for every row count (see {@code skills.PersonalStorageService}'s own doc), so no padding row is needed. */
     private static final int BOARD_SIZE = 45;
-    /**
-     * The full canvas size - {@code menu.MenuBackground#apply} only actually renders its
-     * background for a 3- or 6-row inventory, and the 3-row variant was found to render
-     * blank white in practice (see {@code skills.PersonalStorageService}'s own doc on
-     * {@code LARGE_CANVAS}), so this stays 54 (6 rows) even though only the first {@value
-     * #BOARD_SIZE} slots hold anything real - the 6th row is pure blend filler.
-     */
-    private static final int TOTAL_SIZE = 54;
     private static final int HELMET_ROW = 0;
     private static final int CHESTPLATE_ROW = 1;
     private static final int LEGGINGS_ROW = 2;
@@ -398,15 +390,6 @@ public final class WardrobeService {
         return base;
     }
 
-    /** Plain background-blend filler for the 6th row's own decorative cells (see {@link #BOARD_SIZE}'s own doc) - a blank display name, unlike {@link #lockedFiller}'s "Locked" one, since there's nothing to explain about a row that was never part of the board to begin with. */
-    private ItemStack blendFiller() {
-        ItemStack f = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta m = f.getItemMeta();
-        m.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
-        f.setItemMeta(m);
-        return f;
-    }
-
     private ItemStack lockedFiller(Language l) {
         ItemStack f = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta m = f.getItemMeta();
@@ -448,11 +431,7 @@ public final class WardrobeService {
     private Inventory inventoryFor(Player p) {
         return this.cache.computeIfAbsent(p.getUniqueId(), id -> {
             Language l = Language.of(p);
-            Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, l.choose("Guarda-roupa", "Wardrobe"));
-            ItemStack blend = this.blendFiller();
-            for (int i = BOARD_SIZE; i < TOTAL_SIZE; i++) {
-                inv.setItem(i, blend);
-            }
+            Inventory inv = Bukkit.createInventory(null, BOARD_SIZE, l.choose("Guarda-roupa", "Wardrobe"));
             ItemStack[] saved = this.load(p);
             if (saved != null) {
                 int limit = Math.min(saved.length, ARMOR_ROWS * COLUMNS);

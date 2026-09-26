@@ -2,8 +2,13 @@ package dev.icaro.foodtooltips.crafting;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.global.GlobalLevelService;
+import dev.icaro.foodtooltips.global.GlobalXpSource;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.AccessoryItems;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.item.ItemTier;
+import dev.icaro.foodtooltips.item.ItemTierService;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,10 +52,14 @@ public final class CraftingMenuService {
     private static final int[] VISIBLE_WORK_SLOTS = {11, 12, 13, 20, 21, 22, 29, 30, 31, OUTPUT_SLOT};
 
     private final Consumer<Player> back;
+    private final GlobalLevelService global;
+    private final ItemTierService tiers;
     private final Set<UUID> viewing = new HashSet<>();
 
-    public CraftingMenuService(Consumer<Player> back) {
+    public CraftingMenuService(Consumer<Player> back, GlobalLevelService global, ItemTierService tiers) {
         this.back = back;
+        this.global = global;
+        this.tiers = tiers;
     }
 
     public void open(Player p) {
@@ -137,6 +146,7 @@ public final class CraftingMenuService {
         if (result == null || result.isEmpty()) {
             return;
         }
+        this.grantAccessoryCraftXp(p, result);
         Map<Integer, ItemStack> overflow = p.getInventory().addItem(result.clone());
         for (ItemStack leftover : overflow.values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), leftover);
@@ -150,6 +160,28 @@ public final class CraftingMenuService {
             v.setItem(slot, item.getAmount() <= 0 ? null : item);
         }
         this.recompute(p);
+    }
+
+    /**
+     * Global Level XP for crafting an accessory ({@link AccessoryItems#type} says so - never
+     * plain gear, even at the same tier: the player's own spec was specifically about
+     * accessories), scaled to how good the one just crafted is: 1 XP at Tier D (the
+     * Talisman rung), 3 at Tier C (Ring), 5 at Tier B (Artifact) - multiplied by however many
+     * came out of this craft at once, though every accessory recipe today only ever yields 1.
+     */
+    private void grantAccessoryCraftXp(Player p, ItemStack result) {
+        if (AccessoryItems.type(result) == null) {
+            return;
+        }
+        long xpPerItem = switch (this.tiers.tierOf(result)) {
+            case D -> 1L;
+            case C -> 3L;
+            case B -> 5L;
+            default -> 0L;
+        };
+        if (xpPerItem > 0L) {
+            this.global.addGlobalXp(p, xpPerItem * result.getAmount(), GlobalXpSource.ACCESSORY_CRAFT);
+        }
     }
 
     /**

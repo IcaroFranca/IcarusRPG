@@ -53,8 +53,6 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 public final class PotionBagService {
     public static final int MAX_SLOTS = 45;
     private static final Set<Material> ALLOWED_TYPES = EnumSet.of(Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION, Material.EXPERIENCE_BOTTLE);
-    /** See {@code PersonalStorageService}'s own doc on this field - same {@code MenuBackground} "only 3 or 6 rows, and the 3-row one renders blank white in practice" issue, same fix (always this canvas, never the smaller one). */
-    private static final int LARGE_CANVAS = 54;
 
     private final Plugin plugin;
     private final CollectionsProgressService collectionsProgress;
@@ -194,9 +192,9 @@ public final class PotionBagService {
         });
     }
 
-    /** Always {@link #LARGE_CANVAS} - see that field's own doc. */
+    /** {@code size} real storage slots plus one decorative/back-button row (9 slots) - see {@code PersonalStorageService#totalSizeFor}'s own doc on why this is the exact minimum canvas, not a fixed padded one. */
     private int totalSizeFor(int size) {
-        return LARGE_CANVAS;
+        return size + 9;
     }
 
     /**
@@ -204,10 +202,7 @@ public final class PotionBagService {
      * migrating the old real-storage portion" shape, since {@code computeIfAbsent} alone (this
      * method's own first version) never rebuilt at all once cached, silently keeping a player
      * at their old, smaller size for the rest of the session no matter how many further
-     * milestones they crossed. Same canvas rounding and {@link #cachedSize}-keyed rebuild
-     * check too - two different unlocked sizes here (e.g. 27 and 36) can round up to the very
-     * same canvas, so the {@link Inventory}'s own size alone can't tell "nothing changed" apart
-     * from "grew but still fits the same canvas".
+     * milestones they crossed.
      */
     private Inventory inventoryFor(Player p) {
         Language l = Language.of(p);

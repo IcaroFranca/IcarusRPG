@@ -281,7 +281,7 @@ extends JavaPlugin {
         menus.tree(treeMenu);
         TravelMenuService travelMenu = new TravelMenuService((Plugin)this, menus::openMain, collectionsProgress);
         menus.travel(travelMenu);
-        CraftingMenuService craftingMenu = new CraftingMenuService(menus::openMain);
+        CraftingMenuService craftingMenu = new CraftingMenuService(menus::openMain, global, tiers);
         menus.crafting(craftingMenu);
         RecipeBookMenuService recipeBook = new RecipeBookMenuService((Plugin)this, menus::openMain);
         menus.recipeBook(recipeBook);

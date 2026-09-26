@@ -204,11 +204,7 @@ public final class DestroyerHandService {
     /** Opens the small 1-row settings menu (fill mode + range) for {@code item} (the hand currently in the player's hand). */
     public void openModeMenu(Player p, ItemStack item) {
         Language l = Language.of(p);
-        // 54 (6 rows), not 27 (3 rows): menu.MenuBackground#apply only actually renders
-        // its background for a 3- or 6-row inventory, and the 3-row variant was found to
-        // render blank white in practice (see skills.PersonalStorageService's own doc on
-        // LARGE_CANVAS) - the extra rows below stay pure filler.
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Mão do Destruidor: Configurações", "Destroyer's Hand: Settings"));
+        Inventory v = Bukkit.createInventory(null, 27, l.choose("Mão do Destruidor: Configurações", "Destroyer's Hand: Settings"));
         this.renderMenu(v, item, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -220,7 +216,7 @@ public final class DestroyerHandService {
         ItemMeta fillerMeta = filler.getItemMeta();
         fillerMeta.displayName(Component.text(" "));
         filler.setItemMeta(fillerMeta);
-        for (int i = 0; i < 54; i++) {
+        for (int i = 0; i < 27; i++) {
             v.setItem(i, filler);
         }
         FillMode current = this.mode(item);

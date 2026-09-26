@@ -36,14 +36,7 @@ public final class PassiveAbilityMenuService {
     private static final int MOB_DROPS_SLOT = 11;
     private static final int BLOCK_DROPS_SLOT = 15;
     private static final int BACK_SLOT = 22;
-    /**
-     * The full canvas size - {@code menu.MenuBackground#apply} only actually renders its
-     * background for a 3- or 6-row inventory, and the 3-row variant was found to render
-     * blank white in practice (see {@code skills.PersonalStorageService}'s own doc on
-     * {@code LARGE_CANVAS}), so this stays 54 (6 rows) even though only the first 3 rows
-     * hold anything real.
-     */
-    private static final int SIZE = 54;
+    private static final int SIZE = 27;
 
     private final PassiveAbilityService passives;
     private final GlobalLevelService global;

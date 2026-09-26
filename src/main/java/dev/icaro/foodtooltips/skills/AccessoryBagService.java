@@ -51,16 +51,15 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * real unlock condition is decided later.
  *
  * <p>Same PDC-persisted, {@code BukkitObjectOutputStream}-over-{@code ItemStack[]} Base64
- * pattern every other bag in this plugin uses (see {@code PotionBagService}), and the same
- * always-{@value #SIZE}-slot (6-row) canvas every custom menu in this plugin sticks to -
- * {@code menu.MenuBackground#apply} only actually renders its background for a 3- or 6-row
- * inventory, and the 3-row variant was found to render blank white in practice (see {@code
- * skills.PersonalStorageService}'s own doc on {@code LARGE_CANVAS}), so a smaller canvas is
- * never used even though this bag only needs {@value #STORAGE_SIZE} real slots.
+ * pattern every other bag in this plugin uses (see {@code PotionBagService}), sized to the
+ * exact minimum canvas that fits its {@value #STORAGE_SIZE} real slots plus one decorative
+ * close-button row below them (see {@code skills.PersonalStorageService#totalSizeFor}'s own
+ * doc on why every custom menu in this plugin no longer needs to pad out to a fixed 54-slot
+ * canvas).
  */
 public final class AccessoryBagService {
-    private static final int SIZE = 54;
     public static final int STORAGE_SIZE = 9;
+    private static final int SIZE = STORAGE_SIZE + 9;
     private static final int CLOSE_SLOT = 13;
     /**
      * {@code 0..STORAGE_SIZE-1} - passed as {@code MenuBackground#apply}'s own "persistent

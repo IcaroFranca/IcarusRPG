@@ -14,13 +14,25 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-/** Applies the resource-pack menu canvas while preserving slots that contain real controls. */
+/**
+ * Applies the resource-pack menu canvas while preserving slots that contain real controls.
+ *
+ * <p>The IcarusTexture resource pack (a separate repo) registers one background glyph per
+ * row count, 1 through 6 ({@code menu_base_1.png}..{@code menu_base_6.png}, mapped to
+ * {@link #BASE_GLYPH_BY_ROWS}) - every inventory size that's a plain multiple of 9 works, not
+ * just 3 and 6 rows. An earlier version of that pack only shipped {@code menu_base_3}/{@code
+ * menu_base_6}, and the 3-row one was separately confirmed to render as a blank white screen
+ * in practice - callers throughout this plugin worked around both gaps by always padding
+ * every custom menu out to a fixed 54-slot (6-row) canvas, even when the real content needed
+ * far fewer slots. Now that every row count 1-6 has its own working glyph, that padding is no
+ * longer needed anywhere - see e.g. {@code skills.PersonalStorageService#totalSizeFor}.
+ */
 public final class MenuBackground {
     private static final Key BACKGROUND_ITEM_MODEL = Key.key("icarus", "menu_background");
     private static final char LEAD_SHIFT = '\uE001';
-    private static final char BASE_SIX_ROWS = '\uE000';
-    private static final char BASE_THREE_ROWS = '\uE003';
     private static final char BASE_RESET = '\uE002';
+    /** {@code menu_base_1.png}..{@code menu_base_6.png}'s own glyphs, indexed by row count minus 1 - see this class's own doc. */
+    private static final char[] BASE_GLYPH_BY_ROWS = {'\uE004', '\uE005', '\uE003', '\uE006', '\uE007', '\uE000'};
     private static final char FIRST_ROW_GLYPH = '\uE010';
     private static final char FIRST_COLUMN_SHIFT = '\uE020';
     private static final char FIRST_COLUMN_RESET = '\uE030';
@@ -41,7 +53,7 @@ public final class MenuBackground {
         InventoryView view = player.getOpenInventory();
         Inventory inventory = view.getTopInventory();
         int rows = inventory.getSize() / 9;
-        if (rows != 3 && rows != 6) {
+        if (inventory.getSize() % 9 != 0 || rows < 1 || rows > 6) {
             return;
         }
 
@@ -50,7 +62,7 @@ public final class MenuBackground {
         StringBuilder title = new StringBuilder(plainTitle.length() + 192);
         title.append('\u00A7').append('f')
                 .append(LEAD_SHIFT)
-                .append(rows == 3 ? BASE_THREE_ROWS : BASE_SIX_ROWS)
+                .append(BASE_GLYPH_BY_ROWS[rows - 1])
                 .append(BASE_RESET);
 
         for (int slot = 0; slot < inventory.getSize(); slot++) {
