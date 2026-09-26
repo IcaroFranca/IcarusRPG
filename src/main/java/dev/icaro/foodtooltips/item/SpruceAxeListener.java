@@ -55,12 +55,20 @@ public final class SpruceAxeListener implements Listener {
      */
     private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
     /**
-     * headPose's Z component is the outermost rotation in its own composition order, about the
-     * bone's original forward/back axis - which {@link #FORWARD_FACING_RADIANS} has just
-     * aligned with the travel direction - so animating it spins the axe around its own
-     * handle-to-blade axis (a drill-bit/dart spin) instead of tumbling it edge-on through
-     * invisible frames the way rotating the X component alone (this class's own first
-     * version) did. One full spin every 6 ticks (60°/tick).
+     * headPose composes as {@code Rz(zRot)·Ry(yRot)·Rx(xRot)}, each about the head bone's own
+     * ORIGINAL (fixed) axes - Z is the OUTERMOST rotation, applied about that still-fixed
+     * original Z axis regardless of what Y already did to the shape. Animating Z (this class's
+     * own second version) therefore swept the blade's tip around that fixed axis while
+     * {@link #FORWARD_FACING_RADIANS} pointed the shape 90° away from it - a cone/corkscrew
+     * ("caracol") drifting off the travel line, not a spin around the axe's own long axis, and
+     * a player reported exactly that. X is the INNERMOST rotation instead, applied to the
+     * item's still-identity-posed original orientation BEFORE {@link #FORWARD_FACING_RADIANS}'s
+     * own Y reorientation carries the (already-spinning) shape rigidly to point along the
+     * travel direction - a rigid rotation applied on top of a spin can't introduce precession,
+     * so animating X spins the axe cleanly in place around its own handle-to-blade axis with no
+     * drift, replacing both that second version and this class's own first (an X-only tumble
+     * with no forward-facing reorientation at all, which vanished edge-on periodically). One
+     * full spin every 6 ticks (60°/tick).
      */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
@@ -194,7 +202,7 @@ public final class SpruceAxeListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, this.ticks * SPIN_RADIANS_PER_TICK));
+                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
             }
 
             private void finish() {

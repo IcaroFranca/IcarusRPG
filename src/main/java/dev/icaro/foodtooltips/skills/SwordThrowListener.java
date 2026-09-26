@@ -164,7 +164,7 @@ implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, this.ticks * SPIN_RADIANS_PER_TICK));
+                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
             }
 
             private void finish() {
