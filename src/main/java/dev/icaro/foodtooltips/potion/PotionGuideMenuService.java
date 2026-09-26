@@ -165,7 +165,7 @@ public final class PotionGuideMenuService {
         for (String step : pt ? e.stepsPt() : e.stepsEn()) {
             lore.add(this.text(step, NamedTextColor.GRAY));
         }
-        return this.item(e.icon(), pt ? e.namePt() : e.nameEn(), lore);
+        return this.potionItem(e.icon(), pt ? e.namePt() : e.nameEn(), lore);
     }
 
     private ItemStack milestoneIcon(Player p, PotionEntry e, boolean pt, Language l) {
@@ -173,7 +173,7 @@ public final class PotionGuideMenuService {
         List<Component> lore = new ArrayList<>();
         lore.add(this.text(achieved ? l.choose("Já preparada!", "Already brewed!") : l.choose("Ainda não preparada.", "Not brewed yet."),
                 achieved ? NamedTextColor.GREEN : NamedTextColor.RED));
-        return this.item(e.icon(), pt ? e.namePt() : e.nameEn(), lore);
+        return this.potionItem(e.icon(), pt ? e.namePt() : e.nameEn(), lore);
     }
 
     private ItemStack filler() {
@@ -210,6 +210,17 @@ public final class PotionGuideMenuService {
 
     private ItemStack item(Material material, String name, List<Component> lore) {
         ItemStack stack = ItemStack.of(material);
+        ItemMeta meta = stack.getItemMeta();
+        meta.displayName(this.text(name, NamedTextColor.GOLD));
+        meta.lore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    /** Same idea as {@link #item}, but starting from {@code base} (a {@link PotionEntry#icon()} - the actual potion, base type/color already set) instead of a plain {@link Material} - cloned so repeated calls (one per page render, one per online player) never share or mutate the catalog's own template instance. */
+    private ItemStack potionItem(ItemStack base, String name, List<Component> lore) {
+        ItemStack stack = base.clone();
         ItemMeta meta = stack.getItemMeta();
         meta.displayName(this.text(name, NamedTextColor.GOLD));
         meta.lore(lore);
