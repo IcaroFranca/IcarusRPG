@@ -38,13 +38,17 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * A per-player storage area for accessories (Talismans/Rings/Artifacts, any {@code
  * item.AccessoryType} - see {@code item.AccessoryItems}) - {@value #STORAGE_SIZE} plain,
  * interchangeable slots, no per-type dedicated cell: a player can carry several accessories
- * at once, including more than one of the same type, per the player's own explicit "não
- * precisa ter slot pra tipo... teremos vários" spec (an earlier version of this class gave
- * Talisman/Ring/Artifact one fixed slot each and only let one of each type be equipped at
- * all - dropped in favor of this simpler, more flexible design). Unlocked for every player
- * from the start, for now ("já de início por enquanto") - {@link #unlocked} has no real gate
- * yet, kept only so every call site already written against it doesn't need to change the
- * moment a real unlock condition is decided later.
+ * at once, including more than one of the same type (e.g. two Rings from different
+ * Collections), per the player's own explicit "não precisa ter slot pra tipo... teremos
+ * vários" spec (an earlier version of this class gave Talisman/Ring/Artifact one fixed slot
+ * each and restricted by type instead - dropped in favor of this simpler, more flexible
+ * design). The one restriction that DOES still apply is per {@link AccessoryItems#family},
+ * not per type: two accessories from the same upgrade line (e.g. a Feather Talisman and a
+ * Feather Ring) can't both sit in the bag at once, since the higher tier is meant to replace
+ * the one below it - see {@link #scheduleFilterSweep}. Unlocked for every player from the
+ * start, for now ("já de início por enquanto") - {@link #unlocked} has no real gate yet, kept
+ * only so every call site already written against it doesn't need to change the moment a
+ * real unlock condition is decided later.
  *
  * <p>Same PDC-persisted, {@code BukkitObjectOutputStream}-over-{@code ItemStack[]} Base64
  * pattern every other bag in this plugin uses (see {@code PotionBagService}), and the same
@@ -58,6 +62,14 @@ public final class AccessoryBagService {
     private static final int SIZE = 54;
     public static final int STORAGE_SIZE = 9;
     private static final int CLOSE_SLOT = 13;
+    /**
+     * {@code 0..STORAGE_SIZE-1} - passed as {@code MenuBackground#apply}'s own "persistent
+     * slots" so an empty (but real, usable) storage cell stays visible instead of vanishing
+     * into the seamless background the instant nothing is in it (see {@code
+     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
+     * player reported their Personal Storage's own empty cells doing exactly that).
+     */
+    private static final int[] STORAGE_SLOTS = java.util.stream.IntStream.range(0, STORAGE_SIZE).toArray();
 
     private final Plugin plugin;
     private final Consumer<Player> back;
@@ -86,7 +98,7 @@ public final class AccessoryBagService {
     public void open(Player p) {
         Inventory inv = this.inventoryFor(p);
         p.openInventory(inv);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, STORAGE_SLOTS);
         this.viewing.add(p.getUniqueId());
     }
 
@@ -123,8 +135,14 @@ public final class AccessoryBagService {
 
     /**
      * Removes anything that isn't a real accessory ({@link AccessoryItems#type} says so)
-     * from the storage area one tick after any click/drag on this screen, giving it back to
-     * the player's own inventory (or dropping it at their feet if that's full too) - same
+     * from the storage area one tick after any click/drag on this screen, then - among
+     * whatever real accessories are left - keeps only the first (lowest-slot) one of each
+     * {@link AccessoryItems#family}, ejecting any later slot sharing a family already kept
+     * (a Feather Talisman and a Feather Ring can't both sit in the bag at once, since the
+     * higher tier is meant to replace the one below it - see this class's own doc; a Ring
+     * from one family alongside a Talisman from a different one is unaffected, and neither is
+     * carrying more than one of the exact same item). Either way the rejected item goes back
+     * to the player's own inventory (or drops at their feet if that's full too) - same
      * "resolve first, sweep after" approach {@code QuiverService#scheduleFilterSweep}/{@code
      * PotionBagService#scheduleFilterSweep} already use.
      */
@@ -137,16 +155,29 @@ public final class AccessoryBagService {
             if (top.getSize() < SIZE) {
                 return;
             }
+            Set<String> keptFamilies = new HashSet<>();
             for (int i = 0; i < STORAGE_SIZE; i++) {
                 ItemStack item = top.getItem(i);
-                if (item != null && !item.isEmpty() && AccessoryItems.type(item) == null) {
-                    top.setItem(i, null);
-                    for (ItemStack overflow : p.getInventory().addItem(item).values()) {
-                        p.getWorld().dropItemNaturally(p.getLocation(), overflow);
-                    }
+                if (item == null || item.isEmpty()) {
+                    continue;
+                }
+                if (AccessoryItems.type(item) == null) {
+                    this.eject(p, top, i, item);
+                    continue;
+                }
+                String family = AccessoryItems.family(item);
+                if (family != null && !keptFamilies.add(family)) {
+                    this.eject(p, top, i, item);
                 }
             }
         });
+    }
+
+    private void eject(Player p, Inventory top, int slot, ItemStack item) {
+        top.setItem(slot, null);
+        for (ItemStack overflow : p.getInventory().addItem(item).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+        }
     }
 
     /** Sum of {@link AccessoryItems#fallHeightBonus} across every accessory {@code p} currently has stored - read by {@code AccessoryBagListener#fall} on every fall-damage hit, so it must work whether or not the bag is currently open (see {@link #stored}). */

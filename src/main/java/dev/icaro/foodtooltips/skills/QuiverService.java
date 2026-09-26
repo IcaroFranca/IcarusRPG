@@ -94,6 +94,14 @@ public final class QuiverService {
     /** The arrow-only storage area - the first {@value #STORAGE_SIZE} slots, the same as a single chest. */
     public static final int STORAGE_SIZE = 27;
     /**
+     * {@code 0..STORAGE_SIZE-1} - passed as {@code MenuBackground#apply}'s own "persistent
+     * slots" so an empty (but real, usable) storage cell stays visible instead of vanishing
+     * into the seamless background the instant no arrow is in it (see {@code
+     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
+     * player reported their Personal Storage's own empty cells doing exactly that).
+     */
+    private static final int[] STORAGE_SLOTS = java.util.stream.IntStream.range(0, STORAGE_SIZE).toArray();
+    /**
      * The full canvas size - {@code menu.MenuBackground#apply} only actually renders its
      * background for a 3- or 6-row inventory, and the 3-row variant was found to render
      * blank white in practice (see {@code skills.PersonalStorageService}'s own doc on
@@ -181,7 +189,7 @@ public final class QuiverService {
 
     public void open(Player p) {
         p.openInventory(this.inventoryFor(p));
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, STORAGE_SLOTS);
         this.viewing.add(p.getUniqueId());
     }
 

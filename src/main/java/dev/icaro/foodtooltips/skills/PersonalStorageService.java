@@ -122,8 +122,26 @@ public final class PersonalStorageService {
     public void open(Player p) {
         Inventory inv = this.inventoryFor(p);
         p.openInventory(inv);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, this.storageSlots(p));
         this.viewing.add(p.getUniqueId());
+    }
+
+    /**
+     * {@code 0..storageSize(p)-1} as an array - {@code MenuBackground#apply}'s own
+     * "persistent slots" list, needed because that background trick otherwise only keeps a
+     * slot visible when it's forced OR already holds a real item: a real, currently-EMPTY
+     * storage cell (no item placed there yet) is neither, so without this every empty
+     * storage slot would silently vanish into the seamless background the instant it's
+     * empty - exactly what a player reported seeing (only the one slot holding an item
+     * stayed visible, every other real slot disappeared).
+     */
+    private int[] storageSlots(Player p) {
+        int size = this.storageSize(p);
+        int[] slots = new int[size];
+        for (int i = 0; i < size; i++) {
+            slots[i] = i;
+        }
+        return slots;
     }
 
     public boolean viewing(Player p) {

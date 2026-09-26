@@ -707,62 +707,66 @@ public final class FarmingCollectionsItemsService {
     /**
      * Feather Collection M4's own accessory, the first of the Talisman → Ring → Artifact
      * line ({@link #featherRing}/{@link #featherArtifact} each upgrade the one before,
-     * consuming it as an ingredient) - equipped in the Accessory Bag's own Talisman slot
-     * ({@code skills.AccessoryBagService}), Tier D. No custom head texture was given for
-     * this one (unlike the Core items), so it's represented by a plain enchanted Feather
-     * instead - easy to swap for a real head texture later.
+     * consuming it as an ingredient) - stored in any of the Accessory Bag's 9 generic slots
+     * ({@code skills.AccessoryBagService}), Tier D. Tagged with the {@code "feather"} family
+     * (see {@code item.AccessoryItems#family}) so the bag rejects a second Feather-line
+     * accessory (this, {@link #featherRing} or {@link #featherArtifact}) being stored
+     * alongside it. No custom head texture was given for this one (unlike the Core items),
+     * so it's represented by a plain enchanted Feather instead - easy to swap for a real
+     * head texture later.
      */
     private org.bukkit.inventory.ItemStack featherTalisman() {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, 5, 0.0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("+5 blocos de altura sem dano de queda", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Equipe na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um Talismã pode ficar equipado por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return item;
     }
 
     /**
-     * Feather Collection M7's own upgrade to {@link #featherTalisman}, Tier C - equipped
-     * in the Accessory Bag's own Ring slot.
+     * Feather Collection M7's own upgrade to {@link #featherTalisman}, Tier C - same
+     * {@code "feather"} family tag as the rest of this line, so it can't sit in the bag next
+     * to a Feather Talisman or Feather Artifact either.
      */
     private org.bukkit.inventory.ItemStack featherRing() {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, 7, 5.0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("+7 blocos de altura sem dano de queda", NamedTextColor.AQUA),
                 Component.text("-5% de dano de queda", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Equipe na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um Anel pode ficar equipado por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return item;
     }
 
     /**
-     * Feather Collection M9's own upgrade to {@link #featherRing}, Tier B - equipped in
-     * the Accessory Bag's own Artifact slot, the top of this Collection's accessory line.
+     * Feather Collection M9's own upgrade to {@link #featherRing}, Tier B - the top of this
+     * Collection's accessory line, same {@code "feather"} family tag as the rest of it.
      */
     private org.bukkit.inventory.ItemStack featherArtifact() {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, 10, 15.0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("+10 blocos de altura sem dano de queda", NamedTextColor.AQUA),
                 Component.text("-15% de dano de queda", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Equipe na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um Artefato pode ficar equipado por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return item;
     }

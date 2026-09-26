@@ -177,8 +177,31 @@ public final class WardrobeService {
         Inventory inv = this.inventoryFor(p);
         this.render(p, inv);
         p.openInventory(inv);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, this.armorSlots(p));
         this.viewing.add(p.getUniqueId());
+    }
+
+    /**
+     * Every real armor-row cell (rows 0-3) across {@code p}'s own currently unlocked
+     * columns, as {@code MenuBackground#apply}'s own "persistent slots" list - the selector
+     * row always holds a real icon ({@link #selectorIcon}) so it's already visible on its
+     * own, and a locked column's own cell is a named "Bloqueado" pane so it's already visible
+     * too, but an unlocked armor-row cell holding no piece yet (e.g. no boots stored) is
+     * neither forced nor a visible item, so without this it would silently vanish into the
+     * seamless background the instant it's empty (see {@code
+     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
+     * player reported their Personal Storage's own empty cells doing exactly that).
+     */
+    private int[] armorSlots(Player p) {
+        int columns = this.columns(p);
+        int[] slots = new int[ARMOR_ROWS * columns];
+        int idx = 0;
+        for (int row = HELMET_ROW; row <= BOOTS_ROW; row++) {
+            for (int column = 0; column < columns; column++) {
+                slots[idx++] = row * 9 + column;
+            }
+        }
+        return slots;
     }
 
     public boolean viewing(Player p) {

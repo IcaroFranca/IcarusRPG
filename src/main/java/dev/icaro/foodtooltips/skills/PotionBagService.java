@@ -113,8 +113,25 @@ public final class PotionBagService {
     public void open(Player p) {
         Inventory inv = this.inventoryFor(p);
         p.openInventory(inv);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, this.storageSlots(p));
         this.viewing.add(p.getUniqueId());
+    }
+
+    /**
+     * {@code 0..storageSize(p)-1} as an array - {@code MenuBackground#apply}'s own
+     * "persistent slots" list, needed because an empty (but real, unlocked) storage cell is
+     * otherwise neither forced nor holding a visible item, so it silently vanishes into the
+     * seamless background the instant nothing is in it (see {@code
+     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
+     * player reported their Personal Storage's own empty cells doing exactly that).
+     */
+    private int[] storageSlots(Player p) {
+        int size = this.storageSize(p);
+        int[] slots = new int[size];
+        for (int i = 0; i < size; i++) {
+            slots[i] = i;
+        }
+        return slots;
     }
 
     public boolean viewing(Player p) {
