@@ -913,8 +913,8 @@ public final class SkillsMenuService {
     private static final StatInfo FORTUNE_INFO = new StatInfo(
             "Cada ponto é 1% de chance de dropar o dobro do item coletado (minério, colheita ou madeira/recursos, dependendo da skill). A cada 100 pontos completos essa cópia extra vira garantida e o excedente passa a ser a chance da PRÓXIMA cópia (ex.: 120 de Fortune = dobro garantido + 20% de chance de sair o triplo).",
             "Each point is a 1% chance to drop double the gathered item (ore, crops, or wood/resources, depending on the skill). Every full 100 points makes that extra copy guaranteed and the remainder becomes the chance of the NEXT copy (e.g. 120 Fortune = guaranteed double + a 20% chance of tripling it).",
-            "Sobe automaticamente com o nível dessa skill.",
-            "Increases automatically with that skill's level.");
+            "Sobe com o nível dessa skill, com peças de armadura que dão Fortune, e com o encantamento Fortune (e, na Agricultura, Harvesting) da ferramenta na mão.",
+            "Increases with that skill's level, armor pieces that grant Fortune, and the held tool's own Fortune enchant (and, for Farming, Harvesting).");
     private static final StatInfo SKILL_DEFENSE_INFO = new StatInfo(
             "Soma direto na sua Defesa total (veja o stat Defesa em Status de Combate).",
             "Adds directly to your total Defense (see the Defense stat under Combat Stats).",
@@ -1287,8 +1287,25 @@ public final class SkillsMenuService {
                 case FARMING -> Material.WHEAT;
                 default -> Material.OAK_LOG;
             };
-            items.add(this.statItem(fortuneIcon, t.name(l == Language.PT) + " Fortune: " + this.general.fortune(p, t),
-                    this.rate(l, level, this.general.fortunePerLevel()), FORTUNE_INFO, l));
+            // The headline number and its breakdown must both reflect every real source
+            // GeneralSkillListener actually rolls with - level, armor (see
+            // GeneralSkillService#armorFortuneBonus) and the held tool's own Fortune (and,
+            // for Farming, Harvesting) enchant (see GeneralSkillService#toolFortune) -
+            // not just the level, which used to be the only thing shown here even though
+            // armor/tool Fortune were already silently folded into the total.
+            ItemStack tool = p.getInventory().getItemInMainHand();
+            int harvestingLevel = t == SkillType.FARMING && this.enchants != null ? this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) : 0;
+            int armorBonus = this.general.armorFortuneBonus(p, t);
+            int toolBonus = this.general.toolFortune(tool, t, harvestingLevel);
+            int totalFortune = this.general.fortune(p, t) + toolBonus;
+            String source = this.rate(l, level, this.general.fortunePerLevel());
+            if (armorBonus != 0) {
+                source += " + " + armorBonus + " (" + l.choose("armadura", "armor") + ")";
+            }
+            if (toolBonus != 0) {
+                source += " + " + toolBonus + " (" + l.choose("ferramenta na mão", "held tool") + ")";
+            }
+            items.add(this.statItem(fortuneIcon, t.name(l == Language.PT) + " Fortune: " + totalFortune, source, FORTUNE_INFO, l));
         }
         switch (t) {
             case MINING -> items.add(this.statItem(Material.SHIELD, "+" + (level * this.general.defensePerLevel()) + " " + l.choose("Defesa", "Defense"),

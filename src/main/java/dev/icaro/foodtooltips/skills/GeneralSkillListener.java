@@ -465,11 +465,10 @@ implements Listener {
             // effect still applies underneath this on top (untouched), same relationship
             // Sharpness/Smite/Bane of Arthropods have with their own real vanilla bonus.
             // Harvesting adds its own 12.5/level on top of that, but only for Farming.
-            double enchantFortune = tool.getEnchantmentLevel(Enchantment.FORTUNE) * 10.0;
-            if (t.skill == SkillType.FARMING) {
-                enchantFortune += this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) * 12.5;
-            }
-            int fortune = this.skills.fortune(p, t.skill) + (int) Math.round(enchantFortune);
+            // See GeneralSkillService#toolFortune - the one place this formula lives, so
+            // the Stats screen shows the very same total this roll actually uses.
+            int harvestingLevel = t.skill == SkillType.FARMING ? this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) : 0;
+            int fortune = this.skills.fortuneWithTool(p, t.skill, tool, harvestingLevel);
             int copies = fortune / 100 + (ThreadLocalRandom.current().nextInt(100) < fortune % 100 ? 1 : 0);
             // Real final amount of trackedDrop this harvest actually produces (original
             // 1x plus copies more, same multiplier the loop below bakes into the real

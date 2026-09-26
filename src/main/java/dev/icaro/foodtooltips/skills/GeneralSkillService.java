@@ -31,6 +31,10 @@ public final class GeneralSkillService {
     private static final int DEFENSE_PER_LEVEL = 1;
     private static final int XP_ORB_PERCENT_PER_LEVEL = 5;
     private static final int POTION_DURATION_PERCENT_PER_LEVEL = 1;
+    /** Real vanilla Fortune enchant's own contribution to {@link #toolFortune} - any of Mining/Farming/Foraging, matching its catalog description. */
+    private static final double ENCHANT_FORTUNE_PER_LEVEL = 10.0;
+    /** The custom Harvesting enchant's own contribution to {@link #toolFortune} - Farming only. */
+    private static final double HARVESTING_FORTUNE_PER_LEVEL = 12.5;
     /** Efficiency enchant's own "Mining Speed" points, matching its catalog description (10 + 20/level) - see {@link #efficiencyBonus}. */
     private static final int EFFICIENCY_BASE = 10;
     private static final int EFFICIENCY_PER_LEVEL = 20;
@@ -140,16 +144,41 @@ public final class GeneralSkillService {
             case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
-        if (type == SkillType.MINING) {
-            return base + this.armorMiningFortuneBonus.applyAsInt(player);
-        }
+        return base + this.armorFortuneBonus(player, type);
+    }
+
+    /** Just the armor-piece portion of {@link #fortune} (Lapis Lazuli Armor for Mining, Sprout/Farmhand/Haymaker/Farmer Boots for Farming, Leaflet Armor for Foraging) - broken out so the Stats screen can show it as its own line instead of folding it silently into the level-based total. */
+    public int armorFortuneBonus(Player player, SkillType type) {
+        return switch (type) {
+            case MINING -> this.armorMiningFortuneBonus.applyAsInt(player);
+            case FARMING -> this.armorFarmingFortuneBonus.applyAsInt(player);
+            case FORAGING -> this.armorForagingFortuneBonus.applyAsInt(player);
+            default -> 0;
+        };
+    }
+
+    /**
+     * How much extra Fortune {@code tool}'s own enchantments grant on top of {@link #fortune} -
+     * real vanilla Fortune (+{@value #ENCHANT_FORTUNE_PER_LEVEL}/level, any of Mining/Farming/
+     * Foraging) plus, for Farming only, {@code harvestingLevel} (the custom Harvesting enchant's
+     * level - the caller reads it, e.g. via {@code EnchantService#customLevel}, so this class
+     * never needs to depend on the {@code enchant} package to know about it) at
+     * +{@value #HARVESTING_FORTUNE_PER_LEVEL}/level. The exact bonus {@code
+     * GeneralSkillListener}'s own real Fortune-copies roll uses when {@code tool} breaks a
+     * tracked block - kept here as the one place that formula lives, so the Stats screen and
+     * the real mechanic can never drift apart.
+     */
+    public int toolFortune(ItemStack tool, SkillType type, int harvestingLevel) {
+        double bonus = tool.getEnchantmentLevel(Enchantment.FORTUNE) * ENCHANT_FORTUNE_PER_LEVEL;
         if (type == SkillType.FARMING) {
-            return base + this.armorFarmingFortuneBonus.applyAsInt(player);
+            bonus += harvestingLevel * HARVESTING_FORTUNE_PER_LEVEL;
         }
-        if (type == SkillType.FORAGING) {
-            return base + this.armorForagingFortuneBonus.applyAsInt(player);
-        }
-        return base;
+        return (int) Math.round(bonus);
+    }
+
+    /** {@link #fortune} plus {@link #toolFortune} - the real, total Fortune {@code player} currently gets for {@code type} with {@code tool} in hand. */
+    public int fortuneWithTool(Player player, SkillType type, ItemStack tool, int harvestingLevel) {
+        return this.fortune(player, type) + this.toolFortune(tool, type, harvestingLevel);
     }
 
     /** Farming and Fishing each grant {@value #HEALTH_PER_LEVEL} Max Health per level, on top of Farming's Fortune. */
