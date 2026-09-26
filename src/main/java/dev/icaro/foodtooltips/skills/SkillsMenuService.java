@@ -105,6 +105,7 @@ public final class SkillsMenuService {
     private QuiverService quiver;
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
+    private AccessoryBagService accessoryBag;
     private PersonalStorageService storage;
     private PassiveAbilityMenuService passiveAbilities;
     private RecipeBookMenuService recipeBook;
@@ -166,6 +167,10 @@ public final class SkillsMenuService {
 
     public void potionBag(PotionBagService potionBag) {
         this.potionBag = potionBag;
+    }
+
+    public void accessoryBag(AccessoryBagService accessoryBag) {
+        this.accessoryBag = accessoryBag;
     }
 
     public void storage(PersonalStorageService storage) {
@@ -314,9 +319,20 @@ public final class SkillsMenuService {
             potionBagLore.add(this.click(l));
             v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
         }
-        v.setItem(ACCESSORY_BAG_SLOT, this.comingSoon(l, Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), l.choose(
-                "Guarde acessórios separadamente do seu inventário.",
-                "Store accessories separately from your inventory.")));
+        if (this.accessoryBag != null && this.accessoryBag.unlocked(p)) {
+            List<Component> accessoryLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText(l.choose(
+                    "Equipe um Talismã, um Anel e um Artefato ao mesmo tempo.",
+                    "Equip one Talisman, one Ring and one Artifact at the same time."), LoreWrap.DEFAULT_WIDTH)) {
+                accessoryLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            accessoryLore.add(this.click(l));
+            v.setItem(ACCESSORY_BAG_SLOT, this.item(Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), accessoryLore));
+        } else {
+            v.setItem(ACCESSORY_BAG_SLOT, this.comingSoon(l, Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), l.choose(
+                    "Guarde acessórios separadamente do seu inventário.",
+                    "Store accessories separately from your inventory.")));
+        }
         v.setItem(SACK_OF_SACKS_SLOT, this.comingSoon(l, Material.BARREL, l.choose("Saco de Sacos", "Sack of Sacks"), l.choose(
                 "Um saco por skill, todos guardados aqui dentro.",
                 "One sack per skill, all stored inside here.")));
@@ -550,6 +566,9 @@ public final class SkillsMenuService {
                 } else if (slot == POTION_BAG_SLOT && this.potionBag != null && this.potionBag.unlocked(p)) {
                     this.views.remove(p.getUniqueId());
                     this.potionBag.open(p);
+                } else if (slot == ACCESSORY_BAG_SLOT && this.accessoryBag != null && this.accessoryBag.unlocked(p)) {
+                    this.views.remove(p.getUniqueId());
+                    this.accessoryBag.open(p);
                 }
             }
             case GLOBAL -> {

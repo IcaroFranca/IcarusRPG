@@ -165,10 +165,21 @@ final class CollectionsCatalogTest {
         }
         assertEquals(IcarusEnchant.PROJECTILE_PROTECTION, m.get(0).discountEnchant());
         assertEquals(IcarusEnchant.FEATHER_FALLING, m.get(1).discountEnchant());
-        assertEquals(IcarusEnchant.AIMING, m.get(2).discountEnchant());
+        // Archery Potion - a PotionMix, no recipe key to gate (see the catalog's own doc).
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(2).kind());
+        assertTrue(m.get(2).recipes().isEmpty());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
-        assertEquals(List.of(CollectionsCatalog.FEATHER_CORE_RECIPE), m.get(3).recipes());
-        assertEquals(IcarusEnchant.SNIPE, m.get(4).discountEnchant());
+        assertEquals(2, m.get(3).recipes().size());
+        assertTrue(m.get(3).recipes().contains(CollectionsCatalog.FEATHER_CORE_RECIPE));
+        assertTrue(m.get(3).recipes().contains(CollectionsCatalog.FEATHER_TALISMAN_RECIPE));
+        assertEquals(RewardKind.FARMING_XP, m.get(4).kind());
+        assertEquals(25000, m.get(4).xpAmount());
+        assertEquals(IcarusEnchant.AIMING, m.get(5).discountEnchant());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(6).kind());
+        assertEquals(List.of(CollectionsCatalog.FEATHER_RING_RECIPE), m.get(6).recipes());
+        assertEquals(IcarusEnchant.SNIPE, m.get(7).discountEnchant());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(8).kind());
+        assertEquals(List.of(CollectionsCatalog.FEATHER_ARTIFACT_RECIPE), m.get(8).recipes());
     }
 
     @Test

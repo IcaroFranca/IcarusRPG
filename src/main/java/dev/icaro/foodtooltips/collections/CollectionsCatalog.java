@@ -30,6 +30,9 @@ public final class CollectionsCatalog {
     public static final NamespacedKey FLOWER_CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "flower_cactus_core");
     public static final NamespacedKey GOLDEN_CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "golden_carrot_core");
     public static final NamespacedKey TRUE_CHOCOLATE_CORE_RECIPE = new NamespacedKey("foodtooltips", "true_chocolate_core");
+    public static final NamespacedKey FEATHER_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "feather_talisman");
+    public static final NamespacedKey FEATHER_RING_RECIPE = new NamespacedKey("foodtooltips", "feather_ring");
+    public static final NamespacedKey FEATHER_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "feather_artifact");
     public static final NamespacedKey CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "carrot_core");
     public static final NamespacedKey CACTUS_HELMET_RECIPE = new NamespacedKey("foodtooltips", "cactus_helmet");
     public static final NamespacedKey CACTUS_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "cactus_chestplate");
@@ -214,23 +217,24 @@ public final class CollectionsCatalog {
                             "-25% de custo em XP para Proteção contra Projétil", "-25% XP cost for Projectile Protection"),
                     new CollectionsMilestone(100, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.FEATHER_FALLING, 25.0,
                             "-25% de custo em XP para Queda de Pena", "-25% XP cost for Feather Falling"),
-                    new CollectionsMilestone(250, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.AIMING, 25.0,
-                            "-25% de custo em XP para Mira", "-25% XP cost for Aiming"),
-                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(FEATHER_CORE_RECIPE), null, 0.0,
-                            "Desbloqueia a receita do Feather Core", "Unlocks the Feather Core recipe"),
-                    new CollectionsMilestone(2500, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.SNIPE, 25.0,
-                            "-25% de custo em XP para Tiro Longo", "-25% XP cost for Snipe"),
                     // A PotionMix, not a real CraftingRecipe - no recipes to gate here, same
                     // "unlocked in name only" limitation Resistance/Adrenaline Potion already
                     // accept (see CollectionsRecipeGateListener's own doc).
-                    new CollectionsMilestone(10000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                    new CollectionsMilestone(250, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia a receita da Poção de Arquearia", "Unlocks the Archery Potion recipe"),
-                    new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
-                            "+10000 XP de Agricultura", "+10000 Farming XP"),
-                    new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
+                    new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(FEATHER_CORE_RECIPE, FEATHER_TALISMAN_RECIPE), null, 0.0,
+                            "Desbloqueia as receitas do Feather Core e do Feather Talisman", "Unlocks the Feather Core and Feather Talisman recipes"),
+                    new CollectionsMilestone(2500, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
                             "+25000 XP de Agricultura", "+25000 Farming XP"),
-                    new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,
-                            "+50000 XP de Agricultura", "+50000 Farming XP"))),
+                    new CollectionsMilestone(10000, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.AIMING, 25.0,
+                            "-25% de custo em XP para Mira", "-25% XP cost for Aiming"),
+                    new CollectionsMilestone(25000, RewardKind.RECIPE_UNLOCK, 0, List.of(FEATHER_RING_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do Feather Ring", "Unlocks the Feather Ring recipe"),
+                    new CollectionsMilestone(50000, RewardKind.ENCHANT_DISCOUNT, 0, List.of(), IcarusEnchant.SNIPE, 25.0,
+                            "-25% de custo em XP para Tiro Longo", "-25% XP cost for Snipe"),
+                    new CollectionsMilestone(100000, RewardKind.RECIPE_UNLOCK, 0, List.of(FEATHER_ARTIFACT_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do Feather Artifact", "Unlocks the Feather Artifact recipe"))),
             // Wardrobe unlock/expansion milestones carry no recipes (a feature unlock, not a
             // craftable item) - see skills.WardrobeService for the actual mechanic. M2/M4/M6
             // carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead of the

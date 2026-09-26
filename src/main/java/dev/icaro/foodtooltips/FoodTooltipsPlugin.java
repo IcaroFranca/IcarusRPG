@@ -132,6 +132,8 @@ import dev.icaro.foodtooltips.skills.WardrobeListener;
 import dev.icaro.foodtooltips.skills.WardrobeService;
 import dev.icaro.foodtooltips.skills.PotionBagListener;
 import dev.icaro.foodtooltips.skills.PotionBagService;
+import dev.icaro.foodtooltips.skills.AccessoryBagListener;
+import dev.icaro.foodtooltips.skills.AccessoryBagService;
 import dev.icaro.foodtooltips.skills.PersonalStorageListener;
 import dev.icaro.foodtooltips.skills.PersonalStorageService;
 import dev.icaro.foodtooltips.skills.SetSkillLevelCommand;
@@ -170,6 +172,7 @@ extends JavaPlugin {
     private QuiverService quiver;
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
+    private AccessoryBagService accessoryBag;
     private PersonalStorageService storage;
 
     public void onEnable() {
@@ -243,6 +246,8 @@ extends JavaPlugin {
         menus.wardrobe(this.wardrobe);
         this.potionBag = new PotionBagService((Plugin)this, collectionsProgress, menus::openMain);
         menus.potionBag(this.potionBag);
+        this.accessoryBag = new AccessoryBagService((Plugin)this, collectionsProgress, menus::openMain);
+        menus.accessoryBag(this.accessoryBag);
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
         SculptorsAxeService sculptorsAxe = new SculptorsAxeService();
@@ -372,6 +377,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new WardrobeListener(this.wardrobe, menus::openMain), (Plugin)this);
         pm.registerEvents((Listener)new WardrobeArmorLockListener(this.wardrobe), (Plugin)this);
         pm.registerEvents((Listener)new PotionBagListener(this.potionBag), (Plugin)this);
+        pm.registerEvents((Listener)new AccessoryBagListener(this.accessoryBag), (Plugin)this);
         pm.registerEvents((Listener)new PersonalStorageListener(this.storage), (Plugin)this);
         pm.registerEvents((Listener)mushroomSoupFlight, (Plugin)this);
         pm.registerEvents((Listener)cowHat, (Plugin)this);
@@ -678,6 +684,7 @@ extends JavaPlugin {
             this.quiver.saveAll();
             this.wardrobe.saveAll();
             this.potionBag.saveAll();
+            this.accessoryBag.saveAll();
             this.storage.saveAll();
         }
     }

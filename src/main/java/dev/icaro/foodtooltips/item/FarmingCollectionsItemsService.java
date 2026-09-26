@@ -244,6 +244,26 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
 
+        Bukkit.removeRecipe(CollectionsCatalog.FEATHER_TALISMAN_RECIPE);
+        ShapelessRecipe featherTalisman = new ShapelessRecipe(CollectionsCatalog.FEATHER_TALISMAN_RECIPE, this.featherTalisman());
+        for (int i = 0; i < 9; i++) {
+            featherTalisman.addIngredient(Material.FEATHER);
+        }
+        Bukkit.addRecipe(featherTalisman);
+
+        this.newShapedRecipe(CollectionsCatalog.FEATHER_RING_RECIPE, this.featherRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.featherCore()));
+                    r.setIngredient('T', new RecipeChoice.ExactChoice(this.featherTalisman()));
+                });
+
+        this.newShapedRecipe(CollectionsCatalog.FEATHER_ARTIFACT_RECIPE, this.featherArtifact(),
+                new String[]{"CCC", "CNR", "CC "}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.featherCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                    r.setIngredient('R', new RecipeChoice.ExactChoice(this.featherRing()));
+                });
+
         // "de qualquer tipo" (either mushroom color) - the Core recipe's own explicit spec.
         RecipeChoice.MaterialChoice anyMushroom = new RecipeChoice.MaterialChoice(Material.RED_MUSHROOM, Material.BROWN_MUSHROOM);
         this.newShapedRecipe(CollectionsCatalog.MUSHROOM_CORE_RECIPE, this.mushroomCore(),
@@ -680,6 +700,69 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.FEATHER_CORE, FEATHER_CORE_PROFILE);
         meta.displayName(Component.text("Feather Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Feather Collection M4's own accessory, the first of the Talisman → Ring → Artifact
+     * line ({@link #featherRing}/{@link #featherArtifact} each upgrade the one before,
+     * consuming it as an ingredient) - equipped in the Accessory Bag's own Talisman slot
+     * ({@code skills.AccessoryBagService}), Tier D. No custom head texture was given for
+     * this one (unlike the Core items), so it's represented by a plain enchanted Feather
+     * instead - easy to swap for a real head texture later.
+     */
+    private org.bukkit.inventory.ItemStack featherTalisman() {
+        var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
+        var meta = item.getItemMeta();
+        meta.displayName(Component.text("Feather Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, 5, 0.0);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("+5 blocos de altura sem dano de queda", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Equipe na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um Talismã pode ficar equipado por vez.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Feather Collection M7's own upgrade to {@link #featherTalisman}, Tier C - equipped
+     * in the Accessory Bag's own Ring slot.
+     */
+    private org.bukkit.inventory.ItemStack featherRing() {
+        var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
+        var meta = item.getItemMeta();
+        meta.displayName(Component.text("Feather Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, 7, 5.0);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("+7 blocos de altura sem dano de queda", NamedTextColor.AQUA),
+                Component.text("-5% de dano de queda", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Equipe na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um Anel pode ficar equipado por vez.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Feather Collection M9's own upgrade to {@link #featherRing}, Tier B - equipped in
+     * the Accessory Bag's own Artifact slot, the top of this Collection's accessory line.
+     */
+    private org.bukkit.inventory.ItemStack featherArtifact() {
+        var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
+        var meta = item.getItemMeta();
+        meta.displayName(Component.text("Feather Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, 10, 15.0);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("+10 blocos de altura sem dano de queda", NamedTextColor.AQUA),
+                Component.text("-15% de dano de queda", NamedTextColor.AQUA),
+                Component.empty(),
+                Component.text("Equipe na Bolsa de Acessórios.", NamedTextColor.GRAY),
+                Component.text("Só um Artefato pode ficar equipado por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return item;
     }
