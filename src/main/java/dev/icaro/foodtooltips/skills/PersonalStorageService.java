@@ -46,20 +46,35 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  *
  * <p>Same "grow the real {@link Inventory} itself, no locked filler at all" shape {@link
  * PotionBagService} already uses, per the player's own "só apareçam as fileiras liberadas"
- * spec - {@link #inventoryFor} sizes the menu to exactly {@code storageSize(p) + 9} (the
- * unlocked rows plus one decorative/close-button row directly below them), rebuilding it
- * (copying over whatever the player already had, cached or on disk) whenever a milestone
- * crossed mid-session changes that size, rather than a single fixed 54-slot screen with a
- * "not unlocked yet" barrier icon filling every future slot.
+ * spec - {@link #inventoryFor} sizes the menu to the unlocked rows plus one decorative/
+ * close-button row directly below them, rounded up to whichever background-compatible canvas
+ * ({@link #SMALL_CANVAS}/{@link #LARGE_CANVAS} - see that field's own doc) actually fits that,
+ * rebuilding it (copying over whatever the player already had, cached or on disk) whenever a
+ * milestone crossed mid-session changes the unlocked size, rather than a single fixed 54-slot
+ * screen with a "not unlocked yet" barrier icon filling every future slot.
  */
 public final class PersonalStorageService {
     /** Every storage cell this class will ever allocate, regardless of how many are currently unlocked. */
     public static final int MAX_SLOTS = 45;
+    /**
+     * {@link dev.icaro.foodtooltips.menu.MenuBackground#apply} only actually draws its
+     * background canvas (and blends the decorative filler panes into it) for a 3-row (27) or
+     * 6-row (54) inventory - anything else (the plain {@code size + 9} this class would
+     * otherwise ask for at the smaller milestone tiers, e.g. 18 or 36) makes it silently
+     * no-op, leaving the raw gray panes visible instead of blending into the background. Every
+     * canvas this class ever opens is therefore rounded up to whichever of these two the
+     * unlocked rows plus one decorative/close row actually fit in - the extra padding beyond
+     * that row (if any) is just more of the same blend-into-background filler.
+     */
+    private static final int SMALL_CANVAS = 27;
+    private static final int LARGE_CANVAS = 54;
 
     private final Plugin plugin;
     private final CollectionsProgressService collectionsProgress;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "personal_storage_contents");
     private final Map<UUID, Inventory> cache = new HashMap<>();
+    /** How many real storage slots {@link #cache}'s own entry was last built for - {@code Inventory#getSize} alone can't tell two different unlocked sizes apart once both round up to the same {@link #SMALL_CANVAS}/{@link #LARGE_CANVAS}, so {@link #inventoryFor} keys its "does this need rebuilding" check off this instead. */
+    private final Map<UUID, Integer> cachedSize = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
     public PersonalStorageService(Plugin plugin, CollectionsProgressService collectionsProgress) {
@@ -120,6 +135,7 @@ public final class PersonalStorageService {
         this.viewing.remove(p.getUniqueId());
         this.persist(p);
         this.cache.remove(p.getUniqueId());
+        this.cachedSize.remove(p.getUniqueId());
     }
 
     /** Flushes every currently cached (online) player's storage to their PDC - same shape as {@code PotionBagService#saveAll}, called from the same {@code FoodTooltipsPlugin#onDisable} spot. */
@@ -132,32 +148,44 @@ public final class PersonalStorageService {
         }
     }
 
+    /** The smallest of {@link #SMALL_CANVAS}/{@link #LARGE_CANVAS} that fits {@code size} unlocked rows plus one decorative/close row - see this class's own doc on why {@link dev.icaro.foodtooltips.menu.MenuBackground} forces the choice down to just these two. */
+    private int totalSizeFor(int size) {
+        return size + 9 <= SMALL_CANVAS ? SMALL_CANVAS : LARGE_CANVAS;
+    }
+
     /**
-     * Builds {@code p}'s menu sized to exactly their currently unlocked rows plus one
-     * decorative/close-button row - reused from cache as-is if that size hasn't changed
-     * since it was last built, otherwise rebuilt at the new size with the old inventory's
-     * own live contents (not last-persisted-to-PDC state) carried over, so a milestone
-     * crossed mid-session grows the screen correctly the next time it's opened without
-     * losing whatever was already sitting in it.
+     * Builds {@code p}'s menu sized to whichever background-compatible canvas currently fits
+     * their unlocked rows plus one decorative/close-button row - reused from cache as-is if
+     * the number of unlocked slots hasn't changed since it was last built (tracked via {@link
+     * #cachedSize}, not the {@link Inventory}'s own size - two different unlocked sizes can
+     * round up to the very same canvas, e.g. 0 and 9 both fit {@link #SMALL_CANVAS}, so the
+     * canvas size alone can't tell "nothing changed" apart from "grew but still fits the same
+     * canvas"), otherwise rebuilt with the old inventory's own live contents (not
+     * last-persisted-to-PDC state) carried over, so a milestone crossed mid-session grows the
+     * screen correctly the next time it's opened without losing whatever was already sitting
+     * in it.
      */
     private Inventory inventoryFor(Player p) {
         Language l = Language.of(p);
         int size = this.storageSize(p);
-        int totalSize = size + 9;
+        int totalSize = this.totalSizeFor(size);
         Inventory cached = this.cache.get(p.getUniqueId());
-        if (cached != null && cached.getSize() == totalSize) {
+        Integer cachedForSize = this.cachedSize.get(p.getUniqueId());
+        if (cached != null && cachedForSize != null && cachedForSize == size) {
             return cached;
         }
         Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Armazenamento Pessoal", "Personal Storage"));
-        // Only ever copy the OLD screen's own real-storage portion (its size, not its full
-        // size+9 contents) - copying the whole thing would carry that old screen's own
-        // decorative filler and close-button items into what are now real, newly-unlocked
-        // storage slots the instant a milestone grows this mid-session (cached != null).
+        // Only ever copy the OLD screen's own real-storage portion (its last known unlocked
+        // size, per cachedForSize - never its raw Inventory#getSize(), which can no longer
+        // tell "real storage" apart from "decorative padding" now that several unlocked
+        // sizes can share the very same canvas) - copying the whole thing would carry that
+        // old screen's own decorative filler and close-button items into what are now real,
+        // newly-unlocked storage slots the instant a milestone grows this mid-session.
         ItemStack[] saved;
         int realLength;
         if (cached != null) {
             saved = cached.getContents();
-            realLength = cached.getSize() - 9;
+            realLength = cachedForSize == null ? 0 : cachedForSize;
         } else {
             saved = this.load(p);
             realLength = saved == null ? 0 : saved.length;
@@ -173,6 +201,7 @@ public final class PersonalStorageService {
         }
         inv.setItem(this.closeSlot(p), this.closeButton(l));
         this.cache.put(p.getUniqueId(), inv);
+        this.cachedSize.put(p.getUniqueId(), size);
         return inv;
     }
 

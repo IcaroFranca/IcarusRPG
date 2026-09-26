@@ -53,12 +53,17 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 public final class PotionBagService {
     public static final int MAX_SLOTS = 45;
     private static final Set<Material> ALLOWED_TYPES = EnumSet.of(Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION, Material.EXPERIENCE_BOTTLE);
+    /** See {@code PersonalStorageService}'s own doc on these two fields - same {@code MenuBackground} "only 3 or 6 rows" restriction, same fix. */
+    private static final int SMALL_CANVAS = 27;
+    private static final int LARGE_CANVAS = 54;
 
     private final Plugin plugin;
     private final CollectionsProgressService collectionsProgress;
     private final Consumer<Player> back;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "potion_bag_contents");
     private final Map<UUID, Inventory> cache = new HashMap<>();
+    /** See {@code PersonalStorageService#cachedSize}'s own doc - same reason this can't just be read back off the cached {@link Inventory}'s own size. */
+    private final Map<UUID, Integer> cachedSize = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
     public PotionBagService(Plugin plugin, CollectionsProgressService collectionsProgress, Consumer<Player> back) {
@@ -126,6 +131,7 @@ public final class PotionBagService {
         this.viewing.remove(p.getUniqueId());
         this.persist(p);
         this.cache.remove(p.getUniqueId());
+        this.cachedSize.remove(p.getUniqueId());
     }
 
     public void backButtonClicked(Player p) {
@@ -172,13 +178,28 @@ public final class PotionBagService {
         });
     }
 
-    /** See {@code PersonalStorageService#inventoryFor}'s own doc - same "rebuild, only ever migrating the old real-storage portion" shape, since {@code computeIfAbsent} alone (this method's own first version) never rebuilt at all once cached, silently keeping a player at their old, smaller size for the rest of the session no matter how many further milestones they crossed. */
+    /** See {@code PersonalStorageService}'s own doc on this exact field. */
+    private int totalSizeFor(int size) {
+        return size + 9 <= SMALL_CANVAS ? SMALL_CANVAS : LARGE_CANVAS;
+    }
+
+    /**
+     * See {@code PersonalStorageService#inventoryFor}'s own doc - same "rebuild, only ever
+     * migrating the old real-storage portion" shape, since {@code computeIfAbsent} alone (this
+     * method's own first version) never rebuilt at all once cached, silently keeping a player
+     * at their old, smaller size for the rest of the session no matter how many further
+     * milestones they crossed. Same canvas rounding and {@link #cachedSize}-keyed rebuild
+     * check too - two different unlocked sizes here (e.g. 27 and 36) can round up to the very
+     * same canvas, so the {@link Inventory}'s own size alone can't tell "nothing changed" apart
+     * from "grew but still fits the same canvas".
+     */
     private Inventory inventoryFor(Player p) {
         Language l = Language.of(p);
         int size = this.storageSize(p);
-        int totalSize = size + 9;
+        int totalSize = this.totalSizeFor(size);
         Inventory cached = this.cache.get(p.getUniqueId());
-        if (cached != null && cached.getSize() == totalSize) {
+        Integer cachedForSize = this.cachedSize.get(p.getUniqueId());
+        if (cached != null && cachedForSize != null && cachedForSize == size) {
             return cached;
         }
         Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Bolsa de Poções", "Potion Bag"));
@@ -186,7 +207,7 @@ public final class PotionBagService {
         int realLength;
         if (cached != null) {
             saved = cached.getContents();
-            realLength = cached.getSize() - 9;
+            realLength = cachedForSize == null ? 0 : cachedForSize;
         } else {
             saved = this.load(p);
             realLength = saved == null ? 0 : saved.length;
@@ -202,6 +223,7 @@ public final class PotionBagService {
         }
         inv.setItem(this.backSlot(p), this.backButton(l));
         this.cache.put(p.getUniqueId(), inv);
+        this.cachedSize.put(p.getUniqueId(), size);
         return inv;
     }
 
