@@ -22,6 +22,7 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -30,6 +31,16 @@ public final class SpruceAxeListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
     private static final int THROW_MAX_TICKS = 50;
+    /**
+     * {@code World#spawn}/{@code Entity#teleport} position an {@link ArmorStand} by its own
+     * feet, not its head - a small stand's helmet-slot item actually renders roughly this many
+     * blocks above that point in its default pose, so every spawn/teleport in {@link #launch}
+     * subtracts it back off, keeping the visible axe lined up with the ray-march's own travel
+     * point (starting at the player's own eye/hand height) instead of floating above it.
+     */
+    private static final double HEAD_HEIGHT_OFFSET = 1.2;
+    /** One full tumble every 6 ticks (60°/tick) - a fast, clearly visible end-over-end spin for the thrown axe, applied via {@link ArmorStand#setHeadPose} since its equipped item has no spin animation of its own (unlike a dropped {@code Item}). */
+    private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
     private final Plugin plugin;
     private final SpruceAxeService axe;
@@ -125,7 +136,7 @@ public final class SpruceAxeListener implements Listener {
         start.setDirection(direction);
         ItemStack visual = heldAxe.clone();
         visual.setAmount(1);
-        ArmorStand display = p.getWorld().spawn(start, ArmorStand.class, d -> {
+        ArmorStand display = p.getWorld().spawn(start.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0), ArmorStand.class, d -> {
             d.setInvisible(true);
             d.setGravity(false);
             d.setBasePlate(false);
@@ -159,7 +170,8 @@ public final class SpruceAxeListener implements Listener {
                     return;
                 }
                 this.at.add(direction);
-                display.teleport(this.at);
+                display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
+                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, 0, 0));
             }
 
             private void finish() {
