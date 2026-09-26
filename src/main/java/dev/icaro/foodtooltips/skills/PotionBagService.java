@@ -53,8 +53,7 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 public final class PotionBagService {
     public static final int MAX_SLOTS = 45;
     private static final Set<Material> ALLOWED_TYPES = EnumSet.of(Material.POTION, Material.SPLASH_POTION, Material.LINGERING_POTION, Material.EXPERIENCE_BOTTLE);
-    /** See {@code PersonalStorageService}'s own doc on these two fields - same {@code MenuBackground} "only 3 or 6 rows" restriction, same fix. */
-    private static final int SMALL_CANVAS = 27;
+    /** See {@code PersonalStorageService}'s own doc on this field - same {@code MenuBackground} "only 3 or 6 rows, and the 3-row one renders blank white in practice" issue, same fix (always this canvas, never the smaller one). */
     private static final int LARGE_CANVAS = 54;
 
     private final Plugin plugin;
@@ -178,9 +177,9 @@ public final class PotionBagService {
         });
     }
 
-    /** See {@code PersonalStorageService}'s own doc on this exact field. */
+    /** Always {@link #LARGE_CANVAS} - see that field's own doc. */
     private int totalSizeFor(int size) {
-        return size + 9 <= SMALL_CANVAS ? SMALL_CANVAS : LARGE_CANVAS;
+        return LARGE_CANVAS;
     }
 
     /**
