@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -53,6 +55,7 @@ public final class SpruceAxeService {
     static final int THROWN_TOTAL = Math.round((BASE_SWEEP + SWEEP_BONUS) * 0.5f);
 
     private static final NamespacedKey AXE_KEY = new NamespacedKey("foodtooltips", "spruce_axe");
+    private static final Key ITEM_MODEL = Key.key("icarus", "spruce_axe");
     private static final int[] NEIGHBOR_OFFSETS = {-1, 0, 1};
 
     /** Players currently inside one of this class's own {@link #chop}/{@link #throwFell} felling passes - re-entrancy guard, see this class's own doc. */
@@ -71,6 +74,7 @@ public final class SpruceAxeService {
                 this.line("blocks to fell a tree, at half the Sweep.", NamedTextColor.GRAY)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
+        item.setData(DataComponentTypes.ITEM_MODEL, ITEM_MODEL);
         return item;
     }
 
@@ -79,7 +83,12 @@ public final class SpruceAxeService {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(AXE_KEY, PersistentDataType.BYTE);
+        boolean spruceAxe = meta != null
+                && meta.getPersistentDataContainer().has(AXE_KEY, PersistentDataType.BYTE);
+        if (spruceAxe && !ITEM_MODEL.equals(item.getData(DataComponentTypes.ITEM_MODEL))) {
+            item.setData(DataComponentTypes.ITEM_MODEL, ITEM_MODEL);
+        }
+        return spruceAxe;
     }
 
     public boolean isFellingActive(Player p) {
