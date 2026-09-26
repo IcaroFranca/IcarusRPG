@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips;
 import dev.icaro.foodtooltips.bestiary.BestiaryListener;
 import dev.icaro.foodtooltips.bestiary.BestiaryMenuService;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.collections.CollectionsItemsMenuListener;
 import dev.icaro.foodtooltips.collections.CollectionsItemsMenuService;
 import dev.icaro.foodtooltips.collections.CollectionsListener;
@@ -361,6 +362,8 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         GeneralSkillListener generalSkillListener = new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives, collectionsService);
         pm.registerEvents((Listener)generalSkillListener, (Plugin)this);
+        generalSkillListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
+                .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         BrewingMenuService brewingMenu = new BrewingMenuService(brewingStandFuel, generalSkillListener, potionGuide);
         pm.registerEvents((Listener)new BrewingMenuListener((Plugin)this, brewingMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsListener(collectionsMenu, collectionsService), (Plugin)this);

@@ -29,10 +29,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -89,6 +93,8 @@ implements Listener {
     private final Set<UUID> extendingPotion = new HashSet<UUID>();
     private final Map<String, Target> targets = new HashMap<String, Target>();
     private final Map<UUID, Combo> combos = new HashMap<UUID, Combo>();
+    /** Wired in after construction ({@code collections.CollectionsMenuService} isn't built until after this class is, and this class - unlike a menu service itself - has no business depending on it directly) - lets {@link #applyCollections}'s own chat announcement open the exact Collections entry a freshly-unlocked recipe belongs to when clicked, per the player's own "se eu clicar na receita no chat... ele me leva até o collection correspondente" spec. Defaults to a no-op so this class still works before it's wired. */
+    private BiConsumer<Player, Material> openCollectionsEntry = (p, m) -> {};
 
     public GeneralSkillListener(Plugin p, GeneralSkillService s, SkillProgressBarService b, GlobalLevelService g, EnchantService enchants, PassiveAbilityService passives, CollectionsService collections) {
         this.plugin = p;
@@ -99,6 +105,11 @@ implements Listener {
         this.passives = passives;
         this.collections = collections;
         this.treasures = new BuriedTreasureService(p, s);
+    }
+
+    /** See {@link #openCollectionsEntry}'s own doc. */
+    public void openCollectionsEntry(BiConsumer<Player, Material> openCollectionsEntry) {
+        this.openCollectionsEntry = openCollectionsEntry;
     }
 
     @EventHandler(ignoreCancelled=true)
@@ -402,7 +413,21 @@ implements Listener {
         p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DE COLEÇÃO! ", "COLLECTION MILESTONE! "), NamedTextColor.GOLD)
                 .append(Component.translatable(drop.translationKey())));
         for (CollectionsMilestone milestone : update.unlocked()) {
-            p.sendMessage(Component.text(milestone.reward(pt), NamedTextColor.GREEN));
+            Component line = Component.text(milestone.reward(pt), NamedTextColor.GREEN);
+            if (milestone.kind() == RewardKind.RECIPE_UNLOCK && !milestone.recipes().isEmpty()) {
+                // Clicking the recipe's own reward line jumps straight to this Collection's
+                // milestone ladder (see #openCollectionsEntry's own doc) - "se eu clicar na
+                // receita no chat... ele me leva até o collection correspondente".
+                line = line.decorate(TextDecoration.UNDERLINED)
+                        .clickEvent(ClickEvent.callback(audience -> {
+                            if (audience instanceof Player clicker) {
+                                this.openCollectionsEntry.accept(clicker, drop);
+                            }
+                        }))
+                        .hoverEvent(HoverEvent.showText(Component.text(
+                                l.choose("Clique para ver na Coleção", "Click to view in the Collection"), NamedTextColor.YELLOW)));
+            }
+            p.sendMessage(line);
         }
         p.sendMessage(Component.text("+" + update.globalXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));

@@ -305,6 +305,18 @@ public final class GlobalLevelService {
         if (strengthAfter > strengthBefore) {
             p.sendMessage((Component)Component.text((String)("+" + (strengthAfter - strengthBefore) + " Strength"), (TextColor)NamedTextColor.AQUA));
         }
+        // Anything a specific level threshold unlocks (Telekinesis, the Death Compass'
+        // own teleport) - per the player's own "quando eu subir de nivel... mostre o que
+        // foi desbloqueado" spec, same idea CollectionsService's own milestone messages
+        // already follow, just for Global Level's own thresholds instead of a catalog.
+        if (before < (long) this.telekinesisLevel && after >= (long) this.telekinesisLevel) {
+            p.sendMessage(Component.text("\u2726 " + l.choose("Desbloqueado: Telecinese (drops pr\u00f3ximos v\u00eam at\u00e9 voc\u00ea)",
+                    "Unlocked: Telekinesis (nearby drops come to you)"), NamedTextColor.LIGHT_PURPLE));
+        }
+        if (before < (long) this.deathTeleportLevel && after >= (long) this.deathTeleportLevel) {
+            p.sendMessage(Component.text("\u2726 " + l.choose("Desbloqueado: Teleporte da B\u00fassola da Morte",
+                    "Unlocked: Death Compass teleport"), NamedTextColor.LIGHT_PURPLE));
+        }
         p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
     }
 
