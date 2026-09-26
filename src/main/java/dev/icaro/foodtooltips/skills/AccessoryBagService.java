@@ -206,14 +206,23 @@ public final class AccessoryBagService {
         return saved == null ? new ItemStack[STORAGE_SIZE] : saved;
     }
 
+    /**
+     * Rebuilds (not just reuses) whenever the cached {@link Inventory}'s own size doesn't
+     * match {@value #SIZE} - guards against a stale in-memory object left over from an
+     * earlier, now-replaced canvas size (e.g. a plugin update whose server process wasn't
+     * fully restarted since a player last opened this) - see {@code
+     * QuiverService#inventoryFor}'s own doc on the exact same risk.
+     */
     private Inventory inventoryFor(Player p) {
         Language l = Language.of(p);
         Inventory cached = this.cache.get(p.getUniqueId());
-        if (cached != null) {
+        if (cached != null && cached.getSize() == SIZE) {
             return cached;
         }
         Inventory inv = Bukkit.createInventory(null, SIZE, l.choose("Bolsa de Acessórios", "Accessory Bag"));
-        ItemStack[] saved = this.load(p);
+        ItemStack[] saved = cached != null
+                ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), STORAGE_SIZE))
+                : this.load(p);
         if (saved != null) {
             for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
                 inv.setItem(i, saved[i]);

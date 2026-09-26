@@ -108,6 +108,13 @@ public final class PersonalStorageService {
 
     public void open(Player p) {
         Inventory inv = this.inventoryFor(p);
+        // Re-asserted unconditionally, even on a cache hit: a stale in-memory Inventory built
+        // under an earlier, now-replaced version of totalSizeFor/closeSlot (e.g. before a
+        // plugin update, if the server process wasn't fully restarted since) could otherwise
+        // keep showing whatever raw filler happened to sit at today's own closeSlot(p) forever,
+        // since nothing else would ever touch that slot again for a player whose real
+        // storageSize(p) hasn't since changed.
+        inv.setItem(this.closeSlot(p), this.closeButton(Language.of(p)));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p, this.storageSlots(p));
         this.viewing.add(p.getUniqueId());
@@ -177,7 +184,12 @@ public final class PersonalStorageService {
         int totalSize = this.totalSizeFor(size);
         Inventory cached = this.cache.get(p.getUniqueId());
         Integer cachedForSize = this.cachedSize.get(p.getUniqueId());
-        if (cached != null && cachedForSize != null && cachedForSize == size) {
+        // The cached Inventory's own real size must also still match totalSizeFor's current
+        // output, not just cachedForSize - guards against a stale object left over from an
+        // earlier, now-replaced version of that formula (its own dimensions are fixed forever
+        // once created, so a mismatch here can only mean "rebuild", never "same size, minor
+        // content update").
+        if (cached != null && cachedForSize != null && cachedForSize == size && cached.getSize() == totalSize) {
             return cached;
         }
         Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Armazenamento Pessoal", "Personal Storage"));

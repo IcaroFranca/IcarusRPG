@@ -371,27 +371,41 @@ public final class QuiverService {
         p.getWorld().dropItemNaturally(p.getLocation(), item);
     }
 
+    /**
+     * Rebuilds (not just reuses) whenever the cached {@link Inventory}'s own size doesn't
+     * match {@value #TOTAL_SIZE} - guards against a stale in-memory object left over from an
+     * earlier, now-replaced canvas size (e.g. a plugin update whose server process wasn't
+     * fully restarted since a player last opened this), which would otherwise keep serving
+     * whatever raw filler happened to sit at today's own {@link #BACK_SLOT} forever, since
+     * {@link #TOTAL_SIZE} being a constant (not milestone-derived, unlike {@code
+     * PersonalStorageService}) means nothing else would ever trigger a rebuild.
+     */
     private Inventory inventoryFor(Player p) {
-        return this.cache.computeIfAbsent(p.getUniqueId(), id -> {
-            Language l = Language.of(p);
-            Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, l.choose("Aljava", "Quiver"));
-            ItemStack filler = this.filler();
-            for (int i = STORAGE_SIZE; i < TOTAL_SIZE; i++) {
-                inv.setItem(i, filler);
+        Inventory cached = this.cache.get(p.getUniqueId());
+        if (cached != null && cached.getSize() == TOTAL_SIZE) {
+            return cached;
+        }
+        Language l = Language.of(p);
+        Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, l.choose("Aljava", "Quiver"));
+        ItemStack filler = this.filler();
+        for (int i = STORAGE_SIZE; i < TOTAL_SIZE; i++) {
+            inv.setItem(i, filler);
+        }
+        inv.setItem(BACK_SLOT, this.backButton(l));
+        // Not a strict length check (a saved array shorter than STORAGE_SIZE is
+        // still valid - just an older/smaller Quiver, or one that's never held a
+        // full chest's worth) so a Quiver saved before this row existed loads
+        // straight into the storage slots without any migration step.
+        ItemStack[] saved = cached != null
+                ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), STORAGE_SIZE))
+                : this.load(p);
+        if (saved != null) {
+            for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
+                inv.setItem(i, saved[i]);
             }
-            inv.setItem(BACK_SLOT, this.backButton(l));
-            // Not a strict length check (a saved array shorter than STORAGE_SIZE is
-            // still valid - just an older/smaller Quiver, or one that's never held a
-            // full chest's worth) so a Quiver saved before this row existed loads
-            // straight into the storage slots without any migration step.
-            ItemStack[] saved = this.load(p);
-            if (saved != null) {
-                for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
-                    inv.setItem(i, saved[i]);
-                }
-            }
-            return inv;
-        });
+        }
+        this.cache.put(p.getUniqueId(), inv);
+        return inv;
     }
 
     private void persist(Player p) {

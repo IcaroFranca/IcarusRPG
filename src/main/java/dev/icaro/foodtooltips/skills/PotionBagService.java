@@ -110,6 +110,9 @@ public final class PotionBagService {
 
     public void open(Player p) {
         Inventory inv = this.inventoryFor(p);
+        // Re-asserted unconditionally, even on a cache hit - see PersonalStorageService#open's
+        // own doc on the exact same defensive reasoning.
+        inv.setItem(this.backSlot(p), this.backButton(Language.of(p)));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p, this.storageSlots(p));
         this.viewing.add(p.getUniqueId());
@@ -210,7 +213,9 @@ public final class PotionBagService {
         int totalSize = this.totalSizeFor(size);
         Inventory cached = this.cache.get(p.getUniqueId());
         Integer cachedForSize = this.cachedSize.get(p.getUniqueId());
-        if (cached != null && cachedForSize != null && cachedForSize == size) {
+        // See PersonalStorageService#inventoryFor's own doc on why cached.getSize() must also
+        // match, not just cachedForSize.
+        if (cached != null && cachedForSize != null && cachedForSize == size && cached.getSize() == totalSize) {
             return cached;
         }
         Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Bolsa de Poções", "Potion Bag"));

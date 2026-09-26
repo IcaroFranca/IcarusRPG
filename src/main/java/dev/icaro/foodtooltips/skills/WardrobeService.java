@@ -428,23 +428,36 @@ public final class WardrobeService {
         return item;
     }
 
+    /**
+     * Rebuilds (not just reuses) whenever the cached {@link Inventory}'s own size doesn't
+     * match {@value #BOARD_SIZE} - guards against a stale in-memory object left over from an
+     * earlier, now-replaced canvas size (e.g. a plugin update whose server process wasn't
+     * fully restarted since a player last opened this) - see {@code
+     * QuiverService#inventoryFor}'s own doc on the exact same risk.
+     */
     private Inventory inventoryFor(Player p) {
-        return this.cache.computeIfAbsent(p.getUniqueId(), id -> {
-            Language l = Language.of(p);
-            Inventory inv = Bukkit.createInventory(null, BOARD_SIZE, l.choose("Guarda-roupa", "Wardrobe"));
-            ItemStack[] saved = this.load(p);
-            if (saved != null) {
-                int limit = Math.min(saved.length, ARMOR_ROWS * COLUMNS);
-                for (int i = 0; i < limit; i++) {
-                    inv.setItem(i, saved[i]);
-                }
+        Inventory cached = this.cache.get(p.getUniqueId());
+        if (cached != null && cached.getSize() == BOARD_SIZE) {
+            return cached;
+        }
+        UUID id = p.getUniqueId();
+        Language l = Language.of(p);
+        Inventory inv = Bukkit.createInventory(null, BOARD_SIZE, l.choose("Guarda-roupa", "Wardrobe"));
+        ItemStack[] saved = cached != null
+                ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), ARMOR_ROWS * COLUMNS))
+                : this.load(p);
+        if (saved != null) {
+            int limit = Math.min(saved.length, ARMOR_ROWS * COLUMNS);
+            for (int i = 0; i < limit; i++) {
+                inv.setItem(i, saved[i]);
             }
-            Integer storedActive = p.getPersistentDataContainer().get(this.activeColumnKey, PersistentDataType.INTEGER);
-            if (storedActive != null) {
-                this.active.put(id, storedActive);
-            }
-            return inv;
-        });
+        }
+        Integer storedActive = p.getPersistentDataContainer().get(this.activeColumnKey, PersistentDataType.INTEGER);
+        if (storedActive != null) {
+            this.active.put(id, storedActive);
+        }
+        this.cache.put(id, inv);
+        return inv;
     }
 
     private void persist(Player p) {
