@@ -478,10 +478,12 @@ public final class FarmingCollectionsItemsService {
     }
 
     /**
-     * "aumenta absorção e velocidade" - no ingredient or exact numbers were specified, so
-     * this follows the same judgment-call pattern {@link #registerResistancePotionMix} already
-     * set: an Awkward Potion base, Sugar as the "central material" (vanilla's own real Speed
-     * Potion ingredient, matching this potion's own Speed half), Absorption II + Speed II for
+     * "aumenta absorção e velocidade" - no exact numbers were specified, so this follows the
+     * same judgment-call pattern {@link #registerResistancePotionMix} already set: an Awkward
+     * Potion base, Cocoa Beans as the "central material" (this potion's own Collections source,
+     * Cocoa Beans M2 - {@link Material#SUGAR} was tried first but collides with vanilla's own
+     * real Swiftness Potion recipe, which also uses Sugar as its Awkward-potion ingredient, so
+     * it was replaced with the collection's own material instead), Absorption II + Speed II for
      * {@link #RESISTANCE_DURATION_TICKS}' same 8-minute duration. Same "unlocked in name only,
      * no real Brewing Stand gate" limitation as Resistance - see the catalog's own doc on
      * {@code CollectionsCatalog}'s Cocoa Beans M2.
@@ -501,20 +503,22 @@ public final class FarmingCollectionsItemsService {
         adrenalineMeta.displayName(Component.text("Adrenaline Potion", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         adrenaline.setItemMeta(adrenalineMeta);
 
-        NamespacedKey key = new NamespacedKey(this.plugin, "adrenaline_from_sugar");
+        NamespacedKey key = new NamespacedKey(this.plugin, "adrenaline_from_cocoa_beans");
         Bukkit.getPotionBrewer().removePotionMix(key);
         Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, adrenaline,
-                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.SUGAR)));
+                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.COCOA_BEANS)));
     }
 
     /**
-     * Archery Potion: no ingredient/duration was specified ("cada nível aumentará em 12,5%
-     * o dano com arco e flecha") - an Arrow as the "central material" (matching Resistance's
-     * own Cactus/Adrenaline's own Sugar precedent) and {@link #ARCHERY_POTION_DURATION_TICKS}'
-     * same 8-minute judgment call. No real vanilla {@link PotionEffectType} exists for a bow-
-     * damage bonus, so this carries no actual potion effect at all - just the {@link
-     * #ARCHERY_POTION_KEY} marker {@code ArcheryPotionService} reads on drink, same "a plain
-     * flag on an otherwise ordinary potion" shape the Mushroom Soups use for their own flight.
+     * Archery Potion: no duration was specified ("cada nível aumentará em 12,5% o dano com
+     * arco e flecha") - a Feather as the "central material" (this potion's own Collections
+     * source, Feather M6 - {@link Material#ARROW} was tried first but doesn't actually collide
+     * with any real vanilla recipe, it was simply swapped to match the potion's own collection
+     * instead) and {@link #ARCHERY_POTION_DURATION_TICKS}'s same 8-minute judgment call. No real
+     * vanilla {@link PotionEffectType} exists for a bow-damage bonus, so this carries no actual
+     * potion effect at all - just the {@link #ARCHERY_POTION_KEY} marker {@code
+     * ArcheryPotionService} reads on drink, same "a plain flag on an otherwise ordinary potion"
+     * shape the Mushroom Soups use for their own flight.
      */
     private void registerArcheryPotionMix() {
         var awkward = new org.bukkit.inventory.ItemStack(Material.POTION);
@@ -530,18 +534,18 @@ public final class FarmingCollectionsItemsService {
         archeryMeta.displayName(Component.text("Archery Potion", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         archery.setItemMeta(archeryMeta);
 
-        NamespacedKey key = new NamespacedKey(this.plugin, "archery_from_arrow");
+        NamespacedKey key = new NamespacedKey(this.plugin, "archery_from_feather");
         Bukkit.getPotionBrewer().removePotionMix(key);
         Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, archery,
-                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.ARROW)));
+                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.FEATHER)));
     }
 
     /**
-     * Mana Potion: no ingredient/duration was specified either - Lapis Lazuli as the
-     * "central material" (this plugin's own established magic/Intelligence theme, e.g.
-     * {@code LapisArmorService}) and the same 8-minute judgment call as {@link
-     * #registerArcheryPotionMix}. Same "no real potion effect, just a marker" shape too - see
-     * {@code ManaPotionService}, which reads {@link #MANA_POTION_KEY}.
+     * Mana Potion: no duration was specified either - raw Mutton as the "central material"
+     * (this potion's own Collections source, Raw Mutton M2 - Lapis Lazuli was tried first but
+     * was swapped to match the potion's own collection instead) and the same 8-minute judgment
+     * call as {@link #registerArcheryPotionMix}. Same "no real potion effect, just a marker"
+     * shape too - see {@code ManaPotionService}, which reads {@link #MANA_POTION_KEY}.
      */
     private void registerManaPotionMix() {
         var awkward = new org.bukkit.inventory.ItemStack(Material.POTION);
@@ -557,10 +561,10 @@ public final class FarmingCollectionsItemsService {
         manaMeta.displayName(Component.text("Mana Potion", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
         mana.setItemMeta(manaMeta);
 
-        NamespacedKey key = new NamespacedKey(this.plugin, "mana_from_lapis");
+        NamespacedKey key = new NamespacedKey(this.plugin, "mana_from_mutton");
         Bukkit.getPotionBrewer().removePotionMix(key);
         Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, mana,
-                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.LAPIS_LAZULI)));
+                new RecipeChoice.ExactChoice(awkward), new RecipeChoice.MaterialChoice(Material.MUTTON)));
     }
 
     private org.bukkit.inventory.ItemStack cactusCore() {
