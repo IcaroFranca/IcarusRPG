@@ -6,6 +6,7 @@ import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.util.LoreWrap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -152,7 +153,10 @@ public final class CollectionsMenuService {
             } else {
                 lore.add(this.text(l.choose("Faltam ", "Need ") + remaining + " " + l.choose("para completar", "more to complete"), NamedTextColor.GRAY));
             }
-            lore.add(this.text(milestone.reward(l == Language.PT), unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
+            NamedTextColor rewardColor = unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW;
+            for (String part : LoreWrap.wrapText(milestone.reward(l == Language.PT), LoreWrap.DEFAULT_WIDTH)) {
+                lore.add(this.text(part, rewardColor));
+            }
             lore.add(this.text("+" + this.global.milestoneXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
             lore.add(this.text(unlocked ? l.choose("CONCLUÍDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
             List<ItemStack> preview = this.previewItems(milestone);
