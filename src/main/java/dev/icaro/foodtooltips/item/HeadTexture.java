@@ -100,13 +100,15 @@ public final class HeadTexture {
     public static final String JUNGLE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTljNmM0MmU2OTFhZWIwNzhiMGQ4NDg5NGIxMGI2NDNiYTM2YThiY2I4YjZiZWQ5MTE5YWUyYmRmYTg3YTlhNiJ9fX0=";
     /** "Cactus Flower" (minecraft-heads.com Custom Head ID 127271) - the Flower Cactus Core crafting item, see {@code FarmingCollectionsItemsService}. */
     public static final String FLOWER_CACTUS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmFhMWQ0OTU3Y2E0NTg5OWRmMTQ3OGUyM2M5NTc4MmUzNDQxYmQ1MjJhZDA4NzcxYjYwYzU0ZjhkYzA2M2MzOSJ9fX0=";
+    /** "Golden Carrots" (minecraft-heads.com Custom Head ID 14339) - the Golden Carrot Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String GOLDEN_CARROT_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTU1YjQ4OTg2NDJiZDQ4M2I2NzM2MTM2NjFhZmQ2N2U0ZDE0ZTQ0NGUzMjZjNGYzNjMxNTY0NWE0ZDMxMyJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
             RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE,
-            FLOWER_CACTUS_CORE);
+            FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE);
 
     private HeadTexture() {
     }

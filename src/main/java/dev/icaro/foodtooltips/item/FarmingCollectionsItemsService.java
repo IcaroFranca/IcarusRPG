@@ -73,6 +73,7 @@ import org.bukkit.potion.PotionType;
 public final class FarmingCollectionsItemsService {
     private static final UUID CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cactus_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FLOWER_CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flower_cactus_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID GOLDEN_CARROT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:golden_carrot_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CARROT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:carrot_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CHOCOLATE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:chocolate_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FEATHER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:feather_core".getBytes(StandardCharsets.UTF_8));
@@ -201,6 +202,11 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', Material.CARROT);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.GOLDEN_CARROT_CORE_RECIPE, this.goldenCarrotCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.carrotCore()));
+                    r.setIngredient('D', Material.NETHERITE_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.CACTUS_HELMET_RECIPE, this.cactusPiece(Material.LEATHER_HELMET, "Cactus Helmet", 5, 10),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.CACTUS));
@@ -597,6 +603,16 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.CARROT_CORE, CARROT_CORE_PROFILE);
         meta.displayName(Component.text("Carrot Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Carrot Collection M7's own upgrade to {@link #carrotCore()} - same "8 of the base Core around a Netherite Block" shape as {@link #flowerCactusCore()}, per the player's own explicit spec. */
+    private org.bukkit.inventory.ItemStack goldenCarrotCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.GOLDEN_CARROT_CORE, GOLDEN_CARROT_CORE_PROFILE);
+        meta.displayName(Component.text("Golden Carrot Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

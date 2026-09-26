@@ -91,8 +91,8 @@ final class CollectionsCatalogTest {
         assertTrue(m.get(4).recipes().contains(CollectionsCatalog.SPROUT_HELMET_RECIPE));
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(5).kind());
         assertEquals(List.of(CollectionsCatalog.ENCHANTED_CARROT_STICK_RECIPE), m.get(5).recipes());
-        assertEquals(RewardKind.FARMING_XP, m.get(6).kind());
-        assertEquals(10000, m.get(6).xpAmount());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(6).kind());
+        assertEquals(List.of(CollectionsCatalog.GOLDEN_CARROT_CORE_RECIPE), m.get(6).recipes());
         assertEquals(RewardKind.FARMING_XP, m.get(7).kind());
         assertEquals(25000, m.get(7).xpAmount());
         assertEquals(RewardKind.FARMING_XP, m.get(8).kind());

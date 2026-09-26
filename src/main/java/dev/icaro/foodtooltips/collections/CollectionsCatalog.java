@@ -28,6 +28,7 @@ import org.bukkit.NamespacedKey;
 public final class CollectionsCatalog {
     public static final NamespacedKey CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "cactus_core");
     public static final NamespacedKey FLOWER_CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "flower_cactus_core");
+    public static final NamespacedKey GOLDEN_CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "golden_carrot_core");
     public static final NamespacedKey CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "carrot_core");
     public static final NamespacedKey CACTUS_HELMET_RECIPE = new NamespacedKey("foodtooltips", "cactus_helmet");
     public static final NamespacedKey CACTUS_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "cactus_chestplate");
@@ -176,7 +177,9 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(10000,
                             "Desbloqueia a receita da Enchanted Carrot on a Stick", "Unlocks the Enchanted Carrot on a Stick recipe",
                             ENCHANTED_CARROT_STICK_RECIPE),
-                    CollectionsMilestone.farmingXp(25000, 10000, "+10000 XP de Agricultura", "+10000 Farming XP"),
+                    CollectionsMilestone.recipeUnlock(25000,
+                            "Desbloqueia a receita do Golden Carrot Core", "Unlocks the Golden Carrot Core recipe",
+                            GOLDEN_CARROT_CORE_RECIPE),
                     CollectionsMilestone.farmingXp(50000, 25000, "+25000 XP de Agricultura", "+25000 Farming XP"),
                     CollectionsMilestone.farmingXp(100000, 50000, "+50000 XP de Agricultura", "+50000 Farming XP"))),
             new CollectionsEntry(Material.COCOA, Material.COCOA_BEANS, CollectionsCategory.FARMING, "Cocoa Beans", "Cocoa Beans", List.of(
