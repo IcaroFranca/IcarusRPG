@@ -15,6 +15,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -154,6 +156,7 @@ public final class GrapplingHookService {
         Location eye = p.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
         Location at = eye.clone();
+        p.getWorld().playSound(eye, Sound.ENTITY_FISHING_BOBBER_THROW, SoundCategory.PLAYERS, 0.6f, 1.4f);
         state.task = new BukkitRunnable() {
             int ticks = 0;
 
@@ -165,6 +168,9 @@ public final class GrapplingHookService {
                 }
                 if (this.ticks++ >= MAX_RANGE) {
                     GrapplingHookService.this.active.remove(id);
+                    Language l = Language.of(p);
+                    p.sendActionBar(GrapplingHookService.this.line(
+                            l.choose("Gancho não alcançou nada.", "Hook found nothing to grab."), NamedTextColor.RED));
                     this.cancel();
                     return;
                 }
@@ -175,7 +181,7 @@ public final class GrapplingHookService {
                     return;
                 }
                 at.add(direction);
-                p.getWorld().spawnParticle(Particle.CRIT, at, 1, 0, 0, 0, 0);
+                GrapplingHookService.this.beamEffect(eye, at);
             }
         }.runTaskTimer(this.plugin, 0L, 1L);
     }
@@ -184,6 +190,9 @@ public final class GrapplingHookService {
         state.phase = Phase.ATTACHED;
         state.location = blockLocation;
         UUID id = p.getUniqueId();
+        p.getWorld().playSound(blockLocation, Sound.ITEM_ARMOR_EQUIP_CHAIN, SoundCategory.PLAYERS, 0.8f, 0.7f);
+        Language l = Language.of(p);
+        p.sendActionBar(this.line(l.choose("Gancho preso! Clique de novo para se puxar.", "Hook attached! Right-click again to pull."), NamedTextColor.GREEN));
         state.task = new BukkitRunnable() {
             int ticks = 0;
 
@@ -207,6 +216,7 @@ public final class GrapplingHookService {
         state.phase = Phase.PULLING;
         Location hookCenter = state.location.clone().add(0.5, 0.5, 0.5);
         UUID id = p.getUniqueId();
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, SoundCategory.PLAYERS, 0.8f, 1.0f);
         state.task = new BukkitRunnable() {
             int ticks = 0;
 
