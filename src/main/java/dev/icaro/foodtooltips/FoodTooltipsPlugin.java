@@ -28,6 +28,8 @@ import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.trash.TrashMenuListener;
 import dev.icaro.foodtooltips.trash.TrashMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
+import dev.icaro.foodtooltips.grapple.GrapplingHookListener;
+import dev.icaro.foodtooltips.grapple.GrapplingHookService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandService;
 import dev.icaro.foodtooltips.enchant.ArmorEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
@@ -222,6 +224,7 @@ extends JavaPlugin {
         PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this, combat);
         PrismaPumpService prismaPump = new PrismaPumpService((Plugin)this);
         MegaSpongeService megaSponge = new MegaSpongeService((Plugin)this);
+        GrapplingHookService grapplingHook = new GrapplingHookService((Plugin)this);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers, prismaPump);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
@@ -317,6 +320,7 @@ extends JavaPlugin {
         legendaryItemsMenu.lapisArmor(lapisArmor::createArmorSet);
         legendaryItemsMenu.grandBottle(lapisExperience::grandBottleGift);
         legendaryItemsMenu.titanicBottle(lapisExperience::titanicBottleGift);
+        legendaryItemsMenu.grapplingHook(p -> java.util.List.of(grapplingHook.create(Language.of((Player)p))));
         CollectionsItemsMenuService collectionsItemsMenu = new CollectionsItemsMenuService(legendaryItemsMenu::open);
         legendaryItemsMenu.collectionsItems(p -> collectionsItemsMenu.open(p, 0));
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
@@ -421,6 +425,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BiomeWandListener(biomeWand), (Plugin)this);
         pm.registerEvents((Listener)new PrismaPumpListener(prismaPump), (Plugin)this);
         pm.registerEvents((Listener)new MegaSpongeListener(megaSponge), (Plugin)this);
+        pm.registerEvents((Listener)new GrapplingHookListener(grapplingHook), (Plugin)this);
         pm.registerEvents((Listener)new SculptorsAxeListener(sculptorsAxe), (Plugin)this);
         SpruceAxeListener spruceAxeThrow = new SpruceAxeListener((Plugin)this, spruceAxe);
         pm.registerEvents((Listener)spruceAxeThrow, (Plugin)this);

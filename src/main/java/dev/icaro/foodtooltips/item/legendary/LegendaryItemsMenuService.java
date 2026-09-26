@@ -30,7 +30,10 @@ import org.bukkit.inventory.meta.ItemMeta;
  * Zombie/Skeleton Miner drop, Lapis Lazuli Armor/the Experience Bottles' own crafting
  * recipes, the bottles' own fishing chance - see {@code LapisExperienceService#fish}) -
  * this menu is just a second, guaranteed way to get one instead of relying on a drop/
- * fishing chance or gathering the crafting materials.
+ * fishing chance or gathering the crafting materials. The Grappling Hook ({@link
+ * #GRAPPLING_HOOK_SLOT}) is the odd one out - it has no other way in at all, per the
+ * player's own explicit "não vao entrar em collections, serão pegos só pelo /rpgitems"
+ * for this still-in-testing item (see {@code grapple.GrapplingHookService}'s own doc).
  */
 public final class LegendaryItemsMenuService {
     private static final Map<Integer, LegendaryWeapon> SLOTS = Map.of(
@@ -51,6 +54,8 @@ public final class LegendaryItemsMenuService {
     private static final int TITANIC_BOTTLE_SLOT = 24;
     /** Opens {@code collections.CollectionsItemsMenuService} instead of handing over an item directly, per the player's own "TODOS os itens pegáveis pelo /rpgitems" spec - a separate paginated screen since the number of Collections-unlockable items keeps growing (see that class's own doc). */
     private static final int COLLECTIONS_ITEMS_SLOT = 40;
+    /** Same row as {@link #COLLECTIONS_ITEMS_SLOT} - see {@link #grapplingHook}. */
+    private static final int GRAPPLING_HOOK_SLOT = 38;
 
     private final LegendaryWeaponService weapons;
     private final Set<UUID> viewing = new HashSet<>();
@@ -64,6 +69,8 @@ public final class LegendaryItemsMenuService {
     private Function<Player, List<ItemStack>> titanicBottle = p -> List.of();
     /** {@code CollectionsItemsMenuService::open} - see {@link #COLLECTIONS_ITEMS_SLOT}. Defaults to a no-op so the tile never fails if this is somehow never wired. */
     private java.util.function.Consumer<Player> collectionsItems = p -> {};
+    /** {@code grapple.GrapplingHookService::create} - same idea as {@link #minerArmor}, see {@link #GRAPPLING_HOOK_SLOT}. A single-item "set", same shape as {@link #grandBottle}/{@link #titanicBottle}. */
+    private Function<Player, List<ItemStack>> grapplingHook = p -> List.of();
 
     public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
         this.weapons = weapons;
@@ -94,6 +101,11 @@ public final class LegendaryItemsMenuService {
         this.collectionsItems = collectionsItems;
     }
 
+    /** Wired in after construction - see {@link #grapplingHook}. */
+    public void grapplingHook(Function<Player, List<ItemStack>> grapplingHook) {
+        this.grapplingHook = grapplingHook;
+    }
+
     public void open(Player p) {
         Language l = Language.of(p);
         Inventory v = Bukkit.createInventory(null, 54, l.choose("Itens Lendários", "Legendary Items"));
@@ -109,6 +121,7 @@ public final class LegendaryItemsMenuService {
         v.setItem(GRAND_BOTTLE_SLOT, this.armorSetPreview(this.grandBottle.apply(p), l));
         v.setItem(TITANIC_BOTTLE_SLOT, this.armorSetPreview(this.titanicBottle.apply(p), l));
         v.setItem(COLLECTIONS_ITEMS_SLOT, this.collectionsItemsTile(l));
+        v.setItem(GRAPPLING_HOOK_SLOT, this.armorSetPreview(this.grapplingHook.apply(p), l));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
@@ -143,6 +156,10 @@ public final class LegendaryItemsMenuService {
         if (slot == COLLECTIONS_ITEMS_SLOT) {
             this.viewing.remove(p.getUniqueId());
             this.collectionsItems.accept(p);
+            return;
+        }
+        if (slot == GRAPPLING_HOOK_SLOT) {
+            this.giveSet(p, this.grapplingHook.apply(p), l, "Grappling Hook");
             return;
         }
         LegendaryWeapon w = SLOTS.get(slot);
