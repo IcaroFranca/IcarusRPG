@@ -74,6 +74,7 @@ public final class FarmingCollectionsItemsService {
     private static final UUID CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cactus_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FLOWER_CACTUS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flower_cactus_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID GOLDEN_CARROT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:golden_carrot_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID TRUE_CHOCOLATE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:true_chocolate_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CARROT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:carrot_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CHOCOLATE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:chocolate_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FEATHER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:feather_core".getBytes(StandardCharsets.UTF_8));
@@ -222,6 +223,11 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"XXX", "XDX", "XXX"}, r -> {
                     r.setIngredient('X', Material.COCOA_BEANS);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.TRUE_CHOCOLATE_CORE_RECIPE, this.trueChocolateCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.chocolateCore()));
+                    r.setIngredient('D', Material.NETHERITE_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.CHOCOLATE_HELMET_RECIPE, this.chocolatePiece(Material.LEATHER_HELMET, "Chocolate Helmet"),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.COCOA_BEANS));
@@ -655,6 +661,16 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.CHOCOLATE_CORE, CHOCOLATE_CORE_PROFILE);
         meta.displayName(Component.text("Chocolate Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Cocoa Beans Collection M7's own upgrade to {@link #chocolateCore()} - same "8 of the base Core around a Netherite Block" shape as {@link #flowerCactusCore()}/{@link #goldenCarrotCore()}, per the player's own explicit spec. */
+    private org.bukkit.inventory.ItemStack trueChocolateCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.TRUE_CHOCOLATE_CORE, TRUE_CHOCOLATE_CORE_PROFILE);
+        meta.displayName(Component.text("True Chocolate Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

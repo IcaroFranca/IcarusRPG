@@ -29,6 +29,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "cactus_core");
     public static final NamespacedKey FLOWER_CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "flower_cactus_core");
     public static final NamespacedKey GOLDEN_CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "golden_carrot_core");
+    public static final NamespacedKey TRUE_CHOCOLATE_CORE_RECIPE = new NamespacedKey("foodtooltips", "true_chocolate_core");
     public static final NamespacedKey CARROT_CORE_RECIPE = new NamespacedKey("foodtooltips", "carrot_core");
     public static final NamespacedKey CACTUS_HELMET_RECIPE = new NamespacedKey("foodtooltips", "cactus_helmet");
     public static final NamespacedKey CACTUS_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "cactus_chestplate");
@@ -196,13 +197,14 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0,
                             List.of(CHOCOLATE_CORE_RECIPE), null, 0.0,
                             "Desbloqueia a receita do Chocolate Core", "Unlocks the Chocolate Core recipe"),
-                    new CollectionsMilestone(5000, RewardKind.RECIPE_UNLOCK, 0,
+                    new CollectionsMilestone(5000, RewardKind.FARMING_XP, 2500, List.of(), null, 0.0,
+                            "+2500 XP de Agricultura", "+2500 Farming XP"),
+                    new CollectionsMilestone(10000, RewardKind.RECIPE_UNLOCK, 0,
                             List.of(CHOCOLATE_HELMET_RECIPE, CHOCOLATE_CHESTPLATE_RECIPE, CHOCOLATE_LEGGINGS_RECIPE, CHOCOLATE_BOOTS_RECIPE), null, 0.0,
                             "Desbloqueia a receita da Chocolate Armor", "Unlocks the Chocolate Armor recipe"),
-                    new CollectionsMilestone(10000, RewardKind.FARMING_XP, 5000, List.of(), null, 0.0,
-                            "+5000 XP de Agricultura", "+5000 Farming XP"),
-                    new CollectionsMilestone(25000, RewardKind.FARMING_XP, 10000, List.of(), null, 0.0,
-                            "+10000 XP de Agricultura", "+10000 Farming XP"),
+                    new CollectionsMilestone(25000, RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(TRUE_CHOCOLATE_CORE_RECIPE), null, 0.0,
+                            "Desbloqueia a receita do True Chocolate Core", "Unlocks the True Chocolate Core recipe"),
                     new CollectionsMilestone(50000, RewardKind.FARMING_XP, 25000, List.of(), null, 0.0,
                             "+25000 XP de Agricultura", "+25000 Farming XP"),
                     new CollectionsMilestone(100000, RewardKind.FARMING_XP, 50000, List.of(), null, 0.0,

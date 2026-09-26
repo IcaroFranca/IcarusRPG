@@ -147,9 +147,13 @@ final class CollectionsCatalogTest {
         assertEquals(25.0, m.get(2).discountPercent());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
         assertEquals(List.of(CollectionsCatalog.CHOCOLATE_CORE_RECIPE), m.get(3).recipes());
-        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(4).kind());
-        assertEquals(4, m.get(4).recipes().size());
-        assertTrue(m.get(4).recipes().contains(CollectionsCatalog.CHOCOLATE_HELMET_RECIPE));
+        assertEquals(RewardKind.FARMING_XP, m.get(4).kind());
+        assertEquals(2500, m.get(4).xpAmount());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(5).kind());
+        assertEquals(4, m.get(5).recipes().size());
+        assertTrue(m.get(5).recipes().contains(CollectionsCatalog.CHOCOLATE_HELMET_RECIPE));
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(6).kind());
+        assertEquals(List.of(CollectionsCatalog.TRUE_CHOCOLATE_CORE_RECIPE), m.get(6).recipes());
     }
 
     @Test
