@@ -83,7 +83,17 @@ public final class BrewingMenuListener implements Listener {
         // The click's own effect (if not cancelled above) only actually lands in the
         // inventory after this event finishes - scheduling the resync for next tick, not
         // reading it inline here, is what makes it see the settled result.
-        Bukkit.getScheduler().runTask(this.plugin, () -> this.menu.resync(p));
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            this.menu.resync(p);
+            // A click that picked up a placeholder hint (an empty linked slot with nothing
+            // on the cursor) or swapped a real item in over one (which vanilla sends the
+            // slot's old occupant - the placeholder - to the cursor for) can leave that
+            // phantom item sitting on the player's own cursor; it's never meant to actually
+            // exist anywhere outside a genuinely-empty linked slot, so discard it outright.
+            if (BrewingMenuService.isPlaceholder(p.getItemOnCursor())) {
+                p.setItemOnCursor(null);
+            }
+        });
     }
 
     /** No drag support - the 4 linked slots only need plain single-item clicks, and disallowing drag entirely sidesteps any weirdness dragging across the decorative filler slots could cause. */

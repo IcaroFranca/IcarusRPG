@@ -46,7 +46,9 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * star menu's own slot 28. Same shape as {@code QuiverService} in every other way (a
  * decorative back-button row below the real storage, {@link Player} PDC persistence via the
  * same {@code BukkitObjectOutputStream}-over-{@code ItemStack[]} Base64 trick), just a
- * different item-type filter and a growing (not fixed) storage size.
+ * different item-type filter and a growing (not fixed) storage size - {@link #inventoryFor}
+ * rebuilds (not just reuses from cache) the moment a milestone crossed mid-session changes
+ * that size, same reasoning {@code PersonalStorageService#inventoryFor} documents.
  */
 public final class PotionBagService {
     public static final int MAX_SLOTS = 45;
@@ -170,25 +172,37 @@ public final class PotionBagService {
         });
     }
 
+    /** See {@code PersonalStorageService#inventoryFor}'s own doc - same "rebuild, only ever migrating the old real-storage portion" shape, since {@code computeIfAbsent} alone (this method's own first version) never rebuilt at all once cached, silently keeping a player at their old, smaller size for the rest of the session no matter how many further milestones they crossed. */
     private Inventory inventoryFor(Player p) {
-        return this.cache.computeIfAbsent(p.getUniqueId(), id -> {
-            Language l = Language.of(p);
-            int size = this.storageSize(p);
-            int totalSize = size + 9;
-            Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Bolsa de Poções", "Potion Bag"));
-            ItemStack filler = this.filler();
-            for (int i = size; i < totalSize; i++) {
-                inv.setItem(i, filler);
+        Language l = Language.of(p);
+        int size = this.storageSize(p);
+        int totalSize = size + 9;
+        Inventory cached = this.cache.get(p.getUniqueId());
+        if (cached != null && cached.getSize() == totalSize) {
+            return cached;
+        }
+        Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Bolsa de Poções", "Potion Bag"));
+        ItemStack[] saved;
+        int realLength;
+        if (cached != null) {
+            saved = cached.getContents();
+            realLength = cached.getSize() - 9;
+        } else {
+            saved = this.load(p);
+            realLength = saved == null ? 0 : saved.length;
+        }
+        if (saved != null) {
+            for (int i = 0; i < Math.min(realLength, size); i++) {
+                inv.setItem(i, saved[i]);
             }
-            inv.setItem(this.backSlot(p), this.backButton(l));
-            ItemStack[] saved = this.load(p);
-            if (saved != null) {
-                for (int i = 0; i < Math.min(saved.length, size); i++) {
-                    inv.setItem(i, saved[i]);
-                }
-            }
-            return inv;
-        });
+        }
+        ItemStack filler = this.filler();
+        for (int i = size; i < totalSize; i++) {
+            inv.setItem(i, filler);
+        }
+        inv.setItem(this.backSlot(p), this.backButton(l));
+        this.cache.put(p.getUniqueId(), inv);
+        return inv;
     }
 
     private void persist(Player p) {

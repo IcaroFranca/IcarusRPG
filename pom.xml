@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.76.85</version>
+  <version>0.76.86</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>

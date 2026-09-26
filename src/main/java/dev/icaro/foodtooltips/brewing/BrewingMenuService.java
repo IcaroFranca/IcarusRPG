@@ -17,6 +17,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.BrewingStand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryAction;
@@ -28,6 +29,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionType;
 
 /**
@@ -55,6 +57,15 @@ import org.bukkit.potion.PotionType;
  * {@link #tick} pulls the real stand's current contents back into view (see {@link #pull}),
  * so the GUI always reflects genuine, vanilla-computed brewing progress - this class never
  * has to reimplement brewing recipes or timing itself.
+ *
+ * <p>An empty linked slot never just sits there as a plain, blend-into-the-background
+ * {@code null} - {@link #ingredientPlaceholder}/{@link #bottlePlaceholder} fill it with a
+ * labeled hint pane instead, per the player's own "os slots onde vem as poções e
+ * ingredientes devem ser mostrados" spec. That hint is a phantom, never real content:
+ * {@link #push} strips it back out to {@code null} before ever touching the real stand
+ * ({@link #realOrNull}), {@link #creditIfTaken} ignores a click that only ever touched it,
+ * and {@code BrewingMenuListener} discards it outright if a player's own click ever leaves
+ * it sitting on their cursor (picking it up, or swapping a real item in over it).
  */
 public final class BrewingMenuService {
     static final int SIZE = 54;
@@ -65,6 +76,8 @@ public final class BrewingMenuService {
     static final int[] BOTTLE_SLOTS = {BOTTLE_SLOT_A, BOTTLE_SLOT_B, BOTTLE_SLOT_C};
     static final int CLOSE_SLOT = 49;
     private static final int[] GLASS_SLOTS = {20, 21, 22, 23, 24, 29, 31, 33};
+    /** Tags {@link #ingredientPlaceholder}/{@link #bottlePlaceholder} - a phantom item that only ever exists to show a linked slot's own purpose while it's genuinely empty in the real stand, never a real ingredient/bottle {@link #push} should ever forward. See {@link #isPlaceholder}. */
+    private static final NamespacedKey PLACEHOLDER_KEY = new NamespacedKey("foodtooltips", "brewing_menu_placeholder");
 
     /**
      * Alchemy skill XP for taking an Awkward Potion (Nether Wart + Water Bottle) - below
@@ -113,7 +126,7 @@ public final class BrewingMenuService {
         Inventory inv = Bukkit.createInventory(holder, SIZE, l.choose("Mesa de Poções", "Brewing Stand"));
         holder.inventory = inv;
         this.renderStatic(inv, l);
-        this.pull(holder);
+        this.pull(p, holder);
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
     }
@@ -154,7 +167,7 @@ public final class BrewingMenuService {
             return;
         }
         this.push(holder);
-        this.pull(holder);
+        this.pull(p, holder);
     }
 
     /**
@@ -168,35 +181,43 @@ public final class BrewingMenuService {
      * it had just consumed, back to its pre-brew state every time the player touched their
      * own inventory. That's what made brewing appear to never finish.
      */
+    /** {@code guiItem} with {@link #isPlaceholder} treated as "nothing there" - what {@link #push} actually reads from a linked slot, so the phantom hint {@link #pull} shows while a slot is genuinely empty is never itself forwarded into the real stand as if it were a real ingredient/bottle. */
+    private static ItemStack realOrNull(ItemStack guiItem) {
+        return isPlaceholder(guiItem) ? null : guiItem;
+    }
+
     private void push(BrewingMenuHolder holder) {
         BrewerInventory real = holder.stand.getInventory();
-        ItemStack guiIngredient = holder.inventory.getItem(INGREDIENT_SLOT);
+        ItemStack guiIngredient = realOrNull(holder.inventory.getItem(INGREDIENT_SLOT));
         if (!Objects.equals(guiIngredient, holder.knownIngredient)) {
             real.setIngredient(guiIngredient);
         }
         for (int i = 0; i < BOTTLE_SLOTS.length; i++) {
-            ItemStack guiBottle = holder.inventory.getItem(BOTTLE_SLOTS[i]);
+            ItemStack guiBottle = realOrNull(holder.inventory.getItem(BOTTLE_SLOTS[i]));
             if (!Objects.equals(guiBottle, holder.knownBottles[i])) {
                 real.setItem(i, guiBottle);
             }
         }
     }
 
-    private void pull(BrewingMenuHolder holder) {
+    private void pull(Player p, BrewingMenuHolder holder) {
+        Language l = Language.of(p);
         BrewerInventory real = holder.stand.getInventory();
         ItemStack ingredient = real.getIngredient();
-        this.setIfChanged(holder.inventory, INGREDIENT_SLOT, ingredient);
+        this.setIfChanged(holder.inventory, INGREDIENT_SLOT, ingredient, this.ingredientPlaceholder(l));
         holder.knownIngredient = ingredient;
         for (int i = 0; i < BOTTLE_SLOTS.length; i++) {
             ItemStack bottle = real.getItem(i);
-            this.setIfChanged(holder.inventory, BOTTLE_SLOTS[i], bottle);
+            this.setIfChanged(holder.inventory, BOTTLE_SLOTS[i], bottle, this.bottlePlaceholder(l));
             holder.knownBottles[i] = bottle;
         }
     }
 
-    private void setIfChanged(Inventory inv, int slot, ItemStack value) {
-        if (!Objects.equals(inv.getItem(slot), value)) {
-            inv.setItem(slot, value);
+    /** Shows {@code value}, or {@code placeholderWhenEmpty} in its place whenever the real stand's own slot is genuinely empty - per the player's own "os slots onde vem as poções e ingredientes devem ser mostrados" spec: an empty linked slot used to just be {@code null}, blending into the screen's own black background same as a slot that doesn't exist at all. */
+    private void setIfChanged(Inventory inv, int slot, ItemStack value, ItemStack placeholderWhenEmpty) {
+        ItemStack display = value == null || value.isEmpty() ? placeholderWhenEmpty : value;
+        if (!Objects.equals(inv.getItem(slot), display)) {
+            inv.setItem(slot, display);
         }
     }
 
@@ -223,7 +244,7 @@ public final class BrewingMenuService {
             p.closeInventory();
             return;
         }
-        this.pull(holder);
+        this.pull(p, holder);
         Language l = Language.of(p);
         ItemStack pane = this.glassPane(holder.stand.getBrewingTime(), l);
         for (int slot : GLASS_SLOTS) {
@@ -246,7 +267,7 @@ public final class BrewingMenuService {
      * resolves - by the time this returns the slot may already be empty.
      */
     void creditIfTaken(Player p, int rawSlot, ItemStack current, InventoryAction action) {
-        if (rawSlot == INGREDIENT_SLOT || current == null || current.isEmpty() || !isRemovalAction(action)) {
+        if (rawSlot == INGREDIENT_SLOT || current == null || current.isEmpty() || isPlaceholder(current) || !isRemovalAction(action)) {
             return;
         }
         this.potionGuide.creditBrew(p, current);
@@ -326,6 +347,35 @@ public final class BrewingMenuService {
         int secondsLeft = (brewTicks + 19) / 20;
         Component lore = this.text(l.choose(secondsLeft + "s restantes", secondsLeft + "s left"), NamedTextColor.GOLD);
         return this.item(material, " ", List.of(lore));
+    }
+
+    /** The {@value #INGREDIENT_SLOT} slot's own phantom hint - see {@link #setIfChanged}'s own doc. */
+    private ItemStack ingredientPlaceholder(Language l) {
+        return this.placeholder(Material.LIGHT_GRAY_STAINED_GLASS_PANE, l.choose("Ingrediente", "Ingredient"), l.choose(
+                "Coloque aqui o ingrediente da poção.", "Place the potion's ingredient here."));
+    }
+
+    /** One of {@link #BOTTLE_SLOTS}' own phantom hint - see {@link #setIfChanged}'s own doc. */
+    private ItemStack bottlePlaceholder(Language l) {
+        return this.placeholder(Material.LIGHT_GRAY_STAINED_GLASS_PANE, l.choose("Garrafa", "Bottle"), l.choose(
+                "Coloque aqui uma garrafa d'água ou poção.", "Place a Water Bottle or potion here."));
+    }
+
+    private ItemStack placeholder(Material material, String name, String description) {
+        ItemStack item = this.item(material, name, List.of(this.text(description, NamedTextColor.GRAY)));
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(PLACEHOLDER_KEY, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Whether {@code item} is {@link #ingredientPlaceholder}/{@link #bottlePlaceholder} rather than something the player (or the real stand) actually put in a linked slot - see {@link #realOrNull}/{@link #setIfChanged}. Package-visible so {@code BrewingMenuListener} can skip crediting a click that only ever touched this phantom hint. */
+    static boolean isPlaceholder(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(PLACEHOLDER_KEY, PersistentDataType.BYTE);
     }
 
     private ItemStack customHead(String texture, String name, List<Component> lore) {

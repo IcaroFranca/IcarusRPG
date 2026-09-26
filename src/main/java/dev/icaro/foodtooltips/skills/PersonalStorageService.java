@@ -149,9 +149,21 @@ public final class PersonalStorageService {
             return cached;
         }
         Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Armazenamento Pessoal", "Personal Storage"));
-        ItemStack[] saved = cached != null ? cached.getContents() : this.load(p);
+        // Only ever copy the OLD screen's own real-storage portion (its size, not its full
+        // size+9 contents) - copying the whole thing would carry that old screen's own
+        // decorative filler and close-button items into what are now real, newly-unlocked
+        // storage slots the instant a milestone grows this mid-session (cached != null).
+        ItemStack[] saved;
+        int realLength;
+        if (cached != null) {
+            saved = cached.getContents();
+            realLength = cached.getSize() - 9;
+        } else {
+            saved = this.load(p);
+            realLength = saved == null ? 0 : saved.length;
+        }
         if (saved != null) {
-            for (int i = 0; i < Math.min(saved.length, size); i++) {
+            for (int i = 0; i < Math.min(realLength, size); i++) {
                 inv.setItem(i, saved[i]);
             }
         }
