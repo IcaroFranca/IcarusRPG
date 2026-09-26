@@ -15,8 +15,8 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,6 +25,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
@@ -32,6 +33,8 @@ import org.bukkit.util.Vector;
 
 public final class SwordThrowListener
 implements Listener {
+    /** Tags the visual {@code ArmorStand} {@link #launch} spawns, since it's a {@link LivingEntity} itself (an {@code ArmorStand} quirk) - without this, a concurrent throw's own {@code rayTraceEntities} entity filter below could mistake one player's flying decorative stand for a valid target and "hit" it. */
+    private static final org.bukkit.NamespacedKey THROWN_VISUAL_KEY = new org.bukkit.NamespacedKey("foodtooltips", "thrown_sword_visual");
     private final Plugin plugin;
     private final CombatAbilityService abilities;
     private final Map<UUID, Long> cooldowns = new HashMap<UUID, Long>();
@@ -84,21 +87,43 @@ implements Listener {
         return true;
     }
 
-    /** The thrown sword's visual - a plain dropped-{@link Item} entity, not an {@code ItemDisplay}: Display entities (1.19.4+) are still poorly supported through Geyser for a Bedrock player, invisible outright on some versions (GeyserMC/Geyser#3810, #5452) and, even when visible, a per-tick {@code Entity#teleport} like this ray-march needs often just doesn't visually move for them at all (GeyserMC/Geyser#6723). A dropped item is one of the oldest, most universally-supported entity types in the game, Bedrock included - its own free bob/spin animation replaces the manual rotation an {@code ItemDisplay} needed. */
+    /**
+     * The thrown sword's visual - an invisible, held-still {@link ArmorStand} wearing {@code
+     * sword} as its helmet, not a dropped {@link org.bukkit.entity.Item} entity (this class's
+     * own previous version) or an {@code ItemDisplay}. A dropped item carries its own vanilla
+     * bob/spin animation, baked into its client-side rendering independent of this ray-march's
+     * own per-tick reposition - looking like it's wobbling in place instead of flying cleanly
+     * to its target. Display entities (1.19.4+) are still poorly supported through Geyser for
+     * a Bedrock player, invisible outright on some versions (GeyserMC/Geyser#3810, #5452) and,
+     * even when visible, a per-tick {@code Entity#teleport} like this ray-march needs often
+     * just doesn't visually move for them at all (GeyserMC/Geyser#6723). An {@code ArmorStand}'s
+     * equipped item has neither problem - {@code setMarker(false)} deliberately, not {@code
+     * true}, since Marker mode had its own now-fixed-upstream Geyser bug hiding equipped items
+     * entirely (GeyserMC/Geyser#3089), not worth the risk on an older/pinned Geyser build.
+     * {@link #THROWN_VISUAL_KEY} keeps this decorative stand (a {@link LivingEntity} itself,
+     * unlike a dropped item) from being mistaken for a real target by this same ray-march's own
+     * {@code rayTraceEntities} check below, including a different player's concurrent throw.
+     */
     private void launch(final Player p, ItemStack sword) {
         final Location start = p.getEyeLocation().add(p.getEyeLocation().getDirection().multiply(0.6));
         final Vector direction = p.getEyeLocation().getDirection().normalize();
+        start.setDirection(direction);
         final ItemStack visual = sword.clone();
         visual.setAmount(1);
-        final Item display = p.getWorld().spawn(start, Item.class, d -> {
-            d.setItemStack(visual);
+        final ArmorStand display = p.getWorld().spawn(start, ArmorStand.class, d -> {
+            d.setInvisible(true);
             d.setGravity(false);
+            d.setBasePlate(false);
+            d.setArms(false);
+            d.setSmall(true);
+            d.setMarker(false);
+            d.setSilent(true);
             d.setInvulnerable(true);
             d.setPersistent(false);
-            d.setUnlimitedLifetime(true);
-            d.setCanPlayerPickup(false);
-            d.setCanMobPickup(false);
-            d.setVelocity(new Vector(0, 0, 0));
+            d.setCanMove(false);
+            d.setCustomNameVisible(false);
+            d.getEquipment().setHelmet(visual);
+            d.getPersistentDataContainer().set(THROWN_VISUAL_KEY, PersistentDataType.BYTE, (byte) 1);
         });
         new BukkitRunnable(){
             int ticks;
@@ -111,7 +136,8 @@ implements Listener {
                     return;
                 }
                 RayTraceResult block = p.getWorld().rayTraceBlocks(this.at, direction, 1.0, FluidCollisionMode.NEVER, true);
-                RayTraceResult hit = p.getWorld().rayTraceEntities(this.at, direction, 1.0, 0.65, entity -> entity instanceof LivingEntity && entity != p);
+                RayTraceResult hit = p.getWorld().rayTraceEntities(this.at, direction, 1.0, 0.65, entity -> entity instanceof LivingEntity && entity != p
+                        && !entity.getPersistentDataContainer().has(THROWN_VISUAL_KEY, PersistentDataType.BYTE));
                 if (hit != null && (entity2 = hit.getHitEntity()) instanceof LivingEntity) {
                     LivingEntity target = (LivingEntity)entity2;
                     AttributeInstance attack = p.getAttribute(Attribute.ATTACK_DAMAGE);

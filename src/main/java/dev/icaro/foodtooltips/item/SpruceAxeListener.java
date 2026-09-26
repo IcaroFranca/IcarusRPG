@@ -11,7 +11,7 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Item;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -25,7 +25,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same dropped-{@code Item}-ray-march visual as {@code skills.SwordThrowListener} - see that method's own doc for why not an {@code ItemDisplay}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
+/** Wires the Spruce Axe's two effects: normal felling ({@link SpruceAxeService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}, same {@code ArmorStand}-ray-march visual as {@code skills.SwordThrowListener} - see that method's own doc for why not a dropped {@code Item} or an {@code ItemDisplay}) on Swap Hands (F) - see {@link #throwAxe}'s own doc for why not right-click. {@link BedrockSpruceAxeThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
 public final class SpruceAxeListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
@@ -101,32 +101,43 @@ public final class SpruceAxeListener implements Listener {
     }
 
     /**
-     * The thrown axe's visual - a plain dropped-{@link Item} entity (its own vanilla bob/spin
-     * animation is free, no manual rotation needed), not an {@link org.bukkit.entity.ItemDisplay}
-     * like this class's own first version. Display entities (added in 1.19.4) are still poorly
-     * supported through Geyser for a Bedrock player - invisible outright on some versions
-     * (GeyserMC/Geyser#3810, #5452), and even when visible, a per-tick {@code Entity#teleport}
-     * like this ray-march needs often just doesn't visually move for them at all
-     * (GeyserMC/Geyser#6723, "sliding display entity...updates...do not visually apply on
-     * Bedrock") - exactly this ability's own symptom once the throw itself started working via
-     * the double-crouch fix. A dropped item is one of the oldest, most universally-supported
-     * entity types in the game, Bedrock included, so this trades a bit of visual flair (no
-     * fixed-billboard orientation, no custom spin rate) for actually being seen at all.
+     * The thrown axe's visual - an invisible, held-still {@link ArmorStand} wearing {@code
+     * heldAxe} as its helmet, not a dropped {@link org.bukkit.entity.Item} (this class's own
+     * second version) or an {@link org.bukkit.entity.ItemDisplay} (its first). A dropped item
+     * carries its own vanilla bob/spin animation, baked into its client-side rendering
+     * independent of this ray-march's own per-tick reposition - looking like it's wobbling in
+     * place instead of flying cleanly to its target, exactly what "ele só aparece no ar de um
+     * jeito estranho" describes. An {@code ItemDisplay} has no such animation, but Display
+     * entities (added in 1.19.4) are still poorly supported through Geyser for a Bedrock
+     * player - invisible outright on some versions (GeyserMC/Geyser#3810, #5452), and even
+     * when visible, a per-tick {@code Entity#teleport} like this ray-march needs often just
+     * doesn't visually move for them at all (GeyserMC/Geyser#6723). An {@code ArmorStand}'s
+     * equipped item has neither problem: no bob/spin animation of its own, and ArmorStands are
+     * one of the oldest, most universally-supported entity types in the game, Bedrock
+     * included - {@code setMarker(false)} deliberately, not {@code true}, since Marker mode
+     * had its own now-fixed-upstream Geyser bug hiding equipped items entirely
+     * (GeyserMC/Geyser#3089) - not worth the risk on an older/pinned Geyser build when a
+     * regular (non-marker) invisible stand works everywhere.
      */
     private void launch(Player p, ItemStack heldAxe) {
         Location start = p.getEyeLocation().add(p.getEyeLocation().getDirection().multiply(0.6));
         Vector direction = p.getEyeLocation().getDirection().normalize();
+        start.setDirection(direction);
         ItemStack visual = heldAxe.clone();
         visual.setAmount(1);
-        Item display = p.getWorld().spawn(start, Item.class, d -> {
-            d.setItemStack(visual);
+        ArmorStand display = p.getWorld().spawn(start, ArmorStand.class, d -> {
+            d.setInvisible(true);
             d.setGravity(false);
+            d.setBasePlate(false);
+            d.setArms(false);
+            d.setSmall(true);
+            d.setMarker(false);
+            d.setSilent(true);
             d.setInvulnerable(true);
             d.setPersistent(false);
-            d.setUnlimitedLifetime(true);
-            d.setCanPlayerPickup(false);
-            d.setCanMobPickup(false);
-            d.setVelocity(new Vector(0, 0, 0));
+            d.setCanMove(false);
+            d.setCustomNameVisible(false);
+            d.getEquipment().setHelmet(visual);
         });
         new BukkitRunnable() {
             int ticks;
