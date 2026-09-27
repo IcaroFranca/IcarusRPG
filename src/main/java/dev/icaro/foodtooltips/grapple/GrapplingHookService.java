@@ -45,13 +45,23 @@ import org.bukkit.util.Vector;
  * listener only wires the event" split as {@code sponge.MegaSpongeService}/{@code
  * sponge.MegaSpongeListener}.
  *
- * <p>Right-click fires a one-block-per-tick raytrace (same ray-march shape {@code
+ * <p>Triggered on Swap Hands (F), not right-click - {@code PlayerInteractEvent}'s {@code
+ * RIGHT_CLICK_AIR} is the same long-standing, Spigot-acknowledged client-side limitation
+ * {@code item.SpruceAxeListener#throwAxe} already documents: the client doesn't reliably
+ * send the interact packet for a right-click with nothing (no block, no entity) within
+ * normal reach, which is exactly the common case for a 24-block-range hook aimed at
+ * something far away - confirmed by the player's own testing ("não aparecem as
+ * partículas se eu não estiver mirando em um bloco"). Same fix {@code
+ * skills.SwordThrowListener}/{@code item.SpruceAxeListener}/{@code
+ * item.TreecapitatorListener} already use for their own ranged abilities.
+ *
+ * <p>Firing runs a one-block-per-tick raytrace (same ray-march shape {@code
  * skills.SwordThrowListener} uses for its own thrown sword) up to {@link #MAX_RANGE}
  * blocks; hitting a block attaches the hook there and starts drawing a rope (the same
  * one-shot {@link Particle#END_ROD} trail {@code item.FarmCrystalService#beamEffect}/
  * {@code skills.AccessoryBagService#beamEffect} already use, just redrawn every {@link
- * #ROPE_INTERVAL_TICKS}). The next right-click while attached starts the pull - not a
- * single velocity burst, but the same impulse reapplied every tick for up to {@link
+ * #ROPE_INTERVAL_TICKS}). The next Swap Hands press while attached starts the pull - not
+ * a single velocity burst, but the same impulse reapplied every tick for up to {@link
  * #PULL_MAX_TICKS} (or until close enough to stop), which is what makes it feel like a
  * sustained reel-in rather than a teleport, per the player's own "puxão progressivo"
  * spec. Sneaking at any point (flying, attached, or mid-pull) cancels everything - see
@@ -99,8 +109,8 @@ public final class GrapplingHookService {
         meta.getPersistentDataContainer().set(this.hookKey, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(this.line(l.choose("Grappling Hook", "Grappling Hook"), NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true));
         List<Component> lore = List.of(
-                this.line(l.choose("Clique direito: lança o gancho.", "Right-click: fires the hook."), NamedTextColor.GRAY),
-                this.line(l.choose("Clique direito de novo: puxa você até ele.", "Right-click again: pulls you to it."), NamedTextColor.GRAY),
+                this.line(l.choose("Troca de Mãos (F): lança o gancho.", "Swap Hands (F): fires the hook."), NamedTextColor.GRAY),
+                this.line(l.choose("Troca de Mãos de novo: puxa você até ele.", "Swap Hands again: pulls you to it."), NamedTextColor.GRAY),
                 this.line(l.choose("Agachar cancela o gancho.", "Sneak to cancel the hook."), NamedTextColor.GRAY),
                 Component.empty(),
                 this.line(l.choose("Alcance: 24 blocos", "Range: 24 blocks"), NamedTextColor.AQUA),
