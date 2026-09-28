@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -64,6 +66,14 @@ import org.bukkit.plugin.Plugin;
  * underneath lets it find - and regrow into - the gaps and edges of a forest that was
  * never touched at all, not just literal clearings.
  *
+ * <p>{@link #pulseOne} checks for an existing sapling among that pulse's own sampled columns
+ * BEFORE ever trying to plant a brand new tree on bare ground - saplings are the crystal's own
+ * priority, per the player's own explicit spec ("a prioridade dele são as sapplings"): a
+ * player-planted or naturally-dropped sapling sitting in the area gets grown into a full tree
+ * (via {@link #SAPLING_TREE_TYPE}, matching the sapling's own species regardless of the
+ * column's biome - exactly like a real bonemeal application would) before this ever bothers
+ * planting a fresh one from scratch.
+ *
  * <p>{@link #pulseOne} also caps out at {@value #MAX_TREES_IN_AREA} trees already standing in
  * its own {@value #AREA_RADIUS}-block area (counted by {@link #countTreesInArea}, per the
  * player's own "limite de 10 árvores crescidas na área dele") - once that many columns are
@@ -97,6 +107,16 @@ public final class WoodcuttingCrystalService implements Listener {
     private static final Set<Material> PLANTABLE_GROUND = EnumSet.of(
             Material.GRASS_BLOCK, Material.DIRT, Material.COARSE_DIRT, Material.PODZOL,
             Material.ROOTED_DIRT, Material.MYCELIUM, Material.SAND, Material.RED_SAND, Material.MUD);
+
+    /** Every vanilla sapling {@link #pulseOne} can grow into a full tree - see this class's own doc on priority. Deliberately the sapling's OWN species, not {@link #treeTypeFor}'s biome lookup - a Jungle Sapling planted outside a Jungle still grows into a Jungle tree, same as real bonemeal. */
+    private static final Map<Material, TreeType> SAPLING_TREE_TYPE = Map.of(
+            Material.OAK_SAPLING, TreeType.TREE,
+            Material.SPRUCE_SAPLING, TreeType.REDWOOD,
+            Material.BIRCH_SAPLING, TreeType.BIRCH,
+            Material.JUNGLE_SAPLING, TreeType.JUNGLE,
+            Material.ACACIA_SAPLING, TreeType.ACACIA,
+            Material.DARK_OAK_SAPLING, TreeType.DARK_OAK,
+            Material.CHERRY_SAPLING, TreeType.CHERRY);
 
     /** Exact matches for the vanilla biomes with one obvious species - checked before {@link #TREE_BY_KEYWORD}'s fallback. */
     private static final Map<Biome, TreeType> TREE_BY_BIOME = Map.ofEntries(
@@ -198,8 +218,9 @@ public final class WoodcuttingCrystalService implements Listener {
         meta.getPersistentDataContainer().set(CRYSTAL_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Woodcutting Crystal", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
-                Component.text("Place on top of a block in a forest - regrows a", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text("tree matching the biome somewhere in a " + (AREA_RADIUS * 2) + "x" + (AREA_RADIUS * 2), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("Place on top of a block in a forest - grows saplings", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("into full trees first, then regrows a tree matching", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("the biome somewhere in a " + (AREA_RADIUS * 2) + "x" + (AREA_RADIUS * 2), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("area every " + (PULSE_TICKS / 20) + "s, up to " + MAX_TREES_IN_AREA + " trees.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Sneak + right-click it to remove.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         item.setItemMeta(meta);
@@ -298,17 +319,34 @@ public final class WoodcuttingCrystalService implements Listener {
         }
     }
 
-    /** Tries up to {@link #SAMPLE_ATTEMPTS} random columns within {@value #AREA_RADIUS} blocks of {@code stand}, regrowing the first one that's bare ground with a known tree for its biome - see this class's own doc. */
+    /**
+     * Tries up to {@link #SAMPLE_ATTEMPTS} random columns within {@value #AREA_RADIUS} blocks
+     * of {@code stand} - growing the first SAMPLED sapling found into a full tree always wins
+     * over planting a brand new one, even if a bare-ground opportunity was sampled earlier in
+     * the same pass (see this class's own doc): the whole batch of samples is drawn once, then
+     * checked for a sapling in full before ever falling through to the bare-ground pass.
+     */
     private void pulseOne(ArmorStand stand) {
         World world = stand.getWorld();
         Location origin = stand.getLocation();
         if (countTreesInArea(world, origin) >= MAX_TREES_IN_AREA) {
             return;
         }
+        List<Block> samples = new ArrayList<>(SAMPLE_ATTEMPTS);
         for (int i = 0; i < SAMPLE_ATTEMPTS; i++) {
             int x = origin.getBlockX() + ThreadLocalRandom.current().nextInt(-AREA_RADIUS, AREA_RADIUS + 1);
             int z = origin.getBlockZ() + ThreadLocalRandom.current().nextInt(-AREA_RADIUS, AREA_RADIUS + 1);
-            Block top = world.getHighestBlockAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+            samples.add(world.getHighestBlockAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES));
+        }
+        for (Block top : samples) {
+            Block above = top.getRelative(BlockFace.UP);
+            TreeType saplingType = SAPLING_TREE_TYPE.get(above.getType());
+            if (saplingType != null && world.generateTree(above.getLocation(), saplingType)) {
+                this.beamEffect(origin, above.getLocation());
+                return;
+            }
+        }
+        for (Block top : samples) {
             if (!PLANTABLE_GROUND.contains(top.getType())) {
                 continue;
             }
