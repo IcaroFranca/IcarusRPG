@@ -64,6 +64,12 @@ import org.bukkit.plugin.Plugin;
  * underneath lets it find - and regrow into - the gaps and edges of a forest that was
  * never touched at all, not just literal clearings.
  *
+ * <p>{@link #pulseOne} also caps out at {@value #MAX_TREES_IN_AREA} trees already standing in
+ * its own {@value #AREA_RADIUS}-block area (counted by {@link #countTreesInArea}, per the
+ * player's own "limite de 10 árvores crescidas na área dele") - once that many columns are
+ * already topped by a log/stem block, a pulse does nothing at all instead of trying to
+ * squeeze in an eleventh tree.
+ *
  * <p>{@link #treeTypeFor} isn't limited to the handful of vanilla {@link Biome} constants
  * in {@link #TREE_BY_BIOME}: a biome-adding datapack/plugin like Terralith registers its
  * biomes as additional {@link Biome} instances at runtime (there's no compile-time
@@ -84,6 +90,8 @@ public final class WoodcuttingCrystalService implements Listener {
     private static final int AREA_RADIUS = 10;
     /** How many random columns {@link #pulseOne} samples per pulse before giving up for that pass - cheap (one {@link World#getHighestBlockAt} each), so trying several before finding a valid spot is fine. */
     private static final int SAMPLE_ATTEMPTS = 12;
+    /** Max trees {@link #countTreesInArea} lets stand in the crystal's own area before {@link #pulseOne} stops regrowing more - per the player's own spec. */
+    private static final int MAX_TREES_IN_AREA = 10;
     private static final double BEAM_PARTICLE_SPACING = 0.3;
 
     private static final Set<Material> PLANTABLE_GROUND = EnumSet.of(
@@ -192,7 +200,7 @@ public final class WoodcuttingCrystalService implements Listener {
         meta.lore(List.of(
                 Component.text("Place on top of a block in a forest - regrows a", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("tree matching the biome somewhere in a " + (AREA_RADIUS * 2) + "x" + (AREA_RADIUS * 2), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text("area every " + (PULSE_TICKS / 20) + "s.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("area every " + (PULSE_TICKS / 20) + "s, up to " + MAX_TREES_IN_AREA + " trees.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Sneak + right-click it to remove.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         item.setItemMeta(meta);
         return item;
@@ -294,6 +302,9 @@ public final class WoodcuttingCrystalService implements Listener {
     private void pulseOne(ArmorStand stand) {
         World world = stand.getWorld();
         Location origin = stand.getLocation();
+        if (countTreesInArea(world, origin) >= MAX_TREES_IN_AREA) {
+            return;
+        }
         for (int i = 0; i < SAMPLE_ATTEMPTS; i++) {
             int x = origin.getBlockX() + ThreadLocalRandom.current().nextInt(-AREA_RADIUS, AREA_RADIUS + 1);
             int z = origin.getBlockZ() + ThreadLocalRandom.current().nextInt(-AREA_RADIUS, AREA_RADIUS + 1);
@@ -311,6 +322,35 @@ public final class WoodcuttingCrystalService implements Listener {
                 return;
             }
         }
+    }
+
+    /**
+     * Counts columns within {@value #AREA_RADIUS} blocks of {@code origin} whose ground (leaves
+     * skipped, same {@link HeightMap#MOTION_BLOCKING_NO_LEAVES} sampling {@link #pulseOne} itself
+     * uses) is a log/stem block - i.e. how many trees already stand in the crystal's own area.
+     * Stops early the moment {@value #MAX_TREES_IN_AREA} is reached, since the caller only ever
+     * needs to know whether that cap is met, not the exact count above it.
+     */
+    private static int countTreesInArea(World world, Location origin) {
+        int count = 0;
+        int baseX = origin.getBlockX();
+        int baseZ = origin.getBlockZ();
+        for (int x = baseX - AREA_RADIUS; x <= baseX + AREA_RADIUS; x++) {
+            for (int z = baseZ - AREA_RADIUS; z <= baseZ + AREA_RADIUS; z++) {
+                Block top = world.getHighestBlockAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                if (isLogOrStem(top.getType())) {
+                    count++;
+                    if (count >= MAX_TREES_IN_AREA) {
+                        return count;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private static boolean isLogOrStem(Material type) {
+        return type.name().endsWith("_LOG") || type.name().endsWith("_STEM");
     }
 
     /** See this class's own doc for how this resolves a biome that isn't one of the vanilla constants in {@link #TREE_BY_BIOME}. */
