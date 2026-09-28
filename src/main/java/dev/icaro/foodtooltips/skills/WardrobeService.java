@@ -18,6 +18,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -410,10 +411,25 @@ public final class WardrobeService {
      * already-unlocked cell's real item, so a column that unlocks between sessions would
      * otherwise leave whatever {@link #lockedFiller} was saved there stuck in place forever,
      * looking like an unremovable "Locked" pane despite the column now being open.
+     *
+     * <p>Also matches an untagged "Bloqueado"/"Locked" pane with no {@link #fillerKey} at
+     * all - see {@code PersonalStorageService#isFiller}'s own doc on the same gap for a pane
+     * saved before this tag existed. No legitimate stored armor piece is ever a {@link
+     * Material#GRAY_STAINED_GLASS_PANE}, so matching on name alone here can't misclassify one.
      */
     private boolean isFiller(ItemStack item) {
-        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
-                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
+        if (item == null || item.getType() != Material.GRAY_STAINED_GLASS_PANE || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta.getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE)) {
+            return true;
+        }
+        if (!meta.hasDisplayName()) {
+            return false;
+        }
+        String name = PlainTextComponentSerializer.plainText().serialize(meta.displayName());
+        return name.equals("Bloqueado") || name.equals("Locked");
     }
 
     private ItemStack backButton(Language l) {

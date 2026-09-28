@@ -21,6 +21,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -269,10 +270,26 @@ public final class PersonalStorageService {
      * instead of padding out to a fixed 54-slot canvas with locked-slot panes filling
      * everything not yet unlocked (see this class's own doc) - shows as properly empty
      * instead of a permanently stuck, unremovable decoration once reloaded.
+     *
+     * <p>Also matches a blank-named gray pane with no {@link #fillerKey} tag at all - a
+     * filler saved to a player's PDC before this tag existed (an older build of this method
+     * only checked the material, so any such leftover pane has no tag to find). Without this
+     * fallback that untagged pane reads as ordinary real content forever, exactly the leak a
+     * player reported ("as coisas de antes juntam no meu inventário e eu posso coletar"):
+     * this class's own {@code isFiller} check alone can't tell it apart from a genuine item,
+     * so it survives every reload as if the player had actually stored it. No legitimate item
+     * this class stores is ever a {@link Material#GRAY_STAINED_GLASS_PANE} with a blank name,
+     * so this heuristic can't misclassify a real one.
      */
     private boolean isFiller(ItemStack item) {
-        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
-                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
+        if (item == null || item.getType() != Material.GRAY_STAINED_GLASS_PANE || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta.getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE)) {
+            return true;
+        }
+        return meta.hasDisplayName() && PlainTextComponentSerializer.plainText().serialize(meta.displayName()).isBlank();
     }
 
     private ItemStack[] load(Player p) {

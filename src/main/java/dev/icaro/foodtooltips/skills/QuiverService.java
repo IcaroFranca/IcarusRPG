@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -243,7 +244,9 @@ public final class QuiverService {
             }
             for (int i = 0; i < STORAGE_SIZE; i++) {
                 ItemStack item = top.getItem(i);
-                if (item != null && !item.isEmpty() && !isArrow(item.getType())) {
+                if (item != null && !item.isEmpty() && this.isFiller(item)) {
+                    top.setItem(i, null);
+                } else if (item != null && !item.isEmpty() && !isArrow(item.getType())) {
                     top.setItem(i, null);
                     for (ItemStack overflow : p.getInventory().addItem(item).values()) {
                         p.getWorld().dropItemNaturally(p.getLocation(), overflow);
@@ -449,8 +452,14 @@ public final class QuiverService {
 
     /** See {@code PersonalStorageService#isFiller}'s own doc - same "strip a leftover filler out of a real slot on load" reasoning, this class's own decorative pane instead. */
     private boolean isFiller(ItemStack item) {
-        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
-                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
+        if (item == null || item.getType() != Material.GRAY_STAINED_GLASS_PANE || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta.getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE)) {
+            return true;
+        }
+        return meta.hasDisplayName() && PlainTextComponentSerializer.plainText().serialize(meta.displayName()).isBlank();
     }
 
     private ItemStack[] load(Player p) {

@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -242,6 +243,10 @@ public final class AccessoryBagService {
                 if (item == null || item.isEmpty()) {
                     continue;
                 }
+                if (this.isFiller(item)) {
+                    top.setItem(i, null);
+                    continue;
+                }
                 if (AccessoryItems.type(item) == null) {
                     this.eject(p, top, i, item);
                     continue;
@@ -410,8 +415,14 @@ public final class AccessoryBagService {
 
     /** See {@code PersonalStorageService#isFiller}'s own doc - same "strip a leftover filler out of a real slot on load" reasoning, this class's own decorative pane instead. */
     private boolean isFiller(ItemStack item) {
-        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
-                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
+        if (item == null || item.getType() != Material.GRAY_STAINED_GLASS_PANE || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta.getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE)) {
+            return true;
+        }
+        return meta.hasDisplayName() && PlainTextComponentSerializer.plainText().serialize(meta.displayName()).isBlank();
     }
 
     private ItemStack[] load(Player p) {
