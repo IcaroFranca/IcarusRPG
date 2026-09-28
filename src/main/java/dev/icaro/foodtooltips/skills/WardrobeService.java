@@ -79,6 +79,8 @@ public final class WardrobeService {
     private final CollectionsProgressService collectionsProgress;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "wardrobe_contents");
     private final NamespacedKey activeColumnKey = new NamespacedKey("foodtooltips", "wardrobe_active_column");
+    /** Marks {@link #lockedFiller}'s own decorative pane - see {@link #isFiller}. */
+    private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "wardrobe_filler");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
     /** Which column {@code p} is currently wearing (equipped via {@link #select}), if any - absent for a player wearing gear the Wardrobe never sourced. Loaded from {@link #activeColumnKey} the same lazy way {@link #inventoryFor} loads {@link #contentsKey}. See {@link #select}'s own doc on why the active column's storage is never actually emptied, and {@link #isLockedActiveSlot} on why that means it must stay locked. */
@@ -395,8 +397,23 @@ public final class WardrobeService {
         ItemMeta m = f.getItemMeta();
         m.displayName(Component.text(l.choose("Bloqueado", "Locked"), NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        m.getPersistentDataContainer().set(this.fillerKey, PersistentDataType.BYTE, (byte) 1);
         f.setItemMeta(m);
         return f;
+    }
+
+    /**
+     * See {@code PersonalStorageService#isFiller}'s own doc - same "strip a leftover filler
+     * out of a real slot on load" reasoning. Here it matters even for an armor-row cell: a
+     * locked column's own cells get saved as part of the same {@code ARMOR_ROWS * COLUMNS}
+     * region {@link #persist} captures (see {@link #render}'s own doc - it never touches an
+     * already-unlocked cell's real item, so a column that unlocks between sessions would
+     * otherwise leave whatever {@link #lockedFiller} was saved there stuck in place forever,
+     * looking like an unremovable "Locked" pane despite the column now being open.
+     */
+    private boolean isFiller(ItemStack item) {
+        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
+                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
     }
 
     private ItemStack backButton(Language l) {
@@ -449,7 +466,7 @@ public final class WardrobeService {
         if (saved != null) {
             int limit = Math.min(saved.length, ARMOR_ROWS * COLUMNS);
             for (int i = 0; i < limit; i++) {
-                inv.setItem(i, saved[i]);
+                inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
             }
         }
         Integer storedActive = p.getPersistentDataContainer().get(this.activeColumnKey, PersistentDataType.INTEGER);

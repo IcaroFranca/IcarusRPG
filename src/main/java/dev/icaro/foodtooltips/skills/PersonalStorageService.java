@@ -63,6 +63,8 @@ public final class PersonalStorageService {
     private final Plugin plugin;
     private final CollectionsProgressService collectionsProgress;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "personal_storage_contents");
+    /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
+    private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "personal_storage_filler");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     /** How many real storage slots {@link #cache}'s own entry was last built for - {@code Inventory#getSize} alone can't tell "nothing changed" apart from "grew, but still rounds to the same total" without this (not currently possible given this class's own milestone ladder, but cheap insurance against a future one that could). */
     private final Map<UUID, Integer> cachedSize = new HashMap<>();
@@ -210,7 +212,7 @@ public final class PersonalStorageService {
         }
         if (saved != null) {
             for (int i = 0; i < Math.min(realLength, size); i++) {
-                inv.setItem(i, saved[i]);
+                inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
             }
         }
         ItemStack filler = this.filler();
@@ -253,8 +255,24 @@ public final class PersonalStorageService {
         ItemStack i = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta m = i.getItemMeta();
         m.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
+        m.getPersistentDataContainer().set(this.fillerKey, PersistentDataType.BYTE, (byte) 1);
         i.setItemMeta(m);
         return i;
+    }
+
+    /**
+     * Whether {@code item} is this class's own decorative filler pane, marked via {@link
+     * #fillerKey} - not just any {@link Material#GRAY_STAINED_GLASS_PANE} (a player could
+     * legitimately store a real one of their own). {@link #inventoryFor} strips this out of
+     * whatever gets copied into a real storage slot, so a filler pane that ended up saved
+     * there - a leftover from before this class grew the real {@link Inventory} itself
+     * instead of padding out to a fixed 54-slot canvas with locked-slot panes filling
+     * everything not yet unlocked (see this class's own doc) - shows as properly empty
+     * instead of a permanently stuck, unremovable decoration once reloaded.
+     */
+    private boolean isFiller(ItemStack item) {
+        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
+                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
     }
 
     private ItemStack[] load(Player p) {

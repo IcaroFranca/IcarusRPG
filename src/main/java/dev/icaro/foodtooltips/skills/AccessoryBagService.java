@@ -90,6 +90,8 @@ public final class AccessoryBagService {
     private final Plugin plugin;
     private final Consumer<Player> back;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "accessory_bag_contents");
+    /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
+    private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "accessory_bag_filler");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
@@ -342,7 +344,7 @@ public final class AccessoryBagService {
                 : this.load(p);
         if (saved != null) {
             for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
-                inv.setItem(i, saved[i]);
+                inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
             }
         }
         ItemStack filler = this.filler();
@@ -383,8 +385,15 @@ public final class AccessoryBagService {
         ItemStack i = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta m = i.getItemMeta();
         m.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
+        m.getPersistentDataContainer().set(this.fillerKey, PersistentDataType.BYTE, (byte) 1);
         i.setItemMeta(m);
         return i;
+    }
+
+    /** See {@code PersonalStorageService#isFiller}'s own doc - same "strip a leftover filler out of a real slot on load" reasoning, this class's own decorative pane instead. */
+    private boolean isFiller(ItemStack item) {
+        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
+                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
     }
 
     private ItemStack[] load(Player p) {

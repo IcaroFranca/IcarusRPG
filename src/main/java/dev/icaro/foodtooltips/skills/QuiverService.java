@@ -128,6 +128,8 @@ public final class QuiverService {
     private final NamespacedKey legacyContentsKey;
     /** Tags the single real arrow {@link #takeOne} pulls out of the Quiver for {@link #topUp} - see this class's own doc for why. */
     private final NamespacedKey virtualKey;
+    /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
+    private final NamespacedKey fillerKey;
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
     /** Whose {@link SkillsStarService#SLOT} currently holds a topped-up arrow instead of the star - see this class's own doc. */
@@ -141,6 +143,7 @@ public final class QuiverService {
         this.contentsKey = new NamespacedKey("foodtooltips", "quiver_contents");
         this.legacyContentsKey = new NamespacedKey(plugin, "quiver_contents");
         this.virtualKey = new NamespacedKey("foodtooltips", "quiver_virtual_arrow");
+        this.fillerKey = new NamespacedKey("foodtooltips", "quiver_filler");
     }
 
     public static boolean isArrow(Material m) {
@@ -401,7 +404,7 @@ public final class QuiverService {
                 : this.load(p);
         if (saved != null) {
             for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
-                inv.setItem(i, saved[i]);
+                inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
             }
         }
         this.cache.put(p.getUniqueId(), inv);
@@ -439,8 +442,15 @@ public final class QuiverService {
         ItemStack i = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta m = i.getItemMeta();
         m.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
+        m.getPersistentDataContainer().set(this.fillerKey, PersistentDataType.BYTE, (byte) 1);
         i.setItemMeta(m);
         return i;
+    }
+
+    /** See {@code PersonalStorageService#isFiller}'s own doc - same "strip a leftover filler out of a real slot on load" reasoning, this class's own decorative pane instead. */
+    private boolean isFiller(ItemStack item) {
+        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
+                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
     }
 
     private ItemStack[] load(Player p) {

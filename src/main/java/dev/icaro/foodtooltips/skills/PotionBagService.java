@@ -58,6 +58,8 @@ public final class PotionBagService {
     private final CollectionsProgressService collectionsProgress;
     private final Consumer<Player> back;
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "potion_bag_contents");
+    /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
+    private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "potion_bag_filler");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     /** See {@code PersonalStorageService#cachedSize}'s own doc - same reason this can't just be read back off the cached {@link Inventory}'s own size. */
     private final Map<UUID, Integer> cachedSize = new HashMap<>();
@@ -230,7 +232,7 @@ public final class PotionBagService {
         }
         if (saved != null) {
             for (int i = 0; i < Math.min(realLength, size); i++) {
-                inv.setItem(i, saved[i]);
+                inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
             }
         }
         ItemStack filler = this.filler();
@@ -273,8 +275,15 @@ public final class PotionBagService {
         ItemStack i = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta m = i.getItemMeta();
         m.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
+        m.getPersistentDataContainer().set(this.fillerKey, PersistentDataType.BYTE, (byte) 1);
         i.setItemMeta(m);
         return i;
+    }
+
+    /** See {@code PersonalStorageService#isFiller}'s own doc - same "strip a leftover filler out of a real slot on load" reasoning, this class's own decorative pane instead. */
+    private boolean isFiller(ItemStack item) {
+        return item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE
+                && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(this.fillerKey, PersistentDataType.BYTE);
     }
 
     private ItemStack[] load(Player p) {
