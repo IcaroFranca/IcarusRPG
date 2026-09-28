@@ -202,7 +202,7 @@ public final class LapisExperienceService implements Listener {
         meta.lore(wrappedDescription(LAPIS_CORE_DESCRIPTION_PT));
         this.tiers.forceTier(meta, ItemTier.C);
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     private ItemStack trueLapisCore() {
@@ -214,7 +214,7 @@ public final class LapisExperienceService implements Listener {
         meta.lore(wrappedDescription(TRUE_LAPIS_CORE_DESCRIPTION_PT));
         this.tiers.forceTier(meta, ItemTier.A);
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     private static void applyProfile(SkullMeta meta, String texture, UUID profileId) {
@@ -243,6 +243,26 @@ public final class LapisExperienceService implements Listener {
         meta.lore(lore);
         this.tiers.forceTier(meta, tier);
         item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /**
+     * Bakes {@code item}'s own tier badge/name color in immediately instead of waiting for
+     * {@code ItemTierService#applyItemTiers}'s own periodic per-player sweep to do it later -
+     * see {@code ItemTierService#applyTier}'s own doc on why a "one-off" item built in code
+     * (anything that calls {@link ItemTierService#forceTier}) should call this itself.
+     * Without it, the fresh Lapis Core reference {@link #registerRecipes} captures for True
+     * Lapis Core's own {@code RecipeChoice.ExactChoice} ingredient would never match a real
+     * Lapis Core sitting in a player's inventory once the sweep already tagged it -
+     * {@link ItemStack#isSimilar} compares the full lore/display name, and the sweep appends
+     * a tier line/recolors the name that this untouched reference never gets, silently
+     * breaking the recipe (the same bug class confirmed in {@code
+     * FarmingCollectionsItemsService}'s own Ring/Artifact recipes). {@code Language} doesn't
+     * actually affect {@code applyTier}'s own output - any value works, but a real one is
+     * passed rather than {@code null} in case that ever changes.
+     */
+    private ItemStack tagged(ItemStack item) {
+        this.tiers.applyTier(item, Language.PT);
         return item;
     }
 

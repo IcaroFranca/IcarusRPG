@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillType;
@@ -790,7 +791,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /**
@@ -811,7 +812,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /**
@@ -831,7 +832,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     private org.bukkit.inventory.ItemStack mushroomCore() {
@@ -861,7 +862,7 @@ public final class FarmingCollectionsItemsService {
                 Component.empty(),
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /**
@@ -969,7 +970,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /**
@@ -990,7 +991,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /** Potato Collection M6's own second-tier Core upgrade (1 Netherite Ingot, 8 Potato Cores), same shape as {@link #flowerCactusCore}/{@link #goldenCarrotCore}/{@link #trueChocolateCore} - a Vaccine Ring's own crafting ingredient, not part of the accessory line itself. */
@@ -1020,7 +1021,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     private org.bukkit.inventory.ItemStack pumpkinCore() {
@@ -1052,7 +1053,7 @@ public final class FarmingCollectionsItemsService {
                 Component.empty(),
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     private org.bukkit.inventory.ItemStack wheatCore() {
@@ -1139,7 +1140,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /**
@@ -1160,7 +1161,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     /**
@@ -1186,7 +1187,7 @@ public final class FarmingCollectionsItemsService {
                 Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
                 Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
-        return item;
+        return this.tagged(item);
     }
 
     private org.bukkit.inventory.ItemStack sugarCaneCore() {
@@ -1638,5 +1639,26 @@ public final class FarmingCollectionsItemsService {
         var profile = Bukkit.createProfile(profileId);
         profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", texture));
         meta.setPlayerProfile(profile);
+    }
+
+    /**
+     * Bakes {@code item}'s own tier badge/name color in immediately instead of waiting for
+     * {@code ItemTierService#applyItemTiers}'s own periodic per-player sweep to do it later -
+     * see {@code ItemTierService#applyTier}'s own doc on why a "one-off" item built in code
+     * (anything that calls {@link ItemTierService#forceTier}) should call this itself.
+     * Without it, a fresh reference item built here for a {@code RecipeChoice.ExactChoice}
+     * ingredient (e.g. a Ring/Artifact recipe's own Talisman/Ring center) would never match a
+     * real copy of that same item sitting in a player's inventory once the sweep already
+     * tagged it - {@link ItemStack#isSimilar} compares the full lore/display name, and the
+     * sweep appends a tier line/recolors the name that this untouched reference never gets -
+     * silently breaking the recipe (confirmed: the Vaccine/Feather/Potion Affinity Ring and
+     * Artifact recipes, every one of which uses a forceTier'd Talisman/Ring as an ExactChoice
+     * ingredient). {@code Language} doesn't actually affect {@code applyTier}'s own output -
+     * any value works, but a real one is passed rather than {@code null} in case that ever
+     * changes.
+     */
+    private ItemStack tagged(ItemStack item) {
+        this.tiers.applyTier(item, Language.PT);
+        return item;
     }
 }
