@@ -89,6 +89,16 @@ implements Listener {
     private final CollectionsService collections;
     private final Set<String> placed = new HashSet<String>();
     private final Set<UUID> veinActive = new HashSet<UUID>();
+    /** Reentrancy guard for {@link #sweep} - same idea as {@link #veinActive}. */
+    private final Set<UUID> sweepActive = new HashSet<UUID>();
+    /**
+     * Whether the tool {@code p} is holding already runs its OWN Sweep felling (Spruce
+     * Axe/Treecapitator) - wired in after construction (this class, in {@code skills}, has no
+     * business depending on {@code item} directly) so {@link #sweep} can skip a plain log
+     * break entirely when one of those axes is held, instead of both firing and felling twice
+     * over. Defaults to always-false so this class still works before it's wired.
+     */
+    private java.util.function.Predicate<ItemStack> heldToolHasOwnSweep = tool -> false;
     /** Reentrancy guard for {@link #potionDuration} - reapplying an extended effect fires this same event again, and this stops that from being treated as a new drink to extend a second time. */
     private final Set<UUID> extendingPotion = new HashSet<UUID>();
     private final Map<String, Target> targets = new HashMap<String, Target>();
@@ -110,6 +120,24 @@ implements Listener {
     /** See {@link #openCollectionsEntry}'s own doc. */
     public void openCollectionsEntry(BiConsumer<Player, Material> openCollectionsEntry) {
         this.openCollectionsEntry = openCollectionsEntry;
+    }
+
+    /** See {@link #heldToolHasOwnSweep}'s own doc. */
+    public void heldToolHasOwnSweep(java.util.function.Predicate<ItemStack> heldToolHasOwnSweep) {
+        this.heldToolHasOwnSweep = heldToolHasOwnSweep;
+    }
+
+    /**
+     * Whether {@code block} is currently tracked as player-placed (see {@link #placed}) -
+     * exposed so Foraging's own Sweep-felling axes ({@code item.SpruceAxeService}/{@code
+     * item.TreecapitatorService}) can skip a placed log in their own multi-fell BFS the same
+     * way {@link #connectedLogs} already does, unless the player is sneaking - per the
+     * player's own spec ("se foi um player que colocou, só deve funcionar ao quebrar
+     * segurando shift"): felling a natural tree should never also rip out a placed decorative
+     * log standing next to it, unless that's explicitly what the player is doing.
+     */
+    public boolean isPlaced(Block block) {
+        return this.placed.contains(this.key(block.getLocation()));
     }
 
     @EventHandler(ignoreCancelled=true)
@@ -233,6 +261,93 @@ implements Listener {
                 this.veinActive.remove(p.getUniqueId());
             }
         });
+    }
+
+    /**
+     * General Sweep multi-fell for a plain log/stem break - the Mangrove accessory line's
+     * own bonus (see {@link GeneralSkillService#sweep}) otherwise wouldn't do anything at all
+     * without one of Foraging's own special axes (Spruce Axe/Treecapitator) equipped, since
+     * those are the only things that used to do any multi-fell at all. Skipped entirely when
+     * one of those axes IS held ({@link #heldToolHasOwnSweep}) - they already run their own,
+     * much bigger version of this exact mechanic, and firing both would fell twice over.
+     * Same 26-neighbor same-Material BFS as {@link #vein}/{@link #connected}, via {@link
+     * #connectedLogs}, which already skips a player-placed log unless {@code p} is sneaking.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void sweep(BlockBreakEvent e) {
+        Player p = e.getPlayer();
+        Material m = e.getBlock().getType();
+        if (this.sweepActive.contains(p.getUniqueId()) || !this.isLog(m)
+                || this.heldToolHasOwnSweep.test(p.getInventory().getItemInMainHand())) {
+            return;
+        }
+        int extra = this.skills.sweep(p) - GeneralSkillService.BASE_SWEEP;
+        if (extra <= 0) {
+            return;
+        }
+        List<Block> blocks = this.connectedLogs(e.getBlock(), extra, p);
+        if (blocks.isEmpty()) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            this.sweepActive.add(p.getUniqueId());
+            try {
+                for (Block block : blocks) {
+                    if (!block.getType().isAir()) {
+                        p.breakBlock(block);
+                    }
+                }
+            } finally {
+                this.sweepActive.remove(p.getUniqueId());
+            }
+        });
+    }
+
+    /**
+     * 26-neighbor BFS from {@code origin}, restricted to blocks of {@code origin}'s own exact
+     * Material, up to {@code limit} blocks (origin itself never included) - same algorithm
+     * {@code item.SpruceAxeService#connected}/{@code item.TreecapitatorService#connected} each
+     * already use for their own bigger Sweep, except this one also skips a block tracked as
+     * player-placed (see {@link #placed}) unless {@code p} is sneaking, per the player's own
+     * spec on {@link #sweep}.
+     */
+    private List<Block> connectedLogs(Block origin, int limit, Player p) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        Material material = origin.getType();
+        List<Block> out = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        ArrayDeque<Block> queue = new ArrayDeque<>();
+        queue.add(origin);
+        seen.add(this.key(origin.getLocation()));
+        block1:
+        while (!queue.isEmpty() && out.size() < limit) {
+            Block current = queue.removeFirst();
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 0 && dy == 0 && dz == 0) {
+                            continue;
+                        }
+                        Block next = current.getRelative(dx, dy, dz);
+                        String k = this.key(next.getLocation());
+                        if (!seen.add(k)) {
+                            continue;
+                        }
+                        if (next.getType() != material || (this.placed.contains(k) && !p.isSneaking())) {
+                            continue;
+                        }
+                        out.add(next);
+                        queue.add(next);
+                        if (out.size() >= limit) {
+                            continue block1;
+                        }
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     /** Netherite pickaxe/axe/shovel with real vanilla Efficiency V insta-mines - see {@link GeneralSkillService#instaMines}. Runs on the very first damage tick a block takes, same as creative mode's own instant break. */

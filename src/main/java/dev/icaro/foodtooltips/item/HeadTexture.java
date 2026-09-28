@@ -98,6 +98,8 @@ public final class HeadTexture {
     public static final String ACACIA_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmY4MDJhMjc4NGYxOWQ5MTFjMzczZDM3Y2Q5ZWYzOTlkYzIyM2UxNmQxODg2NGE2YTdiZmUwNzZhY2YwM2NjYiJ9fX0=";
     /** "Jungle Log" (minecraft-heads.com Custom Head ID 89449) - the Jungle Core crafting item, see {@code ForagingCollectionsItemsService}. */
     public static final String JUNGLE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTljNmM0MmU2OTFhZWIwNzhiMGQ4NDg5NGIxMGI2NDNiYTM2YThiY2I4YjZiZWQ5MTE5YWUyYmRmYTg3YTlhNiJ9fX0=";
+    /** "Mangrove Log" (minecraft-heads.com Custom Head ID 89452) - the Mangrove Core crafting item, see {@code ForagingCollectionsItemsService}. */
+    public static final String MANGROVE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTEyOGYzMjlhYzhkYWM2YTcxMGZhNzUyNDg2MGJjOWNhZmRmMjljNTNiODMwNjg1ZTFhMzZhYjNiMTBiYjBkYSJ9fX0=";
     /** "Cactus Flower" (minecraft-heads.com Custom Head ID 127271) - the Flower Cactus Core crafting item, see {@code FarmingCollectionsItemsService}. */
     public static final String FLOWER_CACTUS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmFhMWQ0OTU3Y2E0NTg5OWRmMTQ3OGUyM2M5NTc4MmUzNDQxYmQ1MjJhZDA4NzcxYjYwYzU0ZjhkYzA2M2MzOSJ9fX0=";
     /** "Golden Carrots" (minecraft-heads.com Custom Head ID 14339) - the Golden Carrot Core crafting item, see {@code FarmingCollectionsItemsService}. */
@@ -128,7 +130,7 @@ public final class HeadTexture {
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
-            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE,
+            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE, MANGROVE_CORE,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT);
 

@@ -254,13 +254,14 @@ extends JavaPlugin {
         this.accessoryBag.start();
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
+        general.accessoryForagingSweepBonus(this.accessoryBag::totalSweepBonus);
         SculptorsAxeService sculptorsAxe = new SculptorsAxeService();
         SpruceAxeService spruceAxe = new SpruceAxeService();
         WoodcuttingCrystalService woodcuttingCrystal = new WoodcuttingCrystalService((Plugin)this);
         woodcuttingCrystal.start();
         SavannaBowService savannaBow = new SavannaBowService();
         TreecapitatorService treecapitator = new TreecapitatorService();
-        ForagingCollectionsItemsService foragingItems = new ForagingCollectionsItemsService((Plugin)this, biomeWand, sculptorsAxe, spruceAxe, woodcuttingCrystal, savannaBow, treecapitator);
+        ForagingCollectionsItemsService foragingItems = new ForagingCollectionsItemsService((Plugin)this, biomeWand, sculptorsAxe, spruceAxe, woodcuttingCrystal, savannaBow, treecapitator, tiers);
         foragingItems.registerRecipes();
         this.storage = new PersonalStorageService((Plugin)this, collectionsProgress);
         menus.storage(this.storage);
@@ -374,6 +375,9 @@ extends JavaPlugin {
         pm.registerEvents((Listener)generalSkillListener, (Plugin)this);
         generalSkillListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
                 .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
+        generalSkillListener.heldToolHasOwnSweep(tool -> spruceAxe.isSpruceAxe(tool) || treecapitator.isTreecapitator(tool));
+        spruceAxe.isPlaced(generalSkillListener::isPlaced);
+        treecapitator.isPlaced(generalSkillListener::isPlaced);
         BrewingMenuService brewingMenu = new BrewingMenuService(brewingStandFuel, generalSkillListener, potionGuide);
         pm.registerEvents((Listener)new BrewingMenuListener((Plugin)this, brewingMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsListener(collectionsMenu, collectionsService), (Plugin)this);

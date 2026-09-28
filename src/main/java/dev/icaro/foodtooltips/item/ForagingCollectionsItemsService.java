@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.biome.BiomeWandService;
 import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
@@ -61,6 +62,7 @@ public final class ForagingCollectionsItemsService {
     private static final UUID DARK_OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:dark_oak_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID ACACIA_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:acacia_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID JUNGLE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:jungle_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mangrove_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -85,10 +87,11 @@ public final class ForagingCollectionsItemsService {
     private final WoodcuttingCrystalService woodcuttingCrystal;
     private final SavannaBowService savannaBow;
     private final TreecapitatorService treecapitator;
+    private final ItemTierService tiers;
 
     public ForagingCollectionsItemsService(Plugin plugin, BiomeWandService biomeWand, SculptorsAxeService sculptorsAxe,
             SpruceAxeService spruceAxe, WoodcuttingCrystalService woodcuttingCrystal, SavannaBowService savannaBow,
-            TreecapitatorService treecapitator) {
+            TreecapitatorService treecapitator, ItemTierService tiers) {
         this.plugin = plugin;
         this.biomeWand = biomeWand;
         this.sculptorsAxe = sculptorsAxe;
@@ -96,6 +99,24 @@ public final class ForagingCollectionsItemsService {
         this.woodcuttingCrystal = woodcuttingCrystal;
         this.savannaBow = savannaBow;
         this.treecapitator = treecapitator;
+        this.tiers = tiers;
+    }
+
+    /**
+     * Eagerly applies {@code item}'s own tier badge/name-color (instead of waiting for {@code
+     * ItemTierService}'s next periodic inventory sweep) - required for the Mangrove Sweep
+     * Talisman → Ring → Artifact line specifically, since {@link #mangroveSweepRing}/{@link
+     * #mangroveSweepArtifact} each use the tier below as a {@code RecipeChoice.ExactChoice}
+     * ingredient: an un-tagged "pristine" reference item built once at startup would never
+     * {@code ItemStack#isSimilar} match a real, already-swept copy sitting in a player's
+     * inventory, silently breaking the recipe within seconds - the exact bug class fixed
+     * across every other Talisman/Ring/Artifact line this session (see {@code
+     * FarmingCollectionsItemsService#tagged}/{@code LapisExperienceService#tagged}). The
+     * {@link Language} passed is unused by {@code ItemTierService#applyTier} itself.
+     */
+    private ItemStack tagged(ItemStack item) {
+        this.tiers.applyTier(item, Language.PT);
+        return item;
     }
 
     /** Registers every recipe this class owns - Oak/Birch/Spruce Core, the 4 Leaflet Armor pieces, the restricted Biome's Wand, both Foraging axes, and the Woodcutting Crystal. */
@@ -204,6 +225,27 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('J', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.jungleCore()));
                     r.setIngredient('S', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceAxe.create()));
                 });
+        this.newShapedRecipe(CollectionsCatalog.MANGROVE_CORE_RECIPE, this.mangroveCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.MANGROVE_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        Bukkit.removeRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE);
+        org.bukkit.inventory.ShapelessRecipe mangroveSweepTalisman = new org.bukkit.inventory.ShapelessRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE, this.mangroveSweepTalisman());
+        for (int i = 0; i < 4; i++) {
+            mangroveSweepTalisman.addIngredient(Material.MANGROVE_PROPAGULE);
+        }
+        Bukkit.addRecipe(mangroveSweepTalisman);
+        this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_RING_RECIPE, this.mangroveSweepRing(),
+                new String[]{"MMM", "MTM", "MMM"}, r -> {
+                    r.setIngredient('M', Material.MANGROVE_PROPAGULE);
+                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepTalisman()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_ARTIFACT_RECIPE, this.mangroveSweepArtifact(),
+                new String[]{"MMM", "MRM", "MMM"}, r -> {
+                    r.setIngredient('M', Material.MANGROVE_ROOTS);
+                    r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepRing()));
+                });
     }
 
     private ItemStack acaciaCore() {
@@ -222,6 +264,68 @@ public final class ForagingCollectionsItemsService {
         meta.displayName(Component.text("Jungle Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
+    }
+
+    private ItemStack mangroveCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.MANGROVE_CORE, MANGROVE_CORE_PROFILE);
+        meta.displayName(Component.text("Mangrove Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Mangrove Log Collection M3's own accessory, the first of the Talisman → Ring → Artifact
+     * line ({@link #mangroveSweepRing}/{@link #mangroveSweepArtifact} each upgrade the one
+     * before, consuming it as an ingredient) - stored in the Accessory Bag, Tier D, +1 Sweep
+     * (see {@link AccessoryItems#sweepBonus}/{@code skills.GeneralSkillService#sweep}).
+     */
+    private ItemStack mangroveSweepTalisman() {
+        ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Mangrove Sweep Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Sweep: +1", NamedTextColor.DARK_GREEN),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Mangrove Sweep accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Mangrove Log Collection M5's own upgrade to {@link #mangroveSweepTalisman}, Tier C, +3 Sweep - same {@code "mangrove_sweep"} family tag as the rest of this line. */
+    private ItemStack mangroveSweepRing() {
+        ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Mangrove Sweep Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("Sweep: +3", NamedTextColor.DARK_GREEN),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Mangrove Sweep accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Mangrove Log Collection M7's own upgrade to {@link #mangroveSweepRing}, Tier B, +5 Sweep - the top of this Collection's accessory line. */
+    private ItemStack mangroveSweepArtifact() {
+        ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Mangrove Sweep Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("Sweep: +5", NamedTextColor.DARK_GREEN),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Mangrove Sweep accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
     }
 
     /**

@@ -296,6 +296,15 @@ public final class AccessoryBagService {
         return total;
     }
 
+    /** Sum of {@link AccessoryItems#sweepBonus} across every accessory {@code p} currently has stored (the Mangrove line) - read by {@code skills.GeneralSkillService#sweep} (wired in as its own {@code accessoryForagingSweepBonus} function), same shape as {@link #totalFallHeightBonus}. */
+    public int totalSweepBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.sweepBonus(item);
+        }
+        return total;
+    }
+
     /**
      * Whether {@code p} currently has any stored accessory belonging to {@code family} - a
      * plain existence check, unlike {@link #totalFallHeightBonus}/{@link

@@ -21,7 +21,8 @@ import org.bukkit.persistence.PersistentDataType;
  * AccessoryBagListener#potionEffect}) - an item from one line simply leaves every other
  * line's own stat(s) at zero, including a standalone Orb/Charm with no upgrade line at all
  * (the Farmer Orb, the Night Vision Charm), whose own effect is driven purely by {@link
- * #family} presence rather than any of these summed numeric stats.
+ * #family} presence rather than any of these summed numeric stats. {@link #sweepBonus} (the
+ * Mangrove line) is summed the same way into {@code skills.GeneralSkillService#sweep}.
  */
 public final class AccessoryItems {
     private static final NamespacedKey TYPE_KEY = new NamespacedKey("foodtooltips", "accessory_type");
@@ -30,6 +31,7 @@ public final class AccessoryItems {
     private static final NamespacedKey FALL_REDUCTION_KEY = new NamespacedKey("foodtooltips", "accessory_fall_damage_reduction");
     private static final NamespacedKey POISON_REDUCTION_KEY = new NamespacedKey("foodtooltips", "accessory_poison_damage_reduction");
     private static final NamespacedKey POTION_DURATION_KEY = new NamespacedKey("foodtooltips", "accessory_potion_duration_bonus");
+    private static final NamespacedKey SWEEP_KEY = new NamespacedKey("foodtooltips", "accessory_sweep_bonus");
 
     private AccessoryItems() {
     }
@@ -45,18 +47,21 @@ public final class AccessoryItems {
      * treated as belonging to the same line as some unrelated future accessory), granting
      * {@code fallHeightBonus} extra blocks of fall-damage-free height, {@code
      * fallDamageReductionPercent}% off whatever fall damage still applies past that, {@code
-     * poisonReductionPercent}% off any {@code DamageCause.POISON} damage taken, and {@code
+     * poisonReductionPercent}% off any {@code DamageCause.POISON} damage taken, {@code
      * potionDurationBonusPercent}% longer duration on any potion effect gained by drinking a
-     * potion - called once while building the item, before {@code ItemStack#setItemMeta}. An
-     * item that doesn't grant one of these stats simply passes 0 for it.
+     * potion, and {@code sweepBonus} extra Sweep (the Mangrove line - see {@code
+     * skills.GeneralSkillService#sweep}) - called once while building the item, before
+     * {@code ItemStack#setItemMeta}. An item that doesn't grant one of these stats simply
+     * passes 0 for it.
      */
-    public static void mark(ItemMeta meta, AccessoryType type, String family, int fallHeightBonus, double fallDamageReductionPercent, double poisonReductionPercent, double potionDurationBonusPercent) {
+    public static void mark(ItemMeta meta, AccessoryType type, String family, int fallHeightBonus, double fallDamageReductionPercent, double poisonReductionPercent, double potionDurationBonusPercent, int sweepBonus) {
         meta.getPersistentDataContainer().set(TYPE_KEY, PersistentDataType.STRING, type.name());
         meta.getPersistentDataContainer().set(FAMILY_KEY, PersistentDataType.STRING, family);
         meta.getPersistentDataContainer().set(FALL_HEIGHT_KEY, PersistentDataType.INTEGER, fallHeightBonus);
         meta.getPersistentDataContainer().set(FALL_REDUCTION_KEY, PersistentDataType.DOUBLE, fallDamageReductionPercent);
         meta.getPersistentDataContainer().set(POISON_REDUCTION_KEY, PersistentDataType.DOUBLE, poisonReductionPercent);
         meta.getPersistentDataContainer().set(POTION_DURATION_KEY, PersistentDataType.DOUBLE, potionDurationBonusPercent);
+        meta.getPersistentDataContainer().set(SWEEP_KEY, PersistentDataType.INTEGER, sweepBonus);
     }
 
     /** {@code item}'s own {@link AccessoryType} (Talisman/Ring/Artifact), or {@code null} for anything that isn't an accessory at all - what {@code AccessoryBagService} checks before letting an item into the bag at all. Purely descriptive; see {@link #family} for the bag's own actual equip restriction. */
@@ -126,5 +131,14 @@ public final class AccessoryItems {
         }
         ItemMeta meta = item.getItemMeta();
         return meta == null ? 0.0 : meta.getPersistentDataContainer().getOrDefault(POTION_DURATION_KEY, PersistentDataType.DOUBLE, 0.0);
+    }
+
+    /** Extra Sweep {@code item} grants (the Mangrove line) - see {@link #mark}. */
+    public static int sweepBonus(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(SWEEP_KEY, PersistentDataType.INTEGER, 0);
     }
 }

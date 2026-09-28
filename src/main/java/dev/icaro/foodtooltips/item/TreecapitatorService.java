@@ -44,6 +44,13 @@ public final class TreecapitatorService {
 
     /** Players currently inside one of this class's own {@link #chop}/{@link #throwFell} felling passes - re-entrancy guard, same idea as {@code SpruceAxeService#fellingActive}. */
     private final Set<UUID> fellingActive = new HashSet<>();
+    /** Whether a block is currently tracked as player-placed - wired in after construction to {@code skills.GeneralSkillListener#isPlaced}, same idea as {@code SpruceAxeService#isPlaced}. {@link #connected} skips a placed log unless the felling player is sneaking. */
+    private java.util.function.Predicate<Block> isPlaced = block -> false;
+
+    /** Wired in after construction - see {@link #isPlaced}. */
+    public void isPlaced(java.util.function.Predicate<Block> isPlaced) {
+        this.isPlaced = isPlaced;
+    }
 
     public ItemStack create() {
         ItemStack item = new ItemStack(Material.GOLDEN_AXE);
@@ -86,7 +93,7 @@ public final class TreecapitatorService {
 
     /** Normal chop: {@code origin} isn't included here - this only schedules the EXTRA {@value #SWEEP_BONUS} logs {@link #connected} finds, breaking them one tick later - same "compute now, break next tick" split as {@code SpruceAxeService#chop}. */
     public void chop(Plugin plugin, Player p, Block origin) {
-        List<Block> extra = this.connected(origin, SWEEP_BONUS);
+        List<Block> extra = this.connected(origin, SWEEP_BONUS, p);
         if (extra.isEmpty()) {
             return;
         }
@@ -97,7 +104,7 @@ public final class TreecapitatorService {
     public void throwFell(Player p, Block origin) {
         List<Block> targets = new ArrayList<>();
         targets.add(origin);
-        targets.addAll(this.connected(origin, THROWN_TOTAL - 1));
+        targets.addAll(this.connected(origin, THROWN_TOTAL - 1, p));
         this.breakAll(p, targets);
     }
 
@@ -114,8 +121,8 @@ public final class TreecapitatorService {
         }
     }
 
-    /** 26-neighbor BFS from {@code origin}, restricted to blocks of {@code origin}'s own exact Material, up to {@code limit} blocks - same algorithm as {@code SpruceAxeService#connected}/Mining's own Vein. */
-    private List<Block> connected(Block origin, int limit) {
+    /** 26-neighbor BFS from {@code origin}, restricted to blocks of {@code origin}'s own exact Material, up to {@code limit} blocks - skipping a block {@link #isPlaced} tracks unless {@code p} is sneaking. Same algorithm as {@code SpruceAxeService#connected}/Mining's own Vein. */
+    private List<Block> connected(Block origin, int limit, Player p) {
         if (limit <= 0) {
             return List.of();
         }
@@ -138,7 +145,7 @@ public final class TreecapitatorService {
                         if (!seen.add(Pos.of(next))) {
                             continue;
                         }
-                        if (next.getType() != material) {
+                        if (next.getType() != material || (this.isPlaced.test(next) && !p.isSneaking())) {
                             continue;
                         }
                         out.add(next);

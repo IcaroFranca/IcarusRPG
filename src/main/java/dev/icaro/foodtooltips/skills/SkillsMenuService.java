@@ -950,6 +950,11 @@ public final class SkillsMenuService {
             "Adds directly to your Strength (see the Strength stat under Combat Stats).",
             "Sobe automaticamente com o nível da skill de Coleta.",
             "Increases automatically with the Foraging skill's level.");
+    private static final StatInfo SWEEP_INFO = new StatInfo(
+            "Quantos troncos você derruba de uma vez ao quebrar um de verdade (madeira que cresceu sozinha na natureza).",
+            "How many logs you fell at once when breaking a real one (wood that grew naturally in the wild).",
+            "Base 1 (nenhum extra) + o acessório da linha Sweep do Mangue (Talismã/Anel/Artefato) guardado na Bolsa de Acessórios. Não conta troncos que você mesmo plantou, a menos que quebre agachado.",
+            "Base 1 (no extra) + the Mangrove Sweep line accessory (Talisman/Ring/Artifact) stored in the Accessory Bag. Doesn't count a log you planted yourself, unless you break it while sneaking.");
     private static final StatInfo SKILL_INTELLIGENCE_INFO = new StatInfo(
             "Soma direto na sua Inteligência (veja o stat Inteligência em Status de Combate).",
             "Adds directly to your Intelligence (see the Intelligence stat under Combat Stats).",
@@ -1332,8 +1337,17 @@ public final class SkillsMenuService {
                     this.rate(l, level, this.general.defensePerLevel()), SKILL_DEFENSE_INFO, l));
             case FARMING, FISHING -> items.add(this.statItem(Material.GOLDEN_APPLE, "+" + (level * this.general.healthPerLevel()) + " " + l.choose("Vida Máxima", "Max Health"),
                     this.rate(l, level, this.general.healthPerLevel()), SKILL_HEALTH_INFO, l));
-            case FORAGING -> items.add(this.statItem(Material.DIAMOND_SWORD, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"),
-                    this.rate(l, level, this.general.strengthPerLevel()), SKILL_STRENGTH_INFO, l));
+            case FORAGING -> {
+                items.add(this.statItem(Material.DIAMOND_SWORD, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"),
+                        this.rate(l, level, this.general.strengthPerLevel()), SKILL_STRENGTH_INFO, l));
+                int sweepBonus = this.general.sweepBonus(p);
+                String sweepSource = l.choose("1 (base)", "1 (base)");
+                if (sweepBonus != 0) {
+                    sweepSource += " + " + sweepBonus + " (" + l.choose("acessório", "accessory") + ")";
+                }
+                items.add(this.statItem(Material.IRON_AXE, l.choose("Sweep", "Sweep") + ": " + this.general.sweep(p),
+                        sweepSource, SWEEP_INFO, l));
+            }
             case ALCHEMY, ENCHANTING -> items.add(this.statItem(Material.LAPIS_LAZULI, "+" + (level * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence"),
                     this.rate(l, level, this.general.intelligencePerLevel()), SKILL_INTELLIGENCE_INFO, l));
             default -> {}

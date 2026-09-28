@@ -46,6 +46,14 @@ public final class GeneralSkillService {
      * retune if mining ends up feeling too fast/slow in practice.
      */
     private static final double MINING_SPEED_ATTRIBUTE_DIVISOR = 15.0;
+    /**
+     * Baseline Sweep every player has with no Mangrove accessory equipped - breaking one log
+     * only fells itself. Same baseline {@code item.SpruceAxeService#BASE_SWEEP}/{@code
+     * item.TreecapitatorService#BASE_SWEEP} each already hardcode for their own bigger,
+     * axe-specific total (that pair is unaffected by {@link #accessoryForagingSweepBonus} -
+     * see {@link #sweep}'s own doc).
+     */
+    public static final int BASE_SWEEP = 1;
     /** Real vanilla Netherite pickaxe/axe/shovel - see {@link #instaMines}. */
     private static final Set<Material> INSTA_MINE_TOOLS = Set.of(Material.NETHERITE_PICKAXE, Material.NETHERITE_AXE, Material.NETHERITE_SHOVEL);
     /**
@@ -69,6 +77,8 @@ public final class GeneralSkillService {
     private java.util.function.ToIntFunction<Player> armorForagingFortuneBonus = p -> 0;
     /** Lapis Lazuli Armor's own XP orb bonus, already expressed as the fraction {@link #xpOrbMultiplier} adds directly (0.5 per piece) - same late-bound idea as {@link #armorMiningSpeedBonus}. */
     private java.util.function.ToDoubleFunction<Player> armorXpOrbBonus = p -> 0.0;
+    /** The Mangrove Log Collection's own Sweep Talisman/Ring/Artifact line's bonus (see {@code item.AccessoryItems#sweepBonus}, summed by {@code skills.AccessoryBagService#totalSweepBonus}) - an Accessory Bag item, not worn armor, but wired in the same late-bound way as every {@code armorXBonus} field above so this class never needs to depend on {@code skills.AccessoryBagService} directly. */
+    private java.util.function.ToIntFunction<Player> accessoryForagingSweepBonus = p -> 0;
 
     /** Wired in after construction, same pattern as {@code ArmorDefenseService#protectionBonus} - see {@link #armorMiningSpeedBonus}. */
     public void armorMiningSpeedBonus(java.util.function.ToIntFunction<Player> armorMiningSpeedBonus) {
@@ -93,6 +103,29 @@ public final class GeneralSkillService {
     /** Wired in after construction - see {@link #armorXpOrbBonus}. */
     public void armorXpOrbBonus(java.util.function.ToDoubleFunction<Player> armorXpOrbBonus) {
         this.armorXpOrbBonus = armorXpOrbBonus;
+    }
+
+    /** Wired in after construction - see {@link #accessoryForagingSweepBonus}. */
+    public void accessoryForagingSweepBonus(java.util.function.ToIntFunction<Player> accessoryForagingSweepBonus) {
+        this.accessoryForagingSweepBonus = accessoryForagingSweepBonus;
+    }
+
+    /** Just the Mangrove-accessory portion of {@link #sweep} - broken out so the Stats screen can show it as its own line, same reasoning {@link #armorFortuneBonus} already gives. */
+    public int sweepBonus(Player player) {
+        return this.accessoryForagingSweepBonus.applyAsInt(player);
+    }
+
+    /**
+     * How many logs a plain log/stem break fells in total: {@link #BASE_SWEEP} (just itself)
+     * plus every currently-stored Mangrove Sweep accessory's own bonus. Read by {@code
+     * skills.GeneralSkillListener}'s own general Sweep multi-fell (any tool, no special axe
+     * needed) and shown on the Stats screen; the Spruce Axe/Treecapitator's own much bigger
+     * fixed Sweep total while held is a separate, axe-specific number (see their own classes'
+     * docs) that does NOT add this accessory bonus on top - holding either axe already fells
+     * far more logs per swing than any accessory tier grants on its own.
+     */
+    public int sweep(Player player) {
+        return BASE_SWEEP + this.sweepBonus(player);
     }
 
     public SkillProgress progress(Player p, SkillType type) {

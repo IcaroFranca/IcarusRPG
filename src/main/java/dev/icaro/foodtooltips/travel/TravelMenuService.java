@@ -41,7 +41,8 @@ import org.bukkit.plugin.Plugin;
 public final class TravelMenuService {
     /**
      * How far {@link #travelToNearestBirchForest}/{@link #travelToNearestTaiga}/{@link
-     * #travelToNearestDarkForest}/{@link #travelToNearestSavanna} search for their own
+     * #travelToNearestDarkForest}/{@link #travelToNearestSavanna}/{@link
+     * #travelToNearestMangroveSwamp} search for their own
      * biome before giving up - {@code World#locateNearestBiome} is synchronous and MUST
      * run on the main thread (like every other {@code World} lookup), so this bounds its
      * worst-case cost. 512 turned out to be nowhere near "moderate" in practice - a
@@ -120,6 +121,12 @@ public final class TravelMenuService {
                     event -> this.travelToNearestJungle(p)), 8, 1);
         }
 
+        if (this.collectionsProgress.achieved(p, this.mangroveLogEntry()) >= 4) {
+            pane.addItem(new GuiItem(this.item(Material.MANGROVE_PROPAGULE, l.choose("Pântano de Mangue Mais Próximo", "Nearest Mangrove Swamp"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestMangroveSwamp(p)), 4, 1);
+        }
+
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
@@ -176,6 +183,10 @@ public final class TravelMenuService {
 
     private CollectionsEntry jungleLogEntry() {
         return CollectionsCatalog.find(Material.JUNGLE_LOG).orElseThrow();
+    }
+
+    private CollectionsEntry mangroveLogEntry() {
+        return CollectionsCatalog.find(Material.MANGROVE_LOG).orElseThrow();
     }
 
     /** Birch Log Collections Milestone 3's own reward (gated in {@link #open} before this button is even shown) - a synchronous {@link World#locateNearestBiome} search, same "no async hop" choice every other destination here already makes, bounded by {@link #BIOME_SEARCH_RADIUS} so a search launched somewhere with no Birch Forest nearby can't hang the server for long. */
@@ -237,6 +248,19 @@ public final class TravelMenuService {
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.JUNGLE, BIOME_SEARCH_RADIUS);
         if (destination == null) {
             p.sendMessage(Component.text(l.choose("Nenhuma Selva encontrada por perto.", "No Jungle found nearby."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /** Mangrove Log Collections Milestone 4's own reward - same shape as {@link #travelToNearestBirchForest}. */
+    private void travelToNearestMangroveSwamp(Player p) {
+        Language l = Language.of(p);
+        Location origin = p.getLocation();
+        Location destination = origin.getWorld().locateNearestBiome(origin, Biome.MANGROVE_SWAMP, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhum Pântano de Mangue encontrado por perto.", "No Mangrove Swamp found nearby."), NamedTextColor.RED));
             return;
         }
         p.closeInventory();

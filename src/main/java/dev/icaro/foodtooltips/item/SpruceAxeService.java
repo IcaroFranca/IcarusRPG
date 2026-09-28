@@ -60,6 +60,21 @@ public final class SpruceAxeService {
 
     /** Players currently inside one of this class's own {@link #chop}/{@link #throwFell} felling passes - re-entrancy guard, see this class's own doc. */
     private final Set<UUID> fellingActive = new HashSet<>();
+    /**
+     * Whether a block is currently tracked as player-placed - wired in after construction to
+     * {@code skills.GeneralSkillListener#isPlaced} (this class, in {@code item}, has no
+     * business depending on {@code skills} directly). {@link #connected} skips a placed log
+     * unless the felling player is sneaking, per the player's own spec: chopping down a
+     * natural tree should never also rip out a placed decorative log standing next to it,
+     * unless that's explicitly what the player is doing. Defaults to always-false so this
+     * class still works (with the old, unfiltered behavior) before it's wired.
+     */
+    private java.util.function.Predicate<Block> isPlaced = block -> false;
+
+    /** Wired in after construction - see {@link #isPlaced}. */
+    public void isPlaced(java.util.function.Predicate<Block> isPlaced) {
+        this.isPlaced = isPlaced;
+    }
 
     public ItemStack create() {
         ItemStack item = new ItemStack(Material.IRON_AXE);
@@ -106,7 +121,7 @@ public final class SpruceAxeService {
      * Vein's own "compute now while the block state is still real, break next tick" split).
      */
     public void chop(Plugin plugin, Player p, Block origin) {
-        List<Block> extra = this.connected(origin, SWEEP_BONUS);
+        List<Block> extra = this.connected(origin, SWEEP_BONUS, p);
         if (extra.isEmpty()) {
             return;
         }
@@ -117,7 +132,7 @@ public final class SpruceAxeService {
     public void throwFell(Player p, Block origin) {
         List<Block> targets = new ArrayList<>();
         targets.add(origin);
-        targets.addAll(this.connected(origin, THROWN_TOTAL - 1));
+        targets.addAll(this.connected(origin, THROWN_TOTAL - 1, p));
         this.breakAll(p, targets);
     }
 
@@ -134,8 +149,8 @@ public final class SpruceAxeService {
         }
     }
 
-    /** 26-neighbor BFS from {@code origin}, restricted to blocks of {@code origin}'s own exact Material, up to {@code limit} blocks (origin itself never included in the result). Mirrors {@code skills.GeneralSkillListener#connected}'s own Vein algorithm. */
-    private List<Block> connected(Block origin, int limit) {
+    /** 26-neighbor BFS from {@code origin}, restricted to blocks of {@code origin}'s own exact Material, up to {@code limit} blocks (origin itself never included in the result) - skipping a block {@link #isPlaced} tracks unless {@code p} is sneaking. Mirrors {@code skills.GeneralSkillListener#connected}'s own Vein algorithm. */
+    private List<Block> connected(Block origin, int limit, Player p) {
         if (limit <= 0) {
             return List.of();
         }
@@ -158,7 +173,7 @@ public final class SpruceAxeService {
                         if (!seen.add(Pos.of(next))) {
                             continue;
                         }
-                        if (next.getType() != material) {
+                        if (next.getType() != material || (this.isPlaced.test(next) && !p.isSneaking())) {
                             continue;
                         }
                         out.add(next);

@@ -15,7 +15,8 @@ import org.bukkit.NamespacedKey;
  * time") - though each now also carries a handful of inert templates (empty milestone
  * list) for a real material that was missing from the original lineup (Farming's own
  * Beetroot/Bamboo/Kelp/Sweet Berries/Glow Berries/Torchflower/Pitcher Pod; Foraging's later
- * wood-log entries below, from Mangrove Log onward) - milestones to be filled in later, same
+ * wood-log entries below, from Cherry Log onward - Mangrove Log's own template has since been
+ * filled in) - milestones to be filled in later, same
  * as Combat's own 14 entries (every material a real hostile {@code bestiary.BestiaryCatalog}
  * mob commonly drops, minus one-off boss loot and anything an aquatic mob drops, reserved
  * for Fishing instead), all inert too per the player's own "vou te falar com o tempo o que
@@ -126,6 +127,10 @@ public final class CollectionsCatalog {
     public static final NamespacedKey SAVANNA_BOW_RECIPE = new NamespacedKey("foodtooltips", "savanna_bow");
     public static final NamespacedKey JUNGLE_CORE_RECIPE = new NamespacedKey("foodtooltips", "jungle_core");
     public static final NamespacedKey TREECAPITATOR_RECIPE = new NamespacedKey("foodtooltips", "treecapitator");
+    public static final NamespacedKey MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "mangrove_core");
+    public static final NamespacedKey MANGROVE_SWEEP_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_talisman");
+    public static final NamespacedKey MANGROVE_SWEEP_RING_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_ring");
+    public static final NamespacedKey MANGROVE_SWEEP_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_artifact");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -568,7 +573,26 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(25000,
                             "Desbloqueia a receita da Armor of Growth", "Unlocks the Armor of Growth recipe",
                             GROWTH_HELMET_RECIPE, GROWTH_CHESTPLATE_RECIPE, GROWTH_LEGGINGS_RECIPE, GROWTH_BOOTS_RECIPE))),
-            new CollectionsEntry(Material.MANGROVE_LOG, Material.MANGROVE_LOG, CollectionsCategory.FORAGING, "Tora de Mangue", "Mangrove Log", List.of()),
+            new CollectionsEntry(Material.MANGROVE_LOG, Material.MANGROVE_LOG, CollectionsCategory.FORAGING, "Tora de Mangue", "Mangrove Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(100,
+                            "Desbloqueia a receita do Mangrove Core", "Unlocks the Mangrove Core recipe",
+                            MANGROVE_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Mangrove Sweep Talisman", "Unlocks the Mangrove Sweep Talisman recipe",
+                            MANGROVE_SWEEP_TALISMAN_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para o Pântano de Mangue mais próximo", "Unlocks fast travel to the nearest Mangrove Swamp"),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita do Mangrove Sweep Ring", "Unlocks the Mangrove Sweep Ring recipe",
+                            MANGROVE_SWEEP_RING_RECIPE),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Pântano de Mangue na Varinha de Biomas", "Unlocks Mangrove Swamp on the Biome's Wand"),
+                    CollectionsMilestone.recipeUnlock(5000,
+                            "Desbloqueia a receita do Mangrove Sweep Artifact", "Unlocks the Mangrove Sweep Artifact recipe",
+                            MANGROVE_SWEEP_ARTIFACT_RECIPE),
+                    CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of()),
             new CollectionsEntry(Material.PALE_OAK_LOG, Material.PALE_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Pálido", "Pale Oak Log", List.of()),
             new CollectionsEntry(Material.CRIMSON_STEM, Material.CRIMSON_STEM, CollectionsCategory.FORAGING, "Talo Carmesim", "Crimson Stem", List.of()),
