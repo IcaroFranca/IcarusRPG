@@ -129,6 +129,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey TREECAPITATOR_RECIPE = new NamespacedKey("foodtooltips", "treecapitator");
     public static final NamespacedKey MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "mangrove_core");
     public static final NamespacedKey FLOWERED_MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "flowered_mangrove_core");
+    public static final NamespacedKey CHERRY_CORE_RECIPE = new NamespacedKey("foodtooltips", "cherry_core");
+    public static final NamespacedKey CHERRY_FORTUNE_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_talisman");
+    public static final NamespacedKey CHERRY_FORTUNE_RING_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_ring");
+    public static final NamespacedKey PINK_CHERRY_CORE_RECIPE = new NamespacedKey("foodtooltips", "pink_cherry_core");
+    public static final NamespacedKey CHERRY_FORTUNE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_artifact");
     public static final NamespacedKey MANGROVE_SWEEP_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_talisman");
     public static final NamespacedKey MANGROVE_SWEEP_RING_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_ring");
     public static final NamespacedKey MANGROVE_SWEEP_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_artifact");
@@ -596,7 +601,28 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Mangrove Sweep Artifact", "Unlocks the Mangrove Sweep Artifact recipe",
                             MANGROVE_SWEEP_ARTIFACT_RECIPE),
                     CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
-            new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of()),
+            new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(100,
+                            "Desbloqueia a receita do Cherry Core", "Unlocks the Cherry Core recipe",
+                            CHERRY_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Cherry Fortune Talisman", "Unlocks the Cherry Fortune Talisman recipe",
+                            CHERRY_FORTUNE_TALISMAN_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para o Cherry Grove mais próximo", "Unlocks fast travel to the nearest Cherry Grove"),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita do Cherry Fortune Ring", "Unlocks the Cherry Fortune Ring recipe",
+                            CHERRY_FORTUNE_RING_RECIPE),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Cherry Grove na Varinha de Biomas", "Unlocks Cherry Grove on the Biome's Wand"),
+                    CollectionsMilestone.recipeUnlock(5000,
+                            "Desbloqueia a receita do Pink Cherry Core", "Unlocks the Pink Cherry Core recipe",
+                            PINK_CHERRY_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(10000,
+                            "Desbloqueia a receita do Cherry Fortune Artifact", "Unlocks the Cherry Fortune Artifact recipe",
+                            CHERRY_FORTUNE_ARTIFACT_RECIPE),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.PALE_OAK_LOG, Material.PALE_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Pálido", "Pale Oak Log", List.of()),
             new CollectionsEntry(Material.CRIMSON_STEM, Material.CRIMSON_STEM, CollectionsCategory.FORAGING, "Talo Carmesim", "Crimson Stem", List.of()),
             new CollectionsEntry(Material.WARPED_STEM, Material.WARPED_STEM, CollectionsCategory.FORAGING, "Talo Distorcido", "Warped Stem", List.of()));

@@ -305,6 +305,15 @@ public final class AccessoryBagService {
         return total;
     }
 
+    /** Sum of {@link AccessoryItems#foragingFortuneBonus} across every accessory {@code p} currently has stored (the Cherry line) - read by {@code skills.GeneralSkillService#armorFortuneBonus}'s own Foraging case (wired in as its own {@code accessoryForagingFortuneBonus} function), same shape as {@link #totalFallHeightBonus}. */
+    public int totalForagingFortuneBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.foragingFortuneBonus(item);
+        }
+        return total;
+    }
+
     /**
      * Whether {@code p} currently has any stored accessory belonging to {@code family} - a
      * plain existence check, unlike {@link #totalFallHeightBonus}/{@link

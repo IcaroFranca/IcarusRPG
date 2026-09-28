@@ -64,6 +64,8 @@ public final class ForagingCollectionsItemsService {
     private static final UUID JUNGLE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:jungle_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mangrove_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FLOWERED_MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flowered_mangrove_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID CHERRY_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cherry_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID PINK_CHERRY_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pink_cherry_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -251,6 +253,31 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('F', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.floweredMangroveCore()));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepRing()));
                 });
+        this.newShapedRecipe(CollectionsCatalog.CHERRY_CORE_RECIPE, this.cherryCore(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.CHERRY_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CHERRY_FORTUNE_TALISMAN_RECIPE, this.cherryFortuneTalisman(),
+                new String[]{"LLL", "LIL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.CHERRY_LOG);
+                    r.setIngredient('I', Material.IRON_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CHERRY_FORTUNE_RING_RECIPE, this.cherryFortuneRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryCore()));
+                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryFortuneTalisman()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.PINK_CHERRY_CORE_RECIPE, this.pinkCherryCore(),
+                new String[]{"CCC", "CNC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CHERRY_FORTUNE_ARTIFACT_RECIPE, this.cherryFortuneArtifact(),
+                new String[]{"PPP", "PRP", "PPP"}, r -> {
+                    r.setIngredient('P', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.pinkCherryCore()));
+                    r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryFortuneRing()));
+                });
     }
 
     private ItemStack acaciaCore() {
@@ -300,7 +327,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Sweep: +1", NamedTextColor.DARK_GREEN),
@@ -316,7 +343,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3);
+        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("Sweep: +3", NamedTextColor.DARK_GREEN),
@@ -327,18 +354,92 @@ public final class ForagingCollectionsItemsService {
         return this.tagged(item);
     }
 
-    /** Mangrove Log Collection M7's own upgrade to {@link #mangroveSweepRing}, Tier B, +5 Sweep - the top of this Collection's accessory line. */
+    /** Mangrove Log Collection M8's own upgrade to {@link #mangroveSweepRing}, Tier B, +5 Sweep - the top of this Collection's accessory line. */
     private ItemStack mangroveSweepArtifact() {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("Sweep: +5", NamedTextColor.DARK_GREEN),
                 Component.empty(),
                 Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
                 Component.text("Only one Mangrove Sweep accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    private ItemStack cherryCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.CHERRY_CORE, CHERRY_CORE_PROFILE);
+        meta.displayName(Component.text("Cherry Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Cherry Log Collection M7's own upgrade to {@link #cherryCore} - same "8 of the base Core around a Netherite Ingot" shape {@link #floweredMangroveCore} already uses - the Cherry Fortune Artifact's own power ingredient. */
+    private ItemStack pinkCherryCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.PINK_CHERRY_CORE, PINK_CHERRY_CORE_PROFILE);
+        meta.displayName(Component.text("Pink Cherry Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Cherry Log Collection M3's own accessory, the first of the Talisman → Ring → Artifact
+     * line ({@link #cherryFortuneRing}/{@link #cherryFortuneArtifact} each upgrade the one
+     * before, consuming it as an ingredient) - stored in the Accessory Bag, Tier D, +10
+     * Foraging Fortune (see {@link AccessoryItems#foragingFortuneBonus}/{@code
+     * skills.GeneralSkillService#accessoryFortuneBonus}). Same recipe/tier/family-tag shape
+     * as the Mangrove Sweep line, per the player's own explicit spec.
+     */
+    private ItemStack cherryFortuneTalisman() {
+        ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Cherry Fortune Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 10);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Foraging Fortune: +10", NamedTextColor.GOLD),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Cherry Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Cherry Log Collection M5's own upgrade to {@link #cherryFortuneTalisman}, Tier C, +25 Foraging Fortune - same {@code "cherry_fortune"} family tag as the rest of this line. */
+    private ItemStack cherryFortuneRing() {
+        ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Cherry Fortune Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 25);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("Foraging Fortune: +25", NamedTextColor.GOLD),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Cherry Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Cherry Log Collection M8's own upgrade to {@link #cherryFortuneRing}, Tier B, +50 Foraging Fortune - the top of this Collection's accessory line. */
+    private ItemStack cherryFortuneArtifact() {
+        ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Cherry Fortune Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 50);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("Foraging Fortune: +50", NamedTextColor.GOLD),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Cherry Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }

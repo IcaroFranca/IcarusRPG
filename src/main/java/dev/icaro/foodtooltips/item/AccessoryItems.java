@@ -22,7 +22,9 @@ import org.bukkit.persistence.PersistentDataType;
  * line's own stat(s) at zero, including a standalone Orb/Charm with no upgrade line at all
  * (the Farmer Orb, the Night Vision Charm), whose own effect is driven purely by {@link
  * #family} presence rather than any of these summed numeric stats. {@link #sweepBonus} (the
- * Mangrove line) is summed the same way into {@code skills.GeneralSkillService#sweep}.
+ * Mangrove line) is summed the same way into {@code skills.GeneralSkillService#sweep}, and
+ * {@link #foragingFortuneBonus} (the Cherry line) into {@code
+ * skills.GeneralSkillService#armorFortuneBonus}'s own Foraging case.
  */
 public final class AccessoryItems {
     private static final NamespacedKey TYPE_KEY = new NamespacedKey("foodtooltips", "accessory_type");
@@ -32,6 +34,7 @@ public final class AccessoryItems {
     private static final NamespacedKey POISON_REDUCTION_KEY = new NamespacedKey("foodtooltips", "accessory_poison_damage_reduction");
     private static final NamespacedKey POTION_DURATION_KEY = new NamespacedKey("foodtooltips", "accessory_potion_duration_bonus");
     private static final NamespacedKey SWEEP_KEY = new NamespacedKey("foodtooltips", "accessory_sweep_bonus");
+    private static final NamespacedKey FORAGING_FORTUNE_KEY = new NamespacedKey("foodtooltips", "accessory_foraging_fortune_bonus");
 
     private AccessoryItems() {
     }
@@ -49,12 +52,13 @@ public final class AccessoryItems {
      * fallDamageReductionPercent}% off whatever fall damage still applies past that, {@code
      * poisonReductionPercent}% off any {@code DamageCause.POISON} damage taken, {@code
      * potionDurationBonusPercent}% longer duration on any potion effect gained by drinking a
-     * potion, and {@code sweepBonus} extra Sweep (the Mangrove line - see {@code
-     * skills.GeneralSkillService#sweep}) - called once while building the item, before
-     * {@code ItemStack#setItemMeta}. An item that doesn't grant one of these stats simply
-     * passes 0 for it.
+     * potion, {@code sweepBonus} extra Sweep (the Mangrove line - see {@code
+     * skills.GeneralSkillService#sweep}), and {@code foragingFortuneBonus} extra Foraging
+     * Fortune (the Cherry line) - called once while building the item, before {@code
+     * ItemStack#setItemMeta}. An item that doesn't grant one of these stats simply passes 0
+     * for it.
      */
-    public static void mark(ItemMeta meta, AccessoryType type, String family, int fallHeightBonus, double fallDamageReductionPercent, double poisonReductionPercent, double potionDurationBonusPercent, int sweepBonus) {
+    public static void mark(ItemMeta meta, AccessoryType type, String family, int fallHeightBonus, double fallDamageReductionPercent, double poisonReductionPercent, double potionDurationBonusPercent, int sweepBonus, int foragingFortuneBonus) {
         meta.getPersistentDataContainer().set(TYPE_KEY, PersistentDataType.STRING, type.name());
         meta.getPersistentDataContainer().set(FAMILY_KEY, PersistentDataType.STRING, family);
         meta.getPersistentDataContainer().set(FALL_HEIGHT_KEY, PersistentDataType.INTEGER, fallHeightBonus);
@@ -62,6 +66,7 @@ public final class AccessoryItems {
         meta.getPersistentDataContainer().set(POISON_REDUCTION_KEY, PersistentDataType.DOUBLE, poisonReductionPercent);
         meta.getPersistentDataContainer().set(POTION_DURATION_KEY, PersistentDataType.DOUBLE, potionDurationBonusPercent);
         meta.getPersistentDataContainer().set(SWEEP_KEY, PersistentDataType.INTEGER, sweepBonus);
+        meta.getPersistentDataContainer().set(FORAGING_FORTUNE_KEY, PersistentDataType.INTEGER, foragingFortuneBonus);
     }
 
     /** {@code item}'s own {@link AccessoryType} (Talisman/Ring/Artifact), or {@code null} for anything that isn't an accessory at all - what {@code AccessoryBagService} checks before letting an item into the bag at all. Purely descriptive; see {@link #family} for the bag's own actual equip restriction. */
@@ -140,5 +145,14 @@ public final class AccessoryItems {
         }
         ItemMeta meta = item.getItemMeta();
         return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(SWEEP_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Extra Foraging Fortune {@code item} grants (the Cherry line) - see {@link #mark}. */
+    public static int foragingFortuneBonus(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(FORAGING_FORTUNE_KEY, PersistentDataType.INTEGER, 0);
     }
 }

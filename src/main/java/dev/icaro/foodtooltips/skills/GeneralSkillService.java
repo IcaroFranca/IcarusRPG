@@ -79,6 +79,8 @@ public final class GeneralSkillService {
     private java.util.function.ToDoubleFunction<Player> armorXpOrbBonus = p -> 0.0;
     /** The Mangrove Log Collection's own Sweep Talisman/Ring/Artifact line's bonus (see {@code item.AccessoryItems#sweepBonus}, summed by {@code skills.AccessoryBagService#totalSweepBonus}) - an Accessory Bag item, not worn armor, but wired in the same late-bound way as every {@code armorXBonus} field above so this class never needs to depend on {@code skills.AccessoryBagService} directly. */
     private java.util.function.ToIntFunction<Player> accessoryForagingSweepBonus = p -> 0;
+    /** The Cherry Log Collection's own Foraging Fortune Talisman/Ring/Artifact line's bonus (see {@code item.AccessoryItems#foragingFortuneBonus}, summed by {@code skills.AccessoryBagService#totalForagingFortuneBonus}) - same late-bound idea as {@link #accessoryForagingSweepBonus}, added into {@link #armorFortuneBonus}'s own Foraging case alongside {@link #armorForagingFortuneBonus} (Leaflet Armor). */
+    private java.util.function.ToIntFunction<Player> accessoryForagingFortuneBonus = p -> 0;
 
     /** Wired in after construction, same pattern as {@code ArmorDefenseService#protectionBonus} - see {@link #armorMiningSpeedBonus}. */
     public void armorMiningSpeedBonus(java.util.function.ToIntFunction<Player> armorMiningSpeedBonus) {
@@ -108,6 +110,11 @@ public final class GeneralSkillService {
     /** Wired in after construction - see {@link #accessoryForagingSweepBonus}. */
     public void accessoryForagingSweepBonus(java.util.function.ToIntFunction<Player> accessoryForagingSweepBonus) {
         this.accessoryForagingSweepBonus = accessoryForagingSweepBonus;
+    }
+
+    /** Wired in after construction - see {@link #accessoryForagingFortuneBonus}. */
+    public void accessoryForagingFortuneBonus(java.util.function.ToIntFunction<Player> accessoryForagingFortuneBonus) {
+        this.accessoryForagingFortuneBonus = accessoryForagingFortuneBonus;
     }
 
     /** Just the Mangrove-accessory portion of {@link #sweep} - broken out so the Stats screen can show it as its own line, same reasoning {@link #armorFortuneBonus} already gives. */
@@ -179,7 +186,7 @@ public final class GeneralSkillService {
             case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
-        return base + this.armorFortuneBonus(player, type);
+        return base + this.armorFortuneBonus(player, type) + this.accessoryFortuneBonus(player, type);
     }
 
     /** Just the armor-piece portion of {@link #fortune} (Lapis Lazuli Armor for Mining, Sprout/Farmhand/Haymaker/Farmer Boots for Farming, Leaflet Armor for Foraging) - broken out so the Stats screen can show it as its own line instead of folding it silently into the level-based total. */
@@ -188,6 +195,14 @@ public final class GeneralSkillService {
             case MINING -> this.armorMiningFortuneBonus.applyAsInt(player);
             case FARMING -> this.armorFarmingFortuneBonus.applyAsInt(player);
             case FORAGING -> this.armorForagingFortuneBonus.applyAsInt(player);
+            default -> 0;
+        };
+    }
+
+    /** Just the Accessory Bag portion of {@link #fortune} (the Cherry Log Collection's own Foraging Fortune Talisman/Ring/Artifact line - Foraging only today) - broken out the same reason {@link #armorFortuneBonus} is, so the Stats screen can show it as its own line separate from armor. */
+    public int accessoryFortuneBonus(Player player, SkillType type) {
+        return switch (type) {
+            case FORAGING -> this.accessoryForagingFortuneBonus.applyAsInt(player);
             default -> 0;
         };
     }

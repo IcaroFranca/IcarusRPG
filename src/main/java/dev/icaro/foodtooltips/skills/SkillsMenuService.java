@@ -1321,11 +1321,15 @@ public final class SkillsMenuService {
             ItemStack tool = p.getInventory().getItemInMainHand();
             int harvestingLevel = t == SkillType.FARMING && this.enchants != null ? this.enchants.customLevel(tool, IcarusEnchant.HARVESTING) : 0;
             int armorBonus = this.general.armorFortuneBonus(p, t);
+            int accessoryBonus = this.general.accessoryFortuneBonus(p, t);
             int toolBonus = this.general.toolFortune(tool, t, harvestingLevel);
             int totalFortune = this.general.fortune(p, t) + toolBonus;
             String source = this.rate(l, level, this.general.fortunePerLevel());
             if (armorBonus != 0) {
                 source += " + " + armorBonus + " (" + l.choose("armadura", "armor") + ")";
+            }
+            if (accessoryBonus != 0) {
+                source += " + " + accessoryBonus + " (" + l.choose("acessório", "accessory") + ")";
             }
             if (toolBonus != 0) {
                 source += " + " + toolBonus + " (" + l.choose("ferramenta na mão", "held tool") + ")";
