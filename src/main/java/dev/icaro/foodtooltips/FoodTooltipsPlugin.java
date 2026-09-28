@@ -378,6 +378,8 @@ extends JavaPlugin {
         generalSkillListener.heldToolHasOwnSweep(tool -> spruceAxe.isSpruceAxe(tool) || treecapitator.isTreecapitator(tool));
         spruceAxe.isPlaced(generalSkillListener::isPlaced);
         treecapitator.isPlaced(generalSkillListener::isPlaced);
+        spruceAxe.accessorySweepBonus(general::sweepBonus);
+        treecapitator.accessorySweepBonus(general::sweepBonus);
         BrewingMenuService brewingMenu = new BrewingMenuService(brewingStandFuel, generalSkillListener, potionGuide);
         pm.registerEvents((Listener)new BrewingMenuListener((Plugin)this, brewingMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsListener(collectionsMenu, collectionsService), (Plugin)this);

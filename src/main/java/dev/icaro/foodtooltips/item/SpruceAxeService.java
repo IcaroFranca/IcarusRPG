@@ -26,16 +26,18 @@ import org.bukkit.plugin.Plugin;
 /**
  * The Spruce Axe (Spruce Log Collections M2): +{@value #SWEEP_BONUS} Sweep (every player has
  * a baseline of {@value #BASE_SWEEP}, so this axe totals {@value #BASE_SWEEP} + {@value
- * #SWEEP_BONUS} = 5 logs felled per swing) and +50 Foraging Fortune while held. "Sweep" has
- * no relation to Fortune's own probabilistic drop-copy system ({@code
- * skills.GeneralSkillListener#drops}) - it's a deterministic multi-BLOCK felling mechanic,
- * modeled directly on Mining's own Vein ability ({@code skills.GeneralSkillListener#vein}/
- * {@code #connected}): a 26-neighbor BFS restricted to the exact same {@link Material} as
- * the block that started it, breaking each match via {@link Player#breakBlock(Block)} so
- * Foraging XP/Collections/Fortune all credit normally per felled log, with zero duplicated
- * logic. {@link #fellingActive} guards against that same {@code breakBlock} call re-entering
- * this class's own {@code BlockBreakEvent} listener recursively - same idea as Vein's own
- * {@code veinActive} guard.
+ * #SWEEP_BONUS} = 5 logs felled per swing, PLUS whatever the Mangrove Sweep accessory line
+ * grants - see {@link #accessorySweepBonus} - stacking on top: a player with the Ring's own
+ * +3 fells 8 with this axe, per the player's own explicit "sweep do acessório deve stackar
+ * com o dos machados sim") and +50 Foraging Fortune while held. "Sweep" has no relation to
+ * Fortune's own probabilistic drop-copy system ({@code skills.GeneralSkillListener#drops}) -
+ * it's a deterministic multi-BLOCK felling mechanic, modeled directly on Mining's own Vein
+ * ability ({@code skills.GeneralSkillListener#vein}/{@code #connected}): a 26-neighbor BFS
+ * restricted to the exact same {@link Material} as the block that started it, breaking each
+ * match via {@link Player#breakBlock(Block)} so Foraging XP/Collections/Fortune all credit
+ * normally per felled log, with zero duplicated logic. {@link #fellingActive} guards against
+ * that same {@code breakBlock} call re-entering this class's own {@code BlockBreakEvent}
+ * listener recursively - same idea as Vein's own {@code veinActive} guard.
  *
  * <p>Swap Hands (F) throws the axe instead of chopping normally (see {@code
  * SpruceAxeListener#launch}, the same {@code ItemDisplay}-ray-march visual {@code
@@ -45,14 +47,12 @@ import org.bukkit.plugin.Plugin;
  * nothing in reach - a long-standing, Spigot-acknowledged "intended, no workaround"
  * client-side limitation - which would have made the throw effectively unusable unless
  * aimed at something within melee range, defeating the whole point of a ranged ability)
- * - felling only {@link #THROWN_TOTAL} logs ("-50% do sweep"), since nothing else breaks
- * the block the thrown axe actually hits.
+ * - felling only half {@link #totalSweep}'s own current total ("-50% do sweep", see {@link
+ * #thrownTotal}), since nothing else breaks the block the thrown axe actually hits.
  */
 public final class SpruceAxeService {
     public static final int BASE_SWEEP = 1;
     public static final int SWEEP_BONUS = 4;
-    /** "-50% do sweep" - half of {@link #BASE_SWEEP} + {@link #SWEEP_BONUS} (5), rounded up so the throw ability is never worth less than 1 extra log over just breaking the one block it hits. */
-    static final int THROWN_TOTAL = Math.round((BASE_SWEEP + SWEEP_BONUS) * 0.5f);
 
     private static final NamespacedKey AXE_KEY = new NamespacedKey("foodtooltips", "spruce_axe");
     private static final Key ITEM_MODEL = Key.key("icarus", "spruce_axe");
@@ -70,10 +70,33 @@ public final class SpruceAxeService {
      * class still works (with the old, unfiltered behavior) before it's wired.
      */
     private java.util.function.Predicate<Block> isPlaced = block -> false;
+    /**
+     * The Mangrove Sweep Talisman/Ring/Artifact line's own bonus (see {@code
+     * skills.GeneralSkillService#sweepBonus}) - wired in after construction, same late-bound
+     * idea as {@link #isPlaced}. Stacks additively on top of this axe's own {@link
+     * #SWEEP_BONUS}, per the player's own explicit spec (see this class's own doc). Defaults
+     * to always-0 so this class still works before it's wired.
+     */
+    private java.util.function.ToIntFunction<Player> accessorySweepBonus = p -> 0;
 
     /** Wired in after construction - see {@link #isPlaced}. */
     public void isPlaced(java.util.function.Predicate<Block> isPlaced) {
         this.isPlaced = isPlaced;
+    }
+
+    /** Wired in after construction - see {@link #accessorySweepBonus}. */
+    public void accessorySweepBonus(java.util.function.ToIntFunction<Player> accessorySweepBonus) {
+        this.accessorySweepBonus = accessorySweepBonus;
+    }
+
+    /** {@link #BASE_SWEEP} + {@link #SWEEP_BONUS} + {@code p}'s own current Mangrove accessory bonus - the real total logs felled per swing while holding this axe. */
+    private int totalSweep(Player p) {
+        return BASE_SWEEP + SWEEP_BONUS + this.accessorySweepBonus.applyAsInt(p);
+    }
+
+    /** "-50% do sweep" - half of {@link #totalSweep}, rounded up so the throw ability is never worth less than 1 extra log over just breaking the one block it hits. */
+    private int thrownTotal(Player p) {
+        return Math.round(this.totalSweep(p) * 0.5f);
     }
 
     public ItemStack create() {
@@ -121,18 +144,19 @@ public final class SpruceAxeService {
      * Vein's own "compute now while the block state is still real, break next tick" split).
      */
     public void chop(Plugin plugin, Player p, Block origin) {
-        List<Block> extra = this.connected(origin, SWEEP_BONUS, p);
+        int extraWanted = SWEEP_BONUS + this.accessorySweepBonus.applyAsInt(p);
+        List<Block> extra = this.connected(origin, extraWanted, p);
         if (extra.isEmpty()) {
             return;
         }
         Bukkit.getScheduler().runTask(plugin, () -> this.breakAll(p, extra));
     }
 
-    /** Thrown ability: {@code origin} (the block the thrown axe actually hit) is included, since nothing else breaks it - totals {@link #THROWN_TOTAL} logs including it. Runs immediately (already off the main {@code BlockBreakEvent} call stack, inside the throw's own scheduled ray-march tick). */
+    /** Thrown ability: {@code origin} (the block the thrown axe actually hit) is included, since nothing else breaks it - totals {@link #thrownTotal} logs including it. Runs immediately (already off the main {@code BlockBreakEvent} call stack, inside the throw's own scheduled ray-march tick). */
     public void throwFell(Player p, Block origin) {
         List<Block> targets = new ArrayList<>();
         targets.add(origin);
-        targets.addAll(this.connected(origin, THROWN_TOTAL - 1, p));
+        targets.addAll(this.connected(origin, this.thrownTotal(p) - 1, p));
         this.breakAll(p, targets);
     }
 

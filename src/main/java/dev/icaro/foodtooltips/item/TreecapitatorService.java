@@ -26,17 +26,17 @@ import org.bukkit.plugin.Plugin;
 /**
  * The Treecapitator (Jungle Log Collections M7): a golden axe, unbreakable, with
  * +{@value #SWEEP_BONUS} Sweep (totaling {@value #BASE_SWEEP} + {@value #SWEEP_BONUS} =
- * 26 logs felled per swing) and +100 Foraging Fortune while held - same "Sweep" felling
- * mechanic and Swap Hands (F) throw ability as {@link SpruceAxeService} (see that
- * class's own doc for why F, not right-click), with the same "-50% do sweep" throw
- * penalty, just scaled up to this axe's own much larger base Sweep. Crafted from a
- * Spruce Axe plus 8 Jungle Cores, per explicit request.
+ * 26 logs felled per swing, PLUS whatever the Mangrove Sweep accessory line grants - see
+ * {@link #accessorySweepBonus} - stacking on top, same as {@link SpruceAxeService}) and
+ * +100 Foraging Fortune while held - same "Sweep" felling mechanic and Swap Hands (F) throw
+ * ability as {@link SpruceAxeService} (see that class's own doc for why F, not right-click
+ * and for the accessory-stacking spec), with the same "-50% do sweep" throw penalty (see
+ * {@link #thrownTotal}), just scaled up to this axe's own much larger base Sweep. Crafted
+ * from a Spruce Axe plus 8 Jungle Cores, per explicit request.
  */
 public final class TreecapitatorService {
     public static final int BASE_SWEEP = 1;
     public static final int SWEEP_BONUS = 25;
-    /** "-50% do sweep" - half of {@link #BASE_SWEEP} + {@link #SWEEP_BONUS} (26), rounded, same formula {@link SpruceAxeService#THROWN_TOTAL} uses. */
-    static final int THROWN_TOTAL = Math.round((BASE_SWEEP + SWEEP_BONUS) * 0.5f);
 
     private static final NamespacedKey AXE_KEY = new NamespacedKey("foodtooltips", "treecapitator");
     private static final Key ITEM_MODEL = Key.key("icarus", "treecapitator");
@@ -46,10 +46,27 @@ public final class TreecapitatorService {
     private final Set<UUID> fellingActive = new HashSet<>();
     /** Whether a block is currently tracked as player-placed - wired in after construction to {@code skills.GeneralSkillListener#isPlaced}, same idea as {@code SpruceAxeService#isPlaced}. {@link #connected} skips a placed log unless the felling player is sneaking. */
     private java.util.function.Predicate<Block> isPlaced = block -> false;
+    /** The Mangrove Sweep Talisman/Ring/Artifact line's own bonus - wired in after construction, same late-bound idea as {@code SpruceAxeService#accessorySweepBonus}. Stacks additively on top of this axe's own {@link #SWEEP_BONUS}. */
+    private java.util.function.ToIntFunction<Player> accessorySweepBonus = p -> 0;
 
     /** Wired in after construction - see {@link #isPlaced}. */
     public void isPlaced(java.util.function.Predicate<Block> isPlaced) {
         this.isPlaced = isPlaced;
+    }
+
+    /** Wired in after construction - see {@link #accessorySweepBonus}. */
+    public void accessorySweepBonus(java.util.function.ToIntFunction<Player> accessorySweepBonus) {
+        this.accessorySweepBonus = accessorySweepBonus;
+    }
+
+    /** {@link #BASE_SWEEP} + {@link #SWEEP_BONUS} + {@code p}'s own current Mangrove accessory bonus - the real total logs felled per swing while holding this axe. */
+    private int totalSweep(Player p) {
+        return BASE_SWEEP + SWEEP_BONUS + this.accessorySweepBonus.applyAsInt(p);
+    }
+
+    /** "-50% do sweep" - half of {@link #totalSweep}, rounded, same formula {@code SpruceAxeService#thrownTotal} uses. */
+    private int thrownTotal(Player p) {
+        return Math.round(this.totalSweep(p) * 0.5f);
     }
 
     public ItemStack create() {
@@ -91,20 +108,21 @@ public final class TreecapitatorService {
         return m.name().endsWith("_LOG") || m.name().endsWith("_STEM");
     }
 
-    /** Normal chop: {@code origin} isn't included here - this only schedules the EXTRA {@value #SWEEP_BONUS} logs {@link #connected} finds, breaking them one tick later - same "compute now, break next tick" split as {@code SpruceAxeService#chop}. */
+    /** Normal chop: {@code origin} isn't included here - this only schedules the EXTRA {@value #SWEEP_BONUS} (plus any accessory bonus) logs {@link #connected} finds, breaking them one tick later - same "compute now, break next tick" split as {@code SpruceAxeService#chop}. */
     public void chop(Plugin plugin, Player p, Block origin) {
-        List<Block> extra = this.connected(origin, SWEEP_BONUS, p);
+        int extraWanted = SWEEP_BONUS + this.accessorySweepBonus.applyAsInt(p);
+        List<Block> extra = this.connected(origin, extraWanted, p);
         if (extra.isEmpty()) {
             return;
         }
         Bukkit.getScheduler().runTask(plugin, () -> this.breakAll(p, extra));
     }
 
-    /** Thrown ability: {@code origin} is included, since nothing else breaks it - totals {@link #THROWN_TOTAL} logs including it. */
+    /** Thrown ability: {@code origin} is included, since nothing else breaks it - totals {@link #thrownTotal} logs including it. */
     public void throwFell(Player p, Block origin) {
         List<Block> targets = new ArrayList<>();
         targets.add(origin);
-        targets.addAll(this.connected(origin, THROWN_TOTAL - 1, p));
+        targets.addAll(this.connected(origin, this.thrownTotal(p) - 1, p));
         this.breakAll(p, targets);
     }
 

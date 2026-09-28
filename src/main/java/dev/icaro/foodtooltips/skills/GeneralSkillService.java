@@ -116,13 +116,15 @@ public final class GeneralSkillService {
     }
 
     /**
-     * How many logs a plain log/stem break fells in total: {@link #BASE_SWEEP} (just itself)
-     * plus every currently-stored Mangrove Sweep accessory's own bonus. Read by {@code
-     * skills.GeneralSkillListener}'s own general Sweep multi-fell (any tool, no special axe
-     * needed) and shown on the Stats screen; the Spruce Axe/Treecapitator's own much bigger
-     * fixed Sweep total while held is a separate, axe-specific number (see their own classes'
-     * docs) that does NOT add this accessory bonus on top - holding either axe already fells
-     * far more logs per swing than any accessory tier grants on its own.
+     * How many logs a plain log/stem break fells in total with NO special axe held:
+     * {@link #BASE_SWEEP} (just itself) plus every currently-stored Mangrove Sweep
+     * accessory's own bonus. Read by {@code skills.GeneralSkillListener}'s own general Sweep
+     * multi-fell (any tool, no special axe needed) and shown on the Stats screen. Holding
+     * the Spruce Axe/Treecapitator instead uses a bigger, axe-specific base ({@code
+     * item.SpruceAxeService#SWEEP_BONUS}/{@code item.TreecapitatorService#SWEEP_BONUS}) in
+     * place of this method's plain {@link #BASE_SWEEP} - but this same accessory bonus (via
+     * {@link #sweepBonus}) still stacks additively on top of whichever axe is held, per the
+     * player's own explicit spec ("sweep do acessório deve stackar com o dos machados sim").
      */
     public int sweep(Player player) {
         return BASE_SWEEP + this.sweepBonus(player);
