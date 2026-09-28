@@ -409,9 +409,11 @@ implements Listener {
                 this.gain(p, SkillType.FORAGING, milestone.xpAmount());
             }
         }
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DE COLEÇÃO! ", "COLLECTION MILESTONE! "), NamedTextColor.GOLD)
-                .append(Component.translatable(drop.translationKey())));
+        Component title = Component.text("✦ ", NamedTextColor.GOLD)
+                .append(Component.text(l.choose("MILESTONE DE COLEÇÃO! ", "COLLECTION MILESTONE! "), NamedTextColor.GOLD))
+                .append(Component.translatable(drop.translationKey(), NamedTextColor.GOLD))
+                .append(Component.text(" ✦", NamedTextColor.GOLD));
+        List<Component> lines = new ArrayList<>();
         for (CollectionsMilestone milestone : update.unlocked()) {
             Component line = Component.text(milestone.reward(pt), NamedTextColor.GREEN);
             if (milestone.kind() == RewardKind.RECIPE_UNLOCK && !milestone.recipes().isEmpty()) {
@@ -427,10 +429,10 @@ implements Listener {
                         .hoverEvent(HoverEvent.showText(Component.text(
                                 l.choose("Clique para ver na Coleção", "Click to view in the Collection"), NamedTextColor.YELLOW)));
             }
-            p.sendMessage(line);
+            lines.add(line);
         }
-        p.sendMessage(Component.text("+" + update.globalXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        lines.add(Component.text("+" + update.globalXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     /**
@@ -706,21 +708,21 @@ implements Listener {
         }
     }
 
-    /** Same boxed multi-line style as {@code CombatListener#levelUpMessage}. */
+    /** Same boxed multi-line style as {@code CombatListener#levelUpMessage} - see {@code util.AnnouncementMessage}. */
     private void levelUpMessage(Player p, SkillType t, int before, int after, long globalXp) {
         Language l = Language.of(p);
-        p.sendMessage(Component.text("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", NamedTextColor.DARK_GRAY));
-        p.sendMessage(Component.text("\u2726 " + t.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE N\u00cdVEL!", "LEVEL UP!") + " \u2726", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(before + " \u2192 " + after, NamedTextColor.GREEN));
+        Component title = Component.text("\u2726 " + t.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE N\u00cdVEL!", "LEVEL UP!") + " \u2726", NamedTextColor.GOLD);
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.text(before + " \u2192 " + after, NamedTextColor.GREEN));
         String reward = this.rewardLine(t, l, after - before);
         if (!reward.isEmpty()) {
-            p.sendMessage(Component.text(reward, NamedTextColor.AQUA));
+            lines.add(Component.text(reward, NamedTextColor.AQUA));
         }
-        p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de N\u00edvel Global", "Global Level XP"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de N\u00edvel Global", "Global Level XP"), NamedTextColor.AQUA));
         if (t == SkillType.MINING && before < 3 && after >= 3) {
-            p.sendMessage(Component.text("\u2726 " + l.choose("Desbloqueado: Vein Miner", "Unlocked: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
+            lines.add(Component.text("\u2726 " + l.choose("Desbloqueado: Vein Miner", "Unlocked: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
         }
-        p.sendMessage(Component.text("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", NamedTextColor.DARK_GRAY));
+        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     /** Per-level attribute rewards actually gained this level-up (see {@link GeneralSkillService#fortune}, {@code bonusHealth}, {@code bonusStrength}, {@code bonusIntelligence}) - a skill can grant more than one, joined like Combat's Crit Chance/Damage line. */

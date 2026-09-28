@@ -12,6 +12,8 @@ import dev.icaro.foodtooltips.mining.MiningCatalog;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import dev.icaro.foodtooltips.skills.SkillType;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import net.kyori.adventure.key.Key;
@@ -298,26 +300,26 @@ public final class GlobalLevelService {
         Language l = Language.of(p);
         long strengthBefore = before / (long)this.levelsPerStrength * (long)this.strengthPerGroup;
         long strengthAfter = after / (long)this.levelsPerStrength * (long)this.strengthPerGroup;
-        p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
-        p.sendMessage((Component)Component.text((String)("\u2726 " + l.choose("N\u00cdVEL GLOBAL AUMENTOU!", "GLOBAL LEVEL UP!") + " \u2726"), (TextColor)NamedTextColor.GOLD));
-        p.sendMessage((Component)Component.text((String)(before + " \u2192 " + after), (TextColor)NamedTextColor.GREEN));
-        p.sendMessage((Component)Component.text((String)("+" + Math.round((double)(after - before) * this.hpPerLevel) + " " + l.choose("HP m\u00e1ximo", "max HP")), (TextColor)NamedTextColor.RED));
+        Component title = Component.text("\u2726 " + l.choose("N\u00cdVEL GLOBAL AUMENTOU!", "GLOBAL LEVEL UP!") + " \u2726", (TextColor)NamedTextColor.GOLD);
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.text(before + " \u2192 " + after, (TextColor)NamedTextColor.GREEN));
+        lines.add(Component.text("+" + Math.round((double)(after - before) * this.hpPerLevel) + " " + l.choose("HP m\u00e1ximo", "max HP"), (TextColor)NamedTextColor.RED));
         if (strengthAfter > strengthBefore) {
-            p.sendMessage((Component)Component.text((String)("+" + (strengthAfter - strengthBefore) + " Strength"), (TextColor)NamedTextColor.AQUA));
+            lines.add(Component.text("+" + (strengthAfter - strengthBefore) + " Strength", (TextColor)NamedTextColor.AQUA));
         }
         // Anything a specific level threshold unlocks (Telekinesis, the Death Compass'
         // own teleport) - per the player's own "quando eu subir de nivel... mostre o que
         // foi desbloqueado" spec, same idea CollectionsService's own milestone messages
         // already follow, just for Global Level's own thresholds instead of a catalog.
         if (before < (long) this.telekinesisLevel && after >= (long) this.telekinesisLevel) {
-            p.sendMessage(Component.text("\u2726 " + l.choose("Desbloqueado: Telecinese (drops pr\u00f3ximos v\u00eam at\u00e9 voc\u00ea)",
+            lines.add(Component.text("\u2726 " + l.choose("Desbloqueado: Telecinese (drops pr\u00f3ximos v\u00eam at\u00e9 voc\u00ea)",
                     "Unlocked: Telekinesis (nearby drops come to you)"), NamedTextColor.LIGHT_PURPLE));
         }
         if (before < (long) this.deathTeleportLevel && after >= (long) this.deathTeleportLevel) {
-            p.sendMessage(Component.text("\u2726 " + l.choose("Desbloqueado: Teleporte da B\u00fassola da Morte",
+            lines.add(Component.text("\u2726 " + l.choose("Desbloqueado: Teleporte da B\u00fassola da Morte",
                     "Unlocked: Death Compass teleport"), NamedTextColor.LIGHT_PURPLE));
         }
-        p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
+        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     private int skillCheckpoint(Player p, GlobalSkill s) {

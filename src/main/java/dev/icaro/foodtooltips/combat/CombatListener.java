@@ -35,6 +35,7 @@ import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -1119,28 +1120,28 @@ public final class CombatListener implements Listener {
 
     private void milestoneMessage(Player p, BestiaryEntry entry, int milestone, long globalXp) {
         Language l = Language.of(p);
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        p.sendMessage(Component.text("✦ " + l.choose("MILESTONE DO BESTIÁRIO!", "BESTIARY MILESTONE!") + " ✦", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(entry.displayName(l) + " • Milestone " + milestone, NamedTextColor.YELLOW));
-        p.sendMessage(Component.text(this.bestiary.reward(milestone, l == Language.PT), NamedTextColor.GREEN));
-        p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        Component title = Component.text("✦ " + l.choose("MILESTONE DO BESTIÁRIO!", "BESTIARY MILESTONE!") + " ✦", NamedTextColor.GOLD);
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.text(entry.displayName(l) + " • Milestone " + milestone, NamedTextColor.YELLOW));
+        lines.add(Component.text(this.bestiary.reward(milestone, l == Language.PT), NamedTextColor.GREEN));
+        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (this.bestiary.totalMilestones(p) % 10 == 0) {
-            p.sendMessage(Component.text("❤ " + l.choose("Bônus global: +2 HP máximo", "Global bonus: +2 max HP"), NamedTextColor.RED));
+            lines.add(Component.text("❤ " + l.choose("Bônus global: +2 HP máximo", "Global bonus: +2 max HP"), NamedTextColor.RED));
         }
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     private void levelUpMessage(Player p, int oldLevel, int newLevel, long globalXp, long bonusValor) {
         Language l = Language.of(p);
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        p.sendMessage(Component.text("✦ " + l.choose("COMBATE SUBIU DE NÍVEL!", "COMBAT LEVEL UP!") + " ✦", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(oldLevel + " → " + newLevel, NamedTextColor.GREEN));
-        p.sendMessage(Component.text("+" + (double) (newLevel - oldLevel) * 0.5 + "% Crit Chance • +" + (newLevel - oldLevel) * 4 + "% " + l.choose("Dano", "Damage"), NamedTextColor.AQUA));
-        p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        Component title = Component.text("✦ " + l.choose("COMBATE SUBIU DE NÍVEL!", "COMBAT LEVEL UP!") + " ✦", NamedTextColor.GOLD);
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.text(oldLevel + " → " + newLevel, NamedTextColor.GREEN));
+        lines.add(Component.text("+" + (double) (newLevel - oldLevel) * 0.5 + "% Crit Chance • +" + (newLevel - oldLevel) * 4 + "% " + l.choose("Dano", "Damage"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
         if (bonusValor > 0L) {
-            p.sendMessage(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
+            lines.add(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
         }
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     private Player attacker(Entity e) {

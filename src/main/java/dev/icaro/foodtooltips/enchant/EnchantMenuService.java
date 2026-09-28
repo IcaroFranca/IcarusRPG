@@ -393,13 +393,13 @@ public final class EnchantMenuService {
     private void enchantingLevelUpMessage(Player p, int before, int after, long globalXp) {
         Language l = Language.of(p);
         int gained = after - before;
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        p.sendMessage(Component.text("✦ " + SkillType.ENCHANTING.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE NÍVEL!", "LEVEL UP!") + " ✦", NamedTextColor.GOLD));
-        p.sendMessage(Component.text(before + " → " + after, NamedTextColor.GREEN));
-        p.sendMessage(Component.text("+" + (gained * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence")
+        Component title = Component.text("✦ " + SkillType.ENCHANTING.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE NÍVEL!", "LEVEL UP!") + " ✦", NamedTextColor.GOLD);
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.text(before + " → " + after, NamedTextColor.GREEN));
+        lines.add(Component.text("+" + (gained * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence")
                 + ", +" + (gained * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA));
-        p.sendMessage(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
-        p.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     /**
