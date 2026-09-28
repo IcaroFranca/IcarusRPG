@@ -10,6 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -33,9 +34,7 @@ public final class TreecapitatorListener implements Listener {
     private static final int THROW_MAX_TICKS = 50;
     /** See {@code SpruceAxeListener}'s own doc on this exact field. */
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
-    /** See {@code SpruceAxeListener}'s own doc on this exact field. */
-    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
-    /** See {@code SpruceAxeListener}'s own doc on this exact field. */
+    /** See {@code SpruceAxeListener}'s own doc on this exact field - a vertical-axis spin, not a handle-to-blade one. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
     private final Plugin plugin;
@@ -110,7 +109,7 @@ public final class TreecapitatorListener implements Listener {
             d.setCanMove(false);
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
-            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
+            d.setHeadPose(new EulerAngle(0, 0, 0));
         });
         new BukkitRunnable() {
             int ticks;
@@ -123,7 +122,7 @@ public final class TreecapitatorListener implements Listener {
                     return;
                 }
                 RayTraceResult block = p.getWorld().rayTraceBlocks(this.at, direction, 1.0, FluidCollisionMode.NEVER, true);
-                if (block != null && block.getHitBlock() != null) {
+                if (block != null && block.getHitBlock() != null && !isLeaves(block.getHitBlock().getType())) {
                     Block hit = block.getHitBlock();
                     this.finish();
                     if (TreecapitatorService.isFellable(hit.getType())) {
@@ -133,7 +132,7 @@ public final class TreecapitatorListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
+                display.setHeadPose(new EulerAngle(0, this.ticks * SPIN_RADIANS_PER_TICK, 0));
             }
 
             private void finish() {
@@ -143,5 +142,10 @@ public final class TreecapitatorListener implements Listener {
                 this.cancel();
             }
         }.runTaskTimer(this.plugin, 0L, 1L);
+    }
+
+    /** See {@code SpruceAxeListener#isLeaves}'s own doc - same "pass straight through, don't stop on the canopy" spec, same reasoning. */
+    private static boolean isLeaves(Material type) {
+        return type.name().endsWith("_LEAVES");
     }
 }
