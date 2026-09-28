@@ -63,6 +63,7 @@ public final class ForagingCollectionsItemsService {
     private static final UUID ACACIA_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:acacia_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID JUNGLE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:jungle_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mangrove_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID FLOWERED_MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flowered_mangrove_core".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -230,20 +231,24 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('L', Material.MANGROVE_LOG);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
-        Bukkit.removeRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE);
-        org.bukkit.inventory.ShapelessRecipe mangroveSweepTalisman = new org.bukkit.inventory.ShapelessRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE, this.mangroveSweepTalisman());
-        for (int i = 0; i < 4; i++) {
-            mangroveSweepTalisman.addIngredient(Material.MANGROVE_PROPAGULE);
-        }
-        Bukkit.addRecipe(mangroveSweepTalisman);
+        this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE, this.mangroveSweepTalisman(),
+                new String[]{"LLL", "LIL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.MANGROVE_LOG);
+                    r.setIngredient('I', Material.IRON_BLOCK);
+                });
         this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_RING_RECIPE, this.mangroveSweepRing(),
-                new String[]{"MMM", "MTM", "MMM"}, r -> {
-                    r.setIngredient('M', Material.MANGROVE_PROPAGULE);
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveCore()));
                     r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepTalisman()));
                 });
+        this.newShapedRecipe(CollectionsCatalog.FLOWERED_MANGROVE_CORE_RECIPE, this.floweredMangroveCore(),
+                new String[]{"CCC", "CNC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                });
         this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_ARTIFACT_RECIPE, this.mangroveSweepArtifact(),
-                new String[]{"MMM", "MRM", "MMM"}, r -> {
-                    r.setIngredient('M', Material.MANGROVE_ROOTS);
+                new String[]{"FFF", "FRF", "FFF"}, r -> {
+                    r.setIngredient('F', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.floweredMangroveCore()));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepRing()));
                 });
     }
@@ -271,6 +276,16 @@ public final class ForagingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.MANGROVE_CORE, MANGROVE_CORE_PROFILE);
         meta.displayName(Component.text("Mangrove Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Mangrove Log Collection M7's own upgrade to {@link #mangroveCore} - same "8 of the base Core around a Netherite Ingot" shape {@code FarmingCollectionsItemsService#trueChocolateCore}/{@code #flowerCactusCore}/{@code #goldenCarrotCore} already use - the Mangrove Sweep Artifact's own power ingredient. */
+    private ItemStack floweredMangroveCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.FLOWERED_MANGROVE_CORE, FLOWERED_MANGROVE_CORE_PROFILE);
+        meta.displayName(Component.text("Flowered Mangrove Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

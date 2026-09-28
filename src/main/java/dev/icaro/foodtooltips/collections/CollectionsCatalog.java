@@ -128,6 +128,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey JUNGLE_CORE_RECIPE = new NamespacedKey("foodtooltips", "jungle_core");
     public static final NamespacedKey TREECAPITATOR_RECIPE = new NamespacedKey("foodtooltips", "treecapitator");
     public static final NamespacedKey MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "mangrove_core");
+    public static final NamespacedKey FLOWERED_MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "flowered_mangrove_core");
     public static final NamespacedKey MANGROVE_SWEEP_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_talisman");
     public static final NamespacedKey MANGROVE_SWEEP_RING_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_ring");
     public static final NamespacedKey MANGROVE_SWEEP_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_artifact");
@@ -589,8 +590,8 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Pântano de Mangue na Varinha de Biomas", "Unlocks Mangrove Swamp on the Biome's Wand"),
                     CollectionsMilestone.recipeUnlock(5000,
-                            "Desbloqueia a receita do Mangrove Sweep Artifact", "Unlocks the Mangrove Sweep Artifact recipe",
-                            MANGROVE_SWEEP_ARTIFACT_RECIPE),
+                            "Desbloqueia as receitas do Flowered Mangrove Core e do Mangrove Sweep Artifact", "Unlocks the Flowered Mangrove Core and Mangrove Sweep Artifact recipes",
+                            FLOWERED_MANGROVE_CORE_RECIPE, MANGROVE_SWEEP_ARTIFACT_RECIPE),
                     CollectionsMilestone.foragingXp(10000, 10000, "+10000 XP de Coleta", "+10000 Foraging XP"),
                     CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of()),
