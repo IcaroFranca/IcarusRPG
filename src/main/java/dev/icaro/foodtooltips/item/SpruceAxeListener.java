@@ -10,6 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -45,30 +46,26 @@ public final class SpruceAxeListener implements Listener {
      */
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /**
-     * A generic tool item (parented to {@code item/handheld.json}) has no dedicated "head slot"
-     * transform, so Minecraft renders it at identity pose there - a flat, near-zero-thickness
-     * quad standing edge-on to whatever the stand is facing, exactly the "de lado" (sideways)
-     * look reported. {@code ArmorStand#setHeadPose}'s Y component rotates that quad around the
-     * head bone's own original up/down axis; 90° swings its flat face from side-on to
-     * forward-facing, pointed the same way {@code start.setDirection} already aims the stand's
-     * own body - see {@link #launch}.
-     */
-    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
-    /**
-     * headPose composes as {@code Rz(zRot)·Ry(yRot)·Rx(xRot)}, each about the head bone's own
-     * ORIGINAL (fixed) axes - Z is the OUTERMOST rotation, applied about that still-fixed
-     * original Z axis regardless of what Y already did to the shape. Animating Z (this class's
-     * own second version) therefore swept the blade's tip around that fixed axis while
-     * {@link #FORWARD_FACING_RADIANS} pointed the shape 90° away from it - a cone/corkscrew
-     * ("caracol") drifting off the travel line, not a spin around the axe's own long axis, and
-     * a player reported exactly that. X is the INNERMOST rotation instead, applied to the
-     * item's still-identity-posed original orientation BEFORE {@link #FORWARD_FACING_RADIANS}'s
-     * own Y reorientation carries the (already-spinning) shape rigidly to point along the
-     * travel direction - a rigid rotation applied on top of a spin can't introduce precession,
-     * so animating X spins the axe cleanly in place around its own handle-to-blade axis with no
-     * drift, replacing both that second version and this class's own first (an X-only tumble
-     * with no forward-facing reorientation at all, which vanished edge-on periodically). One
-     * full spin every 6 ticks (60°/tick).
+     * headPose's Y component rotates the held item around the head bone's own original
+     * up/down (vertical) axis - a plain yaw spin, the same one that {@code
+     * start.setDirection} already uses for the {@link ArmorStand}'s own body. Animating it
+     * continuously (see {@link #launch}) spins the axe like a coin standing on a table -
+     * "gira em torno do próprio eixo... como o planeta Terra faz para ter o ciclo de dia e
+     * noite" was the player's own exact spec for this: a fixed rotation axis through the
+     * item's own center, completely decoupled from {@link #launch}'s own straight-line
+     * {@code at.add(direction)} travel (a vertical-axis rotation never moves the pivot it
+     * rotates around, so there's nothing for it to visually displace). Two earlier versions
+     * of this both rotated around the axe's own HANDLE-TO-BLADE axis instead (first X, then,
+     * when that "vanished edge-on periodically", Z) - correct in the narrow sense of "spins
+     * in place, no precession", but an axe head sits offset to one side of that axis (unlike
+     * a spear or arrow, which really is just a thin line end to end), so spinning around it
+     * swings the visible blade through a wide circle every rotation - indistinguishable, to
+     * a player watching it fly, from the whole throw corkscrewing/orbiting around the aim
+     * direction, which is exactly what got reported a second time. Spinning around the
+     * vertical axis instead has no such offset blade-sweep: the item just cycles between
+     * face-on and edge-on as it turns, the same "day/night" cycle the player's own analogy
+     * describes, while {@link #launch}'s own position update stays a perfectly straight line
+     * the whole time either way.
      */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
 
@@ -179,7 +176,7 @@ public final class SpruceAxeListener implements Listener {
             d.setCanMove(false);
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
-            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
+            d.setHeadPose(new EulerAngle(0, 0, 0));
         });
         new BukkitRunnable() {
             int ticks;
@@ -192,7 +189,7 @@ public final class SpruceAxeListener implements Listener {
                     return;
                 }
                 RayTraceResult block = p.getWorld().rayTraceBlocks(this.at, direction, 1.0, FluidCollisionMode.NEVER, true);
-                if (block != null && block.getHitBlock() != null) {
+                if (block != null && block.getHitBlock() != null && !isLeaves(block.getHitBlock().getType())) {
                     Block hit = block.getHitBlock();
                     this.finish();
                     if (SpruceAxeService.isFellable(hit.getType())) {
@@ -202,7 +199,7 @@ public final class SpruceAxeListener implements Listener {
                 }
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
+                display.setHeadPose(new EulerAngle(0, this.ticks * SPIN_RADIANS_PER_TICK, 0));
             }
 
             private void finish() {
@@ -212,5 +209,10 @@ public final class SpruceAxeListener implements Listener {
                 this.cancel();
             }
         }.runTaskTimer(this.plugin, 0L, 1L);
+    }
+
+    /** Whether {@code type} is any of the game's leaf blocks - the thrown axe passes straight through these (per the player's own explicit "atravessar folhas" spec) instead of stopping on the first one it clashes with, since a tree's own canopy would otherwise block a throw aimed at the trunk behind it. Every vanilla leaf {@link Material} name ends in {@code _LEAVES}. */
+    private static boolean isLeaves(Material type) {
+        return type.name().endsWith("_LEAVES");
     }
 }
