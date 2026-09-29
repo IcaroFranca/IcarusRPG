@@ -6,9 +6,9 @@ public enum Language {
     PT,
     EN;
 
-
+    /** The server is English-only; the player's client locale is intentionally ignored. */
     public static Language of(Player p) {
-        return p.locale().getLanguage().equalsIgnoreCase("pt") ? PT : EN;
+        return EN;
     }
 
     public String choose(String pt, String en) {

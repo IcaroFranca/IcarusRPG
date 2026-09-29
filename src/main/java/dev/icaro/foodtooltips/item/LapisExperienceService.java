@@ -262,7 +262,7 @@ public final class LapisExperienceService implements Listener {
      * passed rather than {@code null} in case that ever changes.
      */
     private ItemStack tagged(ItemStack item) {
-        this.tiers.applyTier(item, Language.PT);
+        this.tiers.applyTier(item, Language.EN);
         return item;
     }
 

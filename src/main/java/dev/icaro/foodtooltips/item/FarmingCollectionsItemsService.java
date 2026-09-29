@@ -1658,7 +1658,7 @@ public final class FarmingCollectionsItemsService {
      * changes.
      */
     private ItemStack tagged(ItemStack item) {
-        this.tiers.applyTier(item, Language.PT);
+        this.tiers.applyTier(item, Language.EN);
         return item;
     }
 }

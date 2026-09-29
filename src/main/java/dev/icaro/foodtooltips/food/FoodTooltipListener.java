@@ -20,7 +20,6 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerLocaleChangeEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -79,11 +78,6 @@ implements Listener {
 
     @EventHandler
     public void join(PlayerJoinEvent e) {
-        this.later(e.getPlayer());
-    }
-
-    @EventHandler
-    public void locale(PlayerLocaleChangeEvent e) {
         this.later(e.getPlayer());
     }
 

@@ -131,7 +131,7 @@ public final class ForagingCollectionsItemsService {
      * {@link Language} passed is unused by {@code ItemTierService#applyTier} itself.
      */
     private ItemStack tagged(ItemStack item) {
-        this.tiers.applyTier(item, Language.PT);
+        this.tiers.applyTier(item, Language.EN);
         return item;
     }
 
