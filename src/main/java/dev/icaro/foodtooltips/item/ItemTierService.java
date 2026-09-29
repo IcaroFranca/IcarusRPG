@@ -5,6 +5,7 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -233,14 +234,29 @@ public final class ItemTierService {
         if (meta == null) {
             return null;
         }
+        boolean loreDecorated = StatIcons.decorateLore(meta);
         boolean alreadyTagged = meta.getPersistentDataContainer().has(this.tierKey, PersistentDataType.BYTE);
         if (!this.taggable(item.getType(), meta)) {
             // Not a weapon/tool/armor piece and no explicit override/forceTier - if it
             // was tagged before this restriction existed, strip that back off; otherwise
             // there's nothing to do.
-            return alreadyTagged ? this.stripTier(item, meta) : null;
+            if (alreadyTagged) {
+                return this.stripTier(item, meta);
+            }
+            if (loreDecorated) {
+                item.setItemMeta(meta);
+                return item;
+            }
+            return null;
         }
         if (alreadyTagged) {
+            ItemTier tier = this.tierOf(meta, item.getType());
+            NamespacedKey expectedStyle = tooltipStyle(tier);
+            if (loreDecorated || !expectedStyle.equals(meta.getTooltipStyle())) {
+                meta.setTooltipStyle(expectedStyle);
+                item.setItemMeta(meta);
+                return item;
+            }
             return null;
         }
         ItemTier tier = this.tierOf(meta, item.getType());
@@ -265,6 +281,7 @@ public final class ItemTierService {
         meta.displayName(base.color(tier.color())
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false));
+        meta.setTooltipStyle(tooltipStyle(tier));
         meta.getPersistentDataContainer().set(this.tierKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
@@ -296,6 +313,10 @@ public final class ItemTierService {
             meta.lore(lore.isEmpty() ? null : lore);
         }
         meta.displayName(null);
+        NamespacedKey style = meta.getTooltipStyle();
+        if (style != null && style.getNamespace().equals("icarus") && style.getKey().startsWith("tier_")) {
+            meta.setTooltipStyle(null);
+        }
         meta.getPersistentDataContainer().remove(this.tierKey);
         meta.getPersistentDataContainer().remove(this.spacingRepairedKey);
         item.setItemMeta(meta);
@@ -304,6 +325,10 @@ public final class ItemTierService {
 
     private boolean isBlank(Component c) {
         return PLAIN.serialize(c).isEmpty();
+    }
+
+    static NamespacedKey tooltipStyle(ItemTier tier) {
+        return new NamespacedKey("icarus", "tier_" + tier.name().toLowerCase(Locale.ROOT));
     }
 
     /**

@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.reforge;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.item.StatIcons;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
@@ -461,7 +462,7 @@ public final class ReforgeService {
     private Component statLine(String label, double value, boolean percent, NamedTextColor color) {
         String sign = value >= 0 ? "+" : "";
         String text = label + sign + this.trimmed(value) + (percent ? "%" : "");
-        return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
+        return StatIcons.text(text, color).decoration(TextDecoration.ITALIC, false);
     }
 
     private String trimmed(double value) {

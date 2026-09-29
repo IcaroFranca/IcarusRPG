@@ -4,8 +4,6 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.FoodProperties;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +18,12 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public final class FoodTooltipService {
     private static final PlainTextComponentSerializer P = PlainTextComponentSerializer.plainText();
+    static final char HUNGER_FULL = '\uE040';
+    static final char HUNGER_HALF = '\uE041';
+    static final char SATURATION_FULL = '\uE042';
+    static final char SATURATION_25 = '\uE043';
+    static final char SATURATION_50 = '\uE044';
+    static final char SATURATION_75 = '\uE045';
     private final GeneralSkillService skills = new GeneralSkillService();
 
     public boolean update(ItemStack item, Language l, Player p) {
@@ -34,9 +38,14 @@ public final class FoodTooltipService {
         this.clean(lore);
         ArrayList<Component> block = new ArrayList<Component>();
         if (food != null) {
-            block.add(this.line(l.choose("Atributos do alimento:", "Food attributes:"), NamedTextColor.GOLD));
-            block.add(this.line("\ud83c\udf57 " + l.choose("Fome", "Hunger") + ": +" + this.n(food.nutrition()) + " (" + this.n((double)food.nutrition() / 2.0) + " \ud83c\udf57)", NamedTextColor.GREEN));
-            block.add(this.line("\u2726 " + l.choose("Satura\u00e7\u00e3o", "Saturation") + ": +" + this.n(food.saturation()) + " (" + this.n((double)food.saturation() / 2.0) + " \u2726)", NamedTextColor.AQUA));
+            String hunger = hungerIcons(food.nutrition());
+            String saturation = saturationIcons(food.saturation());
+            if (!hunger.isEmpty()) {
+                block.add(this.iconLine(hunger));
+            }
+            if (!saturation.isEmpty()) {
+                block.add(this.iconLine(saturation));
+            }
         }
         if (pickaxe) {
             if (!block.isEmpty()) {
@@ -109,6 +118,15 @@ public final class FoodTooltipService {
         while (i < lore.size()) {
             boolean header;
             String s = P.serialize(lore.get(i));
+            if (this.isFoodIconLine(s)) {
+                int from = i > 0 && P.serialize(lore.get(i - 1)).isEmpty() ? i - 1 : i;
+                lore.remove(i);
+                if (from < i) {
+                    lore.remove(from);
+                }
+                i = Math.max(0, from - 1);
+                continue;
+            }
             boolean bl = header = s.equals("Atributos do alimento:") || s.equals("Food attributes:") || s.equals("Atributos de minera\u00e7\u00e3o:") || s.equals("Mining attributes:");
             if (!header) {
                 ++i;
@@ -121,12 +139,40 @@ public final class FoodTooltipService {
         }
     }
 
+    private boolean isFoodIconLine(String value) {
+        // E046 was used by the first draft of these glyphs; recognize it so
+        // already-generated lore is migrated to the final AppleSkin sprites.
+        return !value.isEmpty() && value.chars().allMatch(c -> c >= HUNGER_FULL && c <= '\uE046');
+    }
+
+    private Component iconLine(String icons) {
+        return Component.text(icons, NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false);
+    }
+
+    static String hungerIcons(int nutrition) {
+        int points = Math.max(0, nutrition);
+        return String.valueOf(HUNGER_FULL).repeat(points / 2)
+                + (points % 2 == 0 ? "" : String.valueOf(HUNGER_HALF));
+    }
+
+    static String saturationIcons(double saturation) {
+        if (saturation <= 0.0) {
+            return "";
+        }
+        double icons = saturation / 2.0;
+        int full = (int)Math.floor(icons);
+        double remainder = icons - full;
+        char fraction = remainder > 0.5 ? SATURATION_75
+                : remainder > 0.25 ? SATURATION_50
+                : remainder > 0.0 ? SATURATION_25
+                : 0;
+        return String.valueOf(SATURATION_FULL).repeat(full)
+                + (fraction == 0 ? "" : String.valueOf(fraction));
+    }
+
     private Component line(String s, NamedTextColor c) {
         return Component.text((String)s, (TextColor)c).decoration(TextDecoration.ITALIC, false);
     }
 
-    private String n(double v) {
-        return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
-    }
 }
 

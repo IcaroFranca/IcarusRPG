@@ -14,6 +14,7 @@ import dev.icaro.foodtooltips.global.GlobalLevelSnapshot;
 import dev.icaro.foodtooltips.global.LevelColorMenuService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.item.StatIcons;
 import dev.icaro.foodtooltips.mining.MiningMenuService;
 import dev.icaro.foodtooltips.reforge.ArmorReforgeStats;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
@@ -1399,7 +1400,7 @@ public final class SkillsMenuService {
     }
 
     private Component text(String s, NamedTextColor c) {
-        return Component.text(s, c);
+        return StatIcons.text(s, c);
     }
 
     private ItemStack item(Material mat, String name, List<Component> lore) {
