@@ -82,6 +82,10 @@ public final class ForagingCollectionsItemsService {
     private static final int GROWTH_BOOTS_HEALTH = 50;
     private static final int GROWTH_BOOTS_DEFENSE = 25;
     private static final org.bukkit.NamespacedKey GROWTH_HEALTH_KEY = new org.bukkit.NamespacedKey("foodtooltips", "growth_armor_piece_health");
+    /** Per the player's own explicit spec: Talisman 12, Ring 20, Artifact 32 blocks of Creaking Sight range. */
+    private static final int CREAKING_SIGHT_TALISMAN_RANGE = 12;
+    private static final int CREAKING_SIGHT_RING_RANGE = 20;
+    private static final int CREAKING_SIGHT_ARTIFACT_RANGE = 32;
 
     private final Plugin plugin;
     private final BiomeWandService biomeWand;
@@ -278,6 +282,31 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('P', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.pinkCherryCore()));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryFortuneRing()));
                 });
+        this.newShapedRecipe(CollectionsCatalog.PALE_CORE_RECIPE, this.paleCore(),
+                new String[]{"PPP", "PDP", "PPP"}, r -> {
+                    r.setIngredient('P', Material.PALE_OAK_LOG);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_TALISMAN_RECIPE, this.creakingSightTalisman(),
+                new String[]{"PPP", "PEP", "PPP"}, r -> {
+                    r.setIngredient('P', Material.PALE_OAK_LOG);
+                    r.setIngredient('E', Material.ENDER_PEARL);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_RING_RECIPE, this.creakingSightRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.paleCore()));
+                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightTalisman()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.AWAKENED_PALE_CORE_RECIPE, this.awakenedPaleCore(),
+                new String[]{"CCC", "CHC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.paleCore()));
+                    r.setIngredient('H', Material.CREAKING_HEART);
+                });
+        this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_ARTIFACT_RECIPE, this.creakingSightArtifact(),
+                new String[]{"AAA", "ARA", "AAA"}, r -> {
+                    r.setIngredient('A', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.awakenedPaleCore()));
+                    r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightRing()));
+                });
     }
 
     private ItemStack acaciaCore() {
@@ -327,7 +356,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1, 0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Sweep: +1", NamedTextColor.DARK_GREEN),
@@ -343,7 +372,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("Sweep: +3", NamedTextColor.DARK_GREEN),
@@ -359,7 +388,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5, 0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("Sweep: +5", NamedTextColor.DARK_GREEN),
@@ -401,7 +430,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Cherry Fortune Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 10);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 10, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Foraging Fortune: +10", NamedTextColor.GOLD),
@@ -417,7 +446,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Cherry Fortune Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 25);
+        AccessoryItems.mark(meta, AccessoryType.RING, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 25, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("Foraging Fortune: +25", NamedTextColor.GOLD),
@@ -433,13 +462,95 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Cherry Fortune Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 50);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 50, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("Foraging Fortune: +50", NamedTextColor.GOLD),
                 Component.empty(),
                 Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
                 Component.text("Only one Cherry Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /**
+     * Pale Oak Log Collection M2's own Core - unlike every other wood-log Core in this class,
+     * no minecraft-heads.com custom head texture was given for this one yet, so it's left as
+     * a plain, textureless {@link Material#PLAYER_HEAD} (a real Steve/Alex skin shows in-game)
+     * rather than guessing a texture value - swap in a real {@code HeadTexture.PALE_CORE}
+     * constant plus {@link #applyProfile} here (same shape as {@link #cherryCore}/{@link
+     * #mangroveCore}) the moment one is provided.
+     */
+    private ItemStack paleCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        meta.displayName(Component.text("Pale Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Pale Oak Log Collection M7's own upgrade to {@link #paleCore} - same "8 of the base Core around a power ingredient" shape {@link #floweredMangroveCore}/{@link #pinkCherryCore} already use, here with a real vanilla Creaking Heart instead of a Netherite Ingot - the Creaking Sight Artifact's own power ingredient. No custom head texture given yet either - see {@link #paleCore}'s own doc. */
+    private ItemStack awakenedPaleCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        meta.displayName(Component.text("Awakened Pale Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Pale Oak Log Collection M3's own accessory, the first of the Talisman → Ring → Artifact
+     * line ({@link #creakingSightRing}/{@link #creakingSightArtifact} each upgrade the one
+     * before, consuming it as an ingredient) - stored in the Accessory Bag, Tier D, grants
+     * {@value #CREAKING_SIGHT_TALISMAN_RANGE} blocks of Creaking Sight (see {@link
+     * AccessoryItems#creakingSightRange}/{@code creaking.CreakingSightService}). {@link
+     * Material#SPYGLASS} - a real vision/detection tool, matching "Sight" - represents the
+     * whole line, same "no custom head, a themed vanilla item instead" shape {@link
+     * #mangroveSweepTalisman}/{@link #cherryFortuneTalisman} already use.
+     */
+    private ItemStack creakingSightTalisman() {
+        ItemStack item = new ItemStack(Material.SPYGLASS);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Creaking Sight Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_TALISMAN_RANGE);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Creaking Sight: " + CREAKING_SIGHT_TALISMAN_RANGE + " blocks", NamedTextColor.LIGHT_PURPLE),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Creaking Sight accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Pale Oak Log Collection M5's own upgrade to {@link #creakingSightTalisman}, Tier C, {@value #CREAKING_SIGHT_RING_RANGE} blocks of Creaking Sight - same {@code "creaking_sight"} family tag as the rest of this line. */
+    private ItemStack creakingSightRing() {
+        ItemStack item = new ItemStack(Material.SPYGLASS);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Creaking Sight Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_RING_RANGE);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("Creaking Sight: " + CREAKING_SIGHT_RING_RANGE + " blocks", NamedTextColor.LIGHT_PURPLE),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Creaking Sight accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Pale Oak Log Collection M8's own upgrade to {@link #creakingSightRing}, Tier B, {@value #CREAKING_SIGHT_ARTIFACT_RANGE} blocks of Creaking Sight - the top of this Collection's accessory line. */
+    private ItemStack creakingSightArtifact() {
+        ItemStack item = new ItemStack(Material.SPYGLASS);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Creaking Sight Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_ARTIFACT_RANGE);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("Creaking Sight: " + CREAKING_SIGHT_ARTIFACT_RANGE + " blocks", NamedTextColor.LIGHT_PURPLE),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Creaking Sight accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }

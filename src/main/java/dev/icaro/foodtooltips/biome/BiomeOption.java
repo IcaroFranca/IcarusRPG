@@ -25,6 +25,7 @@ public enum BiomeOption {
     BADLANDS(Biome.BADLANDS, Material.RED_SAND, "Terras Áridas", "Badlands"),
     CHERRY_GROVE(Biome.CHERRY_GROVE, Material.CHERRY_LEAVES, "Bosque de Cerejeiras", "Cherry Grove"),
     MEADOW(Biome.MEADOW, Material.PINK_PETALS, "Prado", "Meadow"),
+    PALE_GARDEN(Biome.PALE_GARDEN, Material.PALE_OAK_LEAVES, "Bosque Pálido", "Pale Garden"),
     // Custom biome from the IcarusBiomes datapack (github.com/IcaroFranca/IcarusBiomes) -
     // resolved dynamically from the server's biome registry rather than a compile-time
     // constant, since it doesn't exist unless that datapack is actually installed. biome()

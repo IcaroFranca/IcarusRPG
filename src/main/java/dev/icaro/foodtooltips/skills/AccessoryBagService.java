@@ -320,6 +320,24 @@ public final class AccessoryBagService {
     }
 
     /**
+     * The Creaking Sight glow range (the Pale Oak line) {@code p} currently gets, or 0 if
+     * they have none stored - unlike {@link #totalSweepBonus}/{@link
+     * #totalForagingFortuneBonus} this is NOT a sum: the "creaking_sight" family is exclusive
+     * (see {@link #scheduleFilterSweep}), so at most one Talisman/Ring/Artifact of this line
+     * can ever be stored at once - {@code Math.max} here is just a defensive "use the bigger
+     * one" in case that invariant is ever momentarily violated (e.g. mid-sweep), not a real
+     * stacking rule. Read by {@code creaking.CreakingSightService} to size each player's own
+     * scan radius.
+     */
+    public int creakingSightRange(Player p) {
+        int max = 0;
+        for (ItemStack item : this.stored(p)) {
+            max = Math.max(max, AccessoryItems.creakingSightRange(item));
+        }
+        return max;
+    }
+
+    /**
      * Whether {@code p} currently has any stored accessory belonging to {@code family} - a
      * plain existence check, unlike {@link #totalFallHeightBonus}/{@link
      * #totalPoisonReductionPercent}/{@link #totalPotionDurationBonusPercent}'s numeric sums,

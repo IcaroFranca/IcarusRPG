@@ -783,7 +783,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0, 0.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0, 0.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("+5 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -803,7 +803,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0, 0.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0, 0.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("+7 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -823,7 +823,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.FEATHER);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Feather Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0, 0.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0, 0.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("+10 blocos de altura sem dano de queda", NamedTextColor.AQUA),
@@ -855,7 +855,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.NIGHT_VISION_CHARM, NIGHT_VISION_CHARM_PROFILE);
         meta.displayName(Component.text("Night Vision Charm", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.CHARM, "night_vision", 0, 0.0, 0.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.CHARM, "night_vision", 0, 0.0, 0.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Visão noturna permanente", NamedTextColor.AQUA),
@@ -962,7 +962,7 @@ public final class FarmingCollectionsItemsService {
         var item = new org.bukkit.inventory.ItemStack(Material.POISONOUS_POTATO);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Vaccine Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("-10% de dano de envenenamento", NamedTextColor.AQUA),
@@ -983,7 +983,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.VACCINE_RING, VACCINE_RING_PROFILE);
         meta.displayName(Component.text("Vaccine Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "vaccine", 0, 0.0, 25.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "vaccine", 0, 0.0, 25.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("-25% de dano de envenenamento", NamedTextColor.AQUA),
@@ -1013,7 +1013,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.VACCINE_ARTIFACT, VACCINE_ARTIFACT_PROFILE);
         meta.displayName(Component.text("Vaccine Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "vaccine", 0, 0.0, 50.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "vaccine", 0, 0.0, 50.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("-50% de dano de envenenamento", NamedTextColor.AQUA),
@@ -1045,7 +1045,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.FARMER_ORB, FARMER_ORB_PROFILE);
         meta.displayName(Component.text("Farmer Orb", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ORB, "farmer_orb", 0, 0.0, 0.0, 0.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.ORB, "farmer_orb", 0, 0.0, 0.0, 0.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Amadurece plantações instantaneamente numa área 5x5", NamedTextColor.AQUA),
@@ -1132,7 +1132,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.POTION_AFFINITY_TALISMAN, POTION_AFFINITY_TALISMAN_PROFILE);
         meta.displayName(Component.text("Potion Affinity Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "potion_affinity", 0, 0.0, 0.0, 10.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "potion_affinity", 0, 0.0, 0.0, 10.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("+10% de duração de poções", NamedTextColor.AQUA),
@@ -1153,7 +1153,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.POTION_AFFINITY_RING_AND_ARTIFACT, POTION_AFFINITY_RING_PROFILE);
         meta.displayName(Component.text("Potion Affinity Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "potion_affinity", 0, 0.0, 0.0, 25.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "potion_affinity", 0, 0.0, 0.0, 25.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("+25% de duração de poções", NamedTextColor.AQUA),
@@ -1179,7 +1179,7 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.POTION_AFFINITY_RING_AND_ARTIFACT, POTION_AFFINITY_ARTIFACT_PROFILE);
         meta.displayName(Component.text("Potion Affinity Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "potion_affinity", 0, 0.0, 0.0, 50.0, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "potion_affinity", 0, 0.0, 0.0, 50.0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("+50% de duração de poções", NamedTextColor.AQUA),

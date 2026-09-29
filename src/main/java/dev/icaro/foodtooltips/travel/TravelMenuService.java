@@ -133,6 +133,12 @@ public final class TravelMenuService {
                     event -> this.travelToNearestCherryGrove(p)), 0, 1);
         }
 
+        if (this.collectionsProgress.achieved(p, this.paleOakLogEntry()) >= 4) {
+            pane.addItem(new GuiItem(this.item(Material.CREAKING_HEART, l.choose("Bosque Pálido Mais Próximo", "Nearest Pale Garden"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestPaleGarden(p)), 4, 0);
+        }
+
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
@@ -197,6 +203,10 @@ public final class TravelMenuService {
 
     private CollectionsEntry cherryLogEntry() {
         return CollectionsCatalog.find(Material.CHERRY_LOG).orElseThrow();
+    }
+
+    private CollectionsEntry paleOakLogEntry() {
+        return CollectionsCatalog.find(Material.PALE_OAK_LOG).orElseThrow();
     }
 
     /** Birch Log Collections Milestone 3's own reward (gated in {@link #open} before this button is even shown) - a synchronous {@link World#locateNearestBiome} search, same "no async hop" choice every other destination here already makes, bounded by {@link #BIOME_SEARCH_RADIUS} so a search launched somewhere with no Birch Forest nearby can't hang the server for long. */
@@ -284,6 +294,19 @@ public final class TravelMenuService {
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.CHERRY_GROVE, BIOME_SEARCH_RADIUS);
         if (destination == null) {
             p.sendMessage(Component.text(l.choose("Nenhum Cherry Grove encontrado por perto.", "No Cherry Grove found nearby."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /** Pale Oak Log Collections Milestone 4's own reward - same shape as {@link #travelToNearestBirchForest}. */
+    private void travelToNearestPaleGarden(Player p) {
+        Language l = Language.of(p);
+        Location origin = p.getLocation();
+        Location destination = origin.getWorld().locateNearestBiome(origin, Biome.PALE_GARDEN, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhum Bosque Pálido encontrado por perto.", "No Pale Garden found nearby."), NamedTextColor.RED));
             return;
         }
         p.closeInventory();

@@ -175,6 +175,7 @@ extends JavaPlugin {
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
     private AccessoryBagService accessoryBag;
+    private dev.icaro.foodtooltips.creaking.CreakingSightService creakingSight;
     private PersonalStorageService storage;
 
     public void onEnable() {
@@ -252,6 +253,9 @@ extends JavaPlugin {
         this.accessoryBag = new AccessoryBagService((Plugin)this, menus::openMain);
         menus.accessoryBag(this.accessoryBag);
         this.accessoryBag.start();
+        this.creakingSight = new dev.icaro.foodtooltips.creaking.CreakingSightService((Plugin)this, this.accessoryBag);
+        this.getServer().getPluginManager().registerEvents((Listener)this.creakingSight, (Plugin)this);
+        this.creakingSight.start();
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
         general.accessoryForagingSweepBonus(this.accessoryBag::totalSweepBonus);
@@ -688,6 +692,9 @@ extends JavaPlugin {
     }
 
     public void onDisable() {
+        if (this.creakingSight != null) {
+            this.creakingSight.stop();
+        }
         if (this.visuals != null) {
             this.visuals.shutdown();
         }

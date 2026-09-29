@@ -99,7 +99,8 @@ public final class BiomeWandService {
             new BiomeUnlock(Material.ACACIA_LOG, 6, EnumSet.of(BiomeOption.SAVANNA)),
             new BiomeUnlock(Material.JUNGLE_LOG, 5, EnumSet.of(BiomeOption.JUNGLE)),
             new BiomeUnlock(Material.MANGROVE_LOG, 6, EnumSet.of(BiomeOption.MANGROVE_SWAMP)),
-            new BiomeUnlock(Material.CHERRY_LOG, 6, EnumSet.of(BiomeOption.CHERRY_GROVE)));
+            new BiomeUnlock(Material.CHERRY_LOG, 6, EnumSet.of(BiomeOption.CHERRY_GROVE)),
+            new BiomeUnlock(Material.PALE_OAK_LOG, 6, EnumSet.of(BiomeOption.PALE_GARDEN)));
 
     /** One previously-different biome cell, captured before painting, for {@link #undo}. */
     private record Snapshot(World world, int x, int y, int z, Biome previous) {

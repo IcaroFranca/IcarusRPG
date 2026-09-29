@@ -147,7 +147,8 @@ public final class BestiaryProgressService {
         return 1 + (milestone - 1) / 4;
     }
 
-    private boolean isBoss(EntityType type) {
+    /** Every boss/miniboss {@code EntityType} this plugin recognizes - public so any other system needing "is this a boss" (e.g. {@code creaking.EntityClassifier}'s own Creaking Sight glow color) reads the exact same one, rather than duplicating this list. */
+    public static boolean isBoss(EntityType type) {
         return type == EntityType.WARDEN || type == EntityType.WITHER || type == EntityType.ENDER_DRAGON;
     }
 

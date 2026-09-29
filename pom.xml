@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.76.133</version>
+  <version>0.76.134</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>
@@ -39,6 +39,10 @@
     <repository>
       <id>extendedclip-repo</id>
       <url>https://repo.extendedclip.com/releases/</url>
+    </repository>
+    <repository>
+      <id>codemc-repo</id>
+      <url>https://repo.codemc.io/repository/maven-public/</url>
     </repository>
   </repositories>
 
@@ -122,6 +126,24 @@
       <groupId>me.clip</groupId>
       <artifactId>placeholderapi</artifactId>
       <version>2.11.6</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Optional soft-depend, same story as WorldGuard/Citizens/PlaceholderAPI above:
+         creaking.CreakingSightService talks to PacketEvents' own API directly at compile
+         time (per-player entity metadata/scoreboard team packets, for the Pale Oak
+         Collection's own Creaking Sight glow) so it needs this even though the plugin
+         only activates that feature when PacketEvents is actually installed and enabled
+         on the server (checked at runtime via Bukkit.getPluginManager().getPlugin,
+         same pattern FoodTooltipsPlugin#cleanupLegacyCitizensNpcs already uses for
+         Citizens). packetevents-spigot itself pulls in packetevents-api transitively
+         (also provided, since a provided dependency's own transitive deps default to
+         provided too) - that's where the actual wrapper packet/EntityData classes live.
+         Bump the version below to the latest stable at
+         https://repo.codemc.io/repository/maven-public/com/github/retrooper/packetevents-spigot/maven-metadata.xml -->
+    <dependency>
+      <groupId>com.github.retrooper</groupId>
+      <artifactId>packetevents-spigot</artifactId>
+      <version>2.14.0</version>
       <scope>provided</scope>
     </dependency>
     <!-- Test-only: plain interface/class mocks (Player, ItemMeta, PersistentDataContainer...)
