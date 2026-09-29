@@ -3,8 +3,11 @@ package dev.icaro.foodtooltips.item;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
 import dev.icaro.foodtooltips.util.LoreWrap;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Equippable;
 import java.util.ArrayList;
 import java.util.List;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -15,6 +18,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
@@ -59,6 +63,11 @@ public final class LapisArmorService {
     private static final double XP_ORB_BONUS_PER_PIECE = 0.5;
     /** Plain leather dye - a placeholder blue, not the pack's own real texture (see this class's own doc). */
     private static final Color ARMOR_COLOR = Color.fromRGB(30, 60, 190);
+    private static final Key LAPIS_ARMOR_ASSET = Key.key("icarus", "lapis_armor");
+    private static final Key LAPIS_HELMET_MODEL = Key.key("icarus", "lapis_helmet");
+    private static final Key LAPIS_CHESTPLATE_MODEL = Key.key("icarus", "lapis_chestplate");
+    private static final Key LAPIS_LEGGINGS_MODEL = Key.key("icarus", "lapis_leggings");
+    private static final Key LAPIS_BOOTS_MODEL = Key.key("icarus", "lapis_boots");
 
     /** Marks a piece as Lapis Lazuli Armor - see {@link #isLapisPiece}. */
     private static final NamespacedKey LAPIS_ARMOR_KEY = new NamespacedKey("foodtooltips", "lapis_armor_piece");
@@ -109,6 +118,7 @@ public final class LapisArmorService {
         lore.addAll(wrappedDescription(DESCRIPTION_PT));
         meta.lore(lore);
         item.setItemMeta(meta);
+        applyAppearance(item);
         return item;
     }
 
@@ -231,11 +241,11 @@ public final class LapisArmorService {
         if (item == null || item.isEmpty() || !isLapisPiece(item)) {
             return false;
         }
+        boolean changed = applyAppearance(item);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return false;
         }
-        boolean changed = false;
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         List<Component> ptBlock = wrappedDescription(DESCRIPTION_PT);
         List<Component> enBlock = wrappedDescription(DESCRIPTION_EN);
@@ -254,6 +264,44 @@ public final class LapisArmorService {
         }
         if (changed) {
             item.setItemMeta(meta);
+        }
+        return changed;
+    }
+
+    /** Applies the resource-pack model and worn armor asset, including to legacy pieces. */
+    private static boolean applyAppearance(ItemStack item) {
+        Key model;
+        EquipmentSlot slot;
+        switch (item.getType()) {
+            case LEATHER_HELMET -> {
+                model = LAPIS_HELMET_MODEL;
+                slot = EquipmentSlot.HEAD;
+            }
+            case LEATHER_CHESTPLATE -> {
+                model = LAPIS_CHESTPLATE_MODEL;
+                slot = EquipmentSlot.CHEST;
+            }
+            case LEATHER_LEGGINGS -> {
+                model = LAPIS_LEGGINGS_MODEL;
+                slot = EquipmentSlot.LEGS;
+            }
+            case LEATHER_BOOTS -> {
+                model = LAPIS_BOOTS_MODEL;
+                slot = EquipmentSlot.FEET;
+            }
+            default -> {
+                return false;
+            }
+        }
+        boolean changed = false;
+        if (!model.equals(item.getData(DataComponentTypes.ITEM_MODEL))) {
+            item.setData(DataComponentTypes.ITEM_MODEL, model);
+            changed = true;
+        }
+        Equippable equipped = item.getData(DataComponentTypes.EQUIPPABLE);
+        if (equipped == null || !LAPIS_ARMOR_ASSET.equals(equipped.assetId())) {
+            item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(slot).assetId(LAPIS_ARMOR_ASSET));
+            changed = true;
         }
         return changed;
     }
