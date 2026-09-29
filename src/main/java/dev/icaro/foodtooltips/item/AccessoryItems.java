@@ -29,7 +29,10 @@ import org.bukkit.persistence.PersistentDataType;
  * here, the Accessory Bag's own family exclusivity already guarantees at most one Creaking
  * Sight accessory is ever stored at once, so {@code creaking.CreakingSightService} just reads
  * whichever single one is present directly (see {@code skills.AccessoryBagService
- * #creakingSightRange}).
+ * #creakingSightRange}). {@link #heatResistance} (the Crimson Stem line's own Ember Talisman/
+ * Ring/Artifact) IS summed, same shape as {@link #sweepBonus}/{@link #foragingFortuneBonus} -
+ * fed into the Nether's own Heat mechanic (see {@code heat.HeatService}), which slows down how
+ * often a player accumulates Heat the higher this stat is.
  */
 public final class AccessoryItems {
     private static final NamespacedKey TYPE_KEY = new NamespacedKey("foodtooltips", "accessory_type");
@@ -41,6 +44,7 @@ public final class AccessoryItems {
     private static final NamespacedKey SWEEP_KEY = new NamespacedKey("foodtooltips", "accessory_sweep_bonus");
     private static final NamespacedKey FORAGING_FORTUNE_KEY = new NamespacedKey("foodtooltips", "accessory_foraging_fortune_bonus");
     private static final NamespacedKey CREAKING_SIGHT_RANGE_KEY = new NamespacedKey("foodtooltips", "accessory_creaking_sight_range");
+    private static final NamespacedKey HEAT_RESISTANCE_KEY = new NamespacedKey("foodtooltips", "accessory_heat_resistance");
 
     private AccessoryItems() {
     }
@@ -60,12 +64,13 @@ public final class AccessoryItems {
      * potionDurationBonusPercent}% longer duration on any potion effect gained by drinking a
      * potion, {@code sweepBonus} extra Sweep (the Mangrove line - see {@code
      * skills.GeneralSkillService#sweep}), {@code foragingFortuneBonus} extra Foraging Fortune
-     * (the Cherry line), and {@code creakingSightRange} blocks of Creaking Sight glow range
-     * (the Pale Oak line, 0 for anything that isn't part of it) - called once while building
-     * the item, before {@code ItemStack#setItemMeta}. An item that doesn't grant one of these
-     * stats simply passes 0 for it.
+     * (the Cherry line), {@code creakingSightRange} blocks of Creaking Sight glow range
+     * (the Pale Oak line, 0 for anything that isn't part of it), and {@code heatResistance}
+     * extra Heat Resistance (the Crimson Stem line) - called once while building the item,
+     * before {@code ItemStack#setItemMeta}. An item that doesn't grant one of these stats
+     * simply passes 0 for it.
      */
-    public static void mark(ItemMeta meta, AccessoryType type, String family, int fallHeightBonus, double fallDamageReductionPercent, double poisonReductionPercent, double potionDurationBonusPercent, int sweepBonus, int foragingFortuneBonus, int creakingSightRange) {
+    public static void mark(ItemMeta meta, AccessoryType type, String family, int fallHeightBonus, double fallDamageReductionPercent, double poisonReductionPercent, double potionDurationBonusPercent, int sweepBonus, int foragingFortuneBonus, int creakingSightRange, int heatResistance) {
         meta.getPersistentDataContainer().set(TYPE_KEY, PersistentDataType.STRING, type.name());
         meta.getPersistentDataContainer().set(FAMILY_KEY, PersistentDataType.STRING, family);
         meta.getPersistentDataContainer().set(FALL_HEIGHT_KEY, PersistentDataType.INTEGER, fallHeightBonus);
@@ -75,6 +80,7 @@ public final class AccessoryItems {
         meta.getPersistentDataContainer().set(SWEEP_KEY, PersistentDataType.INTEGER, sweepBonus);
         meta.getPersistentDataContainer().set(FORAGING_FORTUNE_KEY, PersistentDataType.INTEGER, foragingFortuneBonus);
         meta.getPersistentDataContainer().set(CREAKING_SIGHT_RANGE_KEY, PersistentDataType.INTEGER, creakingSightRange);
+        meta.getPersistentDataContainer().set(HEAT_RESISTANCE_KEY, PersistentDataType.INTEGER, heatResistance);
     }
 
     /** {@code item}'s own {@link AccessoryType} (Talisman/Ring/Artifact), or {@code null} for anything that isn't an accessory at all - what {@code AccessoryBagService} checks before letting an item into the bag at all. Purely descriptive; see {@link #family} for the bag's own actual equip restriction. */
@@ -171,5 +177,14 @@ public final class AccessoryItems {
         }
         ItemMeta meta = item.getItemMeta();
         return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(CREAKING_SIGHT_RANGE_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Extra Heat Resistance {@code item} grants (the Crimson Stem line's own Ember Talisman/Ring/Artifact) - see {@link #mark}. */
+    public static int heatResistance(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(HEAT_RESISTANCE_KEY, PersistentDataType.INTEGER, 0);
     }
 }

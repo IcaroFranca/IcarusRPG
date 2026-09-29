@@ -34,21 +34,21 @@ final class AccessoryItemsCreakingSightTest {
     @Test
     void talismanRangeIsTwelveBlocks() {
         ItemStack item = fakeItem();
-        AccessoryItems.mark(item.getItemMeta(), AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 12);
+        AccessoryItems.mark(item.getItemMeta(), AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 12, 0);
         assertEquals(12, AccessoryItems.creakingSightRange(item));
     }
 
     @Test
     void ringRangeIsTwentyBlocks() {
         ItemStack item = fakeItem();
-        AccessoryItems.mark(item.getItemMeta(), AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 20);
+        AccessoryItems.mark(item.getItemMeta(), AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 20, 0);
         assertEquals(20, AccessoryItems.creakingSightRange(item));
     }
 
     @Test
     void artifactRangeIsThirtyTwoBlocks() {
         ItemStack item = fakeItem();
-        AccessoryItems.mark(item.getItemMeta(), AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 32);
+        AccessoryItems.mark(item.getItemMeta(), AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 32, 0);
         assertEquals(32, AccessoryItems.creakingSightRange(item));
     }
 
@@ -56,11 +56,11 @@ final class AccessoryItemsCreakingSightTest {
     @Test
     void allThreeTiersShareTheSameFamily() {
         ItemStack talisman = fakeItem();
-        AccessoryItems.mark(talisman.getItemMeta(), AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 12);
+        AccessoryItems.mark(talisman.getItemMeta(), AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 12, 0);
         ItemStack ring = fakeItem();
-        AccessoryItems.mark(ring.getItemMeta(), AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 20);
+        AccessoryItems.mark(ring.getItemMeta(), AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 20, 0);
         ItemStack artifact = fakeItem();
-        AccessoryItems.mark(artifact.getItemMeta(), AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 32);
+        AccessoryItems.mark(artifact.getItemMeta(), AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, 32, 0);
 
         assertEquals("creaking_sight", AccessoryItems.family(talisman));
         assertEquals("creaking_sight", AccessoryItems.family(ring));
@@ -71,7 +71,7 @@ final class AccessoryItemsCreakingSightTest {
     @Test
     void unrelatedAccessoryHasZeroCreakingSightRange() {
         ItemStack item = fakeItem();
-        AccessoryItems.mark(item.getItemMeta(), AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0, 0);
+        AccessoryItems.mark(item.getItemMeta(), AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0, 0, 0);
         assertEquals(0, AccessoryItems.creakingSightRange(item));
     }
 }

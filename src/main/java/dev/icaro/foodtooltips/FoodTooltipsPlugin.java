@@ -176,6 +176,7 @@ extends JavaPlugin {
     private PotionBagService potionBag;
     private AccessoryBagService accessoryBag;
     private dev.icaro.foodtooltips.creaking.CreakingSightService creakingSight;
+    private dev.icaro.foodtooltips.heat.HeatService heatService;
     private PersonalStorageService storage;
 
     public void onEnable() {
@@ -256,6 +257,11 @@ extends JavaPlugin {
         this.creakingSight = new dev.icaro.foodtooltips.creaking.CreakingSightService((Plugin)this, this.accessoryBag);
         this.getServer().getPluginManager().registerEvents((Listener)this.creakingSight, (Plugin)this);
         this.creakingSight.start();
+        this.heatService = new dev.icaro.foodtooltips.heat.HeatService((Plugin)this, this.accessoryBag);
+        this.getServer().getPluginManager().registerEvents((Listener)this.heatService, (Plugin)this);
+        this.heatService.start();
+        general.heatMiningSpeedBonus(this.heatService::miningSpeedBonus);
+        general.heatMiningFortuneBonus(this.heatService::miningFortuneBonus);
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
         general.accessoryForagingSweepBonus(this.accessoryBag::totalSweepBonus);
@@ -285,6 +291,7 @@ extends JavaPlugin {
         LevelBadgeRenderer badgeRenderer = new LevelBadgeRenderer(this.getConfig().getInt("global-level.badge-animation-smoothness", 4));
         GlobalPresentationService presentation = new GlobalPresentationService((Plugin)this, global, levelColors, badgeRenderer);
         mushroomSoupFlight.onScoreboardReplaced(p -> presentation.refreshAll());
+        this.heatService.onScoreboardReplaced(p -> presentation.refreshAll());
         LevelColorMenuService levelColorMenu = new LevelColorMenuService((Plugin)this, global, levelColors, presentation, menus::openMain);
         menus.levelColors(levelColorMenu);
         CombatTreeMenuService treeMenu = new CombatTreeMenuService(combat, abilities, valor, menus::openMain);
@@ -694,6 +701,9 @@ extends JavaPlugin {
     public void onDisable() {
         if (this.creakingSight != null) {
             this.creakingSight.stop();
+        }
+        if (this.heatService != null) {
+            this.heatService.stop();
         }
         if (this.visuals != null) {
             this.visuals.shutdown();

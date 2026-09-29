@@ -337,6 +337,15 @@ public final class AccessoryBagService {
         return max;
     }
 
+    /** Sum of {@link AccessoryItems#heatResistance} across every accessory {@code p} currently has stored (the Crimson Stem line's own Ember Talisman/Ring/Artifact) - same shape as {@link #totalSweepBonus}/{@link #totalForagingFortuneBonus}. Read by {@code heat.HeatService} to size each player's own Heat tick interval. */
+    public int totalHeatResistance(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.heatResistance(item);
+        }
+        return total;
+    }
+
     /**
      * Whether {@code p} currently has any stored accessory belonging to {@code family} - a
      * plain existence check, unlike {@link #totalFallHeightBonus}/{@link

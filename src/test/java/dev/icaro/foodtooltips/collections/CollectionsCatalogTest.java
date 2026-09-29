@@ -30,6 +30,10 @@ final class CollectionsCatalogTest {
         return CollectionsCatalog.find(Material.PALE_OAK_LOG).orElseThrow();
     }
 
+    private static CollectionsEntry crimsonStem() {
+        return CollectionsCatalog.find(Material.CRIMSON_STEM).orElseThrow();
+    }
+
     @Test
     void cactusThresholdsMatchSpec() {
         List<CollectionsMilestone> m = cactus().milestones();
@@ -345,6 +349,34 @@ final class CollectionsCatalogTest {
         assertTrue(m.get(5).recipes().isEmpty()); // M6: the Biome's Wand unlock, no real recipe to gate.
         assertEquals(List.of(CollectionsCatalog.AWAKENED_PALE_CORE_RECIPE), m.get(6).recipes());
         assertEquals(List.of(CollectionsCatalog.CREAKING_SIGHT_ARTIFACT_RECIPE), m.get(7).recipes());
+        assertEquals(RewardKind.FORAGING_XP, m.get(8).kind());
+        assertEquals(25000, m.get(8).xpAmount());
+    }
+
+    @Test
+    void crimsonStemThresholdsMatchSpec() {
+        List<CollectionsMilestone> m = crimsonStem().milestones();
+        assertEquals(9, m.size());
+        int[] expected = {50, 100, 250, 500, 1000, 2000, 5000, 10000, 25000};
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], m.get(i).threshold(), "Crimson Stem milestone " + (i + 1));
+        }
+    }
+
+    @Test
+    void crimsonStemRewardKinds() {
+        List<CollectionsMilestone> m = crimsonStem().milestones();
+        assertEquals(RewardKind.FORAGING_XP, m.get(0).kind());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(List.of(CollectionsCatalog.CRIMSON_CORE_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.EMBER_TALISMAN_RECIPE), m.get(2).recipes());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
+        assertTrue(m.get(3).recipes().isEmpty()); // M4: the Crimson Forest teleport, no real recipe to gate.
+        assertEquals(List.of(CollectionsCatalog.EMBER_RING_RECIPE), m.get(4).recipes());
+        assertEquals(RewardKind.RECIPE_UNLOCK, m.get(5).kind());
+        assertTrue(m.get(5).recipes().isEmpty()); // M6: the Biome's Wand unlock, no real recipe to gate.
+        assertEquals(List.of(CollectionsCatalog.TRUE_CRIMSON_CORE_RECIPE), m.get(6).recipes());
+        assertEquals(List.of(CollectionsCatalog.EMBER_ARTIFACT_RECIPE), m.get(7).recipes());
         assertEquals(RewardKind.FORAGING_XP, m.get(8).kind());
         assertEquals(25000, m.get(8).xpAmount());
     }

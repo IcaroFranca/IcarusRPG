@@ -139,6 +139,12 @@ public final class TravelMenuService {
                     event -> this.travelToNearestPaleGarden(p)), 4, 0);
         }
 
+        if (this.collectionsProgress.achieved(p, this.crimsonStemEntry()) >= 4) {
+            pane.addItem(new GuiItem(this.item(Material.CRIMSON_NYLIUM, l.choose("Floresta Carmesim Mais Próxima", "Nearest Crimson Forest"),
+                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToNearestCrimsonForest(p)), 5, 0);
+        }
+
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
@@ -207,6 +213,10 @@ public final class TravelMenuService {
 
     private CollectionsEntry paleOakLogEntry() {
         return CollectionsCatalog.find(Material.PALE_OAK_LOG).orElseThrow();
+    }
+
+    private CollectionsEntry crimsonStemEntry() {
+        return CollectionsCatalog.find(Material.CRIMSON_STEM).orElseThrow();
     }
 
     /** Birch Log Collections Milestone 3's own reward (gated in {@link #open} before this button is even shown) - a synchronous {@link World#locateNearestBiome} search, same "no async hop" choice every other destination here already makes, bounded by {@link #BIOME_SEARCH_RADIUS} so a search launched somewhere with no Birch Forest nearby can't hang the server for long. */
@@ -307,6 +317,39 @@ public final class TravelMenuService {
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.PALE_GARDEN, BIOME_SEARCH_RADIUS);
         if (destination == null) {
             p.sendMessage(Component.text(l.choose("Nenhum Bosque Pálido encontrado por perto.", "No Pale Garden found nearby."), NamedTextColor.RED));
+            return;
+        }
+        p.closeInventory();
+        this.teleportTo(p, destination);
+    }
+
+    /**
+     * Crimson Stem Collections Milestone 4's own reward - unlike every other biome button
+     * here, {@link Biome#CRIMSON_FOREST} only ever generates in the Nether, so this can't
+     * just search {@code p}'s own current world the way {@link #travelToNearestBirchForest}
+     * and the rest do: it always searches the server's actual Nether world instead, anchored
+     * at {@code p}'s own coordinates scaled by the standard 1:8 Overworld/Nether ratio (the
+     * same ratio a vanilla portal link uses) when {@code p} isn't already there themselves,
+     * so the search starts roughly "under" wherever they currently are rather than always at
+     * the Nether's own world spawn - and teleports there directly (a plain cross-world
+     * teleport, no portal needed) exactly like every other destination in this menu already
+     * does for the Overworld.
+     */
+    private void travelToNearestCrimsonForest(Player p) {
+        Language l = Language.of(p);
+        World nether = Bukkit.getWorlds().stream()
+                .filter(w -> w.getEnvironment() == World.Environment.NETHER)
+                .findFirst().orElse(null);
+        if (nether == null) {
+            p.sendMessage(Component.text(l.choose("O Nether não está disponível agora.", "The Nether isn't available right now."), NamedTextColor.RED));
+            return;
+        }
+        Location origin = p.getWorld().getEnvironment() == World.Environment.NETHER
+                ? p.getLocation()
+                : new Location(nether, p.getLocation().getX() / 8.0, p.getLocation().getY(), p.getLocation().getZ() / 8.0);
+        Location destination = nether.locateNearestBiome(origin, Biome.CRIMSON_FOREST, BIOME_SEARCH_RADIUS);
+        if (destination == null) {
+            p.sendMessage(Component.text(l.choose("Nenhuma Floresta Carmesim encontrada por perto.", "No Crimson Forest found nearby."), NamedTextColor.RED));
             return;
         }
         p.closeInventory();

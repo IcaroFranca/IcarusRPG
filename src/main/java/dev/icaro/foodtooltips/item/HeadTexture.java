@@ -106,6 +106,16 @@ public final class HeadTexture {
     public static final String CHERRY_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTAzZDEzNTMzM2ZkOWViOWZmMDM5YzEwMzY0Yjk3YjE2ZDllNzc5NzQ4Y2FhMWJlYWYxYjc1ZWRmMDBjOWE0OCJ9fX0=";
     /** "Stripped Cherry Log" (minecraft-heads.com Custom Head ID 89465) - the Pink Cherry Core crafting item (the Cherry Fortune Artifact's own power ingredient), see {@code ForagingCollectionsItemsService}. */
     public static final String PINK_CHERRY_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTJjZTQ4Mzc3N2ZmYWUyNDZlNjAxMDU2NGNkZjlhYTJiZGYwODFjZDI0MzYyZmFlNzVmZTRlMWEwMjgzODdkYiJ9fX0=";
+    /** "Crimson Stem" (minecraft-heads.com Custom Head ID 89455) - the Crimson Core crafting item, see {@code ForagingCollectionsItemsService}. */
+    public static final String CRIMSON_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTJlNmJiY2QyMjgyMjU5NGUxNDIyZTM0NWQ4MWVhODEzMjA0ODBmOTBlODU3MzcyY2ZjNDU4NjU3ZDFkNGI0ZiJ9fX0=";
+    /** "Crimson Tree" (minecraft-heads.com Custom Head ID 51044) - the True Crimson Core crafting item (the Ember Artifact's own power ingredient), see {@code ForagingCollectionsItemsService}. */
+    public static final String TRUE_CRIMSON_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2IwMzFjZTVhMjk2YWRiOTZhMzUzNjM0MTJkYmEyMTVkZTYxYzI1Zjc3NjhiMmQ4NmYyYzcyZDI3OTZkNjQ2In19fQ==";
+    /** "Smoldering Embers" (minecraft-heads.com Custom Head ID 127561) - the Crimson Stem Collection's Ember Talisman accessory, see {@code ForagingCollectionsItemsService}. */
+    public static final String EMBER_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmEwYjQ1YjM5YTdiYjY2Zjg0YzE3MjM0ZjgzMDUwY2NhNDU2Zjk4NjE2NjIzMGFmMWQyOTI3MDliOGE3N2U1MSJ9fX0=";
+    /** "Embers" (minecraft-heads.com Custom Head ID 89573) - the Crimson Stem Collection's Ember Ring accessory, see {@code ForagingCollectionsItemsService}. */
+    public static final String EMBER_RING = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWYwZmE0MTgwMGNjOTkyMzEwN2Y2MjZjYjllOTY5ZWFjMGNiMGUxOTA0ZGZhODAwMzFhZTU4MWZmNzQxYmYyZCJ9fX0=";
+    /** "Rekindled Ember Fragment" (minecraft-heads.com Custom Head ID 52821) - the Crimson Stem Collection's Ember Artifact accessory, see {@code ForagingCollectionsItemsService}. */
+    public static final String EMBER_ARTIFACT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGRjZmYxYWNjMTJmMTZkNDRhZWUxZjdlODQ0MTRjYjJlOGVhN2ViNDY0MmU3ZDI5MmQ3NmYxYzE3YjRiNDM0YSJ9fX0=";
     /** "Cactus Flower" (minecraft-heads.com Custom Head ID 127271) - the Flower Cactus Core crafting item, see {@code FarmingCollectionsItemsService}. */
     public static final String FLOWER_CACTUS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmFhMWQ0OTU3Y2E0NTg5OWRmMTQ3OGUyM2M5NTc4MmUzNDQxYmQ1MjJhZDA4NzcxYjYwYzU0ZjhkYzA2M2MzOSJ9fX0=";
     /** "Golden Carrots" (minecraft-heads.com Custom Head ID 14339) - the Golden Carrot Core crafting item, see {@code FarmingCollectionsItemsService}. */
@@ -137,7 +147,7 @@ public final class HeadTexture {
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
             RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE, MANGROVE_CORE, FLOWERED_MANGROVE_CORE,
-            CHERRY_CORE, PINK_CHERRY_CORE,
+            CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT);
 

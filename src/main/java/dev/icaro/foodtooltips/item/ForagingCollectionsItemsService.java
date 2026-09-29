@@ -66,6 +66,11 @@ public final class ForagingCollectionsItemsService {
     private static final UUID FLOWERED_MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flowered_mangrove_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID CHERRY_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cherry_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID PINK_CHERRY_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pink_cherry_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID CRIMSON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:crimson_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID TRUE_CRIMSON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:true_crimson_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID EMBER_TALISMAN_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ember_talisman".getBytes(StandardCharsets.UTF_8));
+    private static final UUID EMBER_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ember_ring".getBytes(StandardCharsets.UTF_8));
+    private static final UUID EMBER_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ember_artifact".getBytes(StandardCharsets.UTF_8));
     private static final Color LEAFLET_ARMOR_COLOR = Color.fromRGB(0x4D, 0xCC, 0x4D);
     private static final int LEAFLET_HELMET_HEALTH = 70;
     private static final int LEAFLET_CHESTPLATE_HEALTH = 80;
@@ -86,6 +91,10 @@ public final class ForagingCollectionsItemsService {
     private static final int CREAKING_SIGHT_TALISMAN_RANGE = 12;
     private static final int CREAKING_SIGHT_RING_RANGE = 20;
     private static final int CREAKING_SIGHT_ARTIFACT_RANGE = 32;
+    /** Same 1/3/5 scale {@link #CREAKING_SIGHT_TALISMAN_RANGE} and up use, here for the Crimson Stem line's own Heat Resistance stat (see {@code heat.HeatService}). */
+    private static final int EMBER_TALISMAN_HEAT_RESISTANCE = 1;
+    private static final int EMBER_RING_HEAT_RESISTANCE = 3;
+    private static final int EMBER_ARTIFACT_HEAT_RESISTANCE = 5;
 
     private final Plugin plugin;
     private final BiomeWandService biomeWand;
@@ -307,6 +316,31 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('A', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.awakenedPaleCore()));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightRing()));
                 });
+        this.newShapedRecipe(CollectionsCatalog.CRIMSON_CORE_RECIPE, this.crimsonCore(),
+                new String[]{"CCC", "CDC", "CCC"}, r -> {
+                    r.setIngredient('C', Material.CRIMSON_STEM);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.EMBER_TALISMAN_RECIPE, this.emberTalisman(),
+                new String[]{"CCC", "CIC", "CCC"}, r -> {
+                    r.setIngredient('C', Material.CRIMSON_STEM);
+                    r.setIngredient('I', Material.IRON_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.EMBER_RING_RECIPE, this.emberRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.crimsonCore()));
+                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.emberTalisman()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.TRUE_CRIMSON_CORE_RECIPE, this.trueCrimsonCore(),
+                new String[]{"CCC", "CNC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.crimsonCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                });
+        this.newShapedRecipe(CollectionsCatalog.EMBER_ARTIFACT_RECIPE, this.emberArtifact(),
+                new String[]{"TTT", "TRT", "TTT"}, r -> {
+                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.trueCrimsonCore()));
+                    r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.emberRing()));
+                });
     }
 
     private ItemStack acaciaCore() {
@@ -356,7 +390,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 1, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Sweep: +1", NamedTextColor.DARK_GREEN),
@@ -372,7 +406,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 3, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("Sweep: +3", NamedTextColor.DARK_GREEN),
@@ -388,7 +422,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.MANGROVE_PROPAGULE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mangrove Sweep Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5, 0, 0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "mangrove_sweep", 0, 0.0, 0.0, 0.0, 5, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("Sweep: +5", NamedTextColor.DARK_GREEN),
@@ -430,7 +464,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Cherry Fortune Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 10, 0);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 10, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Foraging Fortune: +10", NamedTextColor.GOLD),
@@ -446,7 +480,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Cherry Fortune Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 25, 0);
+        AccessoryItems.mark(meta, AccessoryType.RING, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 25, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("Foraging Fortune: +25", NamedTextColor.GOLD),
@@ -462,7 +496,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.CHERRY_SAPLING);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Cherry Fortune Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 50, 0);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "cherry_fortune", 0, 0.0, 0.0, 0.0, 0, 50, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("Foraging Fortune: +50", NamedTextColor.GOLD),
@@ -512,7 +546,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.SPYGLASS);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Creaking Sight Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_TALISMAN_RANGE);
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_TALISMAN_RANGE, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
                 Component.text("Creaking Sight: " + CREAKING_SIGHT_TALISMAN_RANGE + " blocks", NamedTextColor.LIGHT_PURPLE),
@@ -528,7 +562,7 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.SPYGLASS);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Creaking Sight Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_RING_RANGE);
+        AccessoryItems.mark(meta, AccessoryType.RING, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_RING_RANGE, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
                 Component.text("Creaking Sight: " + CREAKING_SIGHT_RING_RANGE + " blocks", NamedTextColor.LIGHT_PURPLE),
@@ -544,13 +578,91 @@ public final class ForagingCollectionsItemsService {
         ItemStack item = new ItemStack(Material.SPYGLASS);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Creaking Sight Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_ARTIFACT_RANGE);
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "creaking_sight", 0, 0.0, 0.0, 0.0, 0, 0, CREAKING_SIGHT_ARTIFACT_RANGE, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
                 Component.text("Creaking Sight: " + CREAKING_SIGHT_ARTIFACT_RANGE + " blocks", NamedTextColor.LIGHT_PURPLE),
                 Component.empty(),
                 Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
                 Component.text("Only one Creaking Sight accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Crimson Stem Collection M2's own Core - 8 Crimson Stem around a Diamond Block, same shape every other wood-log Core in this class uses. */
+    private ItemStack crimsonCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.CRIMSON_CORE, CRIMSON_CORE_PROFILE);
+        meta.displayName(Component.text("Crimson Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Crimson Stem Collection M7's own upgrade to {@link #crimsonCore} - same "8 of the base Core around a Netherite Ingot" shape {@link #floweredMangroveCore}/{@link #pinkCherryCore} already use - the Ember Artifact's own power ingredient. */
+    private ItemStack trueCrimsonCore() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.TRUE_CRIMSON_CORE, TRUE_CRIMSON_CORE_PROFILE);
+        meta.displayName(Component.text("True Crimson Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Crimson Stem Collection M3's own accessory, the first of the Talisman → Ring → Artifact
+     * line ({@link #emberRing}/{@link #emberArtifact} each upgrade the one before, consuming
+     * it as an ingredient) - stored in the Accessory Bag, Tier D, grants {@value
+     * #EMBER_TALISMAN_HEAT_RESISTANCE} Heat Resistance (see {@link
+     * AccessoryItems#heatResistance}/{@code heat.HeatService}), which slows down how often
+     * the player accumulates Heat while in the Nether.
+     */
+    private ItemStack emberTalisman() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.EMBER_TALISMAN, EMBER_TALISMAN_PROFILE);
+        meta.displayName(Component.text("Ember Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "ember", 0, 0.0, 0.0, 0.0, 0, 0, 0, EMBER_TALISMAN_HEAT_RESISTANCE);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Heat Resistance: +" + EMBER_TALISMAN_HEAT_RESISTANCE, NamedTextColor.RED),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Ember accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Crimson Stem Collection M5's own upgrade to {@link #emberTalisman}, Tier C, +{@value #EMBER_RING_HEAT_RESISTANCE} Heat Resistance - same {@code "ember"} family tag as the rest of this line. */
+    private ItemStack emberRing() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.EMBER_RING, EMBER_RING_PROFILE);
+        meta.displayName(Component.text("Ember Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "ember", 0, 0.0, 0.0, 0.0, 0, 0, 0, EMBER_RING_HEAT_RESISTANCE);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("Heat Resistance: +" + EMBER_RING_HEAT_RESISTANCE, NamedTextColor.RED),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Ember accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Crimson Stem Collection M8's own upgrade to {@link #emberRing}, Tier B, +{@value #EMBER_ARTIFACT_HEAT_RESISTANCE} Heat Resistance - the top of this Collection's accessory line. */
+    private ItemStack emberArtifact() {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.EMBER_ARTIFACT, EMBER_ARTIFACT_PROFILE);
+        meta.displayName(Component.text("Ember Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "ember", 0, 0.0, 0.0, 0.0, 0, 0, 0, EMBER_ARTIFACT_HEAT_RESISTANCE);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("Heat Resistance: +" + EMBER_ARTIFACT_HEAT_RESISTANCE, NamedTextColor.RED),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Ember accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }

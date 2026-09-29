@@ -139,6 +139,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey CREAKING_SIGHT_RING_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_ring");
     public static final NamespacedKey AWAKENED_PALE_CORE_RECIPE = new NamespacedKey("foodtooltips", "awakened_pale_core");
     public static final NamespacedKey CREAKING_SIGHT_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_artifact");
+    public static final NamespacedKey CRIMSON_CORE_RECIPE = new NamespacedKey("foodtooltips", "crimson_core");
+    public static final NamespacedKey EMBER_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "ember_talisman");
+    public static final NamespacedKey EMBER_RING_RECIPE = new NamespacedKey("foodtooltips", "ember_ring");
+    public static final NamespacedKey TRUE_CRIMSON_CORE_RECIPE = new NamespacedKey("foodtooltips", "true_crimson_core");
+    public static final NamespacedKey EMBER_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "ember_artifact");
     public static final NamespacedKey MANGROVE_SWEEP_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_talisman");
     public static final NamespacedKey MANGROVE_SWEEP_RING_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_ring");
     public static final NamespacedKey MANGROVE_SWEEP_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_artifact");
@@ -650,7 +655,28 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Creaking Sight Artifact", "Unlocks the Creaking Sight Artifact recipe",
                             CREAKING_SIGHT_ARTIFACT_RECIPE),
                     CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
-            new CollectionsEntry(Material.CRIMSON_STEM, Material.CRIMSON_STEM, CollectionsCategory.FORAGING, "Talo Carmesim", "Crimson Stem", List.of()),
+            new CollectionsEntry(Material.CRIMSON_STEM, Material.CRIMSON_STEM, CollectionsCategory.FORAGING, "Talo Carmesim", "Crimson Stem", List.of(
+                    CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
+                    CollectionsMilestone.recipeUnlock(100,
+                            "Desbloqueia a receita do Crimson Core", "Unlocks the Crimson Core recipe",
+                            CRIMSON_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(250,
+                            "Desbloqueia a receita do Ember Talisman", "Unlocks the Ember Talisman recipe",
+                            EMBER_TALISMAN_RECIPE),
+                    new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia o teleporte para o Crimson Forest mais próximo", "Unlocks fast travel to the nearest Crimson Forest"),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita do Ember Ring", "Unlocks the Ember Ring recipe",
+                            EMBER_RING_RECIPE),
+                    new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Libera Crimson Forest na Varinha de Biomas", "Unlocks Crimson Forest on the Biome's Wand"),
+                    CollectionsMilestone.recipeUnlock(5000,
+                            "Desbloqueia a receita do True Crimson Core", "Unlocks the True Crimson Core recipe",
+                            TRUE_CRIMSON_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(10000,
+                            "Desbloqueia a receita do Ember Artifact", "Unlocks the Ember Artifact recipe",
+                            EMBER_ARTIFACT_RECIPE),
+                    CollectionsMilestone.foragingXp(25000, 25000, "+25000 XP de Coleta", "+25000 Foraging XP"))),
             new CollectionsEntry(Material.WARPED_STEM, Material.WARPED_STEM, CollectionsCategory.FORAGING, "Talo Distorcido", "Warped Stem", List.of()));
 
     private CollectionsCatalog() {
