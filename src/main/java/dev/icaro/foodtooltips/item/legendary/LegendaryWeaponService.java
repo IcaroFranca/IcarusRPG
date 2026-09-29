@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.item.legendary;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.ItemTier;
 import dev.icaro.foodtooltips.item.ItemTierService;
+import dev.icaro.foodtooltips.item.StatIcons;
 import dev.icaro.foodtooltips.item.SwordDamageService;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
@@ -294,7 +295,7 @@ public final class LegendaryWeaponService {
         if (Math.abs(bonusPercent) > 1.0E-4) {
             text += " (" + (bonusPercent >= 0 ? "+" : "") + trimmedPercent(bonusPercent) + "%)";
         }
-        return this.line(text, NamedTextColor.YELLOW);
+        return StatIcons.text(text, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false);
     }
 
     private static String trimmedPercent(double value) {

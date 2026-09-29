@@ -294,7 +294,7 @@ public final class SwordDamageService {
         if (Math.abs(bonusPercent) > 1.0E-4) {
             text += " (" + (bonusPercent >= 0 ? "+" : "") + trimmedPercent(bonusPercent) + "%)";
         }
-        return Component.text(text, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false);
+        return StatIcons.text(text, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false);
     }
 
     private static String trimmedPercent(double value) {

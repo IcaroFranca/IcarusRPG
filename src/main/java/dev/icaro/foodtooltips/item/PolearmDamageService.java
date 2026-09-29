@@ -223,7 +223,7 @@ public final class PolearmDamageService {
     }
 
     private Component speedLine(double real, Language l) {
-        return Component.text(l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW)
+        return StatIcons.text(l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false);
     }
 }
