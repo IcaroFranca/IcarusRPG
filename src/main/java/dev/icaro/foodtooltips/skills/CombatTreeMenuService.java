@@ -73,7 +73,7 @@ public final class CombatTreeMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Árvore de Combate", "Combat Tree"));
+        Inventory v = Bukkit.createInventory(null, 54, "Combat Tree");
         this.render(v, p, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -111,7 +111,7 @@ public final class CombatTreeMenuService {
             v.setItem(i, filler);
         }
         v.setItem(HEADER_SLOT, this.headerItem(p, l));
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         v.setItem(RESET_SLOT, this.resetItem(p, l));
         for (Map.Entry<Integer, CombatAbility> entry : SLOT_TO_ABILITY.entrySet()) {
             v.setItem(entry.getKey(), this.nodeItem(p, entry.getValue(), l));
@@ -138,21 +138,21 @@ public final class CombatTreeMenuService {
             if (reached) {
                 mat = Material.GREEN_STAINED_GLASS_PANE;
                 color = NamedTextColor.GREEN;
-                status = l.choose("Alcançado", "Reached");
+                status = "Reached";
             } else if (!foundNext) {
                 foundNext = true;
                 mat = Material.YELLOW_STAINED_GLASS_PANE;
                 color = NamedTextColor.YELLOW;
-                status = l.choose("Sendo liberado agora", "Currently unlocking");
+                status = "Currently unlocking";
             } else {
                 mat = Material.RED_STAINED_GLASS_PANE;
                 color = NamedTextColor.RED;
-                status = l.choose("Não alcançado", "Not reached");
+                status = "Not reached";
             }
             List<Component> lore = List.of(
-                    this.text(l.choose("Nível de Combate necessário: ", "Combat Level required: ") + required, NamedTextColor.GRAY),
+                    this.text("Combat Level required: " + required, NamedTextColor.GRAY),
                     this.text(status, color));
-            v.setItem(row * 9, this.item(mat, l.choose("Nível de Combate: " + required, "Combat Level: " + required), lore, color));
+            v.setItem(row * 9, this.item(mat, ("Combat Level: " + required), lore, color));
         }
     }
 
@@ -189,7 +189,7 @@ public final class CombatTreeMenuService {
         if (click.isShiftClick()) {
             this.handleToggle(p, ability, l);
         } else if (click == ClickType.RIGHT) {
-            p.sendActionBar(this.text(l.choose("Esta habilidade não é ativada pelo menu.", "This ability isn't activated from the menu."), NamedTextColor.GRAY));
+            p.sendActionBar(this.text("This ability isn't activated from the menu.", NamedTextColor.GRAY));
         } else {
             this.handlePurchase(p, ability, l);
         }
@@ -199,11 +199,11 @@ public final class CombatTreeMenuService {
 
     private void handleToggle(Player p, CombatAbility ability, Language l) {
         if (!this.abilities.unlocked(p, ability)) {
-            p.sendActionBar(this.text(l.choose("Ainda não desbloqueada.", "Not unlocked yet."), NamedTextColor.RED));
+            p.sendActionBar(this.text("Not unlocked yet.", NamedTextColor.RED));
             return;
         }
         boolean now = this.abilities.toggle(p, ability);
-        p.sendActionBar(this.text(ability.name(l == Language.PT) + ": " + (now ? l.choose("ATIVADA", "ENABLED") : l.choose("DESATIVADA", "DISABLED")), now ? NamedTextColor.GREEN : NamedTextColor.GRAY));
+        p.sendActionBar(this.text(ability.name(l == Language.PT) + ": " + (now ? "ENABLED" : "DISABLED"), now ? NamedTextColor.GREEN : NamedTextColor.GRAY));
     }
 
     /** Second click within {@link #RESET_CONFIRM_WINDOW_MILLIS} of the first actually resets; the first just arms it. */
@@ -214,24 +214,24 @@ public final class CombatTreeMenuService {
             this.resetConfirm.remove(p.getUniqueId());
             long refund = this.abilities.resetTree(p);
             if (refund > 0L) {
-                p.sendActionBar(this.text("✦ " + l.choose("Árvore resetada! +", "Tree reset! +") + this.valor.format(refund) + " " + CURRENCY_SYMBOL, NamedTextColor.GREEN));
+                p.sendActionBar(this.text("✦ " + "Tree reset! +" + this.valor.format(refund) + " " + CURRENCY_SYMBOL, NamedTextColor.GREEN));
             } else {
-                p.sendActionBar(this.text(l.choose("Nada para resetar.", "Nothing to reset."), NamedTextColor.GRAY));
+                p.sendActionBar(this.text("Nothing to reset.", NamedTextColor.GRAY));
             }
             return;
         }
         this.resetConfirm.put(p.getUniqueId(), now + RESET_CONFIRM_WINDOW_MILLIS);
-        p.sendActionBar(this.text(l.choose("Clique de novo para confirmar o reset (10s)!", "Click again to confirm the reset (10s)!"), NamedTextColor.RED));
+        p.sendActionBar(this.text("Click again to confirm the reset (10s)!", NamedTextColor.RED));
     }
 
     private void handlePurchase(Player p, CombatAbility ability, Language l) {
         CombatAbilityService.PurchaseResult result = this.abilities.purchaseRank(p, ability);
         switch (result) {
-            case SUCCESS -> p.sendActionBar(this.text("✦ " + ability.name(l == Language.PT) + " " + l.choose("melhorada!", "upgraded!") + " (" + this.abilities.rank(p, ability) + "/" + this.abilities.maxRank(ability) + ")", NamedTextColor.GREEN));
-            case ALREADY_MAX -> p.sendActionBar(this.text(l.choose("Já está no nível máximo.", "Already at max level."), NamedTextColor.GRAY));
-            case PREREQUISITE_MISSING -> p.sendActionBar(this.text(l.choose("Desbloqueie os pré-requisitos primeiro.", "Unlock the prerequisites first."), NamedTextColor.RED));
-            case LEVEL_TOO_LOW -> p.sendActionBar(this.text(l.choose("Nível de Combate insuficiente.", "Combat level too low."), NamedTextColor.RED));
-            case INSUFFICIENT_VALOR -> p.sendActionBar(this.text(l.choose("Pontos de Sangue insuficientes.", "Not enough Blood Points."), NamedTextColor.RED));
+            case SUCCESS -> p.sendActionBar(this.text("✦ " + ability.name(l == Language.PT) + " " + "upgraded!" + " (" + this.abilities.rank(p, ability) + "/" + this.abilities.maxRank(ability) + ")", NamedTextColor.GREEN));
+            case ALREADY_MAX -> p.sendActionBar(this.text("Already at max level.", NamedTextColor.GRAY));
+            case PREREQUISITE_MISSING -> p.sendActionBar(this.text("Unlock the prerequisites first.", NamedTextColor.RED));
+            case LEVEL_TOO_LOW -> p.sendActionBar(this.text("Combat level too low.", NamedTextColor.RED));
+            case INSUFFICIENT_VALOR -> p.sendActionBar(this.text("Not enough Blood Points.", NamedTextColor.RED));
         }
     }
 
@@ -257,26 +257,26 @@ public final class CombatTreeMenuService {
         int level = this.combat.progress(p).level();
         long balance = this.valor.balance(p);
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(l.choose("Nível de Combate: ", "Combat Level: ") + level, NamedTextColor.GREEN));
-        lore.add(this.text(CURRENCY_SYMBOL + " " + l.choose("Pontos de Sangue: ", "Blood Points: ") + this.valor.format(balance), NamedTextColor.DARK_RED));
-        for (String part : LoreWrap.wrapText(l.choose("Ganhe matando mobs hostis (veja o Bestiário) e ao subir de nível de Combate.", "Earn them by killing hostile mobs (see the Bestiary) and leveling up Combat."), LoreWrap.DEFAULT_WIDTH)) {
+        lore.add(this.text("Combat Level: " + level, NamedTextColor.GREEN));
+        lore.add(this.text(CURRENCY_SYMBOL + " " + "Blood Points: " + this.valor.format(balance), NamedTextColor.DARK_RED));
+        for (String part : LoreWrap.wrapText("Earn them by killing hostile mobs (see the Bestiary) and leveling up Combat.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
-        for (String part : LoreWrap.wrapText(l.choose("Nós mais fundos na árvore também exigem um Nível de Combate mínimo.", "Deeper nodes in the tree also require a minimum Combat level."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Deeper nodes in the tree also require a minimum Combat level.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("🔒 Carvão: bloqueada", "🔒 Coal: locked"), NamedTextColor.DARK_GRAY));
-        lore.add(this.text(l.choose("✔ Esmeralda: desbloqueada", "✔ Emerald: unlocked"), NamedTextColor.GREEN));
-        lore.add(this.text(l.choose("★ Diamante: nível máximo", "★ Diamond: max level"), NamedTextColor.AQUA));
-        lore.add(this.text(l.choose("(bloco = ativa, minério/gema = passiva)", "(block = active, ore/gem = passive)"), NamedTextColor.DARK_GRAY));
+        lore.add(this.text("🔒 Coal: locked", NamedTextColor.DARK_GRAY));
+        lore.add(this.text("✔ Emerald: unlocked", NamedTextColor.GREEN));
+        lore.add(this.text("★ Diamond: max level", NamedTextColor.AQUA));
+        lore.add(this.text("(block = active, ore/gem = passive)", NamedTextColor.DARK_GRAY));
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Clique: desbloquear/melhorar", "Click: unlock/upgrade"), NamedTextColor.YELLOW));
-        lore.add(this.text(l.choose("Shift + clique: ativar/desativar", "Shift + click: enable/disable"), NamedTextColor.YELLOW));
-        for (String part : LoreWrap.wrapText(l.choose("Bloco de TNT: resetar a árvore (devolve os Pontos de Sangue)", "TNT block: reset the tree (refunds Blood Points)"), LoreWrap.DEFAULT_WIDTH)) {
+        lore.add(this.text("Click: unlock/upgrade", NamedTextColor.YELLOW));
+        lore.add(this.text("Shift + click: enable/disable", NamedTextColor.YELLOW));
+        for (String part : LoreWrap.wrapText("TNT block: reset the tree (refunds Blood Points)", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.YELLOW));
         }
-        ItemStack i = this.item(Material.PLAYER_HEAD, l.choose("Sua Árvore de Combate", "Your Combat Tree"), lore);
+        ItemStack i = this.item(Material.PLAYER_HEAD, "Your Combat Tree", lore);
         SkullMeta m = (SkullMeta) i.getItemMeta();
         m.setOwningPlayer((OfflinePlayer) p);
         i.setItemMeta(m);
@@ -286,14 +286,14 @@ public final class CombatTreeMenuService {
     private ItemStack resetItem(Player p, Language l) {
         boolean armed = this.resetConfirm.getOrDefault(p.getUniqueId(), 0L) > System.currentTimeMillis();
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(l.choose("Reseta todos os níveis da árvore e devolve todos os Pontos de Sangue gastos.", "Resets every tree level and refunds every Blood Point spent."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Resets every tree level and refunds every Blood Point spent.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
         lore.add(armed
-                ? this.text(l.choose("Clique de novo para confirmar!", "Click again to confirm!"), NamedTextColor.RED)
-                : this.text(l.choose("Clique para resetar (pede confirmação).", "Click to reset (asks for confirmation)."), NamedTextColor.YELLOW));
-        return this.item(Material.TNT, l.choose("Resetar Árvore", "Reset Tree"), lore, armed ? NamedTextColor.RED : NamedTextColor.GOLD);
+                ? this.text("Click again to confirm!", NamedTextColor.RED)
+                : this.text("Click to reset (asks for confirmation).", NamedTextColor.YELLOW));
+        return this.item(Material.TNT, "Reset Tree", lore, armed ? NamedTextColor.RED : NamedTextColor.GOLD);
     }
 
     /** Locked → coal, unlocked → emerald, maxed → diamond; block variant = active, item variant = passive. */
@@ -325,35 +325,35 @@ public final class CombatTreeMenuService {
 
         List<Component> lore = new ArrayList<>();
         lore.add(this.text(this.abilities.description(ability, l == Language.PT), NamedTextColor.GRAY));
-        lore.add(this.text(node.branch().name(l == Language.PT) + " • " + l.choose("Nível ", "Level ") + rank + "/" + max, NamedTextColor.DARK_AQUA));
+        lore.add(this.text(node.branch().name(l == Language.PT) + " • " + "Level " + rank + "/" + max, NamedTextColor.DARK_AQUA));
         for (CombatAbilityService.StatPreview stat : this.abilities.statPreview(ability, rank, l == Language.PT)) {
             if (stat.next() != null) {
                 lore.add(this.text("  " + stat.label() + ": " + stat.current() + " → " + stat.next(), NamedTextColor.WHITE));
             } else {
-                lore.add(this.text("  " + stat.label() + ": " + stat.current() + " (" + l.choose("máx", "max") + ")", NamedTextColor.WHITE));
+                lore.add(this.text("  " + stat.label() + ": " + stat.current() + " (" + "max" + ")", NamedTextColor.WHITE));
             }
         }
         if (!node.prerequisites().isEmpty()) {
             for (CombatAbility prereq : node.prerequisites()) {
                 boolean ok = this.abilities.unlocked(p, prereq);
-                lore.add(this.text((ok ? "✔ " : "✖ ") + l.choose("Requer: ", "Requires: ") + prereq.name(l == Language.PT), ok ? NamedTextColor.DARK_GREEN : NamedTextColor.RED));
+                lore.add(this.text((ok ? "✔ " : "✖ ") + "Requires: " + prereq.name(l == Language.PT), ok ? NamedTextColor.DARK_GREEN : NamedTextColor.RED));
             }
         }
         if (levelRequired > 0) {
-            lore.add(this.text((levelOk ? "✔ " : "✖ ") + l.choose("Requer Nível de Combate: ", "Requires Combat Level: ") + levelRequired, levelOk ? NamedTextColor.DARK_GREEN : NamedTextColor.RED));
+            lore.add(this.text((levelOk ? "✔ " : "✖ ") + "Requires Combat Level: " + levelRequired, levelOk ? NamedTextColor.DARK_GREEN : NamedTextColor.RED));
         }
         if (maxed) {
-            lore.add(this.text(l.choose("NÍVEL MÁXIMO", "MAX LEVEL"), NamedTextColor.GOLD));
+            lore.add(this.text("MAX LEVEL", NamedTextColor.GOLD));
         } else {
             long cost = this.abilities.nextRankCost(p, ability);
-            lore.add(this.text(CURRENCY_SYMBOL + " " + (unlocked ? l.choose("Melhorar: ", "Upgrade: ") : l.choose("Desbloquear: ", "Unlock: ")) + this.valor.format(cost) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
+            lore.add(this.text(CURRENCY_SYMBOL + " " + (unlocked ? "Upgrade: " : "Unlock: ") + this.valor.format(cost) + " " + "Blood Points", NamedTextColor.DARK_RED));
         }
         if (unlocked && node.kind() == CombatTreeNode.Kind.PASSIVE) {
             boolean enabled = this.abilities.enabled(p, ability);
-            lore.add(this.text(enabled ? l.choose("ATIVADA (shift-clique desativa)", "ENABLED (shift-click disables)") : l.choose("DESATIVADA (shift-clique ativa)", "DISABLED (shift-click enables)"), enabled ? NamedTextColor.GREEN : NamedTextColor.GRAY));
+            lore.add(this.text(enabled ? "ENABLED (shift-click disables)" : "DISABLED (shift-click enables)", enabled ? NamedTextColor.GREEN : NamedTextColor.GRAY));
         }
         if (node.kind() == CombatTreeNode.Kind.ACTIVE_KEYBIND) {
-            for (String part : LoreWrap.wrapText(l.choose("Ativa: trocar de mão (F) sem agachar", "Activates: swap hands (F) without sneaking"), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Activates: swap hands (F) without sneaking", LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(this.text(part, NamedTextColor.AQUA));
             }
         }

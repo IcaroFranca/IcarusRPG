@@ -242,9 +242,7 @@ public final class CombatAbilityService {
             int after = Math.min(threshold, before + 1);
             this.bloodStreak.put(p.getUniqueId(), after);
             if (before < threshold && after == threshold) {
-                p.sendMessage(Component.text("✦ " + Language.of(p).choose(
-                        "SEDE DE SANGUE ATIVADA! Dano bônus até receber um golpe.",
-                        "BLOOD LUST ACTIVATED! Bonus damage until you are hit.") + " ✦", NamedTextColor.RED));
+                p.sendMessage(Component.text("✦ " + "BLOOD LUST ACTIVATED! Bonus damage until you are hit." + " ✦", NamedTextColor.RED));
             }
         }
         double heal = 0.0;
@@ -258,7 +256,7 @@ public final class CombatAbilityService {
 
     public void hostileHit(Player p) {
         if (this.bloodStreak.remove(p.getUniqueId()) != null && this.enabled(p, CombatAbility.BLOOD_LUST)) {
-            p.sendActionBar(Component.text(Language.of(p).choose("Sede de Sangue reiniciada", "Blood Lust reset"), NamedTextColor.DARK_RED));
+            p.sendActionBar(Component.text("Blood Lust reset", NamedTextColor.DARK_RED));
         }
     }
 
@@ -367,27 +365,27 @@ public final class CombatAbilityService {
         boolean hasNext = rank < max;
         List<StatPreview> out = new ArrayList<>();
         switch (a) {
-            case RUTHLESS_STRIKES -> out.add(this.pointsPlus(pt ? "Chance Crítica" : "Crit Chance", CombatTreeMath::ruthlessStrikesCritBonus, cur, next, hasNext, max));
+            case RUTHLESS_STRIKES -> out.add(this.pointsPlus("Crit Chance", CombatTreeMath::ruthlessStrikesCritBonus, cur, next, hasNext, max));
             case SWORD_THROW -> {
-                out.add(this.pctAbs(pt ? "Dano" : "Damage", CombatTreeMath::swordThrowDamageFraction, cur, next, hasNext, max));
-                out.add(this.seconds(pt ? "Recarga" : "Cooldown", CombatTreeMath::swordThrowBaseCooldownMillis, cur, next, hasNext, max));
-                out.add(this.integer(pt ? "Custo de Mana" : "Mana cost", CombatTreeMath::swordThrowManaCost, cur, next, hasNext, max, ""));
-                out.add(this.flat(pt ? "Alcance de Ataque" : "Swing Range", CombatTreeMath::swordThrowSwingRangeBonus, cur, next, hasNext, max, ""));
+                out.add(this.pctAbs("Damage", CombatTreeMath::swordThrowDamageFraction, cur, next, hasNext, max));
+                out.add(this.seconds("Cooldown", CombatTreeMath::swordThrowBaseCooldownMillis, cur, next, hasNext, max));
+                out.add(this.integer("Mana cost", CombatTreeMath::swordThrowManaCost, cur, next, hasNext, max, ""));
+                out.add(this.flat("Swing Range", CombatTreeMath::swordThrowSwingRangeBonus, cur, next, hasNext, max, ""));
             }
             case BLOOD_LUST -> {
-                out.add(this.pctPlus(pt ? "Dano bônus" : "Damage bonus", CombatTreeMath::bloodLustBonus, cur, next, hasNext, max));
-                out.add(this.integer(pt ? "Abates p/ ativar" : "Kills to trigger", CombatTreeMath::bloodLustThreshold, cur, next, hasNext, max, ""));
+                out.add(this.pctPlus("Damage bonus", CombatTreeMath::bloodLustBonus, cur, next, hasNext, max));
+                out.add(this.integer("Kills to trigger", CombatTreeMath::bloodLustThreshold, cur, next, hasNext, max, ""));
             }
-            case BERSERKER -> out.add(this.multPct(pt ? "Dano bônus" : "Damage bonus", CombatTreeMath::berserkerMultiplier, cur, next, hasNext, max));
+            case BERSERKER -> out.add(this.multPct("Damage bonus", CombatTreeMath::berserkerMultiplier, cur, next, hasNext, max));
             case SOUL_HARVEST -> {
-                out.add(this.flat(pt ? "Cura por abate" : "Heal per kill", CombatTreeMath::soulHarvestHeal, cur, next, hasNext, max, " HP"));
-                out.add(this.pctPlus(pt ? "Regen. de Vida" : "Health Regen", CombatTreeMath::soulHarvestHealthRegenBonus, cur, next, hasNext, max));
+                out.add(this.flat("Heal per kill", CombatTreeMath::soulHarvestHeal, cur, next, hasNext, max, " HP"));
+                out.add(this.pctPlus("Health Regen", CombatTreeMath::soulHarvestHealthRegenBonus, cur, next, hasNext, max));
             }
-            case CRITICAL_MASTERY -> out.add(this.multAbs(pt ? "Multiplicador crítico" : "Critical multiplier", CombatTreeMath::criticalMasteryMultiplier, cur, next, hasNext, max));
+            case CRITICAL_MASTERY -> out.add(this.multAbs("Critical multiplier", CombatTreeMath::criticalMasteryMultiplier, cur, next, hasNext, max));
             case SECOND_WIND -> {
-                out.add(this.seconds(pt ? "Recarga" : "Cooldown", CombatTreeMath::secondWindCooldownMillis, cur, next, hasNext, max));
-                out.add(this.pctAbs(pt ? "Cura ao ativar" : "Heal on trigger", CombatTreeMath::secondWindHealFraction, cur, next, hasNext, max));
-                out.add(this.pctPlus(pt ? "Mending" : "Mending", CombatTreeMath::secondWindMendingBonus, cur, next, hasNext, max));
+                out.add(this.seconds("Cooldown", CombatTreeMath::secondWindCooldownMillis, cur, next, hasNext, max));
+                out.add(this.pctAbs("Heal on trigger", CombatTreeMath::secondWindHealFraction, cur, next, hasNext, max));
+                out.add(this.pctPlus("Mending", CombatTreeMath::secondWindMendingBonus, cur, next, hasNext, max));
             }
         }
         return out;
@@ -465,13 +463,13 @@ public final class CombatAbilityService {
 
     public String description(CombatAbility a, boolean pt) {
         return switch (a) {
-            case RUTHLESS_STRIKES -> pt ? "+1% de chance crítica por nível." : "+1% crit chance per level.";
-            case SWORD_THROW -> pt ? "F arremessa a espada, consumindo Mana; dano, recarga, custo de Mana e alcance de ataque melhoram por nível." : "F throws your sword, consuming Mana; damage, cooldown, Mana cost and swing range improve per level.";
-            case BLOOD_LUST -> pt ? "Após uma sequência de abates sem ser atingido: dano bônus." : "After a kill streak without being hit: bonus damage.";
-            case BERSERKER -> pt ? "Dano bônus quando estiver abaixo de 10% HP, escala por nível." : "Bonus damage while below 10% HP, scales per level.";
-            case SOUL_HARVEST -> pt ? "Cura adicional por abate hostil e aumenta Regen. de Vida, escala por nível." : "Additional heal per hostile kill and raises Health Regen, scales per level.";
-            case CRITICAL_MASTERY -> pt ? "Aumenta o multiplicador de dano crítico, escala por nível." : "Increases the critical damage multiplier, scales per level.";
-            case SECOND_WIND -> pt ? "Evita um golpe fatal e aumenta Mending; recarga e cura escalam por nível." : "Prevents a fatal hit and raises Mending; cooldown and heal scale per level.";
+            case RUTHLESS_STRIKES -> "+1% crit chance per level.";
+            case SWORD_THROW -> "F throws your sword, consuming Mana; damage, cooldown, Mana cost and swing range improve per level.";
+            case BLOOD_LUST -> "After a kill streak without being hit: bonus damage.";
+            case BERSERKER -> "Bonus damage while below 10% HP, scales per level.";
+            case SOUL_HARVEST -> "Additional heal per hostile kill and raises Health Regen, scales per level.";
+            case CRITICAL_MASTERY -> "Increases the critical damage multiplier, scales per level.";
+            case SECOND_WIND -> "Prevents a fatal hit and raises Mending; cooldown and heal scale per level.";
         };
     }
 

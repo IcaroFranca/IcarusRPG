@@ -101,25 +101,25 @@ public final class DestroyerHandService {
     private void refreshLore(ItemStack item, Language l) {
         ItemMeta meta = item.getItemMeta();
         FillMode mode = this.mode(item);
-        meta.displayName(this.line(l.choose("Mão do Destruidor", "Destroyer's Hand"), NamedTextColor.RED)
+        meta.displayName(this.line("Destroyer's Hand", NamedTextColor.RED)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Clique direito num bloco pra limpar", "Right-click a block to clear"), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("(a direção depende do modo abaixo).", "(direction depends on the mode below)."), NamedTextColor.GRAY));
-        for (String part : LoreWrap.wrapText(l.choose("Clique esquerdo abre o menu de configurações.", "Left-click opens the settings menu."), LoreWrap.DEFAULT_WIDTH)) {
+        lore.add(this.line("Right-click a block to clear", NamedTextColor.GRAY));
+        lore.add(this.line("(direction depends on the mode below).", NamedTextColor.GRAY));
+        for (String part : LoreWrap.wrapText("Left-click opens the settings menu.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
-        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última ação.", "Shift + left-click undoes the last action."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Shift + left-click undoes the last action.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Modo: ", "Mode: ") + (mode == FillMode.LINE
-                        ? l.choose("Linha/Coluna", "Line/Column")
-                        : l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)")),
+        lore.add(this.line("Mode: " + (mode == FillMode.LINE
+                        ? "Line/Column"
+                        : "Whole face (wall/floor)"),
                 NamedTextColor.YELLOW));
-        lore.add(this.line(l.choose("Alcance: ", "Range: ") + this.rangeLabel(this.range(item), l), NamedTextColor.YELLOW));
-        lore.add(this.line(l.choose("Criativo: não devolve nada.", "Creative: doesn't give anything back."), NamedTextColor.DARK_GRAY));
-        lore.add(this.line(l.choose("Sobrevivência: devolve os blocos.", "Survival: gives the blocks back."), NamedTextColor.DARK_GRAY));
+        lore.add(this.line("Range: " + this.rangeLabel(this.range(item), l), NamedTextColor.YELLOW));
+        lore.add(this.line("Creative: doesn't give anything back.", NamedTextColor.DARK_GRAY));
+        lore.add(this.line("Survival: gives the blocks back.", NamedTextColor.DARK_GRAY));
         meta.lore(lore);
         meta.setEnchantmentGlintOverride(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
@@ -204,7 +204,7 @@ public final class DestroyerHandService {
     /** Opens the small 1-row settings menu (fill mode + range) for {@code item} (the hand currently in the player's hand). */
     public void openModeMenu(Player p, ItemStack item) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 27, l.choose("Mão do Destruidor: Configurações", "Destroyer's Hand: Settings"));
+        Inventory v = Bukkit.createInventory(null, 27, "Destroyer's Hand: Settings");
         this.renderMenu(v, item, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -281,19 +281,19 @@ public final class DestroyerHandService {
         boolean selected = option == current;
         Material material = option == FillMode.LINE ? Material.LIGHT_BLUE_STAINED_GLASS_PANE : Material.ORANGE_STAINED_GLASS_PANE;
         String label = option == FillMode.LINE
-                ? l.choose("Linha/Coluna", "Line/Column")
-                : l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
+                ? "Line/Column"
+                : "Whole face (wall/floor)";
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(this.line((selected ? "✔ " : "") + label, selected ? NamedTextColor.GREEN : NamedTextColor.GRAY)
                 .decoration(TextDecoration.BOLD, selected));
         List<Component> lore = new ArrayList<>();
         lore.add(this.line(option == FillMode.LINE
-                ? l.choose("Topo/base = coluna vertical; lateral = ao longo da parede.", "Top/bottom = vertical column; side = along the wall.")
-                : l.choose("Limpa toda a área conectada da parede ou chão.", "Clears the whole connected area of the wall or floor."), NamedTextColor.GRAY));
+                ? "Top/bottom = vertical column; side = along the wall."
+                : "Clears the whole connected area of the wall or floor.", NamedTextColor.GRAY));
         if (selected) {
             lore.add(Component.empty());
-            lore.add(this.line(l.choose("Modo atual", "Current mode"), NamedTextColor.GREEN));
+            lore.add(this.line("Current mode", NamedTextColor.GREEN));
         }
         meta.lore(lore);
         if (selected) {
@@ -306,21 +306,21 @@ public final class DestroyerHandService {
 
     /** {@code current} as shown to the player - the plain number, or "Ilimitado"/"Unlimited" for {@link #UNLIMITED}. */
     private String rangeLabel(int current, Language l) {
-        return current == UNLIMITED ? l.choose("Ilimitado", "Unlimited") : current + l.choose(" blocos", " blocks");
+        return current == UNLIMITED ? "Unlimited" : current + " blocks";
     }
 
     private ItemStack rangeItem(int current, Language l) {
         ItemStack item = new ItemStack(current == UNLIMITED ? Material.ENDER_EYE : Material.SPYGLASS);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(this.line(l.choose("Alcance: ", "Range: ") + this.rangeLabel(current, l), NamedTextColor.AQUA)
+        meta.displayName(this.line("Range: " + this.rangeLabel(current, l), NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Clique esquerdo: aumenta", "Left-click: increase"), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Clique direito: diminui", "Right-click: decrease"), NamedTextColor.GRAY));
+        lore.add(this.line("Left-click: increase", NamedTextColor.GRAY));
+        lore.add(this.line("Right-click: decrease", NamedTextColor.GRAY));
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Máximo do servidor: " + this.maxLength, "Server max: " + this.maxLength), NamedTextColor.DARK_GRAY));
+        lore.add(this.line(("Server max: " + this.maxLength), NamedTextColor.DARK_GRAY));
         if (current == UNLIMITED) {
-            for (String part : LoreWrap.wrapText(l.choose("Sem teto - cuidado em áreas muito grandes.", "No cap - be careful in very large areas."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("No cap - be careful in very large areas.", LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(this.line(part, NamedTextColor.RED));
             }
         }

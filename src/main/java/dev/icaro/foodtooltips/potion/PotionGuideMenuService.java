@@ -95,7 +95,7 @@ public final class PotionGuideMenuService {
         List<PotionEntry> all = PotionCatalog.entries();
         int pages = Math.max(1, (all.size() + CATALOG_SLOTS.length - 1) / CATALOG_SLOTS.length);
         page = Math.max(0, Math.min(pages - 1, page));
-        String title = "(" + (page + 1) + "/" + pages + ") " + l.choose("Guia de Poções", "Potion Guide");
+        String title = "(" + (page + 1) + "/" + pages + ") " + "Potion Guide";
         Inventory v = Bukkit.createInventory(null, 54, title);
         this.fill(v);
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
@@ -103,10 +103,10 @@ public final class PotionGuideMenuService {
             v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.guideIcon(all.get(index), pt) : this.filler());
         }
         v.setItem(TITLE_SLOT, this.item(Material.KNOWLEDGE_BOOK, title, List.of()));
-        v.setItem(PREV_PAGE_SLOT, page > 0 ? this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous page"), List.of()) : this.filler());
-        v.setItem(NEXT_PAGE_SLOT, page + 1 < pages ? this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next page"), List.of()) : this.filler());
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
-        v.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, l.choose("Fechar", "Close"), List.of()));
+        v.setItem(PREV_PAGE_SLOT, page > 0 ? this.customHead(HeadTexture.ARROW_LEFT, "Previous page", List.of()) : this.filler());
+        v.setItem(NEXT_PAGE_SLOT, page + 1 < pages ? this.customHead(HeadTexture.ARROW_RIGHT, "Next page", List.of()) : this.filler());
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back", List.of()));
+        v.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, "Close", List.of()));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.views.put(p.getUniqueId(), new View(Type.GUIDE, page));
@@ -119,7 +119,7 @@ public final class PotionGuideMenuService {
         List<PotionEntry> all = PotionCatalog.entries();
         int pages = Math.max(1, (all.size() + CATALOG_SLOTS.length - 1) / CATALOG_SLOTS.length);
         page = Math.max(0, Math.min(pages - 1, page));
-        String title = "(" + (page + 1) + "/" + pages + ") " + l.choose("Milestones de Poções", "Potion Milestones");
+        String title = "(" + (page + 1) + "/" + pages + ") " + "Potion Milestones";
         Inventory v = Bukkit.createInventory(null, 54, title);
         this.fill(v);
         for (int i = 0; i < CATALOG_SLOTS.length; i++) {
@@ -127,10 +127,10 @@ public final class PotionGuideMenuService {
             v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.milestoneIcon(p, all.get(index), pt, l) : this.filler());
         }
         v.setItem(TITLE_SLOT, this.item(Material.KNOWLEDGE_BOOK, title, List.of()));
-        v.setItem(PREV_PAGE_SLOT, page > 0 ? this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous page"), List.of()) : this.filler());
-        v.setItem(NEXT_PAGE_SLOT, page + 1 < pages ? this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next page"), List.of()) : this.filler());
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
-        v.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, l.choose("Fechar", "Close"), List.of()));
+        v.setItem(PREV_PAGE_SLOT, page > 0 ? this.customHead(HeadTexture.ARROW_LEFT, "Previous page", List.of()) : this.filler());
+        v.setItem(NEXT_PAGE_SLOT, page + 1 < pages ? this.customHead(HeadTexture.ARROW_RIGHT, "Next page", List.of()) : this.filler());
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back", List.of()));
+        v.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, "Close", List.of()));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.views.put(p.getUniqueId(), new View(Type.MILESTONES, page));
@@ -155,25 +155,25 @@ public final class PotionGuideMenuService {
         this.global.addGlobalXp(p, MILESTONE_XP, GlobalXpSource.POTION_MILESTONE);
         Language l = Language.of(p);
         boolean pt = l == Language.PT;
-        String name = pt ? entry.namePt() : entry.nameEn();
-        p.sendMessage(Component.text("✦ " + l.choose("Milestone de Poção: ", "Potion Milestone: ") + name
-                + " (+" + MILESTONE_XP + " " + l.choose("XP Global)", "Global XP)"), NamedTextColor.LIGHT_PURPLE));
+        String name = entry.nameEn();
+        p.sendMessage(Component.text("✦ " + "Potion Milestone: " + name
+                + " (+" + MILESTONE_XP + " " + "Global XP)", NamedTextColor.LIGHT_PURPLE));
     }
 
     private ItemStack guideIcon(PotionEntry e, boolean pt) {
         List<Component> lore = new ArrayList<>();
-        for (String step : pt ? e.stepsPt() : e.stepsEn()) {
+        for (String step : e.stepsEn()) {
             lore.add(this.text(step, NamedTextColor.GRAY));
         }
-        return this.potionItem(e.icon(), pt ? e.namePt() : e.nameEn(), lore);
+        return this.potionItem(e.icon(), e.nameEn(), lore);
     }
 
     private ItemStack milestoneIcon(Player p, PotionEntry e, boolean pt, Language l) {
         boolean achieved = this.milestones.hasAchieved(p, e);
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(achieved ? l.choose("Já preparada!", "Already brewed!") : l.choose("Ainda não preparada.", "Not brewed yet."),
+        lore.add(this.text(achieved ? "Already brewed!" : "Not brewed yet.",
                 achieved ? NamedTextColor.GREEN : NamedTextColor.RED));
-        return this.potionItem(e.icon(), pt ? e.namePt() : e.nameEn(), lore);
+        return this.potionItem(e.icon(), e.nameEn(), lore);
     }
 
     private ItemStack filler() {

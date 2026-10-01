@@ -273,7 +273,7 @@ public final class ArmorDefenseService {
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         if (!meta.getPersistentDataContainer().has(OWN_DEFENSE_LORE_KEY, PersistentDataType.BYTE)) {
             List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-            lore.add(0, Component.text(l.choose("Defesa: +", "Defense: +") + def, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            lore.add(0, Component.text("Defense: +" + def, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
             meta.lore(lore);
         }
         meta.getPersistentDataContainer().set(this.tooltipKey, PersistentDataType.BYTE, (byte) 1);

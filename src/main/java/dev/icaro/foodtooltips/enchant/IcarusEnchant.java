@@ -171,7 +171,7 @@ public enum IcarusEnchant {
     }
 
     public String displayName(boolean pt) {
-        return pt ? this.namePt : this.nameEn;
+        return this.nameEn;
     }
 
     public int maxLevel() {
@@ -265,85 +265,37 @@ public enum IcarusEnchant {
     /** Word-wrapped description, colored the same way vanilla entries are - see {@link EnchantText}. {@code level} null shows the generic view (level 1's own numbers - see {@code EnchantText.Token#value}'s own doc for why); a real level resolves that level's own numbers instead. */
     public List<Component> description(boolean pt, Integer level) {
         return switch (this) {
-            case FLAME -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("A flecha incendeia seus inimigos por"), lookup(FLAME_DURATION, level), EnchantText.Token.plain("s, causando"),
-                            lookup(FLAME_PERCENT, level), EnchantText.Token.plain("% do seu dano por segundo."))
-                    : List.of(EnchantText.Token.plain("Arrow ignites your enemies for"), lookup(FLAME_DURATION, level), EnchantText.Token.plain("s, dealing"),
+            case FLAME -> EnchantText.wrap(List.of(EnchantText.Token.plain("Arrow ignites your enemies for"), lookup(FLAME_DURATION, level), EnchantText.Token.plain("s, dealing"),
                             lookup(FLAME_PERCENT, level), EnchantText.Token.plain("% of your damage per second.")));
-            case LURE -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Diminui o tempo máximo para fisgar algo em"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Shortens the maximum time to catch something by"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case INFINITE_QUIVER -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Economiza flechas"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, true), EnchantText.Token.plain("das vezes que você atira com o arco."))
-                    : List.of(EnchantText.Token.plain("Saves arrows"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, false), EnchantText.Token.plain("of the time when you fire your bow.")));
-            case LUCK_OF_THE_SEA -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Chance de Tesouro", LABEL_COLOR),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain(", o que aumenta a chance de pescar tesouros."))
-                    : List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Treasure Chance", LABEL_COLOR),
+            case LURE -> EnchantText.wrap(List.of(EnchantText.Token.plain("Shortens the maximum time to catch something by"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case INFINITE_QUIVER -> EnchantText.wrap(List.of(EnchantText.Token.plain("Saves arrows"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, false), EnchantText.Token.plain("of the time when you fire your bow.")));
+            case LUCK_OF_THE_SEA -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Treasure Chance", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(", which increases the chance of fishing treasure.")));
-            case FIRE_ASPECT -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Incendeia seus inimigos por"), lookup(FIRE_ASPECT_DURATION, level), EnchantText.Token.plain("s, causando"),
-                            lookup(FIRE_ASPECT_PERCENT, level), EnchantText.Token.plain("% do seu dano por nível por segundo."))
-                    : List.of(EnchantText.Token.plain("Ignites your enemies for"), lookup(FIRE_ASPECT_DURATION, level), EnchantText.Token.plain("s, dealing"),
+            case FIRE_ASPECT -> EnchantText.wrap(List.of(EnchantText.Token.plain("Ignites your enemies for"), lookup(FIRE_ASPECT_DURATION, level), EnchantText.Token.plain("s, dealing"),
                             lookup(FIRE_ASPECT_PERCENT, level), EnchantText.Token.plain("% of your damage per level per second.")));
-            case PROTECTION -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 4), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 4), EnchantText.Token.colored("❈ Defense", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case FIRE_PROTECTION -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 2), EnchantText.Token.colored("❂ Defesa Verdadeira", LABEL_COLOR),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("contra fogo e lava."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 2), EnchantText.Token.colored("❂ True Defense", LABEL_COLOR),
+            case PROTECTION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 4), EnchantText.Token.colored("❈ Defense", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case FIRE_PROTECTION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 2), EnchantText.Token.colored("❂ True Defense", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("against fire and lava.")));
-            case BLAST_PROTECTION -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 30), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("contra explosões."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 30), EnchantText.Token.colored("❈ Defense", LABEL_COLOR),
+            case BLAST_PROTECTION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 30), EnchantText.Token.colored("❈ Defense", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("against explosions.")));
-            case PROJECTILE_PROTECTION -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 7), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("contra projéteis."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 7), EnchantText.Token.colored("❈ Defense", LABEL_COLOR),
+            case PROJECTILE_PROTECTION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 7), EnchantText.Token.colored("❈ Defense", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("against projectiles.")));
-            case FEATHER_FALLING -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta em"), EnchantText.Token.value(level, "", l -> l), EnchantText.Token.plain("bloco(s)"), EnchantText.perLevel(level, true),
-                            EnchantText.Token.plain("a altura de queda segura, e reduz o dano de queda em"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases how high you can fall before taking fall damage by"), EnchantText.Token.value(level, "", l -> l), EnchantText.perLevel(level, false),
+            case FEATHER_FALLING -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases how high you can fall before taking fall damage by"), EnchantText.Token.value(level, "", l -> l), EnchantText.perLevel(level, false),
                             EnchantText.Token.plain("and reduces fall damage by"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case RESPIRATION -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 15), EnchantText.Token.colored("⚶ Respiração", RESPIRATION_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 15), EnchantText.Token.colored("⚶ Respiration", RESPIRATION_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case THORNS -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), EnchantText.Token.colored("50%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("de chance de refletir"),
-                            EnchantText.Token.value(level, "%", l -> l * 3), EnchantText.Token.plain("do dano"), EnchantText.perLevel(level, true), EnchantText.Token.plain("de volta ao atacante."))
-                    : List.of(EnchantText.Token.plain("Grants a"), EnchantText.Token.colored("50%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("chance to rebound"),
+            case RESPIRATION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 15), EnchantText.Token.colored("⚶ Respiration", RESPIRATION_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case THORNS -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants a"), EnchantText.Token.colored("50%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("chance to rebound"),
                             EnchantText.Token.value(level, "%", l -> l * 3), EnchantText.Token.plain("of damage"), EnchantText.perLevel(level, false), EnchantText.Token.plain("dealt back at the attacker.")));
-            case GROWTH -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Concede"), plusValue(level, l -> l * 15), EnchantText.Token.colored("❤ Vida Máxima", LABEL_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 15), EnchantText.Token.colored("❤ Max Health", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case CRITICAL -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o dano crítico da arma em"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases the weapon's critical damage by"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case CUBISM -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o dano contra mobs"), EnchantText.Token.colored("⚂ Cúbicos", CUBIC_COLOR), EnchantText.Token.plain("em"),
-                            EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⚂ Cubic", CUBIC_COLOR), EnchantText.Token.plain("mobs by"),
+            case GROWTH -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 15), EnchantText.Token.colored("❤ Max Health", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case CRITICAL -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases the weapon's critical damage by"), EnchantText.Token.value(level, "%", l -> l * 10), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case CUBISM -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⚂ Cubic", CUBIC_COLOR), EnchantText.Token.plain("mobs by"),
                             EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain(".")));
-            case ENDER_SLAYER -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o dano contra mobs"), EnchantText.Token.colored("⊙ do Fim", ENDER_COLOR), EnchantText.Token.plain("em"),
-                            EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⊙ Ender", ENDER_COLOR), EnchantText.Token.plain("mobs by"),
+            case ENDER_SLAYER -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⊙ Ender", ENDER_COLOR), EnchantText.Token.plain("mobs by"),
                             EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain(".")));
-            case IMPALING -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o dano contra mobs"), EnchantText.Token.colored("⚓ Aquáticos", AQUATIC_COLOR), EnchantText.Token.plain("em"),
-                            EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⚓ Aquatic", AQUATIC_COLOR), EnchantText.Token.plain("mobs by"),
+            case IMPALING -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases damage dealt to"), EnchantText.Token.colored("⚓ Aquatic", AQUATIC_COLOR), EnchantText.Token.plain("mobs by"),
                             EnchantText.Token.value(level, "%", l -> lastLevelJump(l, 5, 5, 30)), EnchantText.Token.plain(".")));
             case EXECUTE -> {
                 String coefficient = number(0.2 * (level == null ? 1 : level));
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Aumenta o dano em"), EnchantText.Token.colored(coefficient + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
-                                EnchantText.Token.plain("para cada 1% de vida faltando do alvo."))
-                        : List.of(EnchantText.Token.plain("Increases damage by"), EnchantText.Token.colored(coefficient + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Increases damage by"), EnchantText.Token.colored(coefficient + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("for each 1% of the target's missing health.")));
             }
             case GIANT_KILLER -> {
@@ -351,108 +303,56 @@ public enum IcarusEnchant {
                 String rate = resolvedLevel >= 5 ? "0,6" : number(0.1 * resolvedLevel);
                 String rateEn = resolvedLevel >= 5 ? "0.6" : number(0.1 * resolvedLevel);
                 String cap = String.valueOf(resolvedLevel >= 5 ? 30 : 5 * resolvedLevel);
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Aumenta o dano em"), EnchantText.Token.colored(rate + "%", EnchantText.VALUE_COLOR),
-                                EnchantText.Token.plain("para cada 1% de vida extra que o alvo tiver acima da sua, até"),
-                                EnchantText.Token.colored(cap + "%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("."))
-                        : List.of(EnchantText.Token.plain("Increases damage by"), EnchantText.Token.colored(rateEn + "%", EnchantText.VALUE_COLOR),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Increases damage by"), EnchantText.Token.colored(rateEn + "%", EnchantText.VALUE_COLOR),
                                 EnchantText.Token.plain("for each 1% of extra health the target has above your own, up to"),
                                 EnchantText.Token.colored(cap + "%", EnchantText.VALUE_COLOR), EnchantText.Token.plain(".")));
             }
             case EXPERIENCE -> {
                 String chance = number(12.5 * (level == null ? 1 : level));
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Adiciona"), EnchantText.Token.colored(chance + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
-                                EnchantText.Token.plain("de chance de mobs ou minérios dropar o dobro de orbs de XP."))
-                        : List.of(EnchantText.Token.plain("Adds a"), EnchantText.Token.colored(chance + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Adds a"), EnchantText.Token.colored(chance + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("chance for mobs or ores to drop double XP orbs.")));
             }
-            case FIRST_STRIKE -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta o dano do primeiro golpe contra um alvo com vida cheia em"), EnchantText.Token.value(level, "%", l -> l * 25),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases the first hit's damage against a full-health target by"), EnchantText.Token.value(level, "%", l -> l * 25),
+            case FIRST_STRIKE -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases the first hit's damage against a full-health target by"), EnchantText.Token.value(level, "%", l -> l * 25),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
             case LETHALITY -> {
                 String amount = number(1.2 * (level == null ? 1 : level));
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Reduz a"), EnchantText.Token.colored("❈ Defesa", LABEL_COLOR), EnchantText.Token.plain("do alvo em"),
-                                EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
-                                EnchantText.Token.plain("por acerto, por até 4 segundos, acumulando até 4 vezes."))
-                        : List.of(EnchantText.Token.plain("Reduces the target's"), EnchantText.Token.colored("❈ Defense", LABEL_COLOR), EnchantText.Token.plain("by"),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Reduces the target's"), EnchantText.Token.colored("❈ Defense", LABEL_COLOR), EnchantText.Token.plain("by"),
                                 EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("per hit, for up to 4 seconds, stacking up to 4 times.")));
             }
             case LIFE_STEAL -> {
                 String amount = number(0.5 * (level == null ? 1 : level));
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Cura"), EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
-                                EnchantText.Token.plain("da sua vida máxima a cada acerto em um mob."))
-                        : List.of(EnchantText.Token.plain("Heals"), EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Heals"), EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("of your max health on every hit against a mob.")));
             }
-            case LUCK -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta em"), EnchantText.Token.value(level, "%", l -> l * 5), EnchantText.perLevel(level, true),
-                            EnchantText.Token.plain("a chance de mobs dropar sua arma e armadura equipadas."))
-                    : List.of(EnchantText.Token.plain("Increases the chance of mobs dropping their equipped weapon and armor by"), EnchantText.Token.value(level, "%", l -> l * 5),
+            case LUCK -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases the chance of mobs dropping their equipped weapon and armor by"), EnchantText.Token.value(level, "%", l -> l * 5),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case THUNDERLORD -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("A cada 3 acertos, cai um raio no alvo causando"), EnchantText.Token.value(level, "%", l -> l * 8),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("do dano do acerto."))
-                    : List.of(EnchantText.Token.plain("Every 3 hits, a lightning bolt strikes the target for"), EnchantText.Token.value(level, "%", l -> l * 8),
+            case THUNDERLORD -> EnchantText.wrap(List.of(EnchantText.Token.plain("Every 3 hits, a lightning bolt strikes the target for"), EnchantText.Token.value(level, "%", l -> l * 8),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("of the hit's damage.")));
-            case VAMPIRISM -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Cura"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, true),
-                            EnchantText.Token.plain("da sua vida faltante sempre que matar um inimigo."))
-                    : List.of(EnchantText.Token.plain("Heals"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
+            case VAMPIRISM -> EnchantText.wrap(List.of(EnchantText.Token.plain("Heals"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
                             EnchantText.Token.plain("of your missing health whenever you kill an enemy.")));
             case VENOMOUS -> {
                 String amount = number(0.3 * (level == null ? 1 : level));
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Cada acerto reduz a"), EnchantText.Token.colored("✦ Velocidade", LABEL_COLOR), EnchantText.Token.plain("do alvo e causa"),
-                                EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true),
-                                EnchantText.Token.plain("do seu dano por segundo, empilhando globalmente até 40 vezes por 5 segundos."))
-                        : List.of(EnchantText.Token.plain("Every hit reduces the target's"), EnchantText.Token.colored("✦ Speed", LABEL_COLOR), EnchantText.Token.plain("and deals"),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Every hit reduces the target's"), EnchantText.Token.colored("✦ Speed", LABEL_COLOR), EnchantText.Token.plain("and deals"),
                                 EnchantText.Token.colored(amount + "%", EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false),
                                 EnchantText.Token.plain("of your damage per second, stacking globally up to 40 times for 5 seconds.")));
             }
-            case AIMING -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Flechas perseguem o inimigo mais próximo a até"), EnchantText.Token.value(level, " blocos", l -> l * 2),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("de distância."))
-                    : List.of(EnchantText.Token.plain("Arrows chase the nearest enemy within"), EnchantText.Token.value(level, " blocks", l -> l * 2),
+            case AIMING -> EnchantText.wrap(List.of(EnchantText.Token.plain("Arrows chase the nearest enemy within"), EnchantText.Token.value(level, " blocks", l -> l * 2),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case CHANCE -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Aumenta a chance de um mob dropar um item em"), EnchantText.Token.value(level, "%", l -> l * 15),
-                            EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> l * 15),
+            case CHANCE -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases the chance of a monster dropping an item by"), EnchantText.Token.value(level, "%", l -> l * 15),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
-            case PIERCING -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Flechas atravessam inimigos; alvos extras recebem"), EnchantText.Token.colored("25%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("do dano."))
-                    : List.of(EnchantText.Token.plain("Arrows pierce through enemies; extra targets take"), EnchantText.Token.colored("25%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("of the damage.")));
-            case SNIPE -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Flechas causam"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, true),
-                            EnchantText.Token.plain("de dano a mais a cada 10 blocos percorridos."))
-                    : List.of(EnchantText.Token.plain("Arrows deal"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
+            case PIERCING -> EnchantText.wrap(List.of(EnchantText.Token.plain("Arrows pierce through enemies; extra targets take"), EnchantText.Token.colored("25%", EnchantText.VALUE_COLOR), EnchantText.Token.plain("of the damage.")));
+            case SNIPE -> EnchantText.wrap(List.of(EnchantText.Token.plain("Arrows deal"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
                             EnchantText.Token.plain("more damage for every 10 blocks traveled.")));
-            case DELICATE -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Impede de quebrar plantações que ainda não cresceram totalmente e caules."))
-                    : List.of(EnchantText.Token.plain("Prevents breaking crops that haven't fully grown yet, and stems.")));
+            case DELICATE -> EnchantText.wrap(List.of(EnchantText.Token.plain("Prevents breaking crops that haven't fully grown yet, and stems.")));
             case HARVESTING -> {
                 String amount = number(12.5 * (level == null ? 1 : level));
-                yield EnchantText.wrap(pt
-                        ? List.of(EnchantText.Token.plain("Aumenta a"), EnchantText.Token.colored("☘ Fortuna de Fazenda", LABEL_COLOR), EnchantText.Token.plain("em"),
-                                EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                        : List.of(EnchantText.Token.plain("Increases"), EnchantText.Token.colored("☘ Farming Fortune", LABEL_COLOR), EnchantText.Token.plain("by"),
+                yield EnchantText.wrap(List.of(EnchantText.Token.plain("Increases"), EnchantText.Token.colored("☘ Farming Fortune", LABEL_COLOR), EnchantText.Token.plain("by"),
                                 EnchantText.Token.colored(amount, EnchantText.VALUE_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
             }
-            case REPLENISH -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Ao quebrar uma plantação (incluindo cacau e verruga do Nether), replanta automaticamente usando os materiais do seu inventário."))
-                    : List.of(EnchantText.Token.plain("Breaking a crop (including cocoa beans and nether wart) automatically replants it using materials from your inventory.")));
-            case SMELTING_TOUCH -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Blocos minerados dropam sua versão fundida em fornalha, como se tivessem sido esquentados. Não pode ser combinado com Toque de Seda."))
-                    : List.of(EnchantText.Token.plain("Mined blocks drop their furnace-smelted form, as if they had been smelted. Cannot be combined with Silk Touch.")));
-            case SPAWNER_TOUCH -> EnchantText.wrap(pt
-                    ? List.of(EnchantText.Token.plain("Permite quebrar um spawner de mob e recolhê-lo como item. O mob que ele gera continua o mesmo ao recolocá-lo."))
-                    : List.of(EnchantText.Token.plain("Lets you break a mob spawner and pick it up as an item. The mob it spawns stays the same when you place it back down.")));
+            case REPLENISH -> EnchantText.wrap(List.of(EnchantText.Token.plain("Breaking a crop (including cocoa beans and nether wart) automatically replants it using materials from your inventory.")));
+            case SMELTING_TOUCH -> EnchantText.wrap(List.of(EnchantText.Token.plain("Mined blocks drop their furnace-smelted form, as if they had been smelted. Cannot be combined with Silk Touch.")));
+            case SPAWNER_TOUCH -> EnchantText.wrap(List.of(EnchantText.Token.plain("Lets you break a mob spawner and pick it up as an item. The mob it spawns stays the same when you place it back down.")));
         };
     }
 

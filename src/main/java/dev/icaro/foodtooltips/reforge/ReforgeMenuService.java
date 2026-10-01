@@ -57,7 +57,7 @@ public final class ReforgeMenuService {
         inventory.setItem(ITEM_SLOT, null);
         Language language = Language.of(player);
         inventory.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE,
-                language.choose("Fechar", "Close"), List.of()));
+                "Close", List.of()));
         this.refreshReforgeIcon(inventory, player);
 
         this.viewing.add(player.getUniqueId());
@@ -106,31 +106,31 @@ public final class ReforgeMenuService {
         Language language = Language.of(player);
         if (deposited == null || deposited.isEmpty()) {
             player.sendActionBar(this.text(
-                    language.choose("Coloque um item no espaço acima.", "Place an item in the slot above."),
+                    "Place an item in the slot above.",
                     NamedTextColor.RED));
             return;
         }
         if (!this.reforge.isReforgeable(deposited)) {
             player.sendActionBar(this.text(
-                    language.choose("Só é possível reforjar espadas ou armaduras.", "Only swords or armor can be reforged."),
+                    "Only swords or armor can be reforged.",
                     NamedTextColor.RED));
             return;
         }
         ReforgeService.Result result = this.reforge.reforge(player, deposited);
         if (result.outcome() == ReforgeService.Outcome.MISSING_MATERIAL) {
             player.sendActionBar(this.text(
-                    language.choose("Você precisa de 1x ", "You need 1x ")
+                    "You need 1x "
                             + this.materialName(result.missingMaterial(), language)
-                            + language.choose(" para reforjar em ", " to reforge at ") + result.tier().label() + ".",
+                            + " to reforge at " + result.tier().label() + ".",
                     NamedTextColor.RED));
             return;
         }
         inventory.setItem(ITEM_SLOT, deposited);
         this.refreshReforgeIcon(inventory, player);
         player.sendActionBar(this.text(
-                language.choose("Reforjado: ", "Reforged: ") + result.prefixWord()
+                "Reforged: " + result.prefixWord()
                         + " (" + result.tier().label() + ") - " + result.attemptsRemaining()
-                        + language.choose(" tentativas restantes", " attempts left"),
+                        + " attempts left",
                 NamedTextColor.GREEN));
         MenuBackground.apply(player, ITEM_SLOT);
     }
@@ -140,29 +140,29 @@ public final class ReforgeMenuService {
         ItemStack deposited = inventory.getItem(ITEM_SLOT);
         List<Component> lore = new ArrayList<>();
         if (deposited == null || deposited.isEmpty()) {
-            lore.add(this.text(language.choose("Coloque um item no espaço acima.", "Place an item in the slot above."), NamedTextColor.GRAY));
+            lore.add(this.text("Place an item in the slot above.", NamedTextColor.GRAY));
         } else {
             ItemTier tier = this.reforge.tierOf(deposited);
-            lore.add(this.text(language.choose("Tier do item: ", "Item tier: "), NamedTextColor.GRAY)
+            lore.add(this.text("Item tier: ", NamedTextColor.GRAY)
                     .append(this.text(tier.label(), tier.color())));
             int attempts = this.reforge.attemptsRemaining(deposited);
             if (attempts > 0) {
-                lore.add(this.text(attempts + language.choose(" tentativas restantes nesta carga.", " attempts left in this charge."), NamedTextColor.GREEN));
+                lore.add(this.text(attempts + " attempts left in this charge.", NamedTextColor.GREEN));
             } else {
-                lore.add(this.text(language.choose("Custo: 1x ", "Cost: 1x ") + this.materialName(this.reforge.costMaterial(tier), language), NamedTextColor.GRAY));
+                lore.add(this.text("Cost: 1x " + this.materialName(this.reforge.costMaterial(tier), language), NamedTextColor.GRAY));
             }
         }
-        lore.add(this.text(language.choose("Clique para reforjar.", "Click to reforge."), NamedTextColor.YELLOW));
-        inventory.setItem(REFORGE_SLOT, this.item(Material.ANVIL, language.choose("Reforjar item", "Reforge Item"), lore));
+        lore.add(this.text("Click to reforge.", NamedTextColor.YELLOW));
+        inventory.setItem(REFORGE_SLOT, this.item(Material.ANVIL, "Reforge Item", lore));
     }
 
     private String materialName(Material material, Language language) {
         return switch (material) {
-            case COAL -> language.choose("Carvão", "Coal");
-            case IRON_INGOT -> language.choose("Ferro", "Iron Ingot");
-            case GOLD_INGOT -> language.choose("Ouro", "Gold Ingot");
-            case DIAMOND -> language.choose("Diamante", "Diamond");
-            case NETHERITE_SCRAP -> language.choose("Fragmento de Netherite", "Netherite Scrap");
+            case COAL -> "Coal";
+            case IRON_INGOT -> "Iron Ingot";
+            case GOLD_INGOT -> "Gold Ingot";
+            case DIAMOND -> "Diamond";
+            case NETHERITE_SCRAP -> "Netherite Scrap";
             default -> material.name();
         };
     }

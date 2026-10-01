@@ -52,6 +52,6 @@ public record CollectionsMilestone(
     }
 
     public String reward(boolean pt) {
-        return pt ? this.rewardPt : this.rewardEn;
+        return this.rewardEn;
     }
 }

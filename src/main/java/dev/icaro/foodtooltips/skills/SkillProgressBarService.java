@@ -36,7 +36,7 @@ public final class SkillProgressBarService {
             bar.addPlayer(p);
         }
         String state = progress.level() >= maxLevel ? "MAX" : Math.round(progress.xp()) + "/" + Math.round(progress.requiredXp()) + " XP";
-        bar.setTitle(String.valueOf(ChatColor.RED) + l.choose("Combate ", "Combat ") + progress.level() + String.valueOf(ChatColor.GRAY) + " \u2022 " + String.valueOf(ChatColor.GREEN) + "+" + Math.round(gained) + " XP " + String.valueOf(ChatColor.GRAY) + "\u2022 " + state);
+        bar.setTitle(String.valueOf(ChatColor.RED) + "Combat " + progress.level() + String.valueOf(ChatColor.GRAY) + " \u2022 " + String.valueOf(ChatColor.GREEN) + "+" + Math.round(gained) + " XP " + String.valueOf(ChatColor.GRAY) + "\u2022 " + state);
         bar.setProgress(progress.level() >= maxLevel ? 1.0 : Math.max(0.0, Math.min(1.0, progress.xp() / Math.max(1.0, progress.requiredXp()))));
         bar.setVisible(true);
         int generation = this.generations.merge(p.getUniqueId(), 1, Integer::sum);

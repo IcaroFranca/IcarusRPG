@@ -388,7 +388,7 @@ public final class AccessoryBagService {
         if (cached != null && cached.getSize() == SIZE) {
             return cached;
         }
-        Inventory inv = Bukkit.createInventory(null, SIZE, l.choose("Bolsa de Acessórios", "Accessory Bag"));
+        Inventory inv = Bukkit.createInventory(null, SIZE, "Accessory Bag");
         ItemStack[] saved = cached != null
                 ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), STORAGE_SIZE))
                 : this.load(p);
@@ -425,7 +425,7 @@ public final class AccessoryBagService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the screen.
         }
-        m.displayName(Component.text(l.choose("Voltar às skills", "Back to skills"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.displayName(Component.text("Back to skills", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         i.setItemMeta(m);
         return i;

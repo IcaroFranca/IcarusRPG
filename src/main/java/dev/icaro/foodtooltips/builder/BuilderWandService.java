@@ -150,27 +150,27 @@ public final class BuilderWandService {
     private void refreshLore(ItemStack item, Language l) {
         ItemMeta meta = item.getItemMeta();
         FillMode mode = this.mode(item);
-        meta.displayName(this.line(l.choose("Varinha do Construtor", "Builder's Wand"), NamedTextColor.AQUA)
+        meta.displayName(this.line("Builder's Wand", NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Clique direito num bloco pra estender", "Right-click a block to extend"), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("na direção da face clicada.", "in the clicked face's direction."), NamedTextColor.GRAY));
-        for (String part : LoreWrap.wrapText(l.choose("Clique esquerdo abre o menu de configurações.", "Left-click opens the settings menu."), LoreWrap.DEFAULT_WIDTH)) {
+        lore.add(this.line("Right-click a block to extend", NamedTextColor.GRAY));
+        lore.add(this.line("in the clicked face's direction.", NamedTextColor.GRAY));
+        for (String part : LoreWrap.wrapText("Left-click opens the settings menu.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
-        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última ação (repita pra desfazer mais).", "Shift + left-click undoes the last action (repeat to undo further back)."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Shift + left-click undoes the last action (repeat to undo further back).", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Modo: ", "Mode: ") + switch (mode) {
-            case LINE -> l.choose("Linha/Coluna", "Line/Column");
-            case FACE -> l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
-            case COPY -> l.choose("Copiar & Colar", "Copy & Paste");
-            case WATER -> l.choose("Nivelar Água", "Level Water");
+        lore.add(this.line("Mode: " + switch (mode) {
+            case LINE -> "Line/Column";
+            case FACE -> "Whole face (wall/floor)";
+            case COPY -> "Copy & Paste";
+            case WATER -> "Level Water";
         }, NamedTextColor.YELLOW));
-        lore.add(this.line(l.choose("Alcance: ", "Range: ") + this.rangeLabel(this.range(item), l), NamedTextColor.YELLOW));
-        lore.add(this.line(l.choose("Criativo: não gasta blocos.", "Creative: doesn't use blocks."), NamedTextColor.DARK_GRAY));
-        lore.add(this.line(l.choose("Sobrevivência: precisa ter os blocos.", "Survival: needs the blocks."), NamedTextColor.DARK_GRAY));
+        lore.add(this.line("Range: " + this.rangeLabel(this.range(item), l), NamedTextColor.YELLOW));
+        lore.add(this.line("Creative: doesn't use blocks.", NamedTextColor.DARK_GRAY));
+        lore.add(this.line("Survival: needs the blocks.", NamedTextColor.DARK_GRAY));
         meta.lore(lore);
         meta.setEnchantmentGlintOverride(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
@@ -258,7 +258,7 @@ public final class BuilderWandService {
     /** Opens the small 1-row settings menu (fill mode + range) for {@code item} (the wand currently in the player's hand). */
     public void openModeMenu(Player p, ItemStack item) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 27, l.choose("Varinha: Configurações", "Wand: Settings"));
+        Inventory v = Bukkit.createInventory(null, 27, "Wand: Settings");
         this.renderMenu(v, item, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -346,10 +346,10 @@ public final class BuilderWandService {
             case WATER -> Material.CYAN_STAINED_GLASS_PANE;
         };
         String label = switch (option) {
-            case LINE -> l.choose("Linha/Coluna", "Line/Column");
-            case FACE -> l.choose("Face inteira (parede/chão)", "Whole face (wall/floor)");
-            case COPY -> l.choose("Copiar & Colar", "Copy & Paste");
-            case WATER -> l.choose("Nivelar Água", "Level Water");
+            case LINE -> "Line/Column";
+            case FACE -> "Whole face (wall/floor)";
+            case COPY -> "Copy & Paste";
+            case WATER -> "Level Water";
         };
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
@@ -357,22 +357,20 @@ public final class BuilderWandService {
                 .decoration(TextDecoration.BOLD, selected));
         List<Component> lore = new ArrayList<>();
         String description = switch (option) {
-            case LINE -> l.choose("Estende só na direção da face clicada.", "Extends only along the clicked face's direction.");
-            case FACE -> l.choose("Copia a parede/chão existente pra camada de fora.", "Copies the existing wall/floor onto the layer beyond it.");
-            case COPY -> l.choose("Copia uma área e cola em outro lugar, com preview.", "Copies an area and pastes it elsewhere, with a preview.");
-            case WATER -> l.choose("Clique num bloco do lado de uma água pra nivelar o buraco/canal.", "Click a block next to water to level the hole/channel.");
+            case LINE -> "Extends only along the clicked face's direction.";
+            case FACE -> "Copies the existing wall/floor onto the layer beyond it.";
+            case COPY -> "Copies an area and pastes it elsewhere, with a preview.";
+            case WATER -> "Click a block next to water to level the hole/channel.";
         };
         lore.add(this.line(description, NamedTextColor.GRAY));
         if (option == FillMode.LINE || option == FillMode.FACE) {
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Também planta trigo/cenoura/batata/beterraba/nether wart em terra arável já pronta, e cana-de-açúcar do lado de água.",
-                    "Also plants wheat/carrots/potatoes/beetroot/nether wart onto already-tilled farmland, and sugar cane next to water."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Also plants wheat/carrots/potatoes/beetroot/nether wart onto already-tilled farmland, and sugar cane next to water.", LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(this.line(part, NamedTextColor.DARK_GRAY));
             }
         }
         if (selected) {
             lore.add(Component.empty());
-            lore.add(this.line(l.choose("Modo atual", "Current mode"), NamedTextColor.GREEN));
+            lore.add(this.line("Current mode", NamedTextColor.GREEN));
         }
         meta.lore(lore);
         if (selected) {
@@ -385,21 +383,21 @@ public final class BuilderWandService {
 
     /** {@code current} as shown to the player - the plain number, or "Ilimitado"/"Unlimited" for {@link #UNLIMITED}. */
     private String rangeLabel(int current, Language l) {
-        return current == UNLIMITED ? l.choose("Ilimitado", "Unlimited") : current + l.choose(" blocos", " blocks");
+        return current == UNLIMITED ? "Unlimited" : current + " blocks";
     }
 
     private ItemStack rangeItem(int current, Language l) {
         ItemStack item = new ItemStack(current == UNLIMITED ? Material.ENDER_EYE : Material.SPYGLASS);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(this.line(l.choose("Alcance: ", "Range: ") + this.rangeLabel(current, l), NamedTextColor.AQUA)
+        meta.displayName(this.line("Range: " + this.rangeLabel(current, l), NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Clique esquerdo: aumenta", "Left-click: increase"), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Clique direito: diminui", "Right-click: decrease"), NamedTextColor.GRAY));
+        lore.add(this.line("Left-click: increase", NamedTextColor.GRAY));
+        lore.add(this.line("Right-click: decrease", NamedTextColor.GRAY));
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Máximo do servidor: " + this.maxLength, "Server max: " + this.maxLength), NamedTextColor.DARK_GRAY));
+        lore.add(this.line(("Server max: " + this.maxLength), NamedTextColor.DARK_GRAY));
         if (current == UNLIMITED) {
-            for (String part : LoreWrap.wrapText(l.choose("Sem teto - cuidado em áreas muito grandes.", "No cap - be careful in very large areas."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("No cap - be careful in very large areas.", LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(this.line(part, NamedTextColor.RED));
             }
         }
@@ -686,22 +684,22 @@ public final class BuilderWandService {
         if (session.buffer == null) {
             if (sneaking) {
                 if (session.pos1 == null) {
-                    return this.line(l.choose("Marque a posição A primeiro (clique direito).", "Mark position A first (right-click)."), NamedTextColor.RED);
+                    return this.line("Mark position A first (right-click).", NamedTextColor.RED);
                 }
                 return this.captureBuffer(session, session.pos1, clicked, l);
             }
             session.pos1 = clicked;
-            return this.line(l.choose("Posição A definida. Shift + clique direito na posição B.", "Position A set. Shift + right-click position B."), NamedTextColor.YELLOW);
+            return this.line("Position A set. Shift + right-click position B.", NamedTextColor.YELLOW);
         }
         if (sneaking) {
             this.clearPreview(session);
             session.buffer = null;
             session.pos1 = null;
-            return this.line(l.choose("Cópia limpa.", "Copy cleared."), NamedTextColor.GOLD);
+            return this.line("Copy cleared.", NamedTextColor.GOLD);
         }
         if (!session.previewing()) {
             this.startPreview(session, clicked, face);
-            return this.line(l.choose("Preview iniciado - olhe ao redor pra posicionar, clique direito de novo pra colar.", "Preview started - look around to position it, right-click again to paste."), NamedTextColor.GREEN);
+            return this.line("Preview started - look around to position it, right-click again to paste.", NamedTextColor.GREEN);
         }
         return this.confirmPaste(p, session);
     }
@@ -725,7 +723,7 @@ public final class BuilderWandService {
      */
     private Component captureBuffer(CopySession session, Block pos1, Block pos2, Language l) {
         if (!pos1.getWorld().equals(pos2.getWorld())) {
-            return this.line(l.choose("As duas posições precisam estar no mesmo mundo.", "Both positions must be in the same world."), NamedTextColor.RED);
+            return this.line("Both positions must be in the same world.", NamedTextColor.RED);
         }
         int minX = Math.min(pos1.getX(), pos2.getX());
         int minY = Math.min(pos1.getY(), pos2.getY());
@@ -735,8 +733,7 @@ public final class BuilderWandService {
         int maxZ = Math.max(pos1.getZ(), pos2.getZ());
         long volume = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
         if (volume > COPY_VOLUME_LIMIT) {
-            return this.line(l.choose("Área grande demais (" + volume + " blocos, máximo " + COPY_VOLUME_LIMIT + "). Diminua a área.",
-                    "Area too large (" + volume + " blocks, max " + COPY_VOLUME_LIMIT + "). Shrink the area."), NamedTextColor.RED);
+            return this.line(("Area too large (" + volume + " blocks, max " + COPY_VOLUME_LIMIT + "). Shrink the area."), NamedTextColor.RED);
         }
         World w = pos1.getWorld();
         List<CopiedBlock> buffer = new ArrayList<>();
@@ -753,7 +750,7 @@ public final class BuilderWandService {
         }
         session.pos1 = null;
         session.buffer = buffer;
-        return this.line(l.choose("Área copiada: " + buffer.size() + " blocos.", "Area copied: " + buffer.size() + " blocks."), NamedTextColor.GREEN);
+        return this.line(("Area copied: " + buffer.size() + " blocks."), NamedTextColor.GREEN);
     }
 
     /** Spawns one ghost {@link BlockDisplay} per {@code session.buffer} entry, anchored at {@code anchor}. {@link #tickPreview} then keeps them following the player's crosshair every tick. */
@@ -872,10 +869,10 @@ public final class BuilderWandService {
         }
         this.clearPreview(session);
         if (placedBlocks.isEmpty()) {
-            return this.line(l.choose("Nada pra colar aqui.", "Nothing to paste here."), NamedTextColor.RED);
+            return this.line("Nothing to paste here.", NamedTextColor.RED);
         }
         this.pushUndo(p, new LastAction(placedBlocks, consumed));
-        return this.line("+" + placedBlocks.size() + " " + l.choose("blocos colados", "blocks pasted"), NamedTextColor.GREEN);
+        return this.line("+" + placedBlocks.size() + " " + "blocks pasted", NamedTextColor.GREEN);
     }
 
     // ---- Water leveling --------------------------------------------------------
@@ -892,9 +889,9 @@ public final class BuilderWandService {
         Language l = Language.of(p);
         int filled = this.prismaPump.fillAdjacentWater(clicked);
         if (filled <= 0) {
-            return this.line(l.choose("Nenhuma água do lado pra nivelar.", "No water nearby to level."), NamedTextColor.RED);
+            return this.line("No water nearby to level.", NamedTextColor.RED);
         }
-        return this.line("+" + filled + " " + l.choose("água", "water"), NamedTextColor.AQUA);
+        return this.line("+" + filled + " " + "water", NamedTextColor.AQUA);
     }
 
     private Component line(String s, NamedTextColor c) {

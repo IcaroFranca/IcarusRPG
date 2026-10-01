@@ -284,13 +284,13 @@ public final class SwordDamageService {
     }
 
     private Component damageLine(double total, Language l) {
-        return Component.text(l.choose("Dano de Ataque: ", "Attack Damage: ") + Math.round(total), NamedTextColor.RED)
+        return Component.text("Attack Damage: " + Math.round(total), NamedTextColor.RED)
                 .decoration(TextDecoration.ITALIC, false);
     }
 
     /** "Attack Speed: X.X" plus "(+X%)" when {@code bonusPercent} (this item's own reforge Attack Speed %, see {@link ReforgeService}) is nonzero - merged into this existing line rather than a separate reforge stat line, see {@link ReforgeService}'s own doc on why. */
     private Component speedLine(double real, double bonusPercent, Language l) {
-        String text = l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real);
+        String text = "Attack Speed: " + String.format(java.util.Locale.US, "%.1f", real);
         if (Math.abs(bonusPercent) > 1.0E-4) {
             text += " (" + (bonusPercent >= 0 ? "+" : "") + trimmedPercent(bonusPercent) + "%)";
         }

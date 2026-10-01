@@ -43,20 +43,20 @@ implements TabExecutor {
         }
         Optional<LevelColorTheme> found = LevelColorCatalog.find(args[0]);
         if (found.isEmpty()) {
-            p.sendMessage((Component)Component.text((String)l.choose("Tema desconhecido.", "Unknown theme."), (TextColor)NamedTextColor.RED));
+            p.sendMessage((Component)Component.text("Unknown theme.", (TextColor)NamedTextColor.RED));
             return true;
         }
         LevelColorTheme theme = found.get();
         if (!this.colors.select(p, theme)) {
-            p.sendMessage((Component)Component.text((String)(l.choose("Voc\u00ea precisa do N\u00edvel Global ", "You need Global Level ") + theme.requiredLevel() + l.choose(" para usar este tema.", " to use this theme.")), (TextColor)NamedTextColor.RED));
+            p.sendMessage((Component)Component.text((String)("You need Global Level " + theme.requiredLevel() + " to use this theme."), (TextColor)NamedTextColor.RED));
             return true;
         }
-        p.sendMessage((Component)Component.text((String)(l.choose("Tema de n\u00edvel selecionado: ", "Level theme selected: ") + theme.name()), (TextColor)NamedTextColor.GREEN));
+        p.sendMessage((Component)Component.text((String)("Level theme selected: " + theme.name()), (TextColor)NamedTextColor.GREEN));
         return true;
     }
 
     private void usage(Player p, Language l) {
-        p.sendMessage((Component)Component.text((String)(l.choose("Uso: ", "Usage: ") + "/levelcolor [id]"), (TextColor)NamedTextColor.RED));
+        p.sendMessage((Component)Component.text((String)("Usage: " + "/levelcolor [id]"), (TextColor)NamedTextColor.RED));
     }
 
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {

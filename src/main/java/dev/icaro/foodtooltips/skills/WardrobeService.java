@@ -380,13 +380,13 @@ public final class WardrobeService {
         ItemStack helmet = inv.getItem(HELMET_ROW * 9 + column);
         ItemStack base = helmet != null && !helmet.isEmpty() ? helmet.clone() : new ItemStack(Material.ARMOR_STAND);
         ItemMeta meta = base.getItemMeta();
-        meta.displayName(Component.text(l.choose("Set ", "Set ") + (column + 1), active ? NamedTextColor.GREEN : NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("Set " + (column + 1), active ? NamedTextColor.GREEN : NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         List<Component> lore = new ArrayList<>();
         if (active) {
-            lore.add(Component.text(l.choose("Atualmente equipado!", "Currently equipped!"), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text(l.choose("Clique para remover este set!", "Click to remove this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("Currently equipped!", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("Click to remove this set!", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         } else {
-            lore.add(Component.text(l.choose("Clique para equipar este set!", "Click to equip this set!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("Click to equip this set!", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         }
         meta.lore(lore);
         base.setItemMeta(meta);
@@ -396,7 +396,7 @@ public final class WardrobeService {
     private ItemStack lockedFiller(Language l) {
         ItemStack f = ItemStack.of(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta m = f.getItemMeta();
-        m.displayName(Component.text(l.choose("Bloqueado", "Locked"), NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+        m.displayName(Component.text("Locked", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         m.getPersistentDataContainer().set(this.fillerKey, PersistentDataType.BYTE, (byte) 1);
         f.setItemMeta(m);
@@ -442,7 +442,7 @@ public final class WardrobeService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the screen.
         }
-        meta.displayName(Component.text(l.choose("Voltar às skills", "Back to skills"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("Back to skills", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         i.setItemMeta(meta);
         return i;
@@ -475,7 +475,7 @@ public final class WardrobeService {
         }
         UUID id = p.getUniqueId();
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, BOARD_SIZE, l.choose("Guarda-roupa", "Wardrobe"));
+        Inventory inv = Bukkit.createInventory(null, BOARD_SIZE, "Wardrobe");
         ItemStack[] saved = cached != null
                 ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), ARMOR_ROWS * COLUMNS))
                 : this.load(p);

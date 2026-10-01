@@ -86,12 +86,12 @@ public final class DemonKingStormListener implements Listener {
         long now = System.currentTimeMillis();
         long ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L);
         if (now < ready) {
-            p.sendActionBar(Component.text(l.choose("Storm of White Flames em recarga: ", "Storm of White Flames cooldown: ")
+            p.sendActionBar(Component.text("Storm of White Flames cooldown: "
                     + String.format(Locale.US, "%.1fs", (ready - now) / 1000.0), NamedTextColor.RED));
             return true;
         }
         if (!this.stats.withdrawMana(p, MANA_COST)) {
-            p.sendActionBar(Component.text(l.choose("Mana insuficiente para Storm of White Flames.", "Not enough Mana for Storm of White Flames."), NamedTextColor.RED));
+            p.sendActionBar(Component.text("Not enough Mana for Storm of White Flames.", NamedTextColor.RED));
             return true;
         }
         this.cooldowns.put(p.getUniqueId(), now + COOLDOWN_MILLIS);

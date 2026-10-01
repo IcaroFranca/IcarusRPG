@@ -227,12 +227,8 @@ final class VanillaEnchantEntry implements EnchantEntry {
                             EnchantText.Token.plain("(a velocidade normal agachado é 30% da velocidade andando)."))
                     : List.of(EnchantText.Token.plain("Increases sneaking movement speed by"), EnchantText.Token.value(level, "%", l -> l * 15), EnchantText.perLevel(level, false),
                             EnchantText.Token.plain("(normal sneaking speed is 30% of your walking speed)."));
-            case "soul_speed" -> pt
-                    ? List.of(EnchantText.Token.plain("Aumenta a velocidade de movimento em areia/solo das almas em"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.perLevel(level, true), EnchantText.Token.plain("."))
-                    : List.of(EnchantText.Token.plain("Increases movement speed on soul sand/soil by"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
-            case "frost_walker" -> pt
-                    ? List.of(EnchantText.Token.plain("Congela a água em gelo num raio de"), EnchantText.Token.value(level, " blocos", l -> l * 2 + 1), EnchantText.Token.plain("ao caminhar sobre ela."))
-                    : List.of(EnchantText.Token.plain("Freezes water into ice in a radius of"), EnchantText.Token.value(level, " blocks", l -> l * 2 + 1), EnchantText.Token.plain("as you walk over it."));
+            case "soul_speed" -> List.of(EnchantText.Token.plain("Increases movement speed on soul sand/soil by"), EnchantText.Token.value(level, "%", l -> l * 35), EnchantText.perLevel(level, false), EnchantText.Token.plain("."));
+            case "frost_walker" -> List.of(EnchantText.Token.plain("Freezes water into ice in a radius of"), EnchantText.Token.value(level, " blocks", l -> l * 2 + 1), EnchantText.Token.plain("as you walk over it."));
             default -> {
                 String plain = plainDescription(key, pt);
                 yield plain == null ? null : List.of(EnchantText.Token.plain(plain));
@@ -249,19 +245,17 @@ final class VanillaEnchantEntry implements EnchantEntry {
     /** One-line hand-written descriptions with no numeric value, keyed by the enchantment's plain (unnamespaced) key - null (no line shown) for anything not listed here, so a future/unrecognized enchantment degrades gracefully instead of breaking. */
     private static String plainDescription(String key, boolean pt) {
         return switch (key) {
-            case "aqua_affinity" -> pt
-                    ? "Aumenta a velocidade de mineração debaixo d'água para o nível normal (minerar na água é normalmente cinco vezes mais lenta)."
-                    : "Increases underwater mining rate to normal level mining rate (mining in water is normally five times slower).";
-            case "riptide" -> pt ? "Arremessa você junto com o tridente, na água ou na chuva." : "Launches you along with the trident when in water or rain.";
-            case "loyalty" -> pt ? "O tridente retorna à sua mão após ser arremessado." : "The trident returns to your hand after being thrown.";
-            case "impaling" -> pt ? "Dano bônus contra criaturas aquáticas." : "Bonus damage against aquatic mobs.";
-            case "channeling" -> pt ? "Invoca um raio no alvo atingido durante tempestades." : "Summons a lightning bolt on the target hit during a storm.";
-            case "multishot" -> pt ? "A besta dispara 3 flechas de uma vez." : "The crossbow fires 3 arrows at once.";
-            case "quick_charge" -> pt ? "Diminui o tempo de recarga da besta." : "Decreases the crossbow's reload time.";
-            case "piercing" -> pt ? "As flechas atravessam múltiplos alvos." : "Arrows pierce through multiple targets.";
-            case "density" -> pt ? "Dano bônus da maça, com base na distância de queda." : "Bonus mace damage based on fall distance.";
-            case "breach" -> pt ? "Dano bônus da maça contra alvos com armadura." : "Bonus mace damage against armored targets.";
-            case "wind_burst" -> pt ? "Impulsiona você para cima ao acertar com a maça." : "Launches you upward when you hit with the mace.";
+            case "aqua_affinity" -> "Increases underwater mining rate to normal level mining rate (mining in water is normally five times slower).";
+            case "riptide" -> "Launches you along with the trident when in water or rain.";
+            case "loyalty" -> "The trident returns to your hand after being thrown.";
+            case "impaling" -> "Bonus damage against aquatic mobs.";
+            case "channeling" -> "Summons a lightning bolt on the target hit during a storm.";
+            case "multishot" -> "The crossbow fires 3 arrows at once.";
+            case "quick_charge" -> "Decreases the crossbow's reload time.";
+            case "piercing" -> "Arrows pierce through multiple targets.";
+            case "density" -> "Bonus mace damage based on fall distance.";
+            case "breach" -> "Bonus mace damage against armored targets.";
+            case "wind_burst" -> "Launches you upward when you hit with the mace.";
             default -> null;
         };
     }

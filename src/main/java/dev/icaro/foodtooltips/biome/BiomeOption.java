@@ -64,7 +64,7 @@ public enum BiomeOption {
     }
 
     public String displayName(boolean pt) {
-        return pt ? this.namePt : this.nameEn;
+        return this.nameEn;
     }
 
     /** The default selection - always the first entry, so a freshly-created wand has a sane biome picked. */

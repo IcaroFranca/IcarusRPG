@@ -107,14 +107,14 @@ public final class GrapplingHookService {
         ItemStack item = new ItemStack(Material.FISHING_ROD);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.hookKey, PersistentDataType.BYTE, (byte) 1);
-        meta.displayName(this.line(l.choose("Grappling Hook", "Grappling Hook"), NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true));
+        meta.displayName(this.line("Grappling Hook", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true));
         List<Component> lore = List.of(
-                this.line(l.choose("Troca de Mãos (F): lança o gancho.", "Swap Hands (F): fires the hook."), NamedTextColor.GRAY),
-                this.line(l.choose("Troca de Mãos de novo: puxa você até ele.", "Swap Hands again: pulls you to it."), NamedTextColor.GRAY),
-                this.line(l.choose("Agachar cancela o gancho.", "Sneak to cancel the hook."), NamedTextColor.GRAY),
+                this.line("Swap Hands (F): fires the hook.", NamedTextColor.GRAY),
+                this.line("Swap Hands again: pulls you to it.", NamedTextColor.GRAY),
+                this.line("Sneak to cancel the hook.", NamedTextColor.GRAY),
                 Component.empty(),
-                this.line(l.choose("Alcance: 24 blocos", "Range: 24 blocks"), NamedTextColor.AQUA),
-                this.line(l.choose("Recarga: 3 segundos", "Cooldown: 3 seconds"), NamedTextColor.AQUA));
+                this.line("Range: 24 blocks", NamedTextColor.AQUA),
+                this.line("Cooldown: 3 seconds", NamedTextColor.AQUA));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
@@ -143,7 +143,7 @@ public final class GrapplingHookService {
         long ready = this.cooldowns.getOrDefault(id, 0L);
         if (now < ready) {
             Language l = Language.of(p);
-            p.sendActionBar(this.line(l.choose("Gancho em recarga: ", "Hook cooldown: ")
+            p.sendActionBar(this.line("Hook cooldown: "
                     + String.format(Locale.US, "%.1fs", (ready - now) / 1000.0), NamedTextColor.RED));
             return;
         }
@@ -184,7 +184,7 @@ public final class GrapplingHookService {
                     // master per-player sweep), so anything sent there gets blotted out
                     // within a quarter second and is effectively invisible in practice.
                     p.sendMessage(GrapplingHookService.this.line(
-                            l.choose("Gancho não alcançou nada.", "Hook found nothing to grab."), NamedTextColor.RED));
+                            "Hook found nothing to grab.", NamedTextColor.RED));
                     this.cancel();
                     return;
                 }
@@ -211,7 +211,7 @@ public final class GrapplingHookService {
         p.getWorld().spawnParticle(Particle.END_ROD, blockLocation.clone().add(0.5, 0.5, 0.5), 12, 0.2, 0.2, 0.2, 0.02);
         // Chat, not actionbar - see the miss message's own doc in #launch on why.
         Language l = Language.of(p);
-        p.sendMessage(this.line(l.choose("Gancho preso! Clique de novo para se puxar.", "Hook attached! Right-click again to pull."), NamedTextColor.GREEN));
+        p.sendMessage(this.line("Hook attached! Right-click again to pull.", NamedTextColor.GREEN));
         state.task = new BukkitRunnable() {
             int ticks = 0;
 

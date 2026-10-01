@@ -20,7 +20,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 
@@ -76,7 +75,6 @@ public final class HeatService implements Listener {
     private static final int FIRE_REFRESH_TICKS = 60;
     private static final long SCAN_INTERVAL_TICKS = 20L;
     private static final String OBJECTIVE_ID = "icarus_heat";
-    private static final String SCORE_ENTRY = "heat";
 
     private final Plugin plugin;
     private final AccessoryBagService accessoryBag;
@@ -207,6 +205,14 @@ public final class HeatService implements Listener {
 
     // ---- Sidebar (same pattern as item.MushroomSoupFlightService#showBoard/#hideBoard/#ensurePersonalBoard) ----
 
+    /**
+     * The current Heat value is folded straight into the objective's own title rather than
+     * a separate score entry below it - Minecraft's own sidebar always horizontally centers
+     * the title within the box (unlike an entry line, which is left-aligned with its score
+     * right-aligned), so this is what actually gets the number centered under/alongside
+     * "Heat" the player asked for, instead of a manual space-padding approximation. No
+     * entries at all means nothing else renders in the box below the title.
+     */
     private void showBoard(Player p, int currentHeat) {
         Scoreboard board = this.ensurePersonalBoard(p);
         Objective objective = board.getObjective(OBJECTIVE_ID);
@@ -214,10 +220,7 @@ public final class HeatService implements Listener {
             objective = board.registerNewObjective(OBJECTIVE_ID, Criteria.DUMMY, Component.text(""));
             objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
-        objective.displayName(Component.text("🔥 Heat 🔥", NamedTextColor.RED));
-        Score score = objective.getScore(SCORE_ENTRY);
-        score.customName(Component.text(currentHeat + "/" + MAX_HEAT, NamedTextColor.GOLD));
-        score.setScore(currentHeat);
+        objective.displayName(Component.text("🔥 Heat: " + currentHeat + " 🔥", NamedTextColor.RED));
         this.boardShown.add(p.getUniqueId());
     }
 

@@ -20,7 +20,7 @@ public enum TreasureRarity {
     }
 
     public String name(boolean pt) {
-        return pt ? this.pt : this.en;
+        return this.en;
     }
 
     public NamedTextColor color() {

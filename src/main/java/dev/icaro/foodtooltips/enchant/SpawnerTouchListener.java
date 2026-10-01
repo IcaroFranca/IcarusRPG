@@ -89,7 +89,7 @@ public final class SpawnerTouchListener implements Listener {
         ItemStack item = new ItemStack(Material.SPAWNER);
         ItemMeta meta = item.getItemMeta();
         String mobName = this.entityName(type);
-        meta.displayName(Component.text(l.choose("Spawner de " + mobName, "Spawner: " + mobName), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text(("Spawner: " + mobName), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         meta.getPersistentDataContainer().set(ENTITY_KEY, PersistentDataType.STRING, type.name());
         item.setItemMeta(meta);
         return item;

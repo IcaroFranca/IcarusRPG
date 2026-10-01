@@ -70,6 +70,6 @@ public enum LegendaryWeapon {
     }
 
     public String name(boolean pt) {
-        return pt ? this.namePt : this.nameEn;
+        return this.nameEn;
     }
 }

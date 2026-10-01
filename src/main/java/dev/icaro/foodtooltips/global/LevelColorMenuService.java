@@ -45,7 +45,7 @@ public final class LevelColorMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        ChestGui gui = new ChestGui(6, l.choose("Cores do Nível", "Level Colors"), this.plugin);
+        ChestGui gui = new ChestGui(6, "Level Colors", this.plugin);
         gui.setOnGlobalClick(e -> e.setCancelled(true));
 
         StaticPane pane = new StaticPane(9, 6);
@@ -60,16 +60,16 @@ public final class LevelColorMenuService {
         LevelColorTheme selected = this.colors.selected(p);
         List<Component> headLore = new ArrayList<>();
         headLore.add(this.presentation.badge(p).append(Component.text(p.getName(), this.presentation.nameColor(p))));
-        headLore.add(this.text(l.choose("Nível Global: ", "Global Level: ") + snapshot.level(), NamedTextColor.GOLD));
-        headLore.add(this.text(l.choose("Selecionado: ", "Selected: ") + selected.name(), NamedTextColor.YELLOW));
+        headLore.add(this.text("Global Level: " + snapshot.level(), NamedTextColor.GOLD));
+        headLore.add(this.text("Selected: " + selected.name(), NamedTextColor.YELLOW));
         if (!this.colors.unlocked(p, selected)) {
-            for (String part : LoreWrap.wrapText(l.choose("Temporariamente suspenso: nível insuficiente", "Temporarily suspended: insufficient level"), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Temporarily suspended: insufficient level", LoreWrap.DEFAULT_WIDTH)) {
                 headLore.add(this.text(part, NamedTextColor.RED));
             }
         } else {
             headLore.add(Component.empty());
         }
-        ItemStack head = this.item(Material.PLAYER_HEAD, l.choose("Preview do Nível", "Level Preview"), headLore, false);
+        ItemStack head = this.item(Material.PLAYER_HEAD, "Level Preview", headLore, false);
         SkullMeta skull = (SkullMeta) head.getItemMeta();
         skull.setOwningPlayer((OfflinePlayer) p);
         head.setItemMeta(skull);
@@ -82,15 +82,15 @@ public final class LevelColorMenuService {
             boolean active = selected.id().equals(theme.id());
             ArrayList<Component> lore = new ArrayList<>();
             lore.add(this.text("ID: " + theme.id(), NamedTextColor.DARK_GRAY));
-            lore.add(this.text(l.choose("Requer Nível Global ", "Requires Global Level ") + theme.requiredLevel(), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
+            lore.add(this.text("Requires Global Level " + theme.requiredLevel(), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
             lore.add(this.text(this.palette(theme), NamedTextColor.GRAY));
-            lore.add(this.text(active ? l.choose("SELECIONADO", "SELECTED") : (unlocked ? l.choose("Clique para selecionar", "Click to select") : l.choose("BLOQUEADO", "LOCKED")), active ? NamedTextColor.GOLD : (unlocked ? NamedTextColor.YELLOW : NamedTextColor.RED)));
+            lore.add(this.text(active ? "SELECTED" : (unlocked ? "Click to select" : "LOCKED"), active ? NamedTextColor.GOLD : (unlocked ? NamedTextColor.YELLOW : NamedTextColor.RED)));
             ItemStack icon = this.item(unlocked ? theme.icon() : Material.GRAY_DYE, theme.name(), lore, active);
             int slot = 9 + i;
             pane.addItem(new GuiItem(icon, event -> this.select(p, theme)), slot % 9, slot / 9);
         }
 
-        pane.addItem(new GuiItem(this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()), event -> this.back.accept(p)), 4, 5);
+        pane.addItem(new GuiItem(this.customHead(HeadTexture.BACK, "Back", List.of()), event -> this.back.accept(p)), 4, 5);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
@@ -100,10 +100,10 @@ public final class LevelColorMenuService {
     private void select(Player p, LevelColorTheme theme) {
         Language l = Language.of(p);
         if (!this.colors.select(p, theme)) {
-            p.sendMessage(Component.text(l.choose("Você precisa do Nível Global ", "You need Global Level ") + theme.requiredLevel() + l.choose(" para usar este tema.", " to use this theme."), NamedTextColor.RED));
+            p.sendMessage(Component.text("You need Global Level " + theme.requiredLevel() + " to use this theme.", NamedTextColor.RED));
             return;
         }
-        p.sendMessage(Component.text(l.choose("Tema de nível selecionado: ", "Level theme selected: ") + theme.name(), NamedTextColor.GREEN));
+        p.sendMessage(Component.text("Level theme selected: " + theme.name(), NamedTextColor.GREEN));
         this.open(p);
     }
 

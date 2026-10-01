@@ -771,7 +771,7 @@ public final class CombatListener implements Listener {
         double maxHealth = maxHealthAttr == null ? 20.0 : maxHealthAttr.getValue();
         p.setHealth(Math.max(1.0, maxHealth * healFraction));
         p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 2));
-        p.sendMessage(Component.text("✦ " + Language.of(p).choose("SEGUNDO FÔLEGO!", "SECOND WIND!") + " ✦", NamedTextColor.AQUA));
+        p.sendMessage(Component.text("✦ " + "SECOND WIND!" + " ✦", NamedTextColor.AQUA));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -821,7 +821,7 @@ public final class CombatListener implements Listener {
         CompassMeta meta = (CompassMeta) compass.getItemMeta();
         meta.setLodestoneTracked(false);
         meta.setLodestone(death);
-        meta.displayName(Component.text(l.choose("Local da Morte: ", "Death Location: ")
+        meta.displayName(Component.text("Death Location: "
                         + death.getBlockX() + ", " + death.getBlockY() + ", " + death.getBlockZ(), NamedTextColor.GOLD)
                 .decoration(TextDecoration.ITALIC, false));
         meta.getPersistentDataContainer().set(this.deathCompassKey, PersistentDataType.BYTE, (byte) 1);
@@ -858,9 +858,7 @@ public final class CombatListener implements Listener {
         Player p = e.getPlayer();
         Language l = Language.of(p);
         if (!this.global.deathTeleportUnlocked(p)) {
-            p.sendMessage(Component.text(l.choose(
-                    "A teleportação da bússola de morte desbloqueia no Nível Global " + this.global.deathTeleportRequiredLevel() + ".",
-                    "The death compass' teleport unlocks at Global Level " + this.global.deathTeleportRequiredLevel() + "."), NamedTextColor.RED));
+            p.sendMessage(Component.text(("The death compass' teleport unlocks at Global Level " + this.global.deathTeleportRequiredLevel() + "."), NamedTextColor.RED));
             return;
         }
         Location target = compassMeta.getLodestone();
@@ -873,13 +871,11 @@ public final class CombatListener implements Listener {
         if (armedUntil != null && armedUntil >= now) {
             this.teleportArmed.remove(p.getUniqueId());
             p.teleport(target);
-            p.sendMessage(Component.text(l.choose("Teleportado para o local da sua morte.", "Teleported to your death location."), NamedTextColor.GREEN));
+            p.sendMessage(Component.text("Teleported to your death location.", NamedTextColor.GREEN));
             return;
         }
         this.teleportArmed.put(p.getUniqueId(), now + this.teleportArmWindowMillis);
-        p.sendMessage(Component.text(l.choose(
-                "Clique novamente na bússola em até " + (this.teleportArmWindowMillis / 1000L) + "s para teleportar.",
-                "Right-click the compass again within " + (this.teleportArmWindowMillis / 1000L) + "s to teleport."), NamedTextColor.YELLOW));
+        p.sendMessage(Component.text(("Right-click the compass again within " + (this.teleportArmWindowMillis / 1000L) + "s to teleport."), NamedTextColor.YELLOW));
     }
 
     /**
@@ -1120,26 +1116,26 @@ public final class CombatListener implements Listener {
 
     private void milestoneMessage(Player p, BestiaryEntry entry, int milestone, long globalXp) {
         Language l = Language.of(p);
-        Component title = Component.text("✦ " + l.choose("MILESTONE DO BESTIÁRIO!", "BESTIARY MILESTONE!") + " ✦", NamedTextColor.GOLD);
+        Component title = Component.text("✦ " + "BESTIARY MILESTONE!" + " ✦", NamedTextColor.GOLD);
         List<Component> lines = new ArrayList<>();
         lines.add(Component.text(entry.displayName(l) + " • Milestone " + milestone, NamedTextColor.YELLOW));
         lines.add(Component.text(this.bestiary.reward(milestone, l == Language.PT), NamedTextColor.GREEN));
-        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + globalXp + " " + "Global Level XP", NamedTextColor.AQUA));
         if (this.bestiary.totalMilestones(p) % 10 == 0) {
-            lines.add(Component.text("❤ " + l.choose("Bônus global: +2 HP máximo", "Global bonus: +2 max HP"), NamedTextColor.RED));
+            lines.add(Component.text("❤ " + "Global bonus: +2 max HP", NamedTextColor.RED));
         }
         dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
     private void levelUpMessage(Player p, int oldLevel, int newLevel, long globalXp, long bonusValor) {
         Language l = Language.of(p);
-        Component title = Component.text("✦ " + l.choose("COMBATE SUBIU DE NÍVEL!", "COMBAT LEVEL UP!") + " ✦", NamedTextColor.GOLD);
+        Component title = Component.text("✦ " + "COMBAT LEVEL UP!" + " ✦", NamedTextColor.GOLD);
         List<Component> lines = new ArrayList<>();
         lines.add(Component.text(oldLevel + " → " + newLevel, NamedTextColor.GREEN));
-        lines.add(Component.text("+" + (double) (newLevel - oldLevel) * 0.5 + "% Crit Chance • +" + (newLevel - oldLevel) * 4 + "% " + l.choose("Dano", "Damage"), NamedTextColor.AQUA));
-        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + (double) (newLevel - oldLevel) * 0.5 + "% Crit Chance • +" + (newLevel - oldLevel) * 4 + "% " + "Damage", NamedTextColor.AQUA));
+        lines.add(Component.text("+" + globalXp + " " + "Global Level XP", NamedTextColor.AQUA));
         if (bonusValor > 0L) {
-            lines.add(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + l.choose("Pontos de Sangue", "Blood Points"), NamedTextColor.DARK_RED));
+            lines.add(Component.text("🩸 +" + this.valor.format(bonusValor) + " " + "Blood Points", NamedTextColor.DARK_RED));
         }
         dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }

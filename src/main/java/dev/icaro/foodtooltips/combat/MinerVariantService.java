@@ -244,7 +244,7 @@ public final class MinerVariantService implements Listener {
         if (meta == null) {
             return false;
         }
-        String wantedName = meta.getPersistentDataContainer().get(l == Language.PT ? PIECE_NAME_PT_KEY : PIECE_NAME_EN_KEY, PersistentDataType.STRING);
+        String wantedName = meta.getPersistentDataContainer().get(PIECE_NAME_EN_KEY, PersistentDataType.STRING);
         if (wantedName == null) {
             return false;
         }
@@ -287,7 +287,7 @@ public final class MinerVariantService implements Listener {
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         List<Component> ptBlock = wrappedDescription(DESCRIPTION_PT);
         List<Component> enBlock = wrappedDescription(DESCRIPTION_EN);
-        List<Component> wantedBlock = l == Language.PT ? ptBlock : enBlock;
+        List<Component> wantedBlock = enBlock;
         int at = indexOfBlock(lore, ptBlock);
         int size = ptBlock.size();
         if (at < 0) {

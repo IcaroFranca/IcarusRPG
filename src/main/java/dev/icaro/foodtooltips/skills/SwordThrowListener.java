@@ -80,12 +80,12 @@ implements Listener {
         }
         long now = System.currentTimeMillis();
         if (now < (ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L).longValue())) {
-            p.sendActionBar((Component)Component.text((String)(Language.of(p).choose("Arremesso em recarga: ", "Sword Throw cooldown: ") + String.format(Locale.US, "%.1fs", (double)(ready - now) / 1000.0)), (TextColor)NamedTextColor.RED));
+            p.sendActionBar((Component)Component.text((String)("Sword Throw cooldown: " + String.format(Locale.US, "%.1fs", (double)(ready - now) / 1000.0)), (TextColor)NamedTextColor.RED));
             return true;
         }
         if (!this.abilities.spendSwordThrowMana(p)) {
             // Not enough Mana - no cooldown wasted on a throw that never happened.
-            p.sendActionBar((Component)Component.text((String)(Language.of(p).choose("Mana insuficiente para arremessar.", "Not enough Mana to throw.")), (TextColor)NamedTextColor.RED));
+            p.sendActionBar((Component)Component.text((String)("Not enough Mana to throw."), (TextColor)NamedTextColor.RED));
             return true;
         }
         long cooldown = this.abilities.swordThrowCooldownMillis(p);

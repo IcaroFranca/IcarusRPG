@@ -55,10 +55,10 @@ public final class SkillsStarService {
         Language l = Language.of(p);
         ItemStack star = ItemStack.of(Material.NETHER_STAR);
         ItemMeta meta = star.getItemMeta();
-        meta.displayName(Component.text("★ " + l.choose("Menu", "Menu"), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("★ " + "Menu", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(l.choose("Clique para abrir o Menu.", "Click to open the Menu."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        for (String part : LoreWrap.wrapText(l.choose("Não pode ser removido ou dado a outro jogador.", "Cannot be removed or given to another player."), LoreWrap.DEFAULT_WIDTH)) {
+        lore.add(Component.text("Click to open the Menu.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        for (String part : LoreWrap.wrapText("Cannot be removed or given to another player.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(Component.text(part, NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
         }
         meta.lore(lore);

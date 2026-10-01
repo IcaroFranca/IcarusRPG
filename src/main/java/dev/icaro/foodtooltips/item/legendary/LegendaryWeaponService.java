@@ -218,15 +218,15 @@ public final class LegendaryWeaponService {
         }
 
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line((pt ? "Tipo: " : "Type: ") + w.type().label(pt), NamedTextColor.GRAY));
-        lore.add(this.line((pt ? "Ataque: +" : "Attack: +") + Math.round(w.baseAttackDamage()), NamedTextColor.RED));
+        lore.add(this.line("Type: " + w.type().label(pt), NamedTextColor.GRAY));
+        lore.add(this.line("Attack: +" + Math.round(w.baseAttackDamage()), NamedTextColor.RED));
         // Placeholder at level 0 - the periodic refresh pass (refreshAttackSpeedLore)
         // corrects it to whoever actually ends up holding the item almost immediately,
         // same as STRENGTH_LINE_KEY's placeholder below.
         meta.getPersistentDataContainer().set(SPEED_LINE_KEY, PersistentDataType.INTEGER, lore.size());
         lore.add(this.speedLine(this.combat.attackSpeed(0) + SwordDamageService.ATTACK_SPEED_DELTA, 0.0, pt));
         if (w.agility() > 0) {
-            lore.add(this.line((pt ? "Agilidade: +" : "Agility: +") + w.agility(), NamedTextColor.GREEN));
+            lore.add(this.line("Agility: +" + w.agility(), NamedTextColor.GREEN));
         }
         boolean strengthScaling = w == LegendaryWeapon.DEMON_KING_DAGGERS || w == LegendaryWeapon.KAMISH_WRATH;
         if (strengthScaling) {
@@ -237,8 +237,8 @@ public final class LegendaryWeaponService {
         }
         lore.addAll(this.abilityLines(w, pt));
         switch (w.type()) {
-            case DAGGER -> lore.add(this.line(pt ? "Dobra o dano por trás." : "Doubles damage from behind.", NamedTextColor.DARK_GRAY));
-            case LONGSWORD -> lore.add(this.line(pt ? "+2 alcance de ataque." : "+2 attack range.", NamedTextColor.DARK_GRAY));
+            case DAGGER -> lore.add(this.line("Doubles damage from behind.", NamedTextColor.DARK_GRAY));
+            case LONGSWORD -> lore.add(this.line("+2 attack range.", NamedTextColor.DARK_GRAY));
             case SWORD -> {
                 // No range/backstab gimmick - this weapon type's whole identity is its
                 // situational damage bonus (see abilityLines), already covered above.
@@ -257,12 +257,12 @@ public final class LegendaryWeaponService {
     private List<Component> abilityLines(LegendaryWeapon w, boolean pt) {
         List<Component> lines = new ArrayList<>();
         switch (w) {
-            case KASAKA_VENOM_FANG -> lines.add(this.line(pt ? ("Paralisia + Sangramento: " + PROC_CHANCE + "% de chance") : ("Paralyze + Bleed: " + PROC_CHANCE + "% chance"), NamedTextColor.LIGHT_PURPLE));
-            case KNIGHT_KILLER -> lines.add(this.line(pt ? "+25% de dano contra blindados" : "+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
+            case KASAKA_VENOM_FANG -> lines.add(this.line("Paralyze + Bleed: " + PROC_CHANCE + "% chance", NamedTextColor.LIGHT_PURPLE));
+            case KNIGHT_KILLER -> lines.add(this.line("+25% damage vs armored", NamedTextColor.LIGHT_PURPLE));
             case DEMON_KING_DAGGERS, KAMISH_WRATH -> lines.add(this.strengthAbilityLine(w, pt, 0));
             case DEMON_KING_LONGSWORD -> lines.add(this.line("Storm of White Flames: F, 40 Mana, 30s", NamedTextColor.LIGHT_PURPLE));
-            case UNDEAD_SWORD -> lines.add(this.line(pt ? "+100% de dano contra " : "+100% damage vs ", NamedTextColor.LIGHT_PURPLE)
-                    .append(this.line(UNDEAD_ICON + (pt ? " Mortos-Vivos" : " Undead"), UNDEAD_COLOR)));
+            case UNDEAD_SWORD -> lines.add(this.line("+100% damage vs ", NamedTextColor.LIGHT_PURPLE)
+                    .append(this.line(UNDEAD_ICON + " Undead", UNDEAD_COLOR)));
         }
         return lines;
     }
@@ -271,8 +271,8 @@ public final class LegendaryWeaponService {
     private Component strengthAbilityLine(LegendaryWeapon w, boolean pt, double bonus) {
         long rounded = Math.round(bonus);
         return switch (w) {
-            case DEMON_KING_DAGGERS -> this.line(pt ? ("Two as One: +" + rounded + " (0,5/Strength)") : ("Two as One: +" + rounded + " (0.5/Strength)"), NamedTextColor.LIGHT_PURPLE);
-            case KAMISH_WRATH -> this.line(pt ? ("+" + rounded + " dano (1/Strength)") : ("+" + rounded + " damage (1/Strength)"), NamedTextColor.LIGHT_PURPLE);
+            case DEMON_KING_DAGGERS -> this.line("Two as One: +" + rounded + " (0.5/Strength)", NamedTextColor.LIGHT_PURPLE);
+            case KAMISH_WRATH -> this.line("+" + rounded + " damage (1/Strength)", NamedTextColor.LIGHT_PURPLE);
             default -> throw new IllegalArgumentException(w + " has no Strength-scaling line");
         };
     }
@@ -290,7 +290,7 @@ public final class LegendaryWeaponService {
      * instead of duplicating it).
      */
     private Component speedLine(double real, double bonusPercent, boolean pt) {
-        String text = (pt ? "Velocidade de Ataque: " : "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real);
+        String text = "Attack Speed: " + String.format(java.util.Locale.US, "%.1f", real);
         if (Math.abs(bonusPercent) > 1.0E-4) {
             text += " (" + (bonusPercent >= 0 ? "+" : "") + trimmedPercent(bonusPercent) + "%)";
         }

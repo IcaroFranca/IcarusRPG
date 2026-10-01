@@ -21,6 +21,6 @@ public enum PassiveToggle {
     }
 
     public String displayName(boolean pt) {
-        return pt ? this.namePt : this.nameEn;
+        return this.nameEn;
     }
 }

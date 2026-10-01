@@ -100,7 +100,7 @@ public final class RecipeBookMenuService {
         }
 
         public String display(boolean pt) {
-            return pt ? this.pt : this.en;
+            return this.en;
         }
     }
 
@@ -165,7 +165,7 @@ public final class RecipeBookMenuService {
         for (CraftingRecipe recipe : this.ownRecipes(p)) {
             counts.merge(this.categoryResolver.resolve(recipe.getKey()), 1, Integer::sum);
         }
-        Inventory v = this.blank(l.choose("Livro de Receitas", "Recipe Book"));
+        Inventory v = this.blank("Recipe Book");
         RecipeCategory[] categories = RecipeCategory.values();
         for (int i = 0; i < categories.length && i < CATEGORY_SLOTS.length; i++) {
             RecipeCategory category = categories[i];
@@ -174,11 +174,11 @@ public final class RecipeBookMenuService {
                 continue;
             }
             List<Component> lore = new ArrayList<>();
-            lore.add(this.text(count + " " + l.choose("receitas desbloqueadas", "unlocked recipes"), NamedTextColor.GRAY));
-            lore.add(this.text(l.choose("Clique para ver!", "Click to view!"), NamedTextColor.YELLOW));
+            lore.add(this.text(count + " " + "unlocked recipes", NamedTextColor.GRAY));
+            lore.add(this.text("Click to view!", NamedTextColor.YELLOW));
             v.setItem(CATEGORY_SLOTS[i], this.item(category.icon(), category.display(l == Language.PT), lore));
         }
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.views.put(p.getUniqueId(), new View(null, 0, null, null));
@@ -195,12 +195,12 @@ public final class RecipeBookMenuService {
         for (int i = 0; i < LIST_SLOTS.length && start + i < recipes.size(); i++) {
             v.setItem(LIST_SLOTS[i], this.resultIcon(recipes.get(start + i), l));
         }
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back", List.of()));
         if (page > 0) {
-            v.setItem(PREV_SLOT, this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous page"), List.of()));
+            v.setItem(PREV_SLOT, this.customHead(HeadTexture.ARROW_LEFT, "Previous page", List.of()));
         }
         if ((page + 1) * LIST_SLOTS.length < recipes.size()) {
-            v.setItem(NEXT_SLOT, this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next page"), List.of()));
+            v.setItem(NEXT_SLOT, this.customHead(HeadTexture.ARROW_RIGHT, "Next page", List.of()));
         }
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -216,7 +216,7 @@ public final class RecipeBookMenuService {
             return;
         }
         Language l = Language.of(p);
-        Inventory v = this.renderDetail(crafting, l, l.choose("Voltar ao livro", "Back to the book"));
+        Inventory v = this.renderDetail(crafting, l, "Back to the book");
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.views.put(p.getUniqueId(), new View(category, page, key, null));
@@ -239,7 +239,7 @@ public final class RecipeBookMenuService {
             return;
         }
         Language l = Language.of(p);
-        Inventory v = this.renderDetail(crafting, l, l.choose("Voltar", "Back"));
+        Inventory v = this.renderDetail(crafting, l, "Back");
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.views.put(p.getUniqueId(), new View(null, 0, key, onBack));
@@ -247,12 +247,12 @@ public final class RecipeBookMenuService {
 
     /** The shared 3x3-grid-plus-arrow-plus-result layout both {@link #openDetail(Player, RecipeCategory, int, NamespacedKey)} and {@link #openDetail(Player, NamespacedKey, Runnable)} render, differing only in the Back button's own label. */
     private Inventory renderDetail(CraftingRecipe crafting, Language l, String backLabel) {
-        Inventory v = this.blank(l.choose("Receita", "Recipe"));
+        Inventory v = this.blank("Recipe");
         ItemStack[] grid = this.gridFor(crafting);
         for (int i = 0; i < DETAIL_MATRIX_SLOTS.length; i++) {
             v.setItem(DETAIL_MATRIX_SLOTS[i], grid[i]);
         }
-        v.setItem(DETAIL_ARROW_SLOT, this.item(Material.ARROW, l.choose("Resultado", "Result"), List.of()));
+        v.setItem(DETAIL_ARROW_SLOT, this.item(Material.ARROW, "Result", List.of()));
         v.setItem(DETAIL_RESULT_SLOT, crafting.getResult().clone());
         v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, backLabel, List.of()));
         return v;
@@ -376,7 +376,7 @@ public final class RecipeBookMenuService {
         if (!lore.isEmpty()) {
             lore.add(Component.empty());
         }
-        lore.add(this.text(l.choose("Ingredientes:", "Ingredients:"), NamedTextColor.GRAY));
+        lore.add(this.text("Ingredients:", NamedTextColor.GRAY));
         for (RecipeChoice choice : this.choicesOf(recipe)) {
             ItemStack sample = choice.getItemStack();
             if (sample == null || sample.isEmpty()) {
@@ -388,7 +388,7 @@ public final class RecipeBookMenuService {
             lore.add(this.text("- ", NamedTextColor.DARK_GRAY).append(name.colorIfAbsent(NamedTextColor.DARK_GRAY)));
         }
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Clique para ver a receita.", "Click to see the recipe."), NamedTextColor.YELLOW));
+        lore.add(this.text("Click to see the recipe.", NamedTextColor.YELLOW));
         meta.lore(lore);
         icon.setItemMeta(meta);
         return icon;

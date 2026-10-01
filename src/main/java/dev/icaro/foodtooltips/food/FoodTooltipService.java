@@ -34,15 +34,15 @@ public final class FoodTooltipService {
         this.clean(lore);
         ArrayList<Component> block = new ArrayList<Component>();
         if (food != null) {
-            block.add(this.line(l.choose("Atributos do alimento:", "Food attributes:"), NamedTextColor.GOLD));
-            block.add(this.line("\ud83c\udf57 " + l.choose("Fome", "Hunger") + ": +" + this.n(food.nutrition()) + " (" + this.n((double)food.nutrition() / 2.0) + " \ud83c\udf57)", NamedTextColor.GREEN));
-            block.add(this.line("\u2726 " + l.choose("Satura\u00e7\u00e3o", "Saturation") + ": +" + this.n(food.saturation()) + " (" + this.n((double)food.saturation() / 2.0) + " \u2726)", NamedTextColor.AQUA));
+            block.add(this.line("Food attributes:", NamedTextColor.GOLD));
+            block.add(this.line("\ud83c\udf57 " + "Hunger" + ": +" + this.n(food.nutrition()) + " (" + this.n((double)food.nutrition() / 2.0) + " \ud83c\udf57)", NamedTextColor.GREEN));
+            block.add(this.line("\u2726 " + "Saturation" + ": +" + this.n(food.saturation()) + " (" + this.n((double)food.saturation() / 2.0) + " \u2726)", NamedTextColor.AQUA));
         }
         if (pickaxe) {
             if (!block.isEmpty()) {
                 block.add((Component)Component.empty());
             }
-            block.add(this.line(l.choose("Atributos de minera\u00e7\u00e3o:", "Mining attributes:"), NamedTextColor.GOLD));
+            block.add(this.line("Mining attributes:", NamedTextColor.GOLD));
             block.add(this.line("\u26cf Mining Speed: " + this.skills.miningSpeed(item), NamedTextColor.AQUA));
         }
         this.insertBeforeTier(lore, block);

@@ -16,6 +16,6 @@ public record CollectionsEntry(Material material, Material drop, CollectionsCate
                                 String namePt, String nameEn, List<CollectionsMilestone> milestones) {
 
     public String displayName(boolean pt) {
-        return pt ? this.namePt : this.nameEn;
+        return this.nameEn;
     }
 }

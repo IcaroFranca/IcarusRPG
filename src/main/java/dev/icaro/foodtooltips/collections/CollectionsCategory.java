@@ -33,6 +33,6 @@ public enum CollectionsCategory {
     }
 
     public String display(boolean pt) {
-        return pt ? this.pt : this.en;
+        return this.en;
     }
 }

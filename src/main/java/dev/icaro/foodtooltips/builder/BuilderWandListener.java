@@ -44,14 +44,14 @@ public final class BuilderWandListener implements Listener {
         Language l = Language.of(p);
         if (p.isSneaking()) {
             if (this.wand.cancelPreview(p)) {
-                p.sendActionBar(Component.text(l.choose("Preview cancelado.", "Preview cancelled."), NamedTextColor.RED));
+                p.sendActionBar(Component.text("Preview cancelled.", NamedTextColor.RED));
                 return;
             }
             int undone = this.wand.undo(p);
             if (undone <= 0) {
-                p.sendActionBar(Component.text(l.choose("Nada pra desfazer.", "Nothing to undo."), NamedTextColor.RED));
+                p.sendActionBar(Component.text("Nothing to undo.", NamedTextColor.RED));
             } else {
-                p.sendActionBar(Component.text("-" + undone + " " + l.choose("blocos (desfeito)", "blocks (undone)"), NamedTextColor.GOLD));
+                p.sendActionBar(Component.text("-" + undone + " " + "blocks (undone)", NamedTextColor.GOLD));
             }
         } else {
             this.wand.openModeMenu(p, held);
@@ -90,9 +90,9 @@ public final class BuilderWandListener implements Listener {
         }
         int placed = this.wand.extend(p, clicked, face, e.getItem());
         if (placed <= 0) {
-            p.sendActionBar(Component.text(l.choose("Nada pra estender aqui.", "Nothing to extend here."), NamedTextColor.RED));
+            p.sendActionBar(Component.text("Nothing to extend here.", NamedTextColor.RED));
         } else {
-            p.sendActionBar(Component.text("+" + placed + " " + l.choose("blocos", "blocks"), NamedTextColor.GREEN));
+            p.sendActionBar(Component.text("+" + placed + " " + "blocks", NamedTextColor.GREEN));
         }
     }
 

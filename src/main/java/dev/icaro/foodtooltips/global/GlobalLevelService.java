@@ -253,7 +253,7 @@ public final class GlobalLevelService {
         this.finishChange(p, before, this.totalXp(p), GlobalXpSource.MIGRATION, false);
         if (amount > 0L) {
             Language l = Language.of(p);
-            p.sendMessage((Component)Component.text((String)("\u2726 " + l.choose("Migra\u00e7\u00e3o do N\u00edvel Global conclu\u00edda: +", "Global Level migration complete: +") + amount + " XP \u2022 " + l.choose("N\u00edvel ", "Level ") + this.snapshot(p).level()), (TextColor)NamedTextColor.GOLD));
+            p.sendMessage((Component)Component.text((String)("\u2726 " + "Global Level migration complete: +" + amount + " XP \u2022 " + "Level " + this.snapshot(p).level()), (TextColor)NamedTextColor.GOLD));
         }
         return amount;
     }
@@ -300,10 +300,10 @@ public final class GlobalLevelService {
         Language l = Language.of(p);
         long strengthBefore = before / (long)this.levelsPerStrength * (long)this.strengthPerGroup;
         long strengthAfter = after / (long)this.levelsPerStrength * (long)this.strengthPerGroup;
-        Component title = Component.text("\u2726 " + l.choose("N\u00cdVEL GLOBAL AUMENTOU!", "GLOBAL LEVEL UP!") + " \u2726", (TextColor)NamedTextColor.GOLD);
+        Component title = Component.text("\u2726 " + "GLOBAL LEVEL UP!" + " \u2726", (TextColor)NamedTextColor.GOLD);
         List<Component> lines = new ArrayList<>();
         lines.add(Component.text(before + " \u2192 " + after, (TextColor)NamedTextColor.GREEN));
-        lines.add(Component.text("+" + Math.round((double)(after - before) * this.hpPerLevel) + " " + l.choose("HP m\u00e1ximo", "max HP"), (TextColor)NamedTextColor.RED));
+        lines.add(Component.text("+" + Math.round((double)(after - before) * this.hpPerLevel) + " " + "max HP", (TextColor)NamedTextColor.RED));
         if (strengthAfter > strengthBefore) {
             lines.add(Component.text("+" + (strengthAfter - strengthBefore) + " Strength", (TextColor)NamedTextColor.AQUA));
         }
@@ -312,12 +312,10 @@ public final class GlobalLevelService {
         // foi desbloqueado" spec, same idea CollectionsService's own milestone messages
         // already follow, just for Global Level's own thresholds instead of a catalog.
         if (before < (long) this.telekinesisLevel && after >= (long) this.telekinesisLevel) {
-            lines.add(Component.text("\u2726 " + l.choose("Desbloqueado: Telecinese (drops pr\u00f3ximos v\u00eam at\u00e9 voc\u00ea)",
-                    "Unlocked: Telekinesis (nearby drops come to you)"), NamedTextColor.LIGHT_PURPLE));
+            lines.add(Component.text("\u2726 " + "Unlocked: Telekinesis (nearby drops come to you)", NamedTextColor.LIGHT_PURPLE));
         }
         if (before < (long) this.deathTeleportLevel && after >= (long) this.deathTeleportLevel) {
-            lines.add(Component.text("\u2726 " + l.choose("Desbloqueado: Teleporte da B\u00fassola da Morte",
-                    "Unlocked: Death Compass teleport"), NamedTextColor.LIGHT_PURPLE));
+            lines.add(Component.text("\u2726 " + "Unlocked: Death Compass teleport", NamedTextColor.LIGHT_PURPLE));
         }
         dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }

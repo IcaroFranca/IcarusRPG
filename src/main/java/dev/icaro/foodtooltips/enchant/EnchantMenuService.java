@@ -224,22 +224,22 @@ public final class EnchantMenuService {
 
     private void openMain(Player p, int page) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Mesa de Encantamento", "Enchanting Table"));
+        Inventory v = Bukkit.createInventory(null, 54, "Enchanting Table");
         this.fill(v);
         ItemStack pending = this.pendingItem.remove(p.getUniqueId());
         v.setItem(ITEM_SLOT, pending);
         v.setItem(TABLE_ICON_SLOT, this.item(Material.ENCHANTING_TABLE,
-                l.choose("Mesa de Encantamento", "Enchanting Table"),
-                List.of(this.text(l.choose("Apenas representação.", "Just a representation."), NamedTextColor.GRAY))));
+                "Enchanting Table",
+                List.of(this.text("Just a representation.", NamedTextColor.GRAY))));
         List<Component> bookshelfLore = new ArrayList<>();
         bookshelfLore.add(this.text(this.bookshelfPower(p) + " / " + BOOKSHELF_POWER_CAP, NamedTextColor.AQUA));
-        for (String part : LoreWrap.wrapText(l.choose("Necessário para desbloquear alguns encantamentos e níveis.", "Needed to unlock some enchantments and levels."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Needed to unlock some enchantments and levels.", LoreWrap.DEFAULT_WIDTH)) {
             bookshelfLore.add(this.text(part, NamedTextColor.DARK_GRAY));
         }
-        v.setItem(BOOKSHELF_SLOT, this.item(Material.BOOKSHELF, l.choose("Poder das Estantes", "Bookshelf Power"), bookshelfLore));
+        v.setItem(BOOKSHELF_SLOT, this.item(Material.BOOKSHELF, "Bookshelf Power", bookshelfLore));
         v.setItem(GUIDE_SLOT, this.item(Material.BOOK,
-                l.choose("Guia de Encantamentos", "Enchantment Guide"),
-                List.of(this.text(l.choose("Clique para ver todos os encantamentos.", "Click to see every enchantment."), NamedTextColor.YELLOW))));
+                "Enchantment Guide",
+                List.of(this.text("Click to see every enchantment.", NamedTextColor.YELLOW))));
         this.renderMainCatalog(v, p, page);
         this.openScreen(p, v, ITEM_SLOT);
         this.views.put(p.getUniqueId(), new View(Type.MAIN, page, null));
@@ -255,8 +255,8 @@ public final class EnchantMenuService {
             int index = page * CATALOG_SLOTS.length + i;
             v.setItem(CATALOG_SLOTS[i], index < all.size() ? this.catalogIcon(all.get(index), currentItem, l, pt) : this.filler());
         }
-        v.setItem(SCROLL_UP_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
-        v.setItem(SCROLL_DOWN_SLOT, (page + 1) * CATALOG_SLOTS.length < all.size() ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
+        v.setItem(SCROLL_UP_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, "Previous page") : this.filler());
+        v.setItem(SCROLL_DOWN_SLOT, (page + 1) * CATALOG_SLOTS.length < all.size() ? this.head(HeadKind.SCROLL_DOWN, "Next page") : this.filler());
     }
 
     /**
@@ -312,12 +312,12 @@ public final class EnchantMenuService {
         Inventory v = Bukkit.createInventory(null, 54, enchant.catalogName(pt));
         this.fill(v);
         ItemStack item = this.pendingItem.get(p.getUniqueId());
-        v.setItem(LEVEL_PREVIEW_SLOT, item == null ? this.item(Material.BARRIER, l.choose("Nenhum item", "No item"), List.of()) : item.clone());
+        v.setItem(LEVEL_PREVIEW_SLOT, item == null ? this.item(Material.BARRIER, "No item", List.of()) : item.clone());
         int current = item == null ? 0 : this.enchants.levelOf(item, enchant);
         for (int level = 1; level <= enchant.maxLevel() && level <= LEVEL_SLOTS.length; level++) {
             v.setItem(LEVEL_SLOTS[level - 1], this.levelIcon(p, enchant, level, current, item, l, pt));
         }
-        v.setItem(BACK_SLOT, this.item(Material.BARRIER, l.choose("Voltar", "Back"), List.of()));
+        v.setItem(BACK_SLOT, this.item(Material.BARRIER, "Back", List.of()));
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.LEVEL, 0, enchant));
     }
@@ -362,7 +362,7 @@ public final class EnchantMenuService {
         EnchantService.chargeXp(p, cost);
         this.gainEnchantingXp(p, cost);
         this.enchants.setLevel(item, enchant, level, pt);
-        String appliedMsg = l.choose("Aplicado: ", "Applied: ") + enchant.leveledName(pt, level);
+        String appliedMsg = "Applied: " + enchant.leveledName(pt, level);
         // Milestone XP - only for a level actually purchased through this table (never
         // a level skipped over buying straight to a higher one, and never an item
         // that arrived enchanted some other way, since #achieve only ever runs from
@@ -370,7 +370,7 @@ public final class EnchantMenuService {
         if (this.milestones.achieve(p, enchant, level)) {
             long milestoneXp = level == enchant.maxLevel() ? MILESTONE_MAX_LEVEL_XP : MILESTONE_XP;
             this.global.addGlobalXp(p, milestoneXp, GlobalXpSource.ENCHANT_MILESTONE);
-            appliedMsg += " " + l.choose("(+" + milestoneXp + " XP Global - Milestone!)", "(+" + milestoneXp + " Global XP - Milestone!)");
+            appliedMsg += " " + ("(+" + milestoneXp + " Global XP - Milestone!)");
         }
         p.sendMessage(this.msg(appliedMsg, NamedTextColor.GREEN));
         this.openMain(p, 0);
@@ -393,12 +393,12 @@ public final class EnchantMenuService {
     private void enchantingLevelUpMessage(Player p, int before, int after, long globalXp) {
         Language l = Language.of(p);
         int gained = after - before;
-        Component title = Component.text("✦ " + SkillType.ENCHANTING.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE NÍVEL!", "LEVEL UP!") + " ✦", NamedTextColor.GOLD);
+        Component title = Component.text("✦ " + SkillType.ENCHANTING.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + "LEVEL UP!" + " ✦", NamedTextColor.GOLD);
         List<Component> lines = new ArrayList<>();
         lines.add(Component.text(before + " → " + after, NamedTextColor.GREEN));
-        lines.add(Component.text("+" + (gained * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence")
-                + ", +" + (gained * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA));
-        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + (gained * this.general.intelligencePerLevel()) + " " + "Intelligence"
+                + ", +" + (gained * this.general.xpOrbPercentPerLevel()) + "% " + "XP Orbs", NamedTextColor.AQUA));
+        lines.add(Component.text("+" + globalXp + " " + "Global Level XP", NamedTextColor.AQUA));
         dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
@@ -414,7 +414,7 @@ public final class EnchantMenuService {
         List<EnchantEntry> all = this.filteredGuideEntries(p, pt);
         int pages = Math.max(1, (all.size() + GUIDE_CATALOG_SLOTS.length - 1) / GUIDE_CATALOG_SLOTS.length);
         page = Math.max(0, Math.min(pages - 1, page));
-        String title = "(" + (page + 1) + "/" + pages + ") " + l.choose("Guia de Encantamentos", "Enchantment Guide");
+        String title = "(" + (page + 1) + "/" + pages + ") " + "Enchantment Guide";
         Inventory v = Bukkit.createInventory(null, 54, title);
         this.fill(v);
         for (int i = 0; i < GUIDE_CATALOG_SLOTS.length; i++) {
@@ -423,17 +423,17 @@ public final class EnchantMenuService {
         }
         // KNOWLEDGE_BOOK is the green-covered book material - matches the reference image, purely decorative here.
         v.setItem(GUIDE_TITLE_SLOT, this.item(Material.KNOWLEDGE_BOOK, title, List.of()));
-        v.setItem(GUIDE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
-        v.setItem(GUIDE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
-        v.setItem(GUIDE_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar ao menu", "Back to menu"), List.of()));
-        v.setItem(GUIDE_CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, l.choose("Fechar", "Close"), List.of()));
+        v.setItem(GUIDE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, "Previous page") : this.filler());
+        v.setItem(GUIDE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, "Next page") : this.filler());
+        v.setItem(GUIDE_BACK_SLOT, this.customHead(HeadTexture.BACK, "Back to menu", List.of()));
+        v.setItem(GUIDE_CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, "Close", List.of()));
         String search = this.guideSearch.get(p.getUniqueId());
         List<Component> searchLore = search == null || search.isBlank()
-                ? List.of(this.text(l.choose("Clique para pesquisar.", "Click to search."), NamedTextColor.YELLOW))
-                : List.of(this.text(l.choose("Pesquisando: ", "Searching: ") + search, NamedTextColor.AQUA),
-                        this.text(l.choose("Clique para pesquisar de novo.", "Click to search again."), NamedTextColor.YELLOW),
-                        this.text(l.choose("Shift+clique para limpar.", "Shift+click to clear."), NamedTextColor.GRAY));
-        v.setItem(GUIDE_SEARCH_SLOT, this.item(Material.OAK_SIGN, l.choose("Pesquisar", "Search"), searchLore));
+                ? List.of(this.text("Click to search.", NamedTextColor.YELLOW))
+                : List.of(this.text("Searching: " + search, NamedTextColor.AQUA),
+                        this.text("Click to search again.", NamedTextColor.YELLOW),
+                        this.text("Shift+click to clear.", NamedTextColor.GRAY));
+        v.setItem(GUIDE_SEARCH_SLOT, this.item(Material.OAK_SIGN, "Search", searchLore));
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.GUIDE, page, null));
     }
@@ -446,21 +446,21 @@ public final class EnchantMenuService {
      */
     public void openMilestoneCategories(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Milestones de Encantamento", "Enchantment Milestones"));
+        Inventory v = Bukkit.createInventory(null, 54, "Enchantment Milestones");
         this.fill(v);
         List<Component> weaponsLore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(l.choose("Espada, Tridente, Maça, Arco, Besta, Lança.", "Sword, Trident, Mace, Bow, Crossbow, Spear."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Sword, Trident, Mace, Bow, Crossbow, Spear.", LoreWrap.DEFAULT_WIDTH)) {
             weaponsLore.add(this.text(part, NamedTextColor.GRAY));
         }
-        v.setItem(CATEGORY_WEAPONS_SLOT, this.item(Material.NETHERITE_SWORD, l.choose("Armas", "Weapons"), weaponsLore));
-        v.setItem(CATEGORY_TOOLS_SLOT, this.item(Material.NETHERITE_PICKAXE, l.choose("Ferramentas", "Tools"),
-                List.of(this.text(l.choose("Picareta, Machado, Pá, Enxada.", "Pickaxe, Axe, Shovel, Hoe."), NamedTextColor.GRAY))));
+        v.setItem(CATEGORY_WEAPONS_SLOT, this.item(Material.NETHERITE_SWORD, "Weapons", weaponsLore));
+        v.setItem(CATEGORY_TOOLS_SLOT, this.item(Material.NETHERITE_PICKAXE, "Tools",
+                List.of(this.text("Pickaxe, Axe, Shovel, Hoe.", NamedTextColor.GRAY))));
         List<Component> armorLore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(l.choose("Capacete, Peitoral, Calça, Bota, Elytra.", "Helmet, Chestplate, Leggings, Boots, Elytra."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Helmet, Chestplate, Leggings, Boots, Elytra.", LoreWrap.DEFAULT_WIDTH)) {
             armorLore.add(this.text(part, NamedTextColor.GRAY));
         }
-        v.setItem(CATEGORY_ARMOR_SLOT, this.item(Material.NETHERITE_CHESTPLATE, l.choose("Armadura", "Armor"), armorLore));
-        v.setItem(CATEGORY_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        v.setItem(CATEGORY_ARMOR_SLOT, this.item(Material.NETHERITE_CHESTPLATE, "Armor", armorLore));
+        v.setItem(CATEGORY_BACK_SLOT, this.customHead(HeadTexture.BACK, "Back", List.of()));
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.CATEGORIES, 0, null));
     }
@@ -488,9 +488,9 @@ public final class EnchantMenuService {
             v.setItem(MILESTONE_CATALOG_SLOTS[i], index < all.size() ? this.milestoneIcon(p, all.get(index), pt) : this.filler());
         }
         v.setItem(MILESTONE_TITLE_SLOT, this.item(Material.KNOWLEDGE_BOOK, categoryName, List.of()));
-        v.setItem(MILESTONE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, l.choose("Página anterior", "Previous page")) : this.filler());
-        v.setItem(MILESTONE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, l.choose("Próxima página", "Next page")) : this.filler());
-        v.setItem(MILESTONE_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às categorias", "Back to categories"), List.of()));
+        v.setItem(MILESTONE_PREV_PAGE_SLOT, page > 0 ? this.head(HeadKind.SCROLL_UP, "Previous page") : this.filler());
+        v.setItem(MILESTONE_NEXT_PAGE_SLOT, page + 1 < pages ? this.head(HeadKind.SCROLL_DOWN, "Next page") : this.filler());
+        v.setItem(MILESTONE_BACK_SLOT, this.customHead(HeadTexture.BACK, "Back to categories", List.of()));
         this.milestoneCategory.put(p.getUniqueId(), category);
         this.openScreen(p, v);
         this.views.put(p.getUniqueId(), new View(Type.MILESTONES, page, null));
@@ -534,9 +534,9 @@ public final class EnchantMenuService {
 
     private String categoryName(EnchantCategory category, boolean pt) {
         return switch (category) {
-            case WEAPONS -> pt ? "Armas" : "Weapons";
-            case TOOLS -> pt ? "Ferramentas" : "Tools";
-            case ARMOR -> pt ? "Armadura" : "Armor";
+            case WEAPONS -> "Weapons";
+            case TOOLS -> "Tools";
+            case ARMOR -> "Armor";
         };
     }
 
@@ -545,13 +545,13 @@ public final class EnchantMenuService {
         int max = e.maxLevel();
         for (int level = 1; level <= max; level++) {
             boolean achieved = this.milestones.hasAchieved(p, e, level);
-            String label = (pt ? "Nível " : "Level ") + EnchantService.roman(level);
+            String label = "Level " + EnchantService.roman(level);
             lore.add(this.text((achieved ? "✔ " : "✘ ") + label, achieved ? NamedTextColor.GREEN : NamedTextColor.RED));
         }
         lore.add(Component.empty());
         List<ItemType> applicable = this.applicableItemTypes(e);
-        List<String> names = applicable.stream().map(t -> pt ? t.pt() : t.en()).collect(java.util.stream.Collectors.toList());
-        for (String line : LoreWrap.wrapList(pt ? "Aplicável em: " : "Applies to: ", names, LoreWrap.DEFAULT_WIDTH)) {
+        List<String> names = applicable.stream().map(ItemType::en).collect(java.util.stream.Collectors.toList());
+        for (String line : LoreWrap.wrapList("Applies to: ", names, LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(line, NamedTextColor.GRAY));
         }
         return this.enchantedBook(e.catalogName(pt), lore);
@@ -838,7 +838,7 @@ public final class EnchantMenuService {
             lore.addAll(desc);
             lore.add(Component.empty());
         }
-        lore.add(this.text(l.choose("Clique para escolher o nível.", "Click to choose a level."), NamedTextColor.YELLOW));
+        lore.add(this.text("Click to choose a level.", NamedTextColor.YELLOW));
         return this.enchantedBook(e.catalogName(pt), lore);
     }
 
@@ -856,8 +856,8 @@ public final class EnchantMenuService {
         }
         String name = e.leveledName(pt, level);
         if (level <= current) {
-            lore.add(this.text(e.costAtLevel(level) + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
-            lore.add(this.text(l.choose("JÁ APLICADO", "ALREADY APPLIED"), NamedTextColor.GREEN));
+            lore.add(this.text(e.costAtLevel(level) + " " + "XP levels", NamedTextColor.DARK_AQUA));
+            lore.add(this.text("ALREADY APPLIED", NamedTextColor.GREEN));
             return this.item(Material.ENCHANTED_BOOK, name, lore);
         }
         // Any level above current is directly clickable - no need to apply every
@@ -871,22 +871,22 @@ public final class EnchantMenuService {
             // Reapplication discount (see #discountedCost) - the more of this entry's
             // own level range already applied, the bigger the cut on everything still
             // above it, shown as the discounted price next to the original struck through.
-            lore.add(this.text(originalCost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA)
+            lore.add(this.text(originalCost + " " + "XP levels", NamedTextColor.DARK_AQUA)
                     .decoration(TextDecoration.STRIKETHROUGH, true));
-            lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.GREEN));
+            lore.add(this.text(cost + " " + "XP levels", NamedTextColor.GREEN));
         } else {
-            lore.add(this.text(cost + " " + l.choose("níveis de XP", "XP levels"), NamedTextColor.DARK_AQUA));
+            lore.add(this.text(cost + " " + "XP levels", NamedTextColor.DARK_AQUA));
         }
         int requiredPower = e.requiredBookshelfPower(level);
         if (requiredPower > 0 && this.bookshelfPower(p) < requiredPower) {
-            lore.add(this.text(l.choose("Requer " + requiredPower + " de Bookshelf Power.", "Requires " + requiredPower + " Bookshelf Power."), NamedTextColor.RED));
+            lore.add(this.text(("Requires " + requiredPower + " Bookshelf Power."), NamedTextColor.RED));
             return this.item(Material.BOOK, name, lore);
         }
         if (p.getLevel() < cost) {
-            lore.add(this.text(l.choose("XP insuficiente para aplicar.", "Not enough XP to apply."), NamedTextColor.RED));
+            lore.add(this.text("Not enough XP to apply.", NamedTextColor.RED));
             return this.item(Material.BOOK, name, lore);
         }
-        lore.add(this.text(l.choose("Clique para aplicar!", "Click to apply!"), NamedTextColor.GOLD));
+        lore.add(this.text("Click to apply!", NamedTextColor.GOLD));
         return this.item(Material.ENCHANTED_BOOK, name, lore);
     }
 

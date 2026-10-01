@@ -201,86 +201,74 @@ public final class SkillsMenuService {
      */
     public void openMain(Player p) {
         Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Habilidades", "Skills"));
+        Inventory v = this.inv("Skills");
         v.setItem(13, this.head(p, l));
-        v.setItem(19, this.item(Material.DIAMOND_SWORD, l.choose("Skills", "Skills"), List.of(
-                this.text(l.choose("Combate, Mineração, Agricultura, Coleta,", "Combat, Mining, Farming, Foraging,"), NamedTextColor.GRAY),
-                this.text(l.choose("Pesca, Alquimia e Encantamento.", "Fishing, Alchemy and Enchanting."), NamedTextColor.GRAY),
+        v.setItem(19, this.item(Material.DIAMOND_SWORD, "Skills", List.of(
+                this.text("Combat, Mining, Farming, Foraging,", NamedTextColor.GRAY),
+                this.text("Fishing, Alchemy and Enchanting.", NamedTextColor.GRAY),
                 this.click(l))));
         v.setItem(22, this.globalLevelIcon(p, l));
         if (this.levelColors != null) {
-            v.setItem(45, this.item(Material.NAME_TAG, l.choose("Cores do Nível", "Level Colors"), List.of(this.click(l))));
+            v.setItem(45, this.item(Material.NAME_TAG, "Level Colors", List.of(this.click(l))));
         }
         if (this.travel != null) {
-            v.setItem(49, this.customHead(HeadTexture.PLANET, l.choose("Locais", "Locations"), List.of(this.click(l))));
+            v.setItem(49, this.customHead(HeadTexture.PLANET, "Locations", List.of(this.click(l))));
         }
         if (this.crafting != null) {
-            v.setItem(31, this.item(Material.CRAFTING_TABLE, l.choose("Mesa de Trabalho", "Crafting Table"), List.of(this.click(l))));
+            v.setItem(31, this.item(Material.CRAFTING_TABLE, "Crafting Table", List.of(this.click(l))));
         }
         if (this.recipeBook != null) {
             List<Component> bookLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Veja todos os itens que podem ser craftados no IcarusRPG e suas receitas.",
-                    "See every item craftable in IcarusRPG and its recipe."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("See every item craftable in IcarusRPG and its recipe.", LoreWrap.DEFAULT_WIDTH)) {
                 bookLore.add(this.text(part, NamedTextColor.GRAY));
             }
             bookLore.add(this.click(l));
-            v.setItem(21, this.item(Material.WRITTEN_BOOK, l.choose("Livro de Receitas", "Recipe Book"), bookLore));
+            v.setItem(21, this.item(Material.WRITTEN_BOOK, "Recipe Book", bookLore));
         }
         if (this.collections != null) {
             List<Component> collectionsLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Veja os drops de Combate, Mineração, Agricultura, Coleta e Pesca, e desbloqueie recompensas coletando cada um.",
-                    "See Combat, Mining, Farming, Foraging and Fishing drops, and unlock rewards by collecting each one."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("See Combat, Mining, Farming, Foraging and Fishing drops, and unlock rewards by collecting each one.", LoreWrap.DEFAULT_WIDTH)) {
                 collectionsLore.add(this.text(part, NamedTextColor.GRAY));
             }
             collectionsLore.add(this.click(l));
-            v.setItem(20, this.customHead(HeadTexture.BUNDLE, l.choose("Coleções", "Collections"), collectionsLore));
+            v.setItem(20, this.customHead(HeadTexture.BUNDLE, "Collections", collectionsLore));
         }
         if (this.trash != null) {
-            v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"), List.of(this.click(l))));
+            v.setItem(TRASH_BUTTON_SLOT, this.customHead(HeadTexture.TRASH_CAN, "Trash Can", List.of(this.click(l))));
         }
         if (this.passiveAbilities != null) {
             List<Component> passiveLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Ative ou desative habilidades passivas como a Telecinese, separadamente para drops de mobs e de blocos.",
-                    "Turn passive abilities like Telekinesis on or off, separately for mob drops and block drops."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Turn passive abilities like Telekinesis on or off, separately for mob drops and block drops.", LoreWrap.DEFAULT_WIDTH)) {
                 passiveLore.add(this.text(part, NamedTextColor.GRAY));
             }
             passiveLore.add(this.click(l));
-            v.setItem(PASSIVE_ABILITIES_SLOT, this.customHead(HeadTexture.SUPER_MUSHROOM, l.choose("Habilidades Passivas", "Passive Abilities"), passiveLore));
+            v.setItem(PASSIVE_ABILITIES_SLOT, this.customHead(HeadTexture.SUPER_MUSHROOM, "Passive Abilities", passiveLore));
         }
         if ((this.quiver != null && this.quiver.unlocked(p)) || (this.potionBag != null && this.potionBag.unlocked(p))) {
             List<Component> bagsLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Aljava e Bolsa de Poções, num só lugar.",
-                    "Quiver and Potion Bag, in one place."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Quiver and Potion Bag, in one place.", LoreWrap.DEFAULT_WIDTH)) {
                 bagsLore.add(this.text(part, NamedTextColor.GRAY));
             }
             bagsLore.add(this.click(l));
-            v.setItem(BAGS_BUTTON_SLOT, this.customHead(HeadTexture.QUIVER, l.choose("Suas Bolsas", "Your Bags"), bagsLore));
+            v.setItem(BAGS_BUTTON_SLOT, this.customHead(HeadTexture.QUIVER, "Your Bags", bagsLore));
         }
         if (this.wardrobe != null && this.wardrobe.unlocked(p)) {
             List<Component> wardrobeLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Guarde sets de armadura e equipe-os instantaneamente.",
-                    "Store armor sets and equip them instantly."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Store armor sets and equip them instantly.", LoreWrap.DEFAULT_WIDTH)) {
                 wardrobeLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            wardrobeLore.add(this.text(this.wardrobe.columns(p) + "/" + WardrobeService.COLUMNS + " " + l.choose("colunas", "columns"), NamedTextColor.GOLD));
+            wardrobeLore.add(this.text(this.wardrobe.columns(p) + "/" + WardrobeService.COLUMNS + " " + "columns", NamedTextColor.GOLD));
             wardrobeLore.add(this.click(l));
             v.setItem(WARDROBE_SLOT, this.wardrobeIcon(wardrobeLore));
         }
         if (this.storage != null && this.storage.unlocked(p)) {
             List<Component> storageLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Guarde qualquer item separado do seu inventário.",
-                    "Store any item separately from your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Store any item separately from your inventory.", LoreWrap.DEFAULT_WIDTH)) {
                 storageLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            storageLore.add(this.text(this.storage.storageSize(p) + "/" + PersonalStorageService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
+            storageLore.add(this.text(this.storage.storageSize(p) + "/" + PersonalStorageService.MAX_SLOTS + " " + "slots", NamedTextColor.GOLD));
             storageLore.add(this.click(l));
-            v.setItem(PERSONAL_STORAGE_SLOT, this.item(Material.ENDER_CHEST, l.choose("Armazenamento Pessoal", "Personal Storage"), storageLore));
+            v.setItem(PERSONAL_STORAGE_SLOT, this.item(Material.ENDER_CHEST, "Personal Storage", storageLore));
         }
         this.open(p, v, new View(Type.MAIN, 0, null));
     }
@@ -297,12 +285,10 @@ public final class SkillsMenuService {
      */
     public void openBags(Player p) {
         Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Suas Bolsas", "Your Bags"));
+        Inventory v = this.inv("Your Bags");
         if (this.quiver != null && this.quiver.unlocked(p)) {
             List<Component> quiverLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "O arco puxa flechas daqui direto, sem precisar deixá-las no inventário.",
-                    "The bow pulls arrows from here directly, without needing to keep them in your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("The bow pulls arrows from here directly, without needing to keep them in your inventory.", LoreWrap.DEFAULT_WIDTH)) {
                 quiverLore.add(this.text(part, NamedTextColor.GRAY));
             }
             quiverLore.add(this.click(l));
@@ -310,34 +296,26 @@ public final class SkillsMenuService {
         }
         if (this.potionBag != null && this.potionBag.unlocked(p)) {
             List<Component> potionBagLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Guarde poções, garrafas de XP e garrafas d'água separadamente do seu inventário.",
-                    "Store potions, XP bottles and water bottles separately from your inventory."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Store potions, XP bottles and water bottles separately from your inventory.", LoreWrap.DEFAULT_WIDTH)) {
                 potionBagLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            potionBagLore.add(this.text(this.potionBag.storageSize(p) + "/" + PotionBagService.MAX_SLOTS + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
+            potionBagLore.add(this.text(this.potionBag.storageSize(p) + "/" + PotionBagService.MAX_SLOTS + " " + "slots", NamedTextColor.GOLD));
             potionBagLore.add(this.click(l));
-            v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, l.choose("Bolsa de Poções", "Potion Bag"), potionBagLore));
+            v.setItem(POTION_BAG_SLOT, this.customHead(HeadTexture.POTION_BAG, "Potion Bag", potionBagLore));
         }
         if (this.accessoryBag != null && this.accessoryBag.unlocked(p)) {
             List<Component> accessoryLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose(
-                    "Guarde vários acessórios (Talismãs, Anéis, Artefatos) aqui dentro.",
-                    "Store several accessories (Talismans, Rings, Artifacts) in here."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Store several accessories (Talismans, Rings, Artifacts) in here.", LoreWrap.DEFAULT_WIDTH)) {
                 accessoryLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            accessoryLore.add(this.text(AccessoryBagService.STORAGE_SIZE + " " + l.choose("slots", "slots"), NamedTextColor.GOLD));
+            accessoryLore.add(this.text(AccessoryBagService.STORAGE_SIZE + " " + "slots", NamedTextColor.GOLD));
             accessoryLore.add(this.click(l));
-            v.setItem(ACCESSORY_BAG_SLOT, this.item(Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), accessoryLore));
+            v.setItem(ACCESSORY_BAG_SLOT, this.item(Material.BUNDLE, "Accessory Bag", accessoryLore));
         } else {
-            v.setItem(ACCESSORY_BAG_SLOT, this.comingSoon(l, Material.BUNDLE, l.choose("Bolsa de Acessórios", "Accessory Bag"), l.choose(
-                    "Guarde acessórios separadamente do seu inventário.",
-                    "Store accessories separately from your inventory.")));
+            v.setItem(ACCESSORY_BAG_SLOT, this.comingSoon(l, Material.BUNDLE, "Accessory Bag", "Store accessories separately from your inventory."));
         }
-        v.setItem(SACK_OF_SACKS_SLOT, this.comingSoon(l, Material.BARREL, l.choose("Saco de Sacos", "Sack of Sacks"), l.choose(
-                "Um saco por skill, todos guardados aqui dentro.",
-                "One sack per skill, all stored inside here.")));
-        v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(SACK_OF_SACKS_SLOT, this.comingSoon(l, Material.BARREL, "Sack of Sacks", "One sack per skill, all stored inside here."));
+        v.setItem(49, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         this.open(p, v, new View(Type.BAGS, 0, null));
     }
 
@@ -348,7 +326,7 @@ public final class SkillsMenuService {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Em breve.", "Coming soon."), NamedTextColor.DARK_GRAY));
+        lore.add(this.text("Coming soon.", NamedTextColor.DARK_GRAY));
         ItemStack item = ItemStack.of(icon);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(this.text("✖ " + name, NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
@@ -361,36 +339,36 @@ public final class SkillsMenuService {
     /** The Combat button plus every {@link #S} entry, previously scattered directly on the MAIN screen - consolidated into their own screen (reached from MAIN's own Skills button, slot 19) once the main menu had too many buttons crammed onto one screen. */
     public void openSkillsList(Player p) {
         Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Tipos de Skill", "Skill Types"));
-        v.setItem(20, this.item(Material.IRON_SWORD, l.choose("Combate", "Combat"), List.of(this.combatLine(p, l), this.click(l))));
+        Inventory v = this.inv("Skill Types");
+        v.setItem(20, this.item(Material.IRON_SWORD, "Combat", List.of(this.combatLine(p, l), this.click(l))));
         for (Map.Entry<Integer, SkillType> e : S.entrySet()) {
             SkillType t = e.getValue();
             v.setItem(e.getKey(), this.item(t.icon(), t.name(l == Language.PT), List.of(this.skillLine(p, t, l), this.click(l))));
         }
-        v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(49, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         this.open(p, v, new View(Type.SKILLS_LIST, 0, null));
     }
 
     public void openCombat(Player p, int page) {
         page = this.clamp(page, this.combat.maxLevel());
         Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Skill de Combate", "Combat Skill"));
+        Inventory v = this.inv("Combat Skill");
         CombatProgress x = this.combat.progress(p);
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
-            ArrayList<Component> lore = new ArrayList<>(List.of(this.text("+0.5% " + l.choose("Chance crítica", "Crit Chance"), NamedTextColor.AQUA), this.text("+4% " + l.choose("de dano", "Damage"), NamedTextColor.RED)));
+            ArrayList<Component> lore = new ArrayList<>(List.of(this.text("+0.5% " + "Crit Chance", NamedTextColor.AQUA), this.text("+4% " + "Damage", NamedTextColor.RED)));
             double speedGain = this.combat.attackSpeed(level) - this.combat.attackSpeed(level - 1);
             if (speedGain > 1.0E-4) {
-                lore.add(this.text("+" + String.format(Locale.US, "%.2f", speedGain) + " " + l.choose("Velocidade de Ataque", "Attack Speed"), NamedTextColor.YELLOW));
+                lore.add(this.text("+" + String.format(Locale.US, "%.2f", speedGain) + " " + "Attack Speed", NamedTextColor.YELLOW));
             }
             if (level == x.level() + 1) {
                 lore.add(this.xp(x.xp(), x.requiredXp()));
             }
             v.setItem(N[i], this.node(level, x.level(), l, lore));
         }
-        v.setItem(0, this.item(Material.IRON_SWORD, l.choose("Progressão de Combate", "Combat Progression"), List.of(this.combatLine(p, l))));
-        v.setItem(39, this.item(Material.KNOWLEDGE_BOOK, l.choose("Bestiário", "Bestiary"), List.of(this.click(l))));
-        v.setItem(41, this.item(Material.CHEST, l.choose("Árvore de Combate", "Combat Tree"), List.of(this.click(l))));
+        v.setItem(0, this.item(Material.IRON_SWORD, "Combat Progression", List.of(this.combatLine(p, l))));
+        v.setItem(39, this.item(Material.KNOWLEDGE_BOOK, "Bestiary", List.of(this.click(l))));
+        v.setItem(41, this.item(Material.CHEST, "Combat Tree", List.of(this.click(l))));
         this.nav(v, l, page, this.combat.maxLevel());
         this.open(p, v, new View(Type.COMBAT, page, null));
     }
@@ -402,45 +380,45 @@ public final class SkillsMenuService {
         SkillProgress x = this.general.progress(p, t);
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
-            ArrayList<Component> lore = new ArrayList<>(List.of(this.text(l.choose("Continue usando esta skill para evoluir.", "Keep using this skill to level up."), NamedTextColor.GRAY)));
+            ArrayList<Component> lore = new ArrayList<>(List.of(this.text("Keep using this skill to level up.", NamedTextColor.GRAY)));
             lore.addAll(this.attributeRewardLines(t, l));
             List<String> enchantUnlocks = t == SkillType.ENCHANTING && this.enchantMenu != null ? this.enchantMenu.enchantingUnlocksAtLevel(level, l == Language.PT) : List.of();
             if (t == SkillType.MINING && level == 3) {
-                lore.add(this.text("✦ " + l.choose("Desbloqueia: Vein Miner", "Unlocks: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
+                lore.add(this.text("✦ " + "Unlocks: Vein Miner", NamedTextColor.LIGHT_PURPLE));
             } else if (!enchantUnlocks.isEmpty()) {
                 for (String name : enchantUnlocks) {
-                    lore.add(this.text("✦ " + l.choose("Desbloqueia encantamento: ", "Unlocks enchantment: ") + name, NamedTextColor.LIGHT_PURPLE));
+                    lore.add(this.text("✦ " + "Unlocks enchantment: " + name, NamedTextColor.LIGHT_PURPLE));
                 }
             } else {
-                lore.add(this.text(l.choose("Nenhuma habilidade neste nível.", "No ability at this level."), NamedTextColor.DARK_GRAY));
+                lore.add(this.text("No ability at this level.", NamedTextColor.DARK_GRAY));
             }
             if (level == x.level() + 1) {
                 lore.add(this.xp(x.xp(), x.requiredXp()));
             }
             v.setItem(N[i], this.node(level, x.level(), l, lore));
         }
-        v.setItem(0, this.item(t.icon(), l.choose("Progressão de ", "Progression: ") + t.name(l == Language.PT), List.of(this.skillLine(p, t, l))));
+        v.setItem(0, this.item(t.icon(), "Progression: " + t.name(l == Language.PT), List.of(this.skillLine(p, t, l))));
         if (t == SkillType.MINING) {
             List<Component> compendiumLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose("Contadores, milestones, XP, drops e camadas.", "Counters, milestones, XP, drops and layers."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Counters, milestones, XP, drops and layers.", LoreWrap.DEFAULT_WIDTH)) {
                 compendiumLore.add(this.text(part, NamedTextColor.YELLOW));
             }
-            v.setItem(40, this.item(Material.BOOK, l.choose("Compêndio de Mineração", "Mining Compendium"), compendiumLore));
+            v.setItem(40, this.item(Material.BOOK, "Mining Compendium", compendiumLore));
         } else if (t == SkillType.ENCHANTING && this.enchantMenu != null) {
             List<Component> milestonesLore = new ArrayList<>();
-            for (String part : LoreWrap.wrapText(l.choose("Progresso por encantamento, filtrado por Armas/Ferramentas/Armadura.", "Progress per enchantment, filtered by Weapons/Tools/Armor."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Progress per enchantment, filtered by Weapons/Tools/Armor.", LoreWrap.DEFAULT_WIDTH)) {
                 milestonesLore.add(this.text(part, NamedTextColor.YELLOW));
             }
-            for (String part : LoreWrap.wrapText(l.choose("Só conta o que foi aplicado na Mesa de Encantamento.", "Only counts what was applied at the Enchanting Table."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("Only counts what was applied at the Enchanting Table.", LoreWrap.DEFAULT_WIDTH)) {
                 milestonesLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            v.setItem(39, this.item(Material.ENCHANTED_BOOK, l.choose("Milestones de Encantamento", "Enchantment Milestones"), milestonesLore));
-            v.setItem(41, this.item(Material.BOOK, l.choose("Guia de Encantamentos", "Enchantment Guide"), List.of(this.text(l.choose("Veja todos os encantamentos disponíveis.", "See every enchantment available."), NamedTextColor.YELLOW))));
+            v.setItem(39, this.item(Material.ENCHANTED_BOOK, "Enchantment Milestones", milestonesLore));
+            v.setItem(41, this.item(Material.BOOK, "Enchantment Guide", List.of(this.text("See every enchantment available.", NamedTextColor.YELLOW))));
         } else if (t == SkillType.ALCHEMY && this.potionGuide != null) {
-            v.setItem(39, this.item(Material.BREWING_STAND, l.choose("Milestones de Poção", "Potion Milestones"),
-                    List.of(this.text(l.choose("Quais poções você já preparou.", "Which potions you've already brewed."), NamedTextColor.YELLOW))));
-            v.setItem(41, this.item(Material.BOOK, l.choose("Guia de Poções", "Potion Guide"),
-                    List.of(this.text(l.choose("Veja como preparar cada poção do jogo.", "See how to brew every potion in the game."), NamedTextColor.YELLOW))));
+            v.setItem(39, this.item(Material.BREWING_STAND, "Potion Milestones",
+                    List.of(this.text("Which potions you've already brewed.", NamedTextColor.YELLOW))));
+            v.setItem(41, this.item(Material.BOOK, "Potion Guide",
+                    List.of(this.text("See how to brew every potion in the game.", NamedTextColor.YELLOW))));
         }
         this.nav(v, l, page, this.general.maxLevel());
         this.open(p, v, new View(Type.GENERAL, page, t));
@@ -453,20 +431,20 @@ public final class SkillsMenuService {
             lines.add(this.text("+" + this.general.fortunePerLevel() + " " + t.name(l == Language.PT) + " Fortune", NamedTextColor.AQUA));
         }
         switch (t) {
-            case MINING -> lines.add(this.text("+" + this.general.defensePerLevel() + " " + l.choose("Defesa", "Defense"), NamedTextColor.GREEN));
-            case FARMING, FISHING -> lines.add(this.text("+" + this.general.healthPerLevel() + " " + l.choose("Vida Máxima", "Max Health"), NamedTextColor.RED));
-            case FORAGING -> lines.add(this.text("+" + this.general.strengthPerLevel() + " " + l.choose("Força", "Strength"), NamedTextColor.YELLOW));
-            case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.intelligencePerLevel() + " " + l.choose("Inteligência", "Intelligence"), NamedTextColor.LIGHT_PURPLE));
+            case MINING -> lines.add(this.text("+" + this.general.defensePerLevel() + " " + "Defense", NamedTextColor.GREEN));
+            case FARMING, FISHING -> lines.add(this.text("+" + this.general.healthPerLevel() + " " + "Max Health", NamedTextColor.RED));
+            case FORAGING -> lines.add(this.text("+" + this.general.strengthPerLevel() + " " + "Strength", NamedTextColor.YELLOW));
+            case ALCHEMY, ENCHANTING -> lines.add(this.text("+" + this.general.intelligencePerLevel() + " " + "Intelligence", NamedTextColor.LIGHT_PURPLE));
             default -> {}
         }
         if (t == SkillType.ENCHANTING) {
-            lines.add(this.text("+" + this.general.xpOrbPercentPerLevel() + "% " + l.choose("Orbs de XP", "XP Orbs"), NamedTextColor.AQUA));
+            lines.add(this.text("+" + this.general.xpOrbPercentPerLevel() + "% " + "XP Orbs", NamedTextColor.AQUA));
         }
         if (t == SkillType.ALCHEMY) {
-            lines.add(this.text("+" + this.general.potionDurationPercentPerLevel() + "% " + l.choose("Duração de Poções", "Potion Duration"), NamedTextColor.DARK_PURPLE));
+            lines.add(this.text("+" + this.general.potionDurationPercentPerLevel() + "% " + "Potion Duration", NamedTextColor.DARK_PURPLE));
         }
         if (lines.isEmpty()) {
-            for (String part : LoreWrap.wrapText(l.choose("Nenhuma recompensa de atributo neste nível.", "No attribute reward at this level."), LoreWrap.DEFAULT_WIDTH)) {
+            for (String part : LoreWrap.wrapText("No attribute reward at this level.", LoreWrap.DEFAULT_WIDTH)) {
                 lines.add(this.text(part, NamedTextColor.AQUA));
             }
         }
@@ -477,29 +455,29 @@ public final class SkillsMenuService {
         int maxLevel = (int) Math.max(1L, Math.min(Integer.MAX_VALUE, this.global.maxAchievableLevel()));
         page = this.clamp(page, maxLevel);
         Language l = Language.of(p);
-        Inventory v = this.inv(l.choose("Nível Global", "Global Level"));
+        Inventory v = this.inv("Global Level");
         GlobalLevelSnapshot g = this.global.snapshot(p);
         int currentLevel = (int) Math.min(Integer.MAX_VALUE, g.level());
         int levelsPerStrength = Math.max(1, this.global.levelsPerStrength());
         for (int i = 0; i < 25; ++i) {
             int level = page * 25 + i + 1;
             ArrayList<Component> lore = new ArrayList<>(List.of(
-                    this.text("❤ +" + Math.round(this.global.hpPerLevel()) + " " + l.choose("HP máximo", "max HP"), NamedTextColor.RED)));
+                    this.text("❤ +" + Math.round(this.global.hpPerLevel()) + " " + "max HP", NamedTextColor.RED)));
             if (level % levelsPerStrength == 0) {
                 lore.add(this.text("✹ +" + this.global.strengthPerGroup() + " Strength", NamedTextColor.GOLD));
             }
             if (level == this.global.telekinesisRequiredLevel()) {
-                lore.add(this.text("🧲 " + l.choose("Desbloqueia: Telecinese", "Unlocks: Telekinesis"), NamedTextColor.LIGHT_PURPLE));
+                lore.add(this.text("🧲 " + "Unlocks: Telekinesis", NamedTextColor.LIGHT_PURPLE));
             }
             if (lore.size() == 1) {
-                lore.add(this.text(l.choose("Nenhuma outra recompensa neste nível.", "No other reward at this level."), NamedTextColor.DARK_GRAY));
+                lore.add(this.text("No other reward at this level.", NamedTextColor.DARK_GRAY));
             }
             if (level == currentLevel + 1) {
                 lore.add(this.text(g.progress() + "/" + g.required() + " XP", NamedTextColor.GREEN));
             }
             v.setItem(N[i], this.node(level, currentLevel, l, lore));
         }
-        v.setItem(0, this.item(Material.NETHER_STAR, l.choose("Progressão de Nível Global", "Global Level Progression"), List.of(this.globalLine(p, l))));
+        v.setItem(0, this.item(Material.NETHER_STAR, "Global Level Progression", List.of(this.globalLine(p, l))));
         this.nav(v, l, page, maxLevel);
         this.open(p, v, new View(Type.GLOBAL, page, null));
     }
@@ -673,12 +651,12 @@ public final class SkillsMenuService {
     }
 
     private void nav(Inventory v, Language l, int page, int max) {
-        v.setItem(45, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(45, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         if (page > 0) {
-            v.setItem(48, this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous page"), List.of()));
+            v.setItem(48, this.customHead(HeadTexture.ARROW_LEFT, "Previous page", List.of()));
         }
         if ((page + 1) * 25 < max) {
-            v.setItem(50, this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next page"), List.of()));
+            v.setItem(50, this.customHead(HeadTexture.ARROW_RIGHT, "Next page", List.of()));
         }
     }
 
@@ -687,19 +665,19 @@ public final class SkillsMenuService {
     }
 
     private ItemStack node(int n, int current, Language l, List<Component> lore) {
-        ItemStack i = this.item(n <= current ? Material.LIME_STAINED_GLASS_PANE : (n == current + 1 ? Material.YELLOW_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE), l.choose("Nível ", "Level ") + n, lore);
+        ItemStack i = this.item(n <= current ? Material.LIME_STAINED_GLASS_PANE : (n == current + 1 ? Material.YELLOW_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE), "Level " + n, lore);
         i.setAmount(Math.min(64, n));
         return i;
     }
 
     private Component combatLine(Player p, Language l) {
         CombatProgress x = this.combat.progress(p);
-        return this.text(l.choose("Nível ", "Level ") + x.level() + (x.level() >= this.combat.maxLevel() ? " (MAX)" : " • " + Math.round(x.xp()) + "/" + Math.round(x.requiredXp()) + " XP"), NamedTextColor.GREEN);
+        return this.text("Level " + x.level() + (x.level() >= this.combat.maxLevel() ? " (MAX)" : " • " + Math.round(x.xp()) + "/" + Math.round(x.requiredXp()) + " XP"), NamedTextColor.GREEN);
     }
 
     private Component globalLine(Player p, Language l) {
         GlobalLevelSnapshot g = this.global.snapshot(p);
-        return this.text(l.choose("Nível ", "Level ") + g.level() + " • " + g.progress() + "/" + g.required() + " XP", NamedTextColor.GOLD);
+        return this.text("Level " + g.level() + " • " + g.progress() + "/" + g.required() + " XP", NamedTextColor.GOLD);
     }
 
     /** Global Level's button on the main skills grid — a custom head if one is configured, otherwise an XP bottle. */
@@ -707,9 +685,9 @@ public final class SkillsMenuService {
         List<Component> lore = List.of(this.globalLine(p, l), this.click(l));
         String texture = this.global.iconTexture();
         if (texture != null && !texture.isBlank()) {
-            return this.customHead(texture, l.choose("Nível Global", "Global Level"), lore);
+            return this.customHead(texture, "Global Level", lore);
         }
-        return this.item(Material.EXPERIENCE_BOTTLE, l.choose("Nível Global", "Global Level"), lore);
+        return this.item(Material.EXPERIENCE_BOTTLE, "Global Level", lore);
     }
 
     /** A player head wearing a custom skin (base64 "Value" texture), falling back to a plain head if it's bad. */
@@ -741,7 +719,7 @@ public final class SkillsMenuService {
 
     private Component skillLine(Player p, SkillType t, Language l) {
         SkillProgress x = this.general.progress(p, t);
-        return this.text(l.choose("Nível ", "Level ") + x.level() + (x.level() >= this.general.maxLevel() ? " (MAX)" : " • " + Math.round(x.xp()) + "/" + Math.round(x.requiredXp()) + " XP"), NamedTextColor.GREEN);
+        return this.text("Level " + x.level() + (x.level() >= this.general.maxLevel() ? " (MAX)" : " • " + Math.round(x.xp()) + "/" + Math.round(x.requiredXp()) + " XP"), NamedTextColor.GREEN);
     }
 
     private Component xp(double a, double b) {
@@ -749,7 +727,7 @@ public final class SkillsMenuService {
     }
 
     private Component click(Language l) {
-        return this.text(l.choose("Clique para ver!", "Click to view!"), NamedTextColor.YELLOW);
+        return this.text("Click to view!", NamedTextColor.YELLOW);
     }
 
     /** Condensed hover preview (the head icon in the main menu) — click it to open {@link #openStats}. */
@@ -768,19 +746,19 @@ public final class SkillsMenuService {
         double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage;
         double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p) + reforgeCritChance);
         List<Component> lore = List.of(
-                this.text(l.choose("Veja seu equipamento, status e mais!", "View your equipment, stats, and more!"), NamedTextColor.GRAY),
+                this.text("View your equipment, stats, and more!", NamedTextColor.GRAY),
                 Component.empty(),
-                this.text("🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent, NamedTextColor.WHITE),
-                this.text("🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(this.stats.effectiveAgility(p)), NamedTextColor.WHITE),
+                this.text("🏃 " + "Speed: " + speedPercent, NamedTextColor.WHITE),
+                this.text("🐇 " + "Agility: " + Math.round(this.stats.effectiveAgility(p)), NamedTextColor.WHITE),
                 this.text("✹ Strength: " + Math.round(s.strength() + reforgeStrength), NamedTextColor.RED),
-                this.text("✦ " + l.choose("Defesa: ", "Defense: ") + defense, NamedTextColor.GREEN),
-                this.text("☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.BLUE),
-                this.text("☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.BLUE),
-                this.text("❤ " + l.choose("Vida: ", "Health: ") + Math.round(s.health()) + "/" + Math.round(s.maxHealth()), NamedTextColor.RED),
-                this.text("✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()), NamedTextColor.AQUA),
+                this.text("✦ " + "Defense: " + defense, NamedTextColor.GREEN),
+                this.text("☠ " + "Crit Damage: " + String.format(Locale.US, "%.1f", critDamage) + "%", NamedTextColor.BLUE),
+                this.text("☣ " + "Crit Chance: " + String.format(Locale.US, "%.1f", critChance) + "%", NamedTextColor.BLUE),
+                this.text("❤ " + "Health: " + Math.round(s.health()) + "/" + Math.round(s.maxHealth()), NamedTextColor.RED),
+                this.text("✎ " + "Intelligence: " + Math.round(s.intelligence()), NamedTextColor.AQUA),
                 Component.empty(),
-                this.text(l.choose("Clique para ver mais!", "Click to see more!"), NamedTextColor.YELLOW));
-        ItemStack i = this.item(Material.PLAYER_HEAD, l.choose("Status & Equipamento", "Stats & Equipment"), lore);
+                this.text("Click to see more!", NamedTextColor.YELLOW));
+        ItemStack i = this.item(Material.PLAYER_HEAD, "Stats & Equipment", lore);
         SkullMeta m = (SkullMeta) i.getItemMeta();
         m.setOwningPlayer((OfflinePlayer) p);
         i.setItemMeta(m);
@@ -798,18 +776,18 @@ public final class SkillsMenuService {
      */
     public void openStats(Player viewer, Player target) {
         Language l = Language.of(viewer);
-        Inventory v = this.inv(target.getName() + " - " + l.choose("Status & Equipamento", "Stats & Equipment"));
+        Inventory v = this.inv(target.getName() + " - " + "Stats & Equipment");
         v.setItem(4, this.statsOverviewHead(target, l));
-        v.setItem(2, this.armorSlot(target.getInventory().getItemInMainHand(), l.choose("Item na Mão", "Held Item"), l));
-        v.setItem(11, this.armorSlot(target.getInventory().getHelmet(), l.choose("Capacete", "Helmet"), l));
-        v.setItem(20, this.armorSlot(target.getInventory().getChestplate(), l.choose("Peitoral", "Chestplate"), l));
-        v.setItem(29, this.armorSlot(target.getInventory().getLeggings(), l.choose("Calças", "Leggings"), l));
-        v.setItem(38, this.armorSlot(target.getInventory().getBoots(), l.choose("Botas", "Boots"), l));
+        v.setItem(2, this.armorSlot(target.getInventory().getItemInMainHand(), "Held Item", l));
+        v.setItem(11, this.armorSlot(target.getInventory().getHelmet(), "Helmet", l));
+        v.setItem(20, this.armorSlot(target.getInventory().getChestplate(), "Chestplate", l));
+        v.setItem(29, this.armorSlot(target.getInventory().getLeggings(), "Leggings", l));
+        v.setItem(38, this.armorSlot(target.getInventory().getBoots(), "Boots", l));
         v.setItem(STATS_COMBAT_SLOT, this.combatStatsItem(target, l));
         for (Map.Entry<Integer, SkillType> e : STATS_SKILL_SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.skillBonusItem(target, e.getValue(), l));
         }
-        v.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(49, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         this.open(viewer, v, new View(Type.STATS, 0, null, target.getUniqueId()));
     }
 
@@ -820,7 +798,7 @@ public final class SkillsMenuService {
 
     private ItemStack statsOverviewHead(Player p, Language l) {
         GlobalLevelSnapshot g = this.global.snapshot(p);
-        List<Component> lore = List.of(this.text("✦ " + l.choose("Nível Global: ", "Global Level: ") + g.level(), NamedTextColor.GOLD));
+        List<Component> lore = List.of(this.text("✦ " + "Global Level: " + g.level(), NamedTextColor.GOLD));
         ItemStack i = this.item(Material.PLAYER_HEAD, p.getName(), lore);
         SkullMeta m = (SkullMeta) i.getItemMeta();
         m.setOwningPlayer((OfflinePlayer) p);
@@ -831,7 +809,7 @@ public final class SkillsMenuService {
     /** The player's actual equipped piece (real item, with its own name/enchants/lore), or an empty placeholder. */
     private ItemStack armorSlot(ItemStack equipped, String slotName, Language l) {
         if (equipped == null || equipped.getType().isAir()) {
-            return this.item(Material.GRAY_STAINED_GLASS_PANE, slotName, List.of(this.text(l.choose("Nada equipado.", "Nothing equipped."), NamedTextColor.DARK_GRAY)));
+            return this.item(Material.GRAY_STAINED_GLASS_PANE, slotName, List.of(this.text("Nothing equipped.", NamedTextColor.DARK_GRAY)));
         }
         return equipped.clone();
     }
@@ -839,11 +817,11 @@ public final class SkillsMenuService {
     /** One "what it does / how to get more" pair for a stat's detail item (see {@link #statItem}) - the current value and its breakdown are computed live per-player by the caller, only this descriptive text is fixed per stat. */
     private record StatInfo(String whatPt, String whatEn, String howPt, String howEn) {
         String what(boolean pt) {
-            return pt ? this.whatPt : this.whatEn;
+            return this.whatEn;
         }
 
         String how(boolean pt) {
-            return pt ? this.howPt : this.howEn;
+            return this.howEn;
         }
     }
 
@@ -978,12 +956,12 @@ public final class SkillsMenuService {
      */
     private ItemStack combatStatsItem(Player p, Language l) {
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(l.choose("Status que influenciam quanto dano você recebe e causa em combate.", "Stats that influence how much damage you take and deal in combat."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Stats that influence how much damage you take and deal in combat.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
         lore.add(this.click(l));
-        return this.item(Material.IRON_SWORD, l.choose("Status de Combate", "Combat Stats"), lore);
+        return this.item(Material.IRON_SWORD, "Combat Stats", lore);
     }
 
     /**
@@ -1033,67 +1011,66 @@ public final class SkillsMenuService {
 
         List<ItemStack> items = new ArrayList<>();
 
-        items.add(this.statItem(Material.GOLDEN_APPLE, "❤ " + l.choose("Vida: ", "Health: ") + Math.round(s.health()) + "/" + Math.round(s.maxHealth()),
-                this.join(l.choose("Base ", "Base ") + Math.round(baseHealth),
-                        bestiaryHealth > 0 ? l.choose("Bestiário +", "Bestiary +") + Math.round(bestiaryHealth) : null,
-                        globalHealth > 0 ? l.choose("Nível Global +", "Global Level +") + Math.round(globalHealth) : null,
-                        skillHealth > 0 ? l.choose("Agricultura/Pesca +", "Farming/Fishing +") + Math.round(skillHealth) : null,
-                        reforgeHealth != 0 ? l.choose("Reforja +", "Reforge +") + Math.round(reforgeHealth) : null),
+        items.add(this.statItem(Material.GOLDEN_APPLE, "❤ " + "Health: " + Math.round(s.health()) + "/" + Math.round(s.maxHealth()),
+                this.join("Base " + Math.round(baseHealth),
+                        bestiaryHealth > 0 ? "Bestiary +" + Math.round(bestiaryHealth) : null,
+                        globalHealth > 0 ? "Global Level +" + Math.round(globalHealth) : null,
+                        skillHealth > 0 ? "Farming/Fishing +" + Math.round(skillHealth) : null,
+                        reforgeHealth != 0 ? "Reforge +" + Math.round(reforgeHealth) : null),
                 HEALTH_INFO, l));
 
         double damageReduction = this.armor.damageReduction(p) * 100.0;
-        items.add(this.statItem(Material.SHIELD, "✦ " + l.choose("Defesa: ", "Defense: ") + defense,
-                this.join(reforgeDefense != 0 ? l.choose("Reforja +", "Reforge +") + Math.round(reforgeDefense) : null,
-                        helmetDef > 0 ? l.choose("Elmo +", "Helmet +") + helmetDef : null,
-                        chestDef > 0 ? l.choose("Peitoral +", "Chestplate +") + chestDef : null,
-                        legsDef > 0 ? l.choose("Calças +", "Leggings +") + legsDef : null,
-                        bootsDef > 0 ? l.choose("Botas +", "Boots +") + bootsDef : null,
-                        miningDef > 0 ? l.choose("Mineração +", "Mining +") + miningDef : null,
-                        defense == 0 ? l.choose("Nenhuma fonte", "No source") : null),
-                l.choose("= " + defense + "/(" + defense + "+100) = " + String.format(Locale.US, "%.1f", damageReduction) + "% de redução de dano",
-                        "= " + defense + "/(" + defense + "+100) = " + String.format(Locale.US, "%.1f", damageReduction) + "% damage reduction"),
+        items.add(this.statItem(Material.SHIELD, "✦ " + "Defense: " + defense,
+                this.join(reforgeDefense != 0 ? "Reforge +" + Math.round(reforgeDefense) : null,
+                        helmetDef > 0 ? "Helmet +" + helmetDef : null,
+                        chestDef > 0 ? "Chestplate +" + chestDef : null,
+                        legsDef > 0 ? "Leggings +" + legsDef : null,
+                        bootsDef > 0 ? "Boots +" + bootsDef : null,
+                        miningDef > 0 ? "Mining +" + miningDef : null,
+                        defense == 0 ? "No source" : null),
+                ("= " + defense + "/(" + defense + "+100) = " + String.format(Locale.US, "%.1f", damageReduction) + "% damage reduction"),
                 DEFENSE_INFO, l));
 
-        items.add(this.statItem(Material.NETHERITE_INGOT, "🛡 " + l.choose("Defesa Verdadeira: ", "True Defense: ") + String.format(Locale.US, "%.0f", s.trueDefense()),
-                l.choose("Base (config)", "Base (config)"), TRUE_DEFENSE_INFO, l));
+        items.add(this.statItem(Material.NETHERITE_INGOT, "🛡 " + "True Defense: " + String.format(Locale.US, "%.0f", s.trueDefense()),
+                "Base (config)", TRUE_DEFENSE_INFO, l));
 
         items.add(this.statItem(Material.DIAMOND_SWORD, "✹ Strength: " + Math.round(s.strength() + reforgeStrength),
-                this.join(l.choose("Nível Global +", "Global Level +") + globalStrength,
-                        foragingStrength > 0 ? l.choose("Coleta +", "Foraging +") + foragingStrength : null,
-                        reforgeStrength != 0 ? l.choose("Reforja +", "Reforge +") + Math.round(reforgeStrength) : null),
+                this.join("Global Level +" + globalStrength,
+                        foragingStrength > 0 ? "Foraging +" + foragingStrength : null,
+                        reforgeStrength != 0 ? "Reforge +" + Math.round(reforgeStrength) : null),
                 STRENGTH_INFO, l));
 
-        items.add(this.statItem(Material.ARROW, "☣ " + l.choose("Chance Crítica: ", "Crit Chance: ") + String.format(Locale.US, "%.1f", critChance) + "%",
-                this.join(l.choose("Nível de Combate +", "Combat Level +") + String.format(Locale.US, "%.1f", combatCritChance) + "%",
-                        critChanceBonus > 0 ? l.choose("Golpes Implacáveis +", "Ruthless Strikes +") + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null,
-                        reforgeCritChance != 0 ? l.choose("Reforja +", "Reforge +") + String.format(Locale.US, "%.1f", reforgeCritChance) + "%" : null),
+        items.add(this.statItem(Material.ARROW, "☣ " + "Crit Chance: " + String.format(Locale.US, "%.1f", critChance) + "%",
+                this.join("Combat Level +" + String.format(Locale.US, "%.1f", combatCritChance) + "%",
+                        critChanceBonus > 0 ? "Ruthless Strikes +" + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null,
+                        reforgeCritChance != 0 ? "Reforge +" + String.format(Locale.US, "%.1f", reforgeCritChance) + "%" : null),
                 CRIT_CHANCE_INFO, l));
 
-        items.add(this.statItem(Material.NETHERITE_SWORD, "☠ " + l.choose("Dano Crítico: ", "Crit Damage: ") + String.format(Locale.US, "%.1f", critDamage) + "%",
-                this.join(criticalMastery ? l.choose("Maestria Crítica (rank ", "Critical Mastery (rank ") + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
-                                : l.choose("Base (config) - Maestria Crítica não desbloqueada", "Base (config) - Critical Mastery not unlocked"),
-                        reforgeCritDamage != 0 ? l.choose("Reforja +", "Reforge +") + String.format(Locale.US, "%.1f", reforgeCritDamage) + "%" : null),
+        items.add(this.statItem(Material.NETHERITE_SWORD, "☠ " + "Crit Damage: " + String.format(Locale.US, "%.1f", critDamage) + "%",
+                this.join(criticalMastery ? "Critical Mastery (rank " + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
+                                : "Base (config) - Critical Mastery not unlocked",
+                        reforgeCritDamage != 0 ? "Reforge +" + String.format(Locale.US, "%.1f", reforgeCritDamage) + "%" : null),
                 CRIT_DAMAGE_INFO, l));
 
         items.add(this.statItem(Material.GOLDEN_AXE, "Ⓕ Ferocity: " + Math.round(s.ferocity()),
-                l.choose("Base (config)", "Base (config)"), FEROCITY_INFO, l));
+                "Base (config)", FEROCITY_INFO, l));
 
-        items.add(this.statItem(Material.CLOCK, "⚔ " + l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)),
-                l.choose("Nível de Combate " + c.level(), "Combat Level " + c.level()), ATTACK_SPEED_INFO, l));
+        items.add(this.statItem(Material.CLOCK, "⚔ " + "Attack Speed: " + String.format(Locale.US, "%.1f", this.value(p, Attribute.ATTACK_SPEED, 4.0)),
+                ("Combat Level " + c.level()), ATTACK_SPEED_INFO, l));
 
         double swingRangeBonus = this.abilities.swingRangeBonus(p);
-        items.add(this.statItem(Material.FISHING_ROD, "↔ " + l.choose("Alcance de Ataque: ", "Swing Range: ") + String.format(Locale.US, "%.1f", s.swingRange()),
-                this.join(l.choose("Base ", "Base ") + String.format(Locale.US, "%.1f", this.stats.baseSwingRange()),
-                        swingRangeBonus > 0 ? l.choose("Arremesso de Espada +", "Sword Throw +") + String.format(Locale.US, "%.1f", swingRangeBonus) : null),
+        items.add(this.statItem(Material.FISHING_ROD, "↔ " + "Swing Range: " + String.format(Locale.US, "%.1f", s.swingRange()),
+                this.join("Base " + String.format(Locale.US, "%.1f", this.stats.baseSwingRange()),
+                        swingRangeBonus > 0 ? "Sword Throw +" + String.format(Locale.US, "%.1f", swingRangeBonus) : null),
                 SWING_RANGE_INFO, l));
 
         long alchemyEnchantingIntelligence = this.general.bonusIntelligence(p);
         double reforgeIntelligence = this.reforge == null ? 0.0
                 : this.reforge.statsOf(mainHand).intelligence() + this.reforge.bowStatsOf(mainHand).intelligence() + this.reforge.totalArmorStats(p).intelligence();
-        items.add(this.statItem(Material.LAPIS_LAZULI, "✎ " + l.choose("Inteligência: ", "Intelligence: ") + Math.round(s.intelligence()),
-                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseIntelligence()),
-                        alchemyEnchantingIntelligence > 0 ? l.choose("Alquimia/Encantamento +", "Alchemy/Enchanting +") + alchemyEnchantingIntelligence : null,
-                        reforgeIntelligence != 0 ? l.choose("Reforja +", "Reforge +") + Math.round(reforgeIntelligence) : null),
+        items.add(this.statItem(Material.LAPIS_LAZULI, "✎ " + "Intelligence: " + Math.round(s.intelligence()),
+                this.join("Base " + Math.round(this.stats.baseIntelligence()),
+                        alchemyEnchantingIntelligence > 0 ? "Alchemy/Enchanting +" + alchemyEnchantingIntelligence : null,
+                        reforgeIntelligence != 0 ? "Reforge +" + Math.round(reforgeIntelligence) : null),
                 INTELLIGENCE_INFO, l));
 
         // Agility/Speed is the same pairing as Intelligence/Mana above - a plain stat
@@ -1103,34 +1080,34 @@ public final class SkillsMenuService {
         double agility = this.stats.effectiveAgility(p);
         double reforgeAgility = this.reforge == null ? 0.0 : this.reforge.totalArmorStats(p).agility();
         double heldAgility = agility - this.stats.baseAgility() - reforgeAgility;
-        items.add(this.statItem(Material.RABBIT_FOOT, "🐇 " + l.choose("Agilidade: ", "Agility: ") + Math.round(agility),
-                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseAgility()),
-                        heldAgility > 0 ? l.choose("Arma equipada +", "Held weapon +") + Math.round(heldAgility) : null,
-                        reforgeAgility != 0 ? l.choose("Reforja +", "Reforge +") + Math.round(reforgeAgility) : null),
+        items.add(this.statItem(Material.RABBIT_FOOT, "🐇 " + "Agility: " + Math.round(agility),
+                this.join("Base " + Math.round(this.stats.baseAgility()),
+                        heldAgility > 0 ? "Held weapon +" + Math.round(heldAgility) : null,
+                        reforgeAgility != 0 ? "Reforge +" + Math.round(reforgeAgility) : null),
                 AGILITY_INFO, l));
 
         long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
-        items.add(this.statItem(Material.SUGAR, "🏃 " + l.choose("Velocidade: ", "Speed: ") + speedPercent + "%",
-                this.join(l.choose("Base 100%", "Base 100%"),
-                        agility > 0 ? l.choose("Agilidade +", "Agility +") + Math.round(agility) + "%" : null),
+        items.add(this.statItem(Material.SUGAR, "🏃 " + "Speed: " + speedPercent + "%",
+                this.join("Base 100%",
+                        agility > 0 ? "Agility +" + Math.round(agility) + "%" : null),
                 SPEED_INFO, l));
 
-        items.add(this.statItem(Material.BLAZE_POWDER, "❉ " + l.choose("Dano de Habilidade: ", "Ability Damage: ") + Math.round(s.abilityDamage()) + "%",
-                l.choose("Base (config)", "Base (config)"), ABILITY_DAMAGE_INFO, l));
+        items.add(this.statItem(Material.BLAZE_POWDER, "❉ " + "Ability Damage: " + Math.round(s.abilityDamage()) + "%",
+                "Base (config)", ABILITY_DAMAGE_INFO, l));
 
         double healthRegenBonus = this.abilities.healthRegenBonus(p);
-        items.add(this.statItem(Material.HONEY_BOTTLE, "❣ " + l.choose("Regen. de Vida: ", "Health Regen: ") + Math.round(s.healthRegen()) + "%",
-                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseHealthRegen()) + "%",
-                        healthRegenBonus > 0 ? l.choose("Colheita de Almas +", "Soul Harvest +") + Math.round(healthRegenBonus) + "%" : null),
+        items.add(this.statItem(Material.HONEY_BOTTLE, "❣ " + "Health Regen: " + Math.round(s.healthRegen()) + "%",
+                this.join("Base " + Math.round(this.stats.baseHealthRegen()) + "%",
+                        healthRegenBonus > 0 ? "Soul Harvest +" + Math.round(healthRegenBonus) + "%" : null),
                 HEALTH_REGEN_INFO, l));
 
         items.add(this.statItem(Material.GHAST_TEAR, "✿ Vitality: " + Math.round(s.vitality()) + "/" + Math.round(s.maxVitality()),
-                l.choose("Base (config)", "Base (config)"), VITALITY_INFO, l));
+                "Base (config)", VITALITY_INFO, l));
 
         double mendingBonus = this.abilities.mendingBonus(p);
-        items.add(this.statItem(Material.TOTEM_OF_UNDYING, "❋ " + l.choose("Cura (Mending): ", "Mending: ") + Math.round(s.mending()) + "%",
-                this.join(l.choose("Base ", "Base ") + Math.round(this.stats.baseMending()) + "%",
-                        mendingBonus > 0 ? l.choose("Segundo Fôlego +", "Second Wind +") + Math.round(mendingBonus) + "%" : null),
+        items.add(this.statItem(Material.TOTEM_OF_UNDYING, "❋ " + "Mending: " + Math.round(s.mending()) + "%",
+                this.join("Base " + Math.round(this.stats.baseMending()) + "%",
+                        mendingBonus > 0 ? "Second Wind +" + Math.round(mendingBonus) + "%" : null),
                 MENDING_INFO, l));
 
         ItemStack weapon = p.getInventory().getItemInMainHand();
@@ -1195,32 +1172,30 @@ public final class SkillsMenuService {
         double damageMultiplier = 1.0 + combatLevelBonus + enchantPercent / 100.0 + abilityTreeBonus;
         double baseline = initialDamage * damageMultiplier;
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(l.choose("Dano Inicial = (5 + Dano da Arma) × (1 + Força/100)", "Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)"), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GOLD));
         }
         lore.add(this.text("= (5 + " + String.format(Locale.US, "%.1f", weaponDamage) + ") × (1 + " + strength + "/100) = "
                 + String.format(Locale.US, "%.2f", initialDamage), NamedTextColor.GREEN));
         lore.add(Component.empty());
-        for (String part : LoreWrap.wrapText(l.choose("Multiplicador = 1 + Bônus de Nível + Encantamentos + Bônus de Habilidade", "Multiplier = 1 + Level Bonus + Enchants + Ability Bonus"), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Multiplier = 1 + Level Bonus + Enchants + Ability Bonus", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GOLD));
         }
         lore.add(this.text("= 1 + " + String.format(Locale.US, "%.2f", combatLevelBonus) + " + "
-                + String.format(Locale.US, "%.2f", enchantPercent / 100.0) + (targetDependent ? " " + l.choose("(+ depende do alvo)", "(+ depends on target)") : "")
+                + String.format(Locale.US, "%.2f", enchantPercent / 100.0) + (targetDependent ? " " + "(+ depends on target)" : "")
                 + " + " + String.format(Locale.US, "%.2f", abilityTreeBonus)
                 + " = " + String.format(Locale.US, "%.2f", damageMultiplier), NamedTextColor.GREEN));
         lore.add(Component.empty());
-        for (String part : LoreWrap.wrapText(l.choose("Dano Final (base) = Dano Inicial × Multiplicador", "Final Damage (baseline) = Initial × Multiplier"), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Final Damage (baseline) = Initial × Multiplier", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GOLD));
         }
         lore.add(this.text("= " + String.format(Locale.US, "%.2f", initialDamage) + " × " + String.format(Locale.US, "%.2f", damageMultiplier)
                 + " = " + String.format(Locale.US, "%.1f", baseline), NamedTextColor.GREEN));
         lore.add(Component.empty());
-        for (String part : LoreWrap.wrapText(l.choose(
-                "Crítico, bônus contra tipos de mob, vida do alvo" + (targetDependent ? " e os encantamentos de dano acima" : "") + " se somam por cima disso, dependendo do alvo.",
-                "Critical hits, mob-type/target-health bonuses" + (targetDependent ? ", and the damage enchants above" : "") + " stack on top of this depending on the target."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText(("Critical hits, mob-type/target-health bonuses" + (targetDependent ? ", and the damage enchants above" : "") + " stack on top of this depending on the target."), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.DARK_GRAY));
         }
-        return this.item(Material.NETHERITE_AXE, "⚔ " + l.choose("Dano: ", "Damage: ") + String.format(Locale.US, "%.1f", baseline), lore);
+        return this.item(Material.NETHERITE_AXE, "⚔ " + "Damage: " + String.format(Locale.US, "%.1f", baseline), lore);
     }
 
     /** {@code CombatListener#linearCapped}'s exact shape (5%/level, level 5 jumps to 30%) - duplicated here for the same reason as {@link #BASE_UNARMED_DAMAGE}: this is a display-facing approximation, not the real combat calculation, so it doesn't share code with the private method it mirrors. */
@@ -1247,12 +1222,12 @@ public final class SkillsMenuService {
     private ItemStack statItem(Material icon, String name, String source, String extra, StatInfo info, Language l) {
         boolean pt = l == Language.PT;
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(l.choose("De onde vem:", "Where it comes from:"), NamedTextColor.GOLD));
+        lore.add(this.text("Where it comes from:", NamedTextColor.GOLD));
         for (String part : LoreWrap.wrapText(source, LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text("  " + part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("O que faz:", "What it does:"), NamedTextColor.GOLD));
+        lore.add(this.text("What it does:", NamedTextColor.GOLD));
         for (String part : LoreWrap.wrapText(info.what(pt), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
@@ -1262,7 +1237,7 @@ public final class SkillsMenuService {
             }
         }
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Como conseguir mais:", "How to get more:"), NamedTextColor.GOLD));
+        lore.add(this.text("How to get more:", NamedTextColor.GOLD));
         for (String part : LoreWrap.wrapText(info.how(pt), LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
@@ -1290,7 +1265,7 @@ public final class SkillsMenuService {
      */
     private ItemStack skillBonusItem(Player p, SkillType t, Language l) {
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(l.choose("Bônus de atributo que essa skill concede.", "Attribute bonuses this skill grants."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Attribute bonuses this skill grants.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
@@ -1326,42 +1301,42 @@ public final class SkillsMenuService {
             int totalFortune = this.general.fortune(p, t) + toolBonus;
             String source = this.rate(l, level, this.general.fortunePerLevel());
             if (armorBonus != 0) {
-                source += " + " + armorBonus + " (" + l.choose("armadura", "armor") + ")";
+                source += " + " + armorBonus + " (" + "armor" + ")";
             }
             if (accessoryBonus != 0) {
-                source += " + " + accessoryBonus + " (" + l.choose("acessório", "accessory") + ")";
+                source += " + " + accessoryBonus + " (" + "accessory" + ")";
             }
             if (toolBonus != 0) {
-                source += " + " + toolBonus + " (" + l.choose("ferramenta na mão", "held tool") + ")";
+                source += " + " + toolBonus + " (" + "held tool" + ")";
             }
             items.add(this.statItem(fortuneIcon, t.name(l == Language.PT) + " Fortune: " + totalFortune, source, FORTUNE_INFO, l));
         }
         switch (t) {
-            case MINING -> items.add(this.statItem(Material.SHIELD, "+" + (level * this.general.defensePerLevel()) + " " + l.choose("Defesa", "Defense"),
+            case MINING -> items.add(this.statItem(Material.SHIELD, "+" + (level * this.general.defensePerLevel()) + " " + "Defense",
                     this.rate(l, level, this.general.defensePerLevel()), SKILL_DEFENSE_INFO, l));
-            case FARMING, FISHING -> items.add(this.statItem(Material.GOLDEN_APPLE, "+" + (level * this.general.healthPerLevel()) + " " + l.choose("Vida Máxima", "Max Health"),
+            case FARMING, FISHING -> items.add(this.statItem(Material.GOLDEN_APPLE, "+" + (level * this.general.healthPerLevel()) + " " + "Max Health",
                     this.rate(l, level, this.general.healthPerLevel()), SKILL_HEALTH_INFO, l));
             case FORAGING -> {
-                items.add(this.statItem(Material.DIAMOND_SWORD, "+" + (level * this.general.strengthPerLevel()) + " " + l.choose("Força", "Strength"),
+                items.add(this.statItem(Material.DIAMOND_SWORD, "+" + (level * this.general.strengthPerLevel()) + " " + "Strength",
                         this.rate(l, level, this.general.strengthPerLevel()), SKILL_STRENGTH_INFO, l));
                 int sweepBonus = this.general.sweepBonus(p);
-                String sweepSource = l.choose("1 (base)", "1 (base)");
+                String sweepSource = "1 (base)";
                 if (sweepBonus != 0) {
-                    sweepSource += " + " + sweepBonus + " (" + l.choose("acessório", "accessory") + ")";
+                    sweepSource += " + " + sweepBonus + " (" + "accessory" + ")";
                 }
-                items.add(this.statItem(Material.IRON_AXE, l.choose("Sweep", "Sweep") + ": " + this.general.sweep(p),
+                items.add(this.statItem(Material.IRON_AXE, "Sweep" + ": " + this.general.sweep(p),
                         sweepSource, SWEEP_INFO, l));
             }
-            case ALCHEMY, ENCHANTING -> items.add(this.statItem(Material.LAPIS_LAZULI, "+" + (level * this.general.intelligencePerLevel()) + " " + l.choose("Inteligência", "Intelligence"),
+            case ALCHEMY, ENCHANTING -> items.add(this.statItem(Material.LAPIS_LAZULI, "+" + (level * this.general.intelligencePerLevel()) + " " + "Intelligence",
                     this.rate(l, level, this.general.intelligencePerLevel()), SKILL_INTELLIGENCE_INFO, l));
             default -> {}
         }
         if (t == SkillType.ENCHANTING) {
-            items.add(this.statItem(Material.EXPERIENCE_BOTTLE, "+" + (level * this.general.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"),
+            items.add(this.statItem(Material.EXPERIENCE_BOTTLE, "+" + (level * this.general.xpOrbPercentPerLevel()) + "% " + "XP Orbs",
                     this.rate(l, level, this.general.xpOrbPercentPerLevel()), XP_ORBS_INFO, l));
         }
         if (t == SkillType.ALCHEMY) {
-            items.add(this.statItem(Material.POTION, "+" + (level * this.general.potionDurationPercentPerLevel()) + "% " + l.choose("Duração de Poções", "Potion Duration"),
+            items.add(this.statItem(Material.POTION, "+" + (level * this.general.potionDurationPercentPerLevel()) + "% " + "Potion Duration",
                     this.rate(l, level, this.general.potionDurationPercentPerLevel()), POTION_DURATION_INFO, l));
         }
         return items;
@@ -1376,21 +1351,21 @@ public final class SkillsMenuService {
     private void openStatList(Player viewer, Player target, SkillType skill) {
         Language l = Language.of(viewer);
         boolean pt = l == Language.PT;
-        String title = skill == null ? l.choose("Status de Combate", "Combat Stats")
-                : l.choose(skill.name(true) + " - Status", skill.name(false) + " Stats");
+        String title = skill == null ? "Combat Stats"
+                : (skill.name(false) + " Stats");
         Inventory v = this.inv(title);
         List<ItemStack> items = skill == null ? this.combatStatItems(target, l) : this.skillStatItems(target, skill, l);
         for (int i = 0; i < items.size() && i < STAT_SLOTS.length; i++) {
             v.setItem(STAT_SLOTS[i], items.get(i));
         }
         v.setItem(STAT_LIST_TITLE_SLOT, this.item(skill == null ? Material.IRON_SWORD : skill.icon(), title, List.of()));
-        v.setItem(STAT_LIST_BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        v.setItem(STAT_LIST_BACK_SLOT, this.customHead(HeadTexture.BACK, "Back", List.of()));
         this.open(viewer, v, new View(Type.STAT_LIST, 0, skill, target.getUniqueId()));
     }
 
     /** "Level N × rate/level" - the source line every {@link #skillStatItems} entry shares. */
     private String rate(Language l, int level, int perLevel) {
-        return l.choose("Nível " + level + " × " + perLevel + "/nível", "Level " + level + " × " + perLevel + "/level");
+        return ("Level " + level + " × " + perLevel + "/level");
     }
 
     private double value(Player p, Attribute a, double f) {

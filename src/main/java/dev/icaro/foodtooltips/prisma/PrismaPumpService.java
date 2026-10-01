@@ -56,11 +56,11 @@ public final class PrismaPumpService {
         ItemStack item = new ItemStack(Material.DARK_PRISMARINE, 16);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.pumpKey, PersistentDataType.BYTE, (byte) 1);
-        meta.displayName(this.line(l.choose("Prismapump", "Prismapump"), NamedTextColor.AQUA)
+        meta.displayName(this.line("Prismapump", NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Coloque do lado de uma água pra nivelar", "Place next to water to level"), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("todo o poço/canal conectado com água.", "the whole connected pool/channel with water."), NamedTextColor.GRAY));
+        lore.add(this.line("Place next to water to level", NamedTextColor.GRAY));
+        lore.add(this.line("the whole connected pool/channel with water.", NamedTextColor.GRAY));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);

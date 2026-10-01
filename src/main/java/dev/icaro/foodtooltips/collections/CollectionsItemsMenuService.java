@@ -60,7 +60,7 @@ public final class CollectionsItemsMenuService {
         int pages = Math.max(1, (int) Math.ceil(all.size() / (double) PER_PAGE));
         int page = Math.max(0, Math.min(pages - 1, wanted));
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, 54, l.choose("Itens de Coleções", "Collections Items") + " • " + (page + 1) + "/" + pages);
+        Inventory inv = Bukkit.createInventory(null, 54, "Collections Items" + " • " + (page + 1) + "/" + pages);
         this.fill(inv);
         int from = page * PER_PAGE;
         int to = Math.min(from + PER_PAGE, all.size());
@@ -71,12 +71,12 @@ public final class CollectionsItemsMenuService {
             inv.setItem(slot, this.preview(milestone, l));
             buttons.put(slot, milestone);
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, "Back", List.of()));
         if (page > 0) {
-            inv.setItem(47, this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous Page"), List.of()));
+            inv.setItem(47, this.customHead(HeadTexture.ARROW_LEFT, "Previous Page", List.of()));
         }
         if (page + 1 < pages) {
-            inv.setItem(51, this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next Page"), List.of()));
+            inv.setItem(51, this.customHead(HeadTexture.ARROW_RIGHT, "Next Page", List.of()));
         }
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -126,7 +126,7 @@ public final class CollectionsItemsMenuService {
                 p.getWorld().dropItemNaturally(p.getLocation(), overflow);
             }
         }
-        p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ") + milestone.reward(l == Language.PT), NamedTextColor.GREEN));
+        p.sendMessage(Component.text("Received: " + milestone.reward(l == Language.PT), NamedTextColor.GREEN));
     }
 
     /** Every {@link RewardKind#RECIPE_UNLOCK} milestone across the whole catalog whose own recipe(s) resolve to a real {@link Recipe} right now - recomputed on every open rather than cached, since which recipes exist can change across a {@code /reload}. */
@@ -162,9 +162,9 @@ public final class CollectionsItemsMenuService {
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
         lore.add(Component.empty());
         if (milestone.recipes().size() > 1) {
-            lore.add(this.text(l.choose("Dá o set completo (" + milestone.recipes().size() + " peças).", "Gives the full set (" + milestone.recipes().size() + " pieces)."), NamedTextColor.YELLOW));
+            lore.add(this.text(("Gives the full set (" + milestone.recipes().size() + " pieces)."), NamedTextColor.YELLOW));
         }
-        lore.add(this.text(l.choose("Clique para receber.", "Click to receive."), NamedTextColor.YELLOW));
+        lore.add(this.text("Click to receive.", NamedTextColor.YELLOW));
         meta.lore(lore);
         result.setItemMeta(meta);
         return result;

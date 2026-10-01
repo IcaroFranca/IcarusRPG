@@ -41,11 +41,11 @@ public enum GemType {
     }
 
     public String name(boolean pt) {
-        return pt ? this.pt : this.en;
+        return this.en;
     }
 
     public String attribute(boolean pt) {
-        return pt ? this.attributePt : this.attributeEn;
+        return this.attributeEn;
     }
 
     public int weight() {

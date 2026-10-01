@@ -13,9 +13,9 @@ public enum WeaponType {
 
     public String label(boolean pt) {
         return switch (this) {
-            case DAGGER -> pt ? "Adaga" : "Dagger";
-            case LONGSWORD -> pt ? "Espada Longa" : "Longsword";
-            case SWORD -> pt ? "Espada" : "Sword";
+            case DAGGER -> "Dagger";
+            case LONGSWORD -> "Longsword";
+            case SWORD -> "Sword";
         };
     }
 }

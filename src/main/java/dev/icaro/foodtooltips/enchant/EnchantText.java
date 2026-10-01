@@ -57,7 +57,7 @@ final class EnchantText {
      * +45 Respiration per level" for a single applied level of Respiration III).
      */
     static Token perLevel(Integer level, boolean pt) {
-        return Token.plain(level == null ? (pt ? "por nível" : "per level") : "");
+        return Token.plain(level == null ? "per level" : "");
     }
 
     /** Packs {@code tokens} into lore lines no wider than {@link #WRAP_WIDTH} characters, breaking only between words (atomic tokens never split) and never leaving a leading space before punctuation-only words. */

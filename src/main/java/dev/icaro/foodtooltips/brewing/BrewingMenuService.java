@@ -123,7 +123,7 @@ public final class BrewingMenuService {
         this.fuel.track(stand);
         Language l = Language.of(p);
         BrewingMenuHolder holder = new BrewingMenuHolder(stand);
-        Inventory inv = Bukkit.createInventory(holder, SIZE, l.choose("Mesa de Poções", "Brewing Stand"));
+        Inventory inv = Bukkit.createInventory(holder, SIZE, "Brewing Stand");
         holder.inventory = inv;
         this.renderStatic(inv, l);
         this.pull(p, holder);
@@ -144,7 +144,7 @@ public final class BrewingMenuService {
         for (int slot : GLASS_SLOTS) {
             inv.setItem(slot, idleGlass);
         }
-        inv.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, l.choose("Fechar", "Close"), List.of()));
+        inv.setItem(CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, "Close", List.of()));
     }
 
     /** True for the 4 slots this GUI actually links to the real stand's inventory - every other top-inventory slot is decorative filler {@code BrewingMenuListener} keeps non-interactive. */
@@ -345,20 +345,18 @@ public final class BrewingMenuService {
         boolean useYellow = (System.currentTimeMillis() / 500L) % 2 == 0;
         Material material = useYellow ? Material.YELLOW_STAINED_GLASS_PANE : Material.ORANGE_STAINED_GLASS_PANE;
         int secondsLeft = (brewTicks + 19) / 20;
-        Component lore = this.text(l.choose(secondsLeft + "s restantes", secondsLeft + "s left"), NamedTextColor.GOLD);
+        Component lore = this.text((secondsLeft + "s left"), NamedTextColor.GOLD);
         return this.item(material, " ", List.of(lore));
     }
 
     /** The {@value #INGREDIENT_SLOT} slot's own phantom hint - see {@link #setIfChanged}'s own doc. */
     private ItemStack ingredientPlaceholder(Language l) {
-        return this.placeholder(Material.LIGHT_GRAY_STAINED_GLASS_PANE, l.choose("Ingrediente", "Ingredient"), l.choose(
-                "Coloque aqui o ingrediente da poção.", "Place the potion's ingredient here."));
+        return this.placeholder(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "Ingredient", "Place the potion's ingredient here.");
     }
 
     /** One of {@link #BOTTLE_SLOTS}' own phantom hint - see {@link #setIfChanged}'s own doc. */
     private ItemStack bottlePlaceholder(Language l) {
-        return this.placeholder(Material.LIGHT_GRAY_STAINED_GLASS_PANE, l.choose("Garrafa", "Bottle"), l.choose(
-                "Coloque aqui uma garrafa d'água ou poção.", "Place a Water Bottle or potion here."));
+        return this.placeholder(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "Bottle", "Place a Water Bottle or potion here.");
     }
 
     private ItemStack placeholder(Material material, String name, String description) {

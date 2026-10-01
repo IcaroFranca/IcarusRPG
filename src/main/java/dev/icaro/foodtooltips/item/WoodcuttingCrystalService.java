@@ -255,9 +255,7 @@ public final class WoodcuttingCrystalService implements Listener {
         Location spawnAt = clicked.getLocation().add(0.5, 2.5, 0.5);
         if (this.withinRangeOfAnother(spawnAt)) {
             Language l = Language.of(p);
-            p.sendMessage(Component.text(l.choose(
-                    "Já existe um Woodcutting Crystal perto demais daqui.",
-                    "There's already a Woodcutting Crystal too close to here."), NamedTextColor.RED));
+            p.sendMessage(Component.text("There's already a Woodcutting Crystal too close to here.", NamedTextColor.RED));
             return;
         }
         ArmorStand stand = clicked.getWorld().spawn(spawnAt, ArmorStand.class);

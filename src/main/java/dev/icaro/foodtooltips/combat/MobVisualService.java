@@ -114,12 +114,13 @@ public final class MobVisualService implements Listener {
      */
     public void setLocalizedName(LivingEntity entity, String pt, String en) {
         UUID id = entity.getUniqueId();
-        if (!this.labels.containsKey(id) || this.namePt.containsKey(id)) {
+        if (!this.labels.containsKey(id) || this.nameEn.containsKey(id)) {
             return;
         }
-        this.localizedPt.put(id, pt);
+        // Portuguese support removed - only the English TextDisplay is ever spawned now
+        // (namePt/localizedPt stay permanently empty, so every pt-keyed branch elsewhere
+        // in this class is dead but harmless - see this class's own doc update).
         this.localizedEn.put(id, en);
-        this.namePt.put(id, this.spawnNameDisplay(entity, pt));
         this.nameEn.put(id, this.spawnNameDisplay(entity, en));
         this.update(entity);
     }
@@ -227,16 +228,12 @@ public final class MobVisualService implements Listener {
                 } else if (previous.contains(viewer.getUniqueId())) {
                     viewer.hideEntity(this.plugin, (Entity)d);
                 }
-                if (pt == null || en == null) {
+                if (en == null) {
                     continue;
                 }
                 if (visible) {
-                    TextDisplay shown = Language.of(viewer) == Language.PT ? pt : en;
-                    TextDisplay hidden = shown == pt ? en : pt;
-                    viewer.showEntity(this.plugin, (Entity)shown);
-                    viewer.hideEntity(this.plugin, (Entity)hidden);
+                    viewer.showEntity(this.plugin, (Entity)en);
                 } else {
-                    viewer.hideEntity(this.plugin, (Entity)pt);
                     viewer.hideEntity(this.plugin, (Entity)en);
                 }
             }
@@ -268,7 +265,7 @@ public final class MobVisualService implements Listener {
         if (d == null) {
             return;
         }
-        boolean localized = this.namePt.containsKey(id);
+        boolean localized = this.nameEn.containsKey(id);
         double max = this.effectiveMaxHealth(e);
         boolean showName = !(e instanceof Player) && e.customName() == null && !localized;
         long hp = Math.max(0L, Math.round(this.effectiveHealth(e)));

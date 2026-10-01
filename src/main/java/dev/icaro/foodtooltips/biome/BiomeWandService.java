@@ -174,17 +174,17 @@ public final class BiomeWandService {
         ItemMeta meta = item.getItemMeta();
         BiomeOption selected = this.selectedBiome(item);
         int radius = this.radius(item);
-        meta.displayName(this.line(l.choose("Varinha de Biomas", "Biome's Wand"), NamedTextColor.GREEN)
+        meta.displayName(this.line("Biome's Wand", NamedTextColor.GREEN)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Clique esquerdo abre o menu de biomas.", "Left-click opens the biome menu."), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Clique direito num bloco pinta o bioma.", "Right-click a block to paint the biome."), NamedTextColor.GRAY));
-        for (String part : LoreWrap.wrapText(l.choose("Shift + clique esquerdo desfaz a última pintura.", "Shift + left-click undoes the last paint."), LoreWrap.DEFAULT_WIDTH)) {
+        lore.add(this.line("Left-click opens the biome menu.", NamedTextColor.GRAY));
+        lore.add(this.line("Right-click a block to paint the biome.", NamedTextColor.GRAY));
+        for (String part : LoreWrap.wrapText("Shift + left-click undoes the last paint.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Bioma: ", "Biome: ") + selected.displayName(l == Language.PT), NamedTextColor.YELLOW));
-        lore.add(this.line(l.choose("Raio: ", "Radius: ") + this.radiusLabel(radius, l), NamedTextColor.YELLOW));
+        lore.add(this.line("Biome: " + selected.displayName(l == Language.PT), NamedTextColor.YELLOW));
+        lore.add(this.line("Radius: " + this.radiusLabel(radius, l), NamedTextColor.YELLOW));
         meta.lore(lore);
         meta.setEnchantmentGlintOverride(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
@@ -192,7 +192,7 @@ public final class BiomeWandService {
     }
 
     private String radiusLabel(int radius, Language l) {
-        return radius + l.choose(" blocos", " blocks");
+        return radius + " blocks";
     }
 
     public boolean isWand(ItemStack item) {
@@ -231,7 +231,7 @@ public final class BiomeWandService {
 
     public void openMenu(Player p, ItemStack item) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Varinha de Biomas", "Biome's Wand"));
+        Inventory v = Bukkit.createInventory(null, 54, "Biome's Wand");
         this.renderMenu(v, item, p, l);
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -353,9 +353,9 @@ public final class BiomeWandService {
                 .decoration(TextDecoration.BOLD, selected));
         List<Component> lore = new ArrayList<>();
         if (selected) {
-            lore.add(this.line(l.choose("Bioma selecionado", "Selected biome"), NamedTextColor.GREEN));
+            lore.add(this.line("Selected biome", NamedTextColor.GREEN));
         } else {
-            lore.add(this.line(l.choose("Clique para selecionar", "Click to select"), NamedTextColor.GRAY));
+            lore.add(this.line("Click to select", NamedTextColor.GRAY));
         }
         meta.lore(lore);
         if (selected) {
@@ -369,14 +369,14 @@ public final class BiomeWandService {
     private ItemStack radiusItem(int radius, Language l) {
         ItemStack item = new ItemStack(Material.LIGHT_BLUE_DYE);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(this.line(l.choose("Raio: ", "Radius: ") + this.radiusLabel(radius, l), NamedTextColor.AQUA)
+        meta.displayName(this.line("Radius: " + this.radiusLabel(radius, l), NamedTextColor.AQUA)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = new ArrayList<>();
-        lore.add(this.line(l.choose("Clique esquerdo: aumenta", "Left-click: increase"), NamedTextColor.GRAY));
-        lore.add(this.line(l.choose("Clique direito: diminui", "Right-click: decrease"), NamedTextColor.GRAY));
+        lore.add(this.line("Left-click: increase", NamedTextColor.GRAY));
+        lore.add(this.line("Right-click: decrease", NamedTextColor.GRAY));
         lore.add(Component.empty());
-        lore.add(this.line(l.choose("Mínimo: 1", "Min: 1"), NamedTextColor.DARK_GRAY));
-        lore.add(this.line(l.choose("Máximo: " + this.maxRadius, "Max: " + this.maxRadius), NamedTextColor.DARK_GRAY));
+        lore.add(this.line("Min: 1", NamedTextColor.DARK_GRAY));
+        lore.add(this.line(("Max: " + this.maxRadius), NamedTextColor.DARK_GRAY));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);

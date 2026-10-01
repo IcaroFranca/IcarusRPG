@@ -297,7 +297,7 @@ public final class LapisExperienceService implements Listener {
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         List<Component> ptBlock = wrappedDescription(pt);
         List<Component> enBlock = wrappedDescription(en);
-        List<Component> wantedBlock = l == Language.PT ? ptBlock : enBlock;
+        List<Component> wantedBlock = enBlock;
         int at = indexOfBlock(lore, ptBlock);
         int size = ptBlock.size();
         if (at < 0) {

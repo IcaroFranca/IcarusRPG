@@ -124,7 +124,7 @@ public final class SpruceAxeListener implements Listener {
         long now = System.currentTimeMillis();
         long ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L);
         if (now < ready) {
-            p.sendActionBar(Component.text(l.choose("Arremesso em recarga: ", "Throw cooldown: ")
+            p.sendActionBar(Component.text("Throw cooldown: "
                     + String.format(Locale.US, "%.1fs", (ready - now) / 1000.0), (TextColor) NamedTextColor.RED));
             return true;
         }

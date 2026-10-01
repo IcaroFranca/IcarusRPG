@@ -120,7 +120,7 @@ public final class EnchantMenuListener implements Listener {
                 ItemStack item = e.getInventory().getItem(EnchantMenuService.ITEM_SLOT);
                 if (item == null || item.isEmpty()) {
                     p.sendMessage(Component.text(
-                            Language.of(p).choose("Coloque um item para encantar primeiro.", "Place an item to enchant first."),
+                            "Place an item to enchant first.",
                             NamedTextColor.RED));
                     return;
                 }

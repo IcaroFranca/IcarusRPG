@@ -96,7 +96,7 @@ public final class MushroomSoupFlightService implements Listener {
             p.setAllowFlight(true);
         }
         Language l = Language.of(p);
-        p.sendMessage(Component.text(l.choose("✦ Voo restante: ", "✦ Remaining flight: ") + (total / 20) + "s", NamedTextColor.LIGHT_PURPLE));
+        p.sendMessage(Component.text("✦ Remaining flight: " + (total / 20) + "s", NamedTextColor.LIGHT_PURPLE));
         this.showBoard(p, total);
     }
 
@@ -129,9 +129,9 @@ public final class MushroomSoupFlightService implements Listener {
             objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
         Language l = Language.of(p);
-        objective.displayName(Component.text(l.choose("✦ Voo de Cogumelo ✦", "✦ Mushroom Flight ✦"), NamedTextColor.LIGHT_PURPLE));
+        objective.displayName(Component.text("✦ Mushroom Flight ✦", NamedTextColor.LIGHT_PURPLE));
         Score score = objective.getScore(SCORE_ENTRY);
-        score.customName(Component.text(l.choose("Tempo restante", "Time left"), NamedTextColor.AQUA));
+        score.customName(Component.text("Time left", NamedTextColor.AQUA));
         score.setScore(ticksRemaining / 20);
     }
 

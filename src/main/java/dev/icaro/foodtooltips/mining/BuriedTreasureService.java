@@ -161,10 +161,10 @@ public final class BuriedTreasureService {
     private void announce(Player p, TreasureRarity r, Reward reward) {
         Language l = Language.of(p);
         p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
-        p.sendMessage((Component)Component.text((String)("\u2726 " + l.choose("TESOURO SOTERRADO!", "BURIED TREASURE!") + " \u2726"), (TextColor)r.color()));
-        p.sendMessage((Component)Component.text((String)(l.choose("Raridade: ", "Rarity: ") + r.name(l == Language.PT)), (TextColor)r.color()));
-        p.sendMessage((Component)Component.text((String)("\u2727 " + reward.dust + " " + l.choose("P\u00f3 Mineral", "Mineral Dust")), (TextColor)NamedTextColor.LIGHT_PURPLE));
-        p.sendMessage((Component)Component.text((String)("+" + Math.round(reward.xp) + " XP " + l.choose("de Minera\u00e7\u00e3o", "Mining XP")), (TextColor)NamedTextColor.AQUA));
+        p.sendMessage((Component)Component.text((String)("\u2726 " + "BURIED TREASURE!" + " \u2726"), (TextColor)r.color()));
+        p.sendMessage((Component)Component.text((String)("Rarity: " + r.name(l == Language.PT)), (TextColor)r.color()));
+        p.sendMessage((Component)Component.text((String)("\u2727 " + reward.dust + " " + "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE));
+        p.sendMessage((Component)Component.text((String)("+" + Math.round(reward.xp) + " XP " + "Mining XP"), (TextColor)NamedTextColor.AQUA));
         p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
         p.playSound(p.getLocation(), r.ordinal() >= 3 ? Sound.ENTITY_ENDER_DRAGON_GROWL : Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
         p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0.0, 1.0, 0.0), 30, 0.5, 0.7, 0.5, 0.05);

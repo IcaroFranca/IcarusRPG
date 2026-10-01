@@ -227,7 +227,7 @@ implements Listener {
             return;
         }
         e.setCancelled(true);
-        e.getPlayer().sendActionBar((Component)Component.text((String)Language.of(e.getPlayer()).choose("Gemas n\u00e3o podem ser posicionadas.", "Gems cannot be placed."), (TextColor)NamedTextColor.RED));
+        e.getPlayer().sendActionBar((Component)Component.text("Gems cannot be placed.", (TextColor)NamedTextColor.RED));
     }
 
     /** Every Base64 head texture a gem can actually be created with (see {@link #faithfulTexture}) - for {@code GeyserSkullExport}. */
@@ -241,7 +241,7 @@ implements Listener {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, (int)54, (String)l.choose("Gemas", "Gems"));
+        Inventory inv = Bukkit.createInventory(null, (int)54, "Gems");
         ItemStack fill = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < 54; ++i) {
             inv.setItem(i, fill);
@@ -250,9 +250,9 @@ implements Listener {
         GemType[] values = GemType.values();
         for (int i = 0; i < values.length; ++i) {
             GemType g = values[i];
-            inv.setItem(slots[i], this.create(g, l, List.of(this.line(l.choose("Bloco natural: ", "Natural block: "), NamedTextColor.GRAY).append((Component)Component.translatable((String)g.block().translationKey())), this.line(l.choose("Camadas: Y -60 a -8", "Layers: Y -60 to -8"), NamedTextColor.AQUA), this.line(l.choose("Atributo de encaixe: ", "Socket attribute: ") + g.attribute(l == Language.PT), NamedTextColor.GREEN))));
+            inv.setItem(slots[i], this.create(g, l, List.of(this.line("Natural block: ", NamedTextColor.GRAY).append((Component)Component.translatable((String)g.block().translationKey())), this.line("Layers: Y -60 to -8", NamedTextColor.AQUA), this.line("Socket attribute: " + g.attribute(l == Language.PT), NamedTextColor.GREEN))));
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, "Back to Compendium", List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.menus.put(p.getUniqueId(), inv);
@@ -282,7 +282,7 @@ implements Listener {
     }
 
     public ItemStack create(GemType type, Language l) {
-        return this.create(type, l, List.of(this.line(l.choose("Gema lapid\u00e1vel", "Socketable gemstone"), NamedTextColor.GRAY), this.line(l.choose("Atributo: ", "Attribute: ") + type.attribute(l == Language.PT), NamedTextColor.GREEN)));
+        return this.create(type, l, List.of(this.line("Socketable gemstone", NamedTextColor.GRAY), this.line("Attribute: " + type.attribute(l == Language.PT), NamedTextColor.GREEN)));
     }
 
     private ItemStack create(GemType type, Language l, List<Component> lore) {

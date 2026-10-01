@@ -223,7 +223,7 @@ public final class PotionBagService {
         if (cached != null && cachedForSize != null && cachedForSize == size && cached.getSize() == totalSize) {
             return cached;
         }
-        Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Bolsa de Poções", "Potion Bag"));
+        Inventory inv = Bukkit.createInventory(null, totalSize, "Potion Bag");
         ItemStack[] saved;
         int realLength;
         if (cached != null) {
@@ -268,7 +268,7 @@ public final class PotionBagService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the screen.
         }
-        m.displayName(Component.text(l.choose("Voltar às skills", "Back to skills"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.displayName(Component.text("Back to skills", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         i.setItemMeta(m);
         return i;

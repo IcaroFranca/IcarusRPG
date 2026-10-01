@@ -79,7 +79,7 @@ public final class CollectionsMenuService {
 
     public void openCategories(Player p) {
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, 54, l.choose("Categorias de Coleções", "Collection Categories"));
+        Inventory inv = Bukkit.createInventory(null, 54, "Collection Categories");
         this.fill(inv);
         CollectionsCategory[] categories = CollectionsCategory.values();
         List<Integer> slots = this.centeredSlots(categories.length);
@@ -88,12 +88,12 @@ public final class CollectionsMenuService {
             CollectionsCategory c = categories[i];
             int slot = slots.get(i);
             List<Component> lore = List.of(
-                    this.text(CollectionsCatalog.entries(c).size() + " " + l.choose("itens catalogados", "catalogued items"), NamedTextColor.GRAY),
-                    this.text(l.choose("Clique para abrir!", "Click to open!"), NamedTextColor.YELLOW));
+                    this.text(CollectionsCatalog.entries(c).size() + " " + "catalogued items", NamedTextColor.GRAY),
+                    this.text("Click to open!", NamedTextColor.YELLOW));
             inv.setItem(slot, this.item(c.icon(), c.display(l == Language.PT), lore));
             buttons.put(slot, c);
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às Skills", "Back to Skills"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, "Back to Skills", List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.categories(buttons));
@@ -116,12 +116,12 @@ public final class CollectionsMenuService {
             inv.setItem(slot, this.entryItem(p, entry, l));
             buttons.put(slot, entry);
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar às categorias", "Back to categories"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, "Back to categories", List.of()));
         if (page > 0) {
-            inv.setItem(47, this.customHead(HeadTexture.ARROW_LEFT, l.choose("Página anterior", "Previous Page"), List.of()));
+            inv.setItem(47, this.customHead(HeadTexture.ARROW_LEFT, "Previous Page", List.of()));
         }
         if (page + 1 < pages) {
-            inv.setItem(51, this.customHead(HeadTexture.ARROW_RIGHT, l.choose("Próxima página", "Next Page"), List.of()));
+            inv.setItem(51, this.customHead(HeadTexture.ARROW_RIGHT, "Next Page", List.of()));
         }
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -138,8 +138,8 @@ public final class CollectionsMenuService {
         int done = this.progress.achieved(p, entry);
         int max = this.progress.maxMilestones(entry);
         List<Component> summaryLore = new ArrayList<>();
-        summaryLore.add(this.text(l.choose("Coletado: ", "Collected: ") + collected, NamedTextColor.GREEN));
-        summaryLore.add(this.text(l.choose("Milestones concluídas: ", "Milestones completed: ") + done + "/" + max, NamedTextColor.GOLD));
+        summaryLore.add(this.text("Collected: " + collected, NamedTextColor.GREEN));
+        summaryLore.add(this.text("Milestones completed: " + done + "/" + max, NamedTextColor.GOLD));
         inv.setItem(4, this.item(entry.drop(), entry.displayName(l == Language.PT), summaryLore));
         Map<Integer, CollectionsMilestone> milestoneButtons = new HashMap<>();
         for (int i = 0; i < MILESTONE_SLOTS.length && i < max; i++) {
@@ -149,16 +149,16 @@ public final class CollectionsMenuService {
             int remaining = Math.max(0, milestone.threshold() - collected);
             List<Component> lore = new ArrayList<>();
             if (unlocked) {
-                lore.add(this.text(l.choose("Concluído em ", "Reached at ") + milestone.threshold(), NamedTextColor.GRAY));
+                lore.add(this.text("Reached at " + milestone.threshold(), NamedTextColor.GRAY));
             } else {
-                lore.add(this.text(l.choose("Faltam ", "Need ") + remaining + " " + l.choose("para completar", "more to complete"), NamedTextColor.GRAY));
+                lore.add(this.text("Need " + remaining + " " + "more to complete", NamedTextColor.GRAY));
             }
             NamedTextColor rewardColor = unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW;
             for (String part : LoreWrap.wrapText(milestone.reward(l == Language.PT), LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(this.text(part, rewardColor));
             }
-            lore.add(this.text("+" + this.global.milestoneXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
-            lore.add(this.text(unlocked ? l.choose("CONCLUÍDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
+            lore.add(this.text("+" + this.global.milestoneXp() + " " + "Global Level XP", NamedTextColor.AQUA));
+            lore.add(this.text(unlocked ? "COMPLETED" : "LOCKED", unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
             List<ItemStack> preview = this.previewItems(milestone);
             if (preview.isEmpty()) {
                 Material pane = unlocked ? Material.LIME_STAINED_GLASS_PANE
@@ -176,7 +176,7 @@ public final class CollectionsMenuService {
             inv.setItem(MILESTONE_SLOTS[i], this.withMilestoneStatusLore(preview.get(0), lore));
             milestoneButtons.put(MILESTONE_SLOTS[i], milestone);
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, "Back", List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.detail(back, page, entry, milestoneButtons));
@@ -270,7 +270,7 @@ public final class CollectionsMenuService {
         Language l = Language.of(p);
         List<ItemStack> items = this.previewItems(milestone);
         List<NamespacedKey> keys = this.previewKeys(milestone);
-        Inventory inv = Bukkit.createInventory(null, 54, l.choose("Prévia do Item", "Item Preview"));
+        Inventory inv = Bukkit.createInventory(null, 54, "Item Preview");
         this.fill(inv);
         List<Integer> slots = this.centeredSlots(items.size());
         Map<Integer, NamespacedKey> recipeButtons = new HashMap<>();
@@ -279,7 +279,7 @@ public final class CollectionsMenuService {
             inv.setItem(slot, this.withRecipeHint(items.get(i), l));
             recipeButtons.put(slot, keys.get(i));
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, "Back", List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.itemPreview(back, page, entry, milestone, recipeButtons));
@@ -301,7 +301,7 @@ public final class CollectionsMenuService {
         ItemMeta meta = item.getItemMeta();
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Clique para ver a receita.", "Click to see the recipe."), NamedTextColor.YELLOW));
+        lore.add(this.text("Click to see the recipe.", NamedTextColor.YELLOW));
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
@@ -309,10 +309,10 @@ public final class CollectionsMenuService {
 
     private ItemStack entryItem(Player p, CollectionsEntry e, Language l) {
         List<Component> lore = new ArrayList<>();
-        lore.add(this.text(l.choose("Coletado: ", "Collected: ") + this.progress.collected(p, e), NamedTextColor.GREEN));
+        lore.add(this.text("Collected: " + this.progress.collected(p, e), NamedTextColor.GREEN));
         lore.add(this.text("Milestones: " + this.progress.achieved(p, e) + "/" + this.progress.maxMilestones(e), NamedTextColor.GOLD));
         lore.add(Component.empty());
-        lore.add(this.text(l.choose("Clique para ver milestones!", "Click to view milestones!"), NamedTextColor.YELLOW));
+        lore.add(this.text("Click to view milestones!", NamedTextColor.YELLOW));
         return this.item(e.drop(), e.displayName(l == Language.PT), lore);
     }
 

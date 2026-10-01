@@ -48,26 +48,26 @@ public final class MiningMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, (int)54, (String)l.choose("Comp\u00eandio de Minera\u00e7\u00e3o", "Mining Compendium"));
+        Inventory inv = Bukkit.createInventory(null, (int)54, "Mining Compendium");
         this.fill(inv);
         List<MiningEntry> entries = MiningCatalog.entries();
         for (int i = 0; i < entries.size(); ++i) {
             MiningEntry e = entries.get(i);
             int mined = this.skills.mined(p, e.block());
             int milestones = this.skills.miningMilestones(p, e.block());
-            List<Component> lore = List.of(this.line(l.choose("Blocos minerados: ", "Blocks mined: ") + mined, NamedTextColor.WHITE), this.line("Milestones: " + milestones + "/5", NamedTextColor.GOLD), this.line(l.choose("XP de Minera\u00e7\u00e3o: ", "Mining XP: ") + this.format(e.skillXp()), NamedTextColor.AQUA), this.line(l.choose("Drop base: ", "Base drop: ") + String.valueOf(e.minDrop() == e.maxDrop() ? Integer.valueOf(e.minDrop()) : e.minDrop() + "\u2013" + e.maxDrop()), NamedTextColor.YELLOW), this.line(l.choose("Orbes de XP: ", "XP Orbs: ") + e.vanillaXp(), NamedTextColor.GREEN), this.line(l.choose("Camadas: ", "Layers: ") + (l == Language.PT ? e.layersPt() : e.layersEn()), NamedTextColor.GRAY), Component.empty(), this.line(l.choose("Clique para ver as milestones!", "Click to view milestones!"), NamedTextColor.YELLOW));
+            List<Component> lore = List.of(this.line("Blocks mined: " + mined, NamedTextColor.WHITE), this.line("Milestones: " + milestones + "/5", NamedTextColor.GOLD), this.line("Mining XP: " + this.format(e.skillXp()), NamedTextColor.AQUA), this.line("Base drop: " + String.valueOf(e.minDrop() == e.maxDrop() ? Integer.valueOf(e.minDrop()) : e.minDrop() + "\u2013" + e.maxDrop()), NamedTextColor.YELLOW), this.line("XP Orbs: " + e.vanillaXp(), NamedTextColor.GREEN), this.line("Layers: " + e.layersEn(), NamedTextColor.GRAY), Component.empty(), this.line("Click to view milestones!", NamedTextColor.YELLOW));
             inv.setItem(this.entrySlot(i), this.item(e.block(), Component.translatable((String)e.block().translationKey()).color((TextColor)NamedTextColor.GOLD), lore));
         }
         Material target = this.skills.commissionTarget(p);
-        inv.setItem(45, this.item(Material.WRITABLE_BOOK, (Component)Component.text((String)l.choose("Comiss\u00e3o di\u00e1ria", "Daily Commission"), (TextColor)NamedTextColor.GOLD), List.of(Component.translatable((String)target.translationKey()).color((TextColor)NamedTextColor.YELLOW), this.line(this.skills.commissionProgress(p) + "/" + this.skills.commissionGoal(p), NamedTextColor.GREEN), this.line(l.choose("Recompensa: 500 XP e 250 P\u00f3 Mineral", "Reward: 500 XP and 250 Mineral Dust"), NamedTextColor.AQUA))));
+        inv.setItem(45, this.item(Material.WRITABLE_BOOK, (Component)Component.text("Daily Commission", (TextColor)NamedTextColor.GOLD), List.of(Component.translatable((String)target.translationKey()).color((TextColor)NamedTextColor.YELLOW), this.line(this.skills.commissionProgress(p) + "/" + this.skills.commissionGoal(p), NamedTextColor.GREEN), this.line("Reward: 500 XP and 250 Mineral Dust", NamedTextColor.AQUA))));
         inv.setItem(46, this.treasureItem(p, l));
         List<Component> mineralDustLore = new ArrayList<>();
         mineralDustLore.add(this.line(Long.toString(this.skills.mineralDust(p)), NamedTextColor.AQUA));
-        for (String part : LoreWrap.wrapText(l.choose("Usado em futuras melhorias de Minera\u00e7\u00e3o.", "Used for future Mining upgrades."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Used for future Mining upgrades.", LoreWrap.DEFAULT_WIDTH)) {
             mineralDustLore.add(this.line(part, NamedTextColor.GRAY));
         }
-        inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text((String)l.choose("P\u00f3 Mineral", "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE), mineralDustLore));
-        inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar", "Back"), (TextColor)NamedTextColor.GOLD), List.of()));
+        inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text("Mineral Dust", (TextColor)NamedTextColor.LIGHT_PURPLE), mineralDustLore));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text("Back", (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.add(p.getUniqueId());
@@ -76,19 +76,19 @@ public final class MiningMenuService {
 
     public void openDetail(Player p, MiningEntry entry) {
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, (int)54, (String)l.choose("Milestones de Minera\u00e7\u00e3o", "Mining Milestones"));
+        Inventory inv = Bukkit.createInventory(null, (int)54, "Mining Milestones");
         this.fill(inv);
         int mined = this.skills.mined(p, entry.block());
-        inv.setItem(4, this.item(entry.block(), Component.translatable((String)entry.block().translationKey()).color((TextColor)NamedTextColor.GOLD), List.of(this.line(l.choose("Total minerado: ", "Total mined: ") + mined, NamedTextColor.WHITE), this.line(l.choose("Milestones conclu\u00eddas: ", "Milestones completed: ") + this.skills.miningMilestones(p, entry.block()) + "/5", NamedTextColor.GOLD))));
+        inv.setItem(4, this.item(entry.block(), Component.translatable((String)entry.block().translationKey()).color((TextColor)NamedTextColor.GOLD), List.of(this.line("Total mined: " + mined, NamedTextColor.WHITE), this.line("Milestones completed: " + this.skills.miningMilestones(p, entry.block()) + "/5", NamedTextColor.GOLD))));
         for (int i = 0; i < MILESTONE_TARGETS.length; ++i) {
             int target = MILESTONE_TARGETS[i];
             boolean complete = mined >= target;
             int previous = i == 0 ? 0 : MILESTONE_TARGETS[i - 1];
             int current = Math.max(0, Math.min(target - previous, mined - previous));
-            List<Component> lore = List.of(this.line(l.choose("Meta: minerar ", "Goal: mine ") + target, NamedTextColor.GRAY), this.line(l.choose("Progresso: ", "Progress: ") + current + "/" + (target - previous), NamedTextColor.YELLOW), this.line(l.choose("Recompensa: +0,5% Minerador Cuidadoso", "Reward: +0.5% Careful Miner"), NamedTextColor.AQUA), this.line(complete ? l.choose("CONCLU\u00cdDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED"), complete ? NamedTextColor.GREEN : NamedTextColor.RED));
-            inv.setItem(MILESTONE_SLOTS[i], this.item(complete ? Material.LIME_DYE : Material.GRAY_DYE, l.choose("Milestone ", "Milestone ") + (i + 1), lore));
+            List<Component> lore = List.of(this.line("Goal: mine " + target, NamedTextColor.GRAY), this.line("Progress: " + current + "/" + (target - previous), NamedTextColor.YELLOW), this.line("Reward: +0.5% Careful Miner", NamedTextColor.AQUA), this.line(complete ? "COMPLETED" : "LOCKED", complete ? NamedTextColor.GREEN : NamedTextColor.RED));
+            inv.setItem(MILESTONE_SLOTS[i], this.item(complete ? Material.LIME_DYE : Material.GRAY_DYE, "Milestone " + (i + 1), lore));
         }
-        inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text((String)l.choose("Voltar ao Comp\u00eandio", "Back to Compendium"), (TextColor)NamedTextColor.GOLD), List.of()));
+        inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text("Back to Compendium", (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.add(p.getUniqueId());
@@ -131,7 +131,7 @@ public final class MiningMenuService {
 
     private ItemStack treasureItem(Player p, Language l) {
         ArrayList<Component> lore = new ArrayList<Component>();
-        for (String part : LoreWrap.wrapText(l.choose("Encontrados ao minerar min\u00e9rios naturais.", "Found while mining natural ores."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Found while mining natural ores.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.line(part, NamedTextColor.GRAY));
         }
         lore.add((Component)Component.empty());
@@ -140,7 +140,7 @@ public final class MiningMenuService {
         lore.add(this.treasureLine(p, l, TreasureRarity.RARE, "1/8.333"));
         lore.add(this.treasureLine(p, l, TreasureRarity.EPIC, "1/33.333"));
         lore.add(this.treasureLine(p, l, TreasureRarity.LEGENDARY, "1/100.000"));
-        return this.item(Material.CHEST, (Component)Component.text((String)l.choose("Tesouros Soterrados", "Buried Treasures"), (TextColor)NamedTextColor.GOLD), lore);
+        return this.item(Material.CHEST, (Component)Component.text("Buried Treasures", (TextColor)NamedTextColor.GOLD), lore);
     }
 
     private Component treasureLine(Player p, Language l, TreasureRarity rarity, String chance) {

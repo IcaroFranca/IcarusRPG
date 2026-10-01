@@ -45,9 +45,9 @@ public final class DestroyerHandListener implements Listener {
         if (p.isSneaking()) {
             int undone = this.hand.undo(p);
             if (undone <= 0) {
-                p.sendActionBar(Component.text(l.choose("Nada pra desfazer.", "Nothing to undo."), NamedTextColor.RED));
+                p.sendActionBar(Component.text("Nothing to undo.", NamedTextColor.RED));
             } else {
-                p.sendActionBar(Component.text("+" + undone + " " + l.choose("blocos (desfeito)", "blocks (undone)"), NamedTextColor.GOLD));
+                p.sendActionBar(Component.text("+" + undone + " " + "blocks (undone)", NamedTextColor.GOLD));
             }
         } else {
             this.hand.openModeMenu(p, held);
@@ -78,9 +78,9 @@ public final class DestroyerHandListener implements Listener {
         }
         int cleared = this.hand.clear(p, clicked, face, e.getItem());
         if (cleared <= 0) {
-            p.sendActionBar(Component.text(l.choose("Nada pra limpar aqui.", "Nothing to clear here."), NamedTextColor.RED));
+            p.sendActionBar(Component.text("Nothing to clear here.", NamedTextColor.RED));
         } else {
-            p.sendActionBar(Component.text("-" + cleared + " " + l.choose("blocos", "blocks"), NamedTextColor.GREEN));
+            p.sendActionBar(Component.text("-" + cleared + " " + "blocks", NamedTextColor.GREEN));
         }
     }
 

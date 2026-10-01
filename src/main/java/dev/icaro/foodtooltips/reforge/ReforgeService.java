@@ -409,16 +409,16 @@ public final class ReforgeService {
     private List<Component> weaponStatLines(ReforgeStats stats, Language l) {
         List<Component> lines = new ArrayList<>();
         if (stats.strength() != 0) {
-            lines.add(this.statLine(l.choose("Força: ", "Strength: "), stats.strength(), false, NamedTextColor.RED));
+            lines.add(this.statLine("Strength: ", stats.strength(), false, NamedTextColor.RED));
         }
         if (stats.critChance() != 0) {
-            lines.add(this.statLine(l.choose("Chance Crítica: ", "Crit Chance: "), stats.critChance(), true, NamedTextColor.AQUA));
+            lines.add(this.statLine("Crit Chance: ", stats.critChance(), true, NamedTextColor.AQUA));
         }
         if (stats.critDamage() != 0) {
-            lines.add(this.statLine(l.choose("Dano Crítico: ", "Crit Damage: "), stats.critDamage(), true, NamedTextColor.WHITE));
+            lines.add(this.statLine("Crit Damage: ", stats.critDamage(), true, NamedTextColor.WHITE));
         }
         if (stats.intelligence() != 0) {
-            lines.add(this.statLine(l.choose("Inteligência: ", "Intelligence: "), stats.intelligence(), false, NamedTextColor.AQUA));
+            lines.add(this.statLine("Intelligence: ", stats.intelligence(), false, NamedTextColor.AQUA));
         }
         return lines;
     }
@@ -432,28 +432,28 @@ public final class ReforgeService {
     private List<Component> armorStatLines(ArmorReforgeStats stats, Language l) {
         List<Component> lines = new ArrayList<>();
         if (stats.health() != 0) {
-            lines.add(this.statLine(l.choose("Vida: ", "Health: "), stats.health(), false, NamedTextColor.RED));
+            lines.add(this.statLine("Health: ", stats.health(), false, NamedTextColor.RED));
         }
         if (stats.defense() != 0) {
-            lines.add(this.statLine(l.choose("Defesa (Reforja): ", "Defense (Reforge): "), stats.defense(), false, NamedTextColor.GREEN));
+            lines.add(this.statLine("Defense (Reforge): ", stats.defense(), false, NamedTextColor.GREEN));
         }
         if (stats.strength() != 0) {
-            lines.add(this.statLine(l.choose("Força: ", "Strength: "), stats.strength(), false, NamedTextColor.RED));
+            lines.add(this.statLine("Strength: ", stats.strength(), false, NamedTextColor.RED));
         }
         if (stats.critChance() != 0) {
-            lines.add(this.statLine(l.choose("Chance Crítica: ", "Crit Chance: "), stats.critChance(), true, NamedTextColor.AQUA));
+            lines.add(this.statLine("Crit Chance: ", stats.critChance(), true, NamedTextColor.AQUA));
         }
         if (stats.critDamage() != 0) {
-            lines.add(this.statLine(l.choose("Dano Crítico: ", "Crit Damage: "), stats.critDamage(), true, NamedTextColor.WHITE));
+            lines.add(this.statLine("Crit Damage: ", stats.critDamage(), true, NamedTextColor.WHITE));
         }
         if (stats.agility() != 0) {
-            lines.add(this.statLine(l.choose("Agilidade: ", "Agility: "), stats.agility(), false, NamedTextColor.WHITE));
+            lines.add(this.statLine("Agility: ", stats.agility(), false, NamedTextColor.WHITE));
         }
         if (stats.attackSpeed() != 0) {
-            lines.add(this.statLine(l.choose("Velocidade de Ataque: ", "Attack Speed: "), stats.attackSpeed(), true, NamedTextColor.YELLOW));
+            lines.add(this.statLine("Attack Speed: ", stats.attackSpeed(), true, NamedTextColor.YELLOW));
         }
         if (stats.intelligence() != 0) {
-            lines.add(this.statLine(l.choose("Inteligência: ", "Intelligence: "), stats.intelligence(), false, NamedTextColor.AQUA));
+            lines.add(this.statLine("Intelligence: ", stats.intelligence(), false, NamedTextColor.AQUA));
         }
         return lines;
     }

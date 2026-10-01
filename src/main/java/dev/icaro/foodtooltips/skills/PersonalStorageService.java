@@ -195,7 +195,7 @@ public final class PersonalStorageService {
         if (cached != null && cachedForSize != null && cachedForSize == size && cached.getSize() == totalSize) {
             return cached;
         }
-        Inventory inv = Bukkit.createInventory(null, totalSize, l.choose("Armazenamento Pessoal", "Personal Storage"));
+        Inventory inv = Bukkit.createInventory(null, totalSize, "Personal Storage");
         // Only ever copy the OLD screen's own real-storage portion (its last known unlocked
         // size, per cachedForSize - never its raw Inventory#getSize(), which can no longer
         // tell "real storage" apart from "decorative padding" now that several unlocked
@@ -246,7 +246,7 @@ public final class PersonalStorageService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the screen.
         }
-        m.displayName(Component.text(l.choose("Fechar", "Close"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.displayName(Component.text("Close", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         i.setItemMeta(m);
         return i;

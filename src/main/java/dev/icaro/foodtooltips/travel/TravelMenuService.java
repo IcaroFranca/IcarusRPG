@@ -72,7 +72,7 @@ public final class TravelMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        ChestGui gui = new ChestGui(3, l.choose("Locais", "Locations"), this.plugin);
+        ChestGui gui = new ChestGui(3, "Locations", this.plugin);
         gui.setOnGlobalClick(e -> e.setCancelled(true));
 
         StaticPane pane = new StaticPane(9, 3);
@@ -83,69 +83,69 @@ public final class TravelMenuService {
             }
         }
 
-        pane.addItem(new GuiItem(this.item(Material.GRASS_BLOCK, l.choose("Mundo Padrão", "Default World"),
-                List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+        pane.addItem(new GuiItem(this.item(Material.GRASS_BLOCK, "Default World",
+                List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                 event -> this.travel(p, this.defaultWorld)), 3, 1);
 
-        pane.addItem(new GuiItem(this.item(Material.RED_BED, l.choose("Respawn (Cama/Âncora)", "Bed/Anchor Spawn"),
-                List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+        pane.addItem(new GuiItem(this.item(Material.RED_BED, "Bed/Anchor Spawn",
+                List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                 event -> this.travelToBedSpawn(p)), 5, 1);
 
         if (this.collectionsProgress.achieved(p, this.birchLogEntry()) >= 3) {
-            pane.addItem(new GuiItem(this.item(Material.BIRCH_SAPLING, l.choose("Floresta de Bétulas Mais Próxima", "Nearest Birch Forest"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.BIRCH_SAPLING, "Nearest Birch Forest",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestBirchForest(p)), 1, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.spruceLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.SPRUCE_SAPLING, l.choose("Taiga Mais Próximo", "Nearest Taiga"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.SPRUCE_SAPLING, "Nearest Taiga",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestTaiga(p)), 2, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.darkOakLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.DARK_OAK_SAPLING, l.choose("Floresta Sombria Mais Próxima", "Nearest Dark Forest"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.DARK_OAK_SAPLING, "Nearest Dark Forest",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestDarkForest(p)), 6, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.acaciaLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.ACACIA_SAPLING, l.choose("Savana Mais Próximo", "Nearest Savanna"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.ACACIA_SAPLING, "Nearest Savanna",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestSavanna(p)), 7, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.jungleLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.JUNGLE_SAPLING, l.choose("Selva Mais Próxima", "Nearest Jungle"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.JUNGLE_SAPLING, "Nearest Jungle",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestJungle(p)), 8, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.mangroveLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.MANGROVE_PROPAGULE, l.choose("Pântano de Mangue Mais Próximo", "Nearest Mangrove Swamp"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.MANGROVE_PROPAGULE, "Nearest Mangrove Swamp",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestMangroveSwamp(p)), 4, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.cherryLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.CHERRY_SAPLING, l.choose("Cherry Grove Mais Próximo", "Nearest Cherry Grove"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.CHERRY_SAPLING, "Nearest Cherry Grove",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestCherryGrove(p)), 0, 1);
         }
 
         if (this.collectionsProgress.achieved(p, this.paleOakLogEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.CREAKING_HEART, l.choose("Bosque Pálido Mais Próximo", "Nearest Pale Garden"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.CREAKING_HEART, "Nearest Pale Garden",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestPaleGarden(p)), 4, 0);
         }
 
         if (this.collectionsProgress.achieved(p, this.crimsonStemEntry()) >= 4) {
-            pane.addItem(new GuiItem(this.item(Material.CRIMSON_NYLIUM, l.choose("Floresta Carmesim Mais Próxima", "Nearest Crimson Forest"),
-                    List.of(this.text(l.choose("Clique para teleportar.", "Click to teleport."), NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+            pane.addItem(new GuiItem(this.item(Material.CRIMSON_NYLIUM, "Nearest Crimson Forest",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestCrimsonForest(p)), 5, 0);
         }
 
-        pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
+        pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, "Back", List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
 
         gui.addPane(Slot.fromXY(0, 0), pane);
         gui.show(p);
@@ -156,7 +156,7 @@ public final class TravelMenuService {
         Language l = Language.of(p);
         World world = Bukkit.getWorld(worldName);
         if (world == null) {
-            p.sendMessage(Component.text(l.choose("Esse local não está disponível agora.", "That location isn't available right now."), NamedTextColor.RED));
+            p.sendMessage(Component.text("That location isn't available right now.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -176,7 +176,7 @@ public final class TravelMenuService {
         Language l = Language.of(p);
         Location destination = p.getRespawnLocation();
         if (destination == null || destination.getWorld() == null) {
-            p.sendMessage(Component.text(l.choose("Você não tem uma cama ou âncora de respawn marcada.", "You don't have a bed or respawn anchor set."), NamedTextColor.RED));
+            p.sendMessage(Component.text("You don't have a bed or respawn anchor set.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -225,7 +225,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.BIRCH_FOREST, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhuma Floresta de Bétulas encontrada por perto.", "No Birch Forest found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Birch Forest found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -238,7 +238,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.TAIGA, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhum Taiga encontrado por perto.", "No Taiga found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Taiga found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -251,7 +251,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.DARK_FOREST, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhuma Floresta Sombria encontrada por perto.", "No Dark Forest found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Dark Forest found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -264,7 +264,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.SAVANNA, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhum Savana encontrado por perto.", "No Savanna found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Savanna found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -277,7 +277,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.JUNGLE, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhuma Selva encontrada por perto.", "No Jungle found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Jungle found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -290,7 +290,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.MANGROVE_SWAMP, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhum Pântano de Mangue encontrado por perto.", "No Mangrove Swamp found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Mangrove Swamp found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -303,7 +303,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.CHERRY_GROVE, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhum Cherry Grove encontrado por perto.", "No Cherry Grove found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Cherry Grove found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -316,7 +316,7 @@ public final class TravelMenuService {
         Location origin = p.getLocation();
         Location destination = origin.getWorld().locateNearestBiome(origin, Biome.PALE_GARDEN, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhum Bosque Pálido encontrado por perto.", "No Pale Garden found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Pale Garden found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -341,7 +341,7 @@ public final class TravelMenuService {
                 .filter(w -> w.getEnvironment() == World.Environment.NETHER)
                 .findFirst().orElse(null);
         if (nether == null) {
-            p.sendMessage(Component.text(l.choose("O Nether não está disponível agora.", "The Nether isn't available right now."), NamedTextColor.RED));
+            p.sendMessage(Component.text("The Nether isn't available right now.", NamedTextColor.RED));
             return;
         }
         Location origin = p.getWorld().getEnvironment() == World.Environment.NETHER
@@ -349,7 +349,7 @@ public final class TravelMenuService {
                 : new Location(nether, p.getLocation().getX() / 8.0, p.getLocation().getY(), p.getLocation().getZ() / 8.0);
         Location destination = nether.locateNearestBiome(origin, Biome.CRIMSON_FOREST, BIOME_SEARCH_RADIUS);
         if (destination == null) {
-            p.sendMessage(Component.text(l.choose("Nenhuma Floresta Carmesim encontrada por perto.", "No Crimson Forest found nearby."), NamedTextColor.RED));
+            p.sendMessage(Component.text("No Crimson Forest found nearby.", NamedTextColor.RED));
             return;
         }
         p.closeInventory();
@@ -377,9 +377,9 @@ public final class TravelMenuService {
         }
         boolean success = p.teleport(destination, PlayerTeleportEvent.TeleportCause.COMMAND);
         if (success) {
-            p.sendMessage(Component.text(l.choose("Teleportado!", "Teleported!"), NamedTextColor.GREEN));
+            p.sendMessage(Component.text("Teleported!", NamedTextColor.GREEN));
         } else {
-            p.sendMessage(Component.text(l.choose("Não foi possível teleportar agora. Tente de novo.", "Couldn't teleport right now. Try again."), NamedTextColor.RED));
+            p.sendMessage(Component.text("Couldn't teleport right now. Try again.", NamedTextColor.RED));
             this.plugin.getLogger().warning("Teleport recusado sem PlayerTeleportEvent - jogador=" + p.getName()
                     + " destino=" + destination.getWorld().getName() + " " + destination.getBlockX() + "," + destination.getBlockY() + "," + destination.getBlockZ()
                     + " chunkCarregado=" + destination.getWorld().isChunkLoaded(destination.getBlockX() >> 4, destination.getBlockZ() >> 4)

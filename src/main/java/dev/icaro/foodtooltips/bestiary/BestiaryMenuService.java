@@ -45,19 +45,19 @@ public final class BestiaryMenuService {
 
     public void openCategories(Player p) {
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, (int)54, (String)l.choose("Categorias do Besti\u00e1rio", "Bestiary Categories"));
+        Inventory inv = Bukkit.createInventory(null, (int)54, "Bestiary Categories");
         this.fill(inv);
         List<Integer> slots = this.centeredSlots(BestiaryCategory.values().length);
         HashMap<Integer, BestiaryCategory> buttons = new HashMap<Integer, BestiaryCategory>();
         for (int i = 0; i < BestiaryCategory.values().length; ++i) {
             BestiaryCategory c = BestiaryCategory.values()[i];
             int slot = slots.get(i);
-            List<Component> lore = List.of(Component.text((String)(this.entries(c).size() + " " + l.choose("mobs catalogados", "catalogued mobs")), (TextColor)NamedTextColor.GRAY), Component.text((String)l.choose("Clique para abrir!", "Click to open!"), (TextColor)NamedTextColor.YELLOW));
+            List<Component> lore = List.of(Component.text((String)(this.entries(c).size() + " " + "catalogued mobs"), (TextColor)NamedTextColor.GRAY), Component.text("Click to open!", (TextColor)NamedTextColor.YELLOW));
             ItemStack icon = c.headTexture() != null ? this.customHeadIcon(c.headTexture(), c.display(l), lore) : this.item(c.icon(), c.display(l), lore);
             inv.setItem(slot, icon);
             buttons.put(slot, c);
         }
-        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar \u00e0s Skills", "Back to Skills"), List.of()));
+        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, "Back to Skills", List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.categories(buttons));
@@ -80,12 +80,12 @@ public final class BestiaryMenuService {
             inv.setItem(slot, this.entryItem(p, entry, l));
             buttons.put(slot, entry);
         }
-        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar \u00e0s categorias", "Back to Categories"), List.of()));
+        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, "Back to Categories", List.of()));
         if (page > 0) {
-            inv.setItem(47, this.customHeadIcon(HeadTexture.ARROW_LEFT, l.choose("P\u00e1gina anterior", "Previous Page"), List.of()));
+            inv.setItem(47, this.customHeadIcon(HeadTexture.ARROW_LEFT, "Previous Page", List.of()));
         }
         if (page + 1 < pages) {
-            inv.setItem(51, this.customHeadIcon(HeadTexture.ARROW_RIGHT, l.choose("Pr\u00f3xima p\u00e1gina", "Next Page"), List.of()));
+            inv.setItem(51, this.customHeadIcon(HeadTexture.ARROW_RIGHT, "Next Page", List.of()));
         }
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -100,22 +100,22 @@ public final class BestiaryMenuService {
         int done = this.progress.achieved(p, e);
         int start = this.progress.startOfStep(e, done);
         int needed = this.progress.nextStepKills(e, done);
-        inv.setItem(4, this.icon(e, e.displayName(l), List.of(Component.text((String)(l.choose("Abates: ", "Kills: ") + kills), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Milestones conclu\u00eddas: ", "Milestones completed: ") + done), (TextColor)NamedTextColor.GOLD), Component.text((String)(needed == 0 ? l.choose("Progresso: M\u00c1XIMO \u2022 50 abates", "Progress: MAXIMUM \u2022 50 kills") : l.choose("Progresso atual: ", "Current progress: ") + Math.max(0, kills - start) + "/" + needed), (TextColor)NamedTextColor.GREEN), Component.text((String)(l.choose("Dano b\u00f4nus: ", "Damage bonus: ") + this.percent(this.progress.damageBonus(p, e))), (TextColor)NamedTextColor.RED), Component.text((String)(l.choose("Loot b\u00f4nus: ", "Loot bonus: ") + this.percent(this.progress.lootBonus(p, e))), (TextColor)NamedTextColor.YELLOW))));
+        inv.setItem(4, this.icon(e, e.displayName(l), List.of(Component.text((String)("Kills: " + kills), (TextColor)NamedTextColor.RED), Component.text((String)("Milestones completed: " + done), (TextColor)NamedTextColor.GOLD), Component.text((String)(needed == 0 ? "Progress: MAXIMUM \u2022 50 kills" : "Current progress: " + Math.max(0, kills - start) + "/" + needed), (TextColor)NamedTextColor.GREEN), Component.text((String)("Damage bonus: " + this.percent(this.progress.damageBonus(p, e))), (TextColor)NamedTextColor.RED), Component.text((String)("Loot bonus: " + this.percent(this.progress.lootBonus(p, e))), (TextColor)NamedTextColor.YELLOW))));
         int[] slots = new int[]{19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 40};
         for (int i = 0; i < slots.length && i < this.progress.maxMilestones(e); ++i) {
             int milestone = i + 1;
             boolean unlocked = milestone <= done;
             List<Component> lore = new java.util.ArrayList<>();
-            lore.add(Component.text((String)(l.choose("Mate mais ", "Kill ") + this.progress.nextStepKills(e, i) + l.choose(" deste mob", " more of this mob")), (TextColor)NamedTextColor.GRAY));
+            lore.add(Component.text((String)("Kill " + this.progress.nextStepKills(e, i) + " more of this mob"), (TextColor)NamedTextColor.GRAY));
             NamedTextColor rewardColor = unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW;
             for (String part : dev.icaro.foodtooltips.util.LoreWrap.wrapText(this.progress.reward(milestone, l == Language.PT), dev.icaro.foodtooltips.util.LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(Component.text(part, (TextColor)rewardColor));
             }
-            lore.add(Component.text((String)("+" + this.global.milestoneXp() + " " + l.choose("XP de N\u00edvel Global", "Global Level XP")), (TextColor)NamedTextColor.AQUA));
-            lore.add(Component.text((String)(unlocked ? l.choose("CONCLU\u00cdDA", "COMPLETED") : l.choose("BLOQUEADA", "LOCKED")), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.RED)));
+            lore.add(Component.text((String)("+" + this.global.milestoneXp() + " " + "Global Level XP"), (TextColor)NamedTextColor.AQUA));
+            lore.add(Component.text((String)(unlocked ? "COMPLETED" : "LOCKED"), (TextColor)(unlocked ? NamedTextColor.GREEN : NamedTextColor.RED)));
             inv.setItem(slots[i], this.item(unlocked ? Material.LIME_DYE : Material.GRAY_DYE, "Milestone " + milestone, lore));
         }
-        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, l.choose("Voltar", "Back"), List.of()));
+        inv.setItem(49, this.customHeadIcon(HeadTexture.BACK, "Back", List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewers.put(p.getUniqueId(), View.detail(back, page, e));
@@ -163,16 +163,16 @@ public final class BestiaryMenuService {
 
     private ItemStack entryItem(Player p, BestiaryEntry e, Language l) {
         ArrayList<Component> lore = new ArrayList<Component>();
-        lore.add((Component)Component.text((String)(l.choose("Abates: ", "Kills: ") + this.progress.kills(p, e)), (TextColor)NamedTextColor.RED));
+        lore.add((Component)Component.text((String)("Kills: " + this.progress.kills(p, e)), (TextColor)NamedTextColor.RED));
         lore.add((Component)Component.text((String)("Milestones: " + this.progress.achieved(p, e)), (TextColor)NamedTextColor.GOLD));
         lore.add((Component)Component.text((String)("Combat XP: " + e.awardedCombatXp()), (TextColor)NamedTextColor.RED));
-        lore.add((Component)Component.text((String)("\ud83e\ude78 " + l.choose("Pontos de Sangue: ", "Blood Points: ") + this.valor.catalogValor(e)), (TextColor)NamedTextColor.DARK_RED));
-        lore.add((Component)Component.text((String)(l.choose("Orbes de XP: ", "XP Orbs: ") + e.orbXp()), (TextColor)NamedTextColor.GREEN));
+        lore.add((Component)Component.text((String)("\ud83e\ude78 " + "Blood Points: " + this.valor.catalogValor(e)), (TextColor)NamedTextColor.DARK_RED));
+        lore.add((Component)Component.text((String)("XP Orbs: " + e.orbXp()), (TextColor)NamedTextColor.GREEN));
         lore.add((Component)Component.empty());
-        lore.add((Component)Component.text((String)l.choose("Drops (chance base):", "Drops (base chance):"), (TextColor)NamedTextColor.GOLD));
+        lore.add((Component)Component.text("Drops (base chance):", (TextColor)NamedTextColor.GOLD));
         e.drops().forEach(d -> lore.add((Component)Component.text((String)("\u2022 " + d), (TextColor)NamedTextColor.GRAY)));
         lore.add((Component)Component.empty());
-        lore.add((Component)Component.text((String)l.choose("Clique para ver milestones!", "Click to view milestones!"), (TextColor)NamedTextColor.YELLOW));
+        lore.add((Component)Component.text("Click to view milestones!", (TextColor)NamedTextColor.YELLOW));
         return this.icon(e, e.displayName(l), lore);
     }
 

@@ -34,6 +34,6 @@ public enum BestiaryCategory {
     }
 
     public String display(Language l) {
-        return l.choose(this.pt, this.en);
+        return (this.en);
     }
 }

@@ -64,7 +64,7 @@ public final class CraftingMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Mesa de Trabalho", "Crafting Table"));
+        Inventory v = Bukkit.createInventory(null, 54, "Crafting Table");
         ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < 54; i++) {
             v.setItem(i, filler);
@@ -73,7 +73,7 @@ public final class CraftingMenuService {
             v.setItem(slot, null);
         }
         v.setItem(OUTPUT_SLOT, null);
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p, VISIBLE_WORK_SLOTS);
         this.viewing.add(p.getUniqueId());

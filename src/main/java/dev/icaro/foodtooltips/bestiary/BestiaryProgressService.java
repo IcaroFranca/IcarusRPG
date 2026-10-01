@@ -109,9 +109,9 @@ public final class BestiaryProgressService {
         int amount = this.rewardAmount(milestone);
         boolean bl = damage = milestone % 2 == 1;
         if (damage) {
-            return "+" + amount + "% " + (pt ? "de dano contra este mob" : "damage against this mob");
+            return "+" + amount + "% damage against this mob";
         }
-        return "+" + amount + "% " + (pt ? "de multiplicador de loot" : "loot multiplier");
+        return "+" + amount + "% loot multiplier";
     }
 
     public void applyBonusHealth(Player player) {

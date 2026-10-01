@@ -39,9 +39,9 @@ public final class BiomeWandListener implements Listener {
         if (p.isSneaking()) {
             int undone = this.wand.undo(p);
             if (undone <= 0) {
-                p.sendActionBar(Component.text(l.choose("Nada pra desfazer.", "Nothing to undo."), NamedTextColor.RED));
+                p.sendActionBar(Component.text("Nothing to undo.", NamedTextColor.RED));
             } else {
-                p.sendActionBar(Component.text("-" + undone + " " + l.choose("células de bioma (desfeito)", "biome cells (undone)"), NamedTextColor.GOLD));
+                p.sendActionBar(Component.text("-" + undone + " " + "biome cells (undone)", NamedTextColor.GOLD));
             }
         } else {
             this.wand.openMenu(p, held);
@@ -70,14 +70,14 @@ public final class BiomeWandListener implements Listener {
             return;
         }
         if (!this.wand.biomeAvailable(e.getItem())) {
-            p.sendActionBar(Component.text(l.choose("Esse bioma não está instalado neste servidor.", "That biome isn't installed on this server."), NamedTextColor.RED));
+            p.sendActionBar(Component.text("That biome isn't installed on this server.", NamedTextColor.RED));
             return;
         }
         int painted = this.wand.paint(p, clicked, e.getItem());
         if (painted <= 0) {
-            p.sendActionBar(Component.text(l.choose("Já é esse bioma por aqui.", "Already this biome around here."), NamedTextColor.RED));
+            p.sendActionBar(Component.text("Already this biome around here.", NamedTextColor.RED));
         } else {
-            p.sendActionBar(Component.text("+" + painted + " " + l.choose("células de bioma", "biome cells"), NamedTextColor.GREEN));
+            p.sendActionBar(Component.text("+" + painted + " " + "biome cells", NamedTextColor.GREEN));
         }
     }
 

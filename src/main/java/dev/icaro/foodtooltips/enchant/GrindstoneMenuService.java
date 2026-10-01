@@ -55,11 +55,11 @@ public final class GrindstoneMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Pedra de Amolar", "Grindstone"));
+        Inventory v = Bukkit.createInventory(null, 54, "Grindstone");
         this.fill(v);
         v.setItem(ICON_SLOT, this.item(Material.GRINDSTONE,
-                l.choose("Pedra de Amolar", "Grindstone"),
-                List.of(this.text(l.choose("Apenas representação.", "Just a representation."), NamedTextColor.GRAY))));
+                "Grindstone",
+                List.of(this.text("Just a representation.", NamedTextColor.GRAY))));
         this.renderCatalog(v, p, 0);
         v.setItem(ITEM_SLOT, null);
         this.viewing.add(p.getUniqueId());
@@ -79,8 +79,8 @@ public final class GrindstoneMenuService {
             v.setItem(CATALOG_SLOTS[i], index < entries.size() ? this.entryIcon(p, entries.get(index), itemType, pt) : this.filler());
         }
         Language l = Language.of(p);
-        v.setItem(SCROLL_UP_SLOT, page > 0 ? this.arrowIcon(l.choose("Página anterior", "Previous page")) : this.filler());
-        v.setItem(SCROLL_DOWN_SLOT, (page + 1) * CATALOG_SLOTS.length < entries.size() ? this.arrowIcon(l.choose("Próxima página", "Next page")) : this.filler());
+        v.setItem(SCROLL_UP_SLOT, page > 0 ? this.arrowIcon("Previous page") : this.filler());
+        v.setItem(SCROLL_DOWN_SLOT, (page + 1) * CATALOG_SLOTS.length < entries.size() ? this.arrowIcon("Next page") : this.filler());
     }
 
     /** Same "next tick, after the click that changed it lands" pattern as {@code EnchantMenuService#scheduleCatalogRefresh}. */
@@ -116,7 +116,7 @@ public final class GrindstoneMenuService {
             this.removeConfirm.remove(p.getUniqueId());
             this.enchants.removeLevel(item, entry, pt);
             v.setItem(ITEM_SLOT, item);
-            p.sendMessage(Component.text(l.choose("Removido: ", "Removed: ") + entry.catalogName(pt), NamedTextColor.RED));
+            p.sendMessage(Component.text("Removed: " + entry.catalogName(pt), NamedTextColor.RED));
             this.renderCatalog(v, p, 0);
             this.pages.put(p.getUniqueId(), 0);
             return;
@@ -193,10 +193,10 @@ public final class GrindstoneMenuService {
         }
         String name = e.leveledName(pt, level);
         if (this.isRemoveArmed(p, e)) {
-            lore.add(this.text(l.choose("Clique de novo para confirmar.", "Click again to confirm."), NamedTextColor.RED));
-            return this.item(Material.TNT, l.choose("Remover " + name + "?", "Remove " + name + "?"), lore);
+            lore.add(this.text("Click again to confirm.", NamedTextColor.RED));
+            return this.item(Material.TNT, ("Remove " + name + "?"), lore);
         }
-        for (String part : LoreWrap.wrapText(l.choose("Clique para remover este encantamento do item.", "Click to remove this enchantment from the item."), LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Click to remove this enchantment from the item.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.RED));
         }
         return this.enchantedBook(name, lore);

@@ -239,7 +239,7 @@ public final class LapisArmorService {
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         List<Component> ptBlock = wrappedDescription(DESCRIPTION_PT);
         List<Component> enBlock = wrappedDescription(DESCRIPTION_EN);
-        List<Component> wantedBlock = l == Language.PT ? ptBlock : enBlock;
+        List<Component> wantedBlock = enBlock;
         int at = indexOfBlock(lore, ptBlock);
         int size = ptBlock.size();
         if (at < 0) {

@@ -76,11 +76,11 @@ public final class MegaSpongeService {
         ItemStack item = new ItemStack(Material.SPONGE);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.spongeKey, PersistentDataType.BYTE, (byte) 1);
-        meta.displayName(this.line(l.choose("Mega Sponge", "Mega Sponge"), NamedTextColor.YELLOW)
+        meta.displayName(this.line("Mega Sponge", NamedTextColor.YELLOW)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = List.of(
-                this.line(l.choose("Clique direito mirando numa água pra secar", "Right-click while aiming at water to dry"), NamedTextColor.GRAY),
-                this.line(l.choose("toda a água conectada a ela.", "the whole body of water connected to it."), NamedTextColor.GRAY));
+                this.line("Right-click while aiming at water to dry", NamedTextColor.GRAY),
+                this.line("the whole body of water connected to it.", NamedTextColor.GRAY));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
@@ -107,13 +107,13 @@ public final class MegaSpongeService {
     public void drain(Player p) {
         Language l = Language.of(p);
         if (this.draining.contains(p.getUniqueId())) {
-            p.sendActionBar(this.line(l.choose("Já tem uma secagem em andamento.", "A drain is already running."), NamedTextColor.RED));
+            p.sendActionBar(this.line("A drain is already running.", NamedTextColor.RED));
             return;
         }
         RayTraceResult hit = p.rayTraceBlocks(RANGE, FluidCollisionMode.ALWAYS);
         Block seed = hit == null ? null : hit.getHitBlock();
         if (seed == null || seed.getType() != Material.WATER) {
-            p.sendActionBar(this.line(l.choose("Mire numa água.", "Aim at water."), NamedTextColor.RED));
+            p.sendActionBar(this.line("Aim at water.", NamedTextColor.RED));
             return;
         }
         this.draining.add(p.getUniqueId());
@@ -154,7 +154,7 @@ public final class MegaSpongeService {
         if (queue.isEmpty() || visited.size() >= SEARCH_LIMIT) {
             this.draining.remove(p.getUniqueId());
             if (p.isOnline()) {
-                p.sendActionBar(this.line("-" + finalDried + " " + l.choose("água (seco)", "water (dried)"), NamedTextColor.AQUA));
+                p.sendActionBar(this.line("-" + finalDried + " " + "water (dried)", NamedTextColor.AQUA));
             }
             return;
         }

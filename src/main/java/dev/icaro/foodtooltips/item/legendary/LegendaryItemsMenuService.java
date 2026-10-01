@@ -108,7 +108,7 @@ public final class LegendaryItemsMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Itens Lendários", "Legendary Items"));
+        Inventory v = Bukkit.createInventory(null, 54, "Legendary Items");
         ItemStack filler = this.filler();
         for (int i = 0; i < 54; i++) {
             v.setItem(i, filler);
@@ -170,7 +170,7 @@ public final class LegendaryItemsMenuService {
         for (ItemStack overflow : p.getInventory().addItem(item).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
-        p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ") + w.name(l == Language.PT), NamedTextColor.GREEN));
+        p.sendMessage(Component.text("Received: " + w.name(l == Language.PT), NamedTextColor.GREEN));
     }
 
     /** Hands every piece of {@code set} to {@code p} (overflow drops on the ground), then announces {@code label} - shared by both {@link #MINER_ARMOR_SLOT} and {@link #LAPIS_ARMOR_SLOT}. */
@@ -180,7 +180,7 @@ public final class LegendaryItemsMenuService {
                 p.getWorld().dropItemNaturally(p.getLocation(), overflow);
             }
         }
-        p.sendMessage(Component.text(l.choose("Recebido: ", "Received: ") + label, NamedTextColor.GREEN));
+        p.sendMessage(Component.text("Received: " + label, NamedTextColor.GREEN));
     }
 
     /** The menu tile: {@code w}'s real item plus one extra "click to receive" line. */
@@ -189,7 +189,7 @@ public final class LegendaryItemsMenuService {
         ItemMeta meta = item.getItemMeta();
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
         lore.add(Component.empty());
-        lore.add(Component.text(l.choose("Clique para receber.", "Click to receive."), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Click to receive.", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
@@ -205,9 +205,9 @@ public final class LegendaryItemsMenuService {
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
         lore.add(Component.empty());
         if (set.size() > 1) {
-            lore.add(Component.text(l.choose("Dá o set completo (" + set.size() + " peças).", "Gives the full set (" + set.size() + " pieces)."), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text(("Gives the full set (" + set.size() + " pieces)."), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         }
-        lore.add(Component.text(l.choose("Clique para receber.", "Click to receive."), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Click to receive.", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
@@ -224,10 +224,10 @@ public final class LegendaryItemsMenuService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the menu.
         }
-        meta.displayName(Component.text(l.choose("Itens de Coleções", "Collections Items"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("Collections Items", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(l.choose("Todo item craftável desbloqueado por Coleções.", "Every craftable item unlocked by Collections."), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text(l.choose("Clique para abrir!", "Click to open!"), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Every craftable item unlocked by Collections.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Click to open!", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);

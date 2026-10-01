@@ -127,7 +127,7 @@ public final class CustomEnchantEffectListener implements Listener {
             return null;
         }
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-        lore.add(0, Component.text(l.choose("Dano da Flecha: ", "Arrow Damage: ") + Math.round(BASE_BOW_DAMAGE), NamedTextColor.RED)
+        lore.add(0, Component.text("Arrow Damage: " + Math.round(BASE_BOW_DAMAGE), NamedTextColor.RED)
                 .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.getPersistentDataContainer().set(this.bowDamageTooltipKey, PersistentDataType.BYTE, (byte) 1);

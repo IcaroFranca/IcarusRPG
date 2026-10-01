@@ -106,7 +106,7 @@ public final class EnchantService {
             }
             list.add(new VanillaEnchantEntry(e));
         }
-        Collator collator = Collator.getInstance(pt ? Locale.of("pt", "BR") : Locale.US);
+        Collator collator = Collator.getInstance(Locale.US);
         list.sort(Comparator.comparing(e -> e.catalogName(pt), collator));
         return list;
     }
@@ -249,7 +249,7 @@ public final class EnchantService {
      */
     public String vanillaBlockReason(ItemStack item, Enchantment enchantment, boolean pt) {
         if (!enchantment.canEnchantItem(effectiveVanillaTestItem(item))) {
-            return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
+            return "This enchantment doesn't apply to this item type.";
         }
         boolean exempt = NON_EXCLUSIVE_DAMAGE_FAMILY.contains(enchantment.getKey().getKey());
         for (Enchantment existing : item.getEnchantments().keySet()) {
@@ -258,7 +258,7 @@ public final class EnchantService {
             }
             if (enchantment.conflictsWith(existing)) {
                 String name = PLAIN.serialize(existing.displayName(1));
-                return pt ? "Conflita com " + name + ", já aplicado." : "Conflicts with " + name + ", already applied.";
+                return "Conflicts with " + name + ", already applied.";
             }
         }
         // Smelting Touch (a custom entry, so real vanilla's own conflictsWith never
@@ -266,7 +266,7 @@ public final class EnchantService {
         // Silk Touch would keep - mutually exclusive by design, checked by name on both
         // sides (see the SMELTING_TOUCH case in customBlockReason below).
         if (enchantment.equals(Enchantment.SILK_TOUCH) && this.customLevel(item, IcarusEnchant.SMELTING_TOUCH) > 0) {
-            return pt ? "Conflita com Toque Fundente, já aplicado." : "Conflicts with Smelting Touch, already applied.";
+            return "Conflicts with Smelting Touch, already applied.";
         }
         return null;
     }
@@ -274,15 +274,15 @@ public final class EnchantService {
     /** Why {@code enchant} can't go on {@code item} right now, or null if it's fine - the custom-entry counterpart to {@link #vanillaBlockReason}. */
     public String customBlockReason(ItemStack item, IcarusEnchant enchant, boolean pt) {
         if (!enchant.canApplyTo(effectiveType(item))) {
-            return pt ? "Esse encantamento não se aplica a este tipo de item." : "This enchantment doesn't apply to this item type.";
+            return "This enchantment doesn't apply to this item type.";
         }
         if (enchant == IcarusEnchant.SMELTING_TOUCH && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0) {
-            return pt ? "Conflita com Toque de Seda, já aplicado." : "Conflicts with Silk Touch, already applied.";
+            return "Conflicts with Silk Touch, already applied.";
         }
         if (PROTECTION_FAMILY.contains(enchant)) {
             for (IcarusEnchant other : PROTECTION_FAMILY) {
                 if (other != enchant && this.customLevel(item, other) > 0) {
-                    return pt ? "Conflita com " + other.displayName(true) + ", já aplicado." : "Conflicts with " + other.displayName(false) + ", already applied.";
+                    return "Conflicts with " + other.displayName(false) + ", already applied.";
                 }
             }
         }
@@ -436,7 +436,7 @@ public final class EnchantService {
     /** The "Encantamentos:"/list block only, no surrounding blank lines - {@link #insertBeforeTier} decides those dynamically based on what's actually adjacent once inserted. */
     private List<Component> loreBlock(Map<EnchantEntry, Integer> levels, boolean pt, Material item) {
         List<Component> block = new ArrayList<>();
-        block.add(this.line(pt ? LORE_HEADER_PT : LORE_HEADER_EN, NamedTextColor.GOLD));
+        block.add(this.line(LORE_HEADER_EN, NamedTextColor.GOLD));
         if (levels.size() >= COLUMN_CUTOFF) {
             this.pairedNameLines(levels, pt, block);
             return block;

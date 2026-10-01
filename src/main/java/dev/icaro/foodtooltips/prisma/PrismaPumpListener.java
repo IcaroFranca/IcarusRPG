@@ -27,6 +27,6 @@ public final class PrismaPumpListener implements Listener {
         }
         Player p = e.getPlayer();
         Language l = Language.of(p);
-        p.sendActionBar(Component.text("+" + filled + " " + l.choose("água", "water"), NamedTextColor.AQUA));
+        p.sendActionBar(Component.text("+" + filled + " " + "water", NamedTextColor.AQUA));
     }
 }

@@ -218,12 +218,12 @@ public final class PolearmDamageService {
     }
 
     private Component damageLine(double total, Language l) {
-        return Component.text(l.choose("Dano de Ataque: ", "Attack Damage: ") + Math.round(total), NamedTextColor.RED)
+        return Component.text("Attack Damage: " + Math.round(total), NamedTextColor.RED)
                 .decoration(TextDecoration.ITALIC, false);
     }
 
     private Component speedLine(double real, Language l) {
-        return Component.text(l.choose("Velocidade de Ataque: ", "Attack Speed: ") + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW)
+        return Component.text("Attack Speed: " + String.format(java.util.Locale.US, "%.1f", real), NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false);
     }
 }

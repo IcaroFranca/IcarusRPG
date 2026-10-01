@@ -51,7 +51,7 @@ public final class PassiveAbilityMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, SIZE, l.choose("Habilidades Passivas", "Passive Abilities"));
+        Inventory v = Bukkit.createInventory(null, SIZE, "Passive Abilities");
         ItemStack filler = this.filler();
         for (int i = 0; i < SIZE; i++) {
             v.setItem(i, filler);
@@ -59,11 +59,9 @@ public final class PassiveAbilityMenuService {
         boolean telekinesisUnlocked = this.global.telekinesisUnlocked(p);
         int telekinesisLevel = this.global.telekinesisRequiredLevel();
         v.setItem(MOB_DROPS_SLOT, this.toggleItem(p, l, PassiveToggle.TELEKINESIS_MOB_DROPS, telekinesisUnlocked, telekinesisLevel,
-                l.choose("Traz automaticamente pro seu inventário os itens que um mob solta ao morrer.",
-                        "Automatically brings a mob's own drops into your inventory when it dies.")));
+                "Automatically brings a mob's own drops into your inventory when it dies."));
         v.setItem(BLOCK_DROPS_SLOT, this.toggleItem(p, l, PassiveToggle.TELEKINESIS_BLOCK_DROPS, telekinesisUnlocked, telekinesisLevel,
-                l.choose("Traz automaticamente pro seu inventário os itens que um bloco minerado solta.",
-                        "Automatically brings a mined block's own drops into your inventory.")));
+                "Automatically brings a mined block's own drops into your inventory."));
         v.setItem(BACK_SLOT, this.backButton(l));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
@@ -107,11 +105,11 @@ public final class PassiveAbilityMenuService {
         }
         lore.add(Component.empty());
         if (!unlocked) {
-            lore.add(this.text(l.choose("Desbloqueia no Nível Global ", "Unlocks at Global Level ") + requiredLevel, NamedTextColor.RED));
+            lore.add(this.text("Unlocks at Global Level " + requiredLevel, NamedTextColor.RED));
             return this.item(Material.GRAY_DYE, "✖ " + toggle.displayName(pt), NamedTextColor.DARK_GRAY, lore);
         }
         boolean enabled = this.passives.enabled(p, toggle);
-        lore.add(this.text(enabled ? l.choose("Clique para desativar", "Click to disable") : l.choose("Clique para ativar", "Click to enable"), NamedTextColor.YELLOW));
+        lore.add(this.text(enabled ? "Click to disable" : "Click to enable", NamedTextColor.YELLOW));
         return this.item(enabled ? Material.LIME_DYE : Material.GRAY_DYE, (enabled ? "✔ " : "✖ ") + toggle.displayName(pt),
                 enabled ? NamedTextColor.GREEN : NamedTextColor.RED, lore);
     }
@@ -144,7 +142,7 @@ public final class PassiveAbilityMenuService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the screen.
         }
-        m.displayName(this.text(l.choose("Voltar às skills", "Back to skills"), NamedTextColor.GOLD));
+        m.displayName(this.text("Back to skills", NamedTextColor.GOLD));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         i.setItemMeta(m);
         return i;

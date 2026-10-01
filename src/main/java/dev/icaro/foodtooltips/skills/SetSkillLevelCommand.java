@@ -56,7 +56,7 @@ implements TabExecutor {
                 target = Bukkit.getPlayer((String)args[0]);
             }
             if (target == null) {
-                this.message(sender, language.choose("Jogador n\u00e3o encontrado ou offline.", "Player not found or offline."), NamedTextColor.RED);
+                this.message(sender, "Player not found or offline.", NamedTextColor.RED);
                 return true;
             }
             skillArg = args[1];
@@ -67,7 +67,7 @@ implements TabExecutor {
         }
         Parsed skill = this.parse(skillArg);
         if (skill == null) {
-            this.message(sender, language.choose("Skill inv\u00e1lida. Use combate, agricultura, pesca, minera\u00e7\u00e3o, coleta, encantamento ou alquimia.", "Invalid skill. Use combat, farming, fishing, mining, foraging, enchanting or alchemy."), NamedTextColor.RED);
+            this.message(sender, "Invalid skill. Use combat, farming, fishing, mining, foraging, enchanting or alchemy.", NamedTextColor.RED);
             return true;
         }
         try {
@@ -77,7 +77,7 @@ implements TabExecutor {
             }
         }
         catch (NumberFormatException ex) {
-            this.message(sender, language.choose("O n\u00edvel precisa ser um n\u00famero entre 0 e 200.", "Level must be a number between 0 and 200."), NamedTextColor.RED);
+            this.message(sender, "Level must be a number between 0 and 200.", NamedTextColor.RED);
             return true;
         }
         if (skill.combat) {
@@ -86,10 +86,10 @@ implements TabExecutor {
             this.general.setLevel(target, skill.type, level);
         }
         this.global.administrativeSkillLevel(target, skill.combat ? GlobalSkill.COMBAT : GlobalSkill.of(skill.type), level);
-        this.message(sender, language.choose("N\u00edvel definido: ", "Level set: ") + this.name(skill, language) + " \u2022 " + target.getName() + " \u2022 " + level, NamedTextColor.GREEN);
+        this.message(sender, "Level set: " + this.name(skill, language) + " \u2022 " + target.getName() + " \u2022 " + level, NamedTextColor.GREEN);
         if (sender != target) {
             Language targetLanguage = Language.of(target);
-            this.message((CommandSender)target, targetLanguage.choose("Seu n\u00edvel de ", "Your ") + this.name(skill, targetLanguage) + targetLanguage.choose(" foi definido para ", " level was set to ") + level + ".", NamedTextColor.GOLD);
+            this.message((CommandSender)target, "Your " + this.name(skill, targetLanguage) + " level was set to " + level + ".", NamedTextColor.GOLD);
         }
         return true;
     }
@@ -113,8 +113,8 @@ implements TabExecutor {
     }
 
     private void usage(CommandSender sender, Language language) {
-        String usage = sender instanceof Player ? "/setskilllevel <skill> <0-200> " + language.choose("ou ", "or ") + "/setskilllevel <player> <skill> <0-200>" : "/setskilllevel <player> <skill> <0-200>";
-        this.message(sender, language.choose("Uso: ", "Usage: ") + usage, NamedTextColor.RED);
+        String usage = sender instanceof Player ? "/setskilllevel <skill> <0-200> " + "or " + "/setskilllevel <player> <skill> <0-200>" : "/setskilllevel <player> <skill> <0-200>";
+        this.message(sender, "Usage: " + usage, NamedTextColor.RED);
     }
 
     private List<String> filter(List<String> values, String prefix) {
@@ -141,7 +141,7 @@ implements TabExecutor {
     }
 
     private String name(Parsed parsed, Language language) {
-        return parsed.combat ? language.choose("Combate", "Combat") : parsed.type.name(language == Language.PT);
+        return parsed.combat ? "Combat" : parsed.type.name(language == Language.PT);
     }
 
     private record Parsed(boolean combat, SkillType type) {

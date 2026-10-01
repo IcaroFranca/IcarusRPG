@@ -73,7 +73,7 @@ public final class AnvilMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Bigorna", "Anvil"));
+        Inventory v = Bukkit.createInventory(null, 54, "Anvil");
         this.fill(v);
         v.setItem(MAIN_ITEM_SLOT, null);
         v.setItem(SECONDARY_ITEM_SLOT, null);
@@ -169,15 +169,11 @@ public final class AnvilMenuService {
             return new CombineOutcome(null, null);
         }
         if (main.getType() == Material.BOOK || main.getType() == Material.ENCHANTED_BOOK) {
-            return new CombineOutcome(null, pt
-                    ? "O item principal precisa ser um equipamento, não um livro."
-                    : "The main item needs to be a piece of equipment, not a book.");
+            return new CombineOutcome(null, "The main item needs to be a piece of equipment, not a book.");
         }
         EnchantmentStorageMeta bookMeta = secondary.getType() == Material.ENCHANTED_BOOK && secondary.getItemMeta() instanceof EnchantmentStorageMeta esm ? esm : null;
         if (bookMeta == null && main.getType() != secondary.getType()) {
-            return new CombineOutcome(null, pt
-                    ? "Os itens precisam ser do mesmo tipo, ou o segundo precisa ser um livro encantado."
-                    : "The items need to be the same type, or the second one needs to be an enchanted book.");
+            return new CombineOutcome(null, "The items need to be the same type, or the second one needs to be an enchanted book.");
         }
 
         Map<EnchantEntry, Integer> current = this.enchants.levelsOf(main);
@@ -217,15 +213,13 @@ public final class AnvilMenuService {
         if (toApply.isEmpty()) {
             String reason;
             if (considered == 0) {
-                reason = pt ? "Esse item não tem nenhum encantamento para combinar." : "That item has no enchantments to combine.";
+                reason = "That item has no enchantments to combine.";
             } else if (failureReasons.size() == 1) {
                 reason = failureReasons.get(0);
             } else if (!failureReasons.isEmpty()) {
-                reason = pt
-                        ? "Nenhum dos encantamentos desse item pode ser combinado com o principal."
-                        : "None of that item's enchantments can be combined with the main one.";
+                reason = "None of that item's enchantments can be combined with the main one.";
             } else {
-                reason = pt ? "Isso não mudaria o item principal." : "This wouldn't change the main item.";
+                reason = "This wouldn't change the main item.";
             }
             return new CombineOutcome(null, reason);
         }
@@ -257,7 +251,7 @@ public final class AnvilMenuService {
             ItemMeta meta = shown.getItemMeta();
             List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
             lore.add(Component.empty());
-            lore.add(this.text(pt ? "Clique para confirmar a combinação." : "Click to confirm the combination.", NamedTextColor.GREEN));
+            lore.add(this.text("Click to confirm the combination.", NamedTextColor.GREEN));
             meta.lore(lore);
             shown.setItemMeta(meta);
             return shown;
@@ -267,31 +261,27 @@ public final class AnvilMenuService {
             for (String part : LoreWrap.wrapText(outcome.reason(), LoreWrap.DEFAULT_WIDTH)) {
                 lore.add(this.text(part, NamedTextColor.RED));
             }
-            return this.item(Material.BARRIER, pt ? "Combinação inválida" : "Invalid combination", lore);
+            return this.item(Material.BARRIER, "Invalid combination", lore);
         }
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(pt
-                ? "Coloque um item e outro equipamento compatível ou um livro encantado."
-                : "Place an item and another compatible equipment or an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Place an item and another compatible equipment or an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
-        return this.item(Material.GRAY_STAINED_GLASS_PANE, pt ? "Aguardando itens" : "Waiting for items", lore);
+        return this.item(Material.GRAY_STAINED_GLASS_PANE, "Waiting for items", lore);
     }
 
     private ItemStack labelIcon(Player p) {
         boolean pt = Language.of(p) == Language.PT;
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText(pt
-                ? "Combina os encantamentos de dois itens compatíveis, ou de um item e um livro encantado."
-                : "Combines the enchantments of two compatible items, or an item and an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Combines the enchantments of two compatible items, or an item and an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
-        return this.item(Material.ANVIL, pt ? "Combinar Itens" : "Combine Items", lore);
+        return this.item(Material.ANVIL, "Combine Items", lore);
     }
 
     private ItemStack closeIcon(Player p) {
         boolean pt = Language.of(p) == Language.PT;
-        return this.customHead(HeadTexture.CLOSE, pt ? "Fechar" : "Close", List.of());
+        return this.customHead(HeadTexture.CLOSE, "Close", List.of());
     }
 
     private ItemStack filler() {

@@ -64,7 +64,7 @@ public final class ResetStatsCommand implements TabExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         Language language = sender instanceof Player p ? Language.of(p) : Language.EN;
         if (args.length != 1) {
-            this.message(sender, language.choose("Uso: ", "Usage: ") + "/resetstats <player>", NamedTextColor.RED);
+            this.message(sender, "Usage: " + "/resetstats <player>", NamedTextColor.RED);
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[0]);
@@ -72,14 +72,14 @@ public final class ResetStatsCommand implements TabExecutor {
             target = Bukkit.getPlayer(args[0]);
         }
         if (target == null) {
-            this.message(sender, language.choose("Jogador não encontrado ou offline.", "Player not found or offline."), NamedTextColor.RED);
+            this.message(sender, "Player not found or offline.", NamedTextColor.RED);
             return true;
         }
         this.reset(target);
-        this.message(sender, language.choose("Status resetados: ", "Stats reset: ") + target.getName(), NamedTextColor.GREEN);
+        this.message(sender, "Stats reset: " + target.getName(), NamedTextColor.GREEN);
         if (sender != target) {
             Language targetLanguage = Language.of(target);
-            this.message(target, targetLanguage.choose("Seus status foram resetados pra os valores iniciais.", "Your stats were reset to their initial values."), NamedTextColor.GOLD);
+            this.message(target, "Your stats were reset to their initial values.", NamedTextColor.GOLD);
         }
         return true;
     }

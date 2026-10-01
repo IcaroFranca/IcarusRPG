@@ -405,7 +405,7 @@ implements Listener {
             this.treasures.tryFind(p, e.getBlock().getLocation(), xp -> this.gain(p, SkillType.MINING, xp));
             if (this.skills.miningMilestones(p, m) > before) {
                 long reward = this.global.creditMilestones(p, "mining", this.skills.totalMiningMilestones(p), GlobalXpSource.MINING_MILESTONE);
-                p.sendMessage(((TextComponent)Component.text((String)("\u2726 " + Language.of(p).choose("MILESTONE DE MINERA\u00c7\u00c3O! ", "MINING MILESTONE! ") + record.count() + " \u00d7 "), (TextColor)NamedTextColor.GOLD).append((Component)Component.translatable((String)m.translationKey()))).append((Component)Component.text((String)(" \u2022 +" + reward + " " + Language.of(p).choose("XP de N\u00edvel Global", "Global Level XP")), (TextColor)NamedTextColor.AQUA)));
+                p.sendMessage(((TextComponent)Component.text((String)("\u2726 " + "MINING MILESTONE! " + record.count() + " \u00d7 "), (TextColor)NamedTextColor.GOLD).append((Component)Component.translatable((String)m.translationKey()))).append((Component)Component.text((String)(" \u2022 +" + reward + " " + "Global Level XP"), (TextColor)NamedTextColor.AQUA)));
             }
             if ((haste = Math.min(4, this.skills.progress(p, SkillType.MINING).level() / 40)) > 0) {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 60, haste - 1, false, false, false));
@@ -525,7 +525,7 @@ implements Listener {
             }
         }
         Component title = Component.text("✦ ", NamedTextColor.GOLD)
-                .append(Component.text(l.choose("MILESTONE DE COLEÇÃO! ", "COLLECTION MILESTONE! "), NamedTextColor.GOLD))
+                .append(Component.text("COLLECTION MILESTONE! ", NamedTextColor.GOLD))
                 .append(Component.translatable(drop.translationKey(), NamedTextColor.GOLD))
                 .append(Component.text(" ✦", NamedTextColor.GOLD));
         List<Component> lines = new ArrayList<>();
@@ -542,11 +542,11 @@ implements Listener {
                             }
                         }))
                         .hoverEvent(HoverEvent.showText(Component.text(
-                                l.choose("Clique para ver na Coleção", "Click to view in the Collection"), NamedTextColor.YELLOW)));
+                                "Click to view in the Collection", NamedTextColor.YELLOW)));
             }
             lines.add(line);
         }
-        lines.add(Component.text("+" + update.globalXp() + " " + l.choose("XP de Nível Global", "Global Level XP"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + update.globalXp() + " " + "Global Level XP", NamedTextColor.AQUA));
         dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
 
@@ -826,16 +826,16 @@ implements Listener {
     /** Same boxed multi-line style as {@code CombatListener#levelUpMessage} - see {@code util.AnnouncementMessage}. */
     private void levelUpMessage(Player p, SkillType t, int before, int after, long globalXp) {
         Language l = Language.of(p);
-        Component title = Component.text("\u2726 " + t.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + l.choose("SUBIU DE N\u00cdVEL!", "LEVEL UP!") + " \u2726", NamedTextColor.GOLD);
+        Component title = Component.text("\u2726 " + t.name(l == Language.PT).toUpperCase(Locale.ROOT) + " " + "LEVEL UP!" + " \u2726", NamedTextColor.GOLD);
         List<Component> lines = new ArrayList<>();
         lines.add(Component.text(before + " \u2192 " + after, NamedTextColor.GREEN));
         String reward = this.rewardLine(t, l, after - before);
         if (!reward.isEmpty()) {
             lines.add(Component.text(reward, NamedTextColor.AQUA));
         }
-        lines.add(Component.text("+" + globalXp + " " + l.choose("XP de N\u00edvel Global", "Global Level XP"), NamedTextColor.AQUA));
+        lines.add(Component.text("+" + globalXp + " " + "Global Level XP", NamedTextColor.AQUA));
         if (t == SkillType.MINING && before < 3 && after >= 3) {
-            lines.add(Component.text("\u2726 " + l.choose("Desbloqueado: Vein Miner", "Unlocked: Vein Miner"), NamedTextColor.LIGHT_PURPLE));
+            lines.add(Component.text("\u2726 " + "Unlocked: Vein Miner", NamedTextColor.LIGHT_PURPLE));
         }
         dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
     }
@@ -847,17 +847,17 @@ implements Listener {
             parts.add("+" + (levelsGained * this.skills.fortunePerLevel()) + " " + t.name(l == Language.PT) + " Fortune");
         }
         switch (t) {
-            case MINING -> parts.add("+" + (levelsGained * this.skills.defensePerLevel()) + " " + l.choose("Defesa", "Defense"));
-            case FARMING, FISHING -> parts.add("+" + (levelsGained * this.skills.healthPerLevel()) + " " + l.choose("Vida M\u00e1xima", "Max Health"));
-            case FORAGING -> parts.add("+" + (levelsGained * this.skills.strengthPerLevel()) + " " + l.choose("For\u00e7a", "Strength"));
-            case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.intelligencePerLevel()) + " " + l.choose("Intelig\u00eancia", "Intelligence"));
+            case MINING -> parts.add("+" + (levelsGained * this.skills.defensePerLevel()) + " " + "Defense");
+            case FARMING, FISHING -> parts.add("+" + (levelsGained * this.skills.healthPerLevel()) + " " + "Max Health");
+            case FORAGING -> parts.add("+" + (levelsGained * this.skills.strengthPerLevel()) + " " + "Strength");
+            case ALCHEMY, ENCHANTING -> parts.add("+" + (levelsGained * this.skills.intelligencePerLevel()) + " " + "Intelligence");
             default -> {}
         }
         if (t == SkillType.ENCHANTING) {
-            parts.add("+" + (levelsGained * this.skills.xpOrbPercentPerLevel()) + "% " + l.choose("Orbs de XP", "XP Orbs"));
+            parts.add("+" + (levelsGained * this.skills.xpOrbPercentPerLevel()) + "% " + "XP Orbs");
         }
         if (t == SkillType.ALCHEMY) {
-            parts.add("+" + (levelsGained * this.skills.potionDurationPercentPerLevel()) + "% " + l.choose("Dura\u00e7\u00e3o de Po\u00e7\u00f5es", "Potion Duration"));
+            parts.add("+" + (levelsGained * this.skills.potionDurationPercentPerLevel()) + "% " + "Potion Duration");
         }
         return String.join(" \u2022 ", parts);
     }

@@ -168,8 +168,8 @@ public final class QuiverService {
     /** "Aljava (vazia)"/"Aljava (N flechas)" (or the English equivalent) - the Quiver button's own dynamic name, matching the empty/non-empty wording of the custom head this button is skinned with. */
     public String displayName(Player p, Language l) {
         int count = this.arrowCount(p);
-        String state = count == 0 ? l.choose("vazia", "empty") : count + " " + l.choose("flechas", "arrows");
-        return l.choose("Aljava", "Quiver") + " (" + state + ")";
+        String state = count == 0 ? "empty" : count + " " + "arrows";
+        return "Quiver" + " (" + state + ")";
     }
 
     public int arrowCount(Player p) {
@@ -392,7 +392,7 @@ public final class QuiverService {
             return cached;
         }
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, l.choose("Aljava", "Quiver"));
+        Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, "Quiver");
         ItemStack filler = this.filler();
         for (int i = STORAGE_SIZE; i < TOTAL_SIZE; i++) {
             inv.setItem(i, filler);
@@ -435,7 +435,7 @@ public final class QuiverService {
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the screen.
         }
-        m.displayName(Component.text(l.choose("Voltar às skills", "Back to skills"), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.displayName(Component.text("Back to skills", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         i.setItemMeta(m);
         return i;

@@ -778,7 +778,7 @@ extends JavaPlugin {
         String string;
         if (sender instanceof Player) {
             Player p = (Player)sender;
-            string = Language.of(p).choose(pt, en);
+            string = (en);
         } else {
             string = en;
         }

@@ -49,13 +49,13 @@ public final class TrashMenuService {
 
     public void open(Player p) {
         Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, l.choose("Lixeira", "Trash Can"));
+        Inventory v = Bukkit.createInventory(null, 54, "Trash Can");
         ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < 54; i++) {
             v.setItem(i, filler);
         }
         v.setItem(TRASH_SLOT, this.trashIcon(l));
-        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, l.choose("Voltar às skills", "Back to skills"), List.of()));
+        v.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back to skills", List.of()));
         p.openInventory(v);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
         this.viewing.add(p.getUniqueId());
@@ -103,8 +103,8 @@ public final class TrashMenuService {
     }
 
     private ItemStack trashIcon(Language l) {
-        ItemStack i = this.customHead(HeadTexture.TRASH_CAN, l.choose("Lixeira", "Trash Can"),
-                List.of(this.text(l.choose("Solte um item aqui para descartá-lo.", "Drop an item here to discard it."), NamedTextColor.GRAY)));
+        ItemStack i = this.customHead(HeadTexture.TRASH_CAN, "Trash Can",
+                List.of(this.text("Drop an item here to discard it.", NamedTextColor.GRAY)));
         ItemMeta m = i.getItemMeta();
         m.getPersistentDataContainer().set(this.trashIconKey, PersistentDataType.BYTE, (byte) 1);
         i.setItemMeta(m);
