@@ -78,6 +78,8 @@ public final class CollectionsCatalog {
     public static final NamespacedKey FARMER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "farmer_boots");
     public static final NamespacedKey FARM_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "farm_crystal");
     public static final NamespacedKey ANIMAL_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "animal_crystal");
+    public static final NamespacedKey TILLING_HOE_RECIPE = new NamespacedKey("foodtooltips", "tilling_hoe");
+    public static final NamespacedKey BASKET_OF_SEEDS_RECIPE = new NamespacedKey("foodtooltips", "basket_of_seeds");
     public static final NamespacedKey FARMHAND_HELMET_RECIPE = new NamespacedKey("foodtooltips", "farmhand_helmet");
     public static final NamespacedKey FARMHAND_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "farmhand_chestplate");
     public static final NamespacedKey FARMHAND_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "farmhand_leggings");
@@ -499,7 +501,25 @@ public final class CollectionsCatalog {
             // sweep). Inert templates for now (empty milestone list, same convention as
             // the Foraging wood-log templates and the newer Combat entries below/above) -
             // milestones to be filled in later.
-            new CollectionsEntry(Material.BEETROOTS, Material.BEETROOT, CollectionsCategory.FARMING, "Beterraba", "Beetroot", List.of()),
+            //
+            // Beetroot got its own ladder filled in first (player's own spec): M1 unlocks
+            // the Tilling Hoe recipe (3x3 area); M3/M5/M7 grow that SAME hoe's own area
+            // live (5x5/7x7/9x9, see item.TillingHoeService's own doc) rather than
+            // unlocking new recipes, same "Wardrobe column" shape as Leather's own M3/M5/M7
+            // above; M9 unlocks the Basket of Seeds.
+            new CollectionsEntry(Material.BEETROOTS, Material.BEETROOT, CollectionsCategory.FARMING, "Beterraba", "Beetroot", genericXpWithOverrides(
+                    at(1, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[0],
+                            "Desbloqueia a receita da Enxada Agrícola (área 3x3)", "Unlocks the Tilling Hoe recipe (3x3 area)",
+                            TILLING_HOE_RECIPE)),
+                    at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Enxada Agrícola: área aumenta para 5x5", "Tilling Hoe: area grows to 5x5")),
+                    at(5, new CollectionsMilestone(DEFAULT_THRESHOLDS[4], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Enxada Agrícola: área aumenta para 7x7", "Tilling Hoe: area grows to 7x7")),
+                    at(7, new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Enxada Agrícola: área aumenta para 9x9", "Tilling Hoe: area grows to 9x9")),
+                    at(9, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita do Basket of Seeds", "Unlocks the Basket of Seeds recipe",
+                            BASKET_OF_SEEDS_RECIPE)))),
             new CollectionsEntry(Material.BAMBOO, Material.BAMBOO, CollectionsCategory.FARMING, "Bambu", "Bamboo", List.of()),
             new CollectionsEntry(Material.KELP_PLANT, Material.KELP, CollectionsCategory.FARMING, "Kelp", "Kelp", List.of()),
             new CollectionsEntry(Material.SWEET_BERRY_BUSH, Material.SWEET_BERRIES, CollectionsCategory.FARMING, "Frutas Silvestres", "Sweet Berries", List.of()),

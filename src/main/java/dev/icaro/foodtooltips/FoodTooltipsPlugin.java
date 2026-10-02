@@ -97,6 +97,8 @@ import dev.icaro.foodtooltips.item.TreecapitatorListener;
 import dev.icaro.foodtooltips.item.BedrockTreecapitatorThrowListener;
 import dev.icaro.foodtooltips.item.WoodcuttingCrystalService;
 import dev.icaro.foodtooltips.item.AnimalCrystalService;
+import dev.icaro.foodtooltips.item.TillingHoeService;
+import dev.icaro.foodtooltips.item.BasketOfSeedsService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
@@ -219,6 +221,8 @@ extends JavaPlugin {
         farmCrystal.start();
         AnimalCrystalService animalCrystal = new AnimalCrystalService((Plugin)this);
         animalCrystal.start();
+        TillingHoeService tillingHoe = new TillingHoeService();
+        BasketOfSeedsService basketOfSeeds = new BasketOfSeedsService((Plugin)this);
         BrewingStandFuelService brewingStandFuel = new BrewingStandFuelService((Plugin)this);
         brewingStandFuel.start();
         MushroomArmorService mushroomArmor = new MushroomArmorService();
@@ -245,6 +249,7 @@ extends JavaPlugin {
         CollectionsProgressService collectionsProgress = new CollectionsProgressService();
         biomeWand.collectionsProgress(collectionsProgress);
         animalCrystal.collectionsProgress(collectionsProgress);
+        tillingHoe.collectionsProgress(collectionsProgress);
         CollectionsService collectionsService = new CollectionsService(collectionsProgress, global);
         CollectionsMenuService collectionsMenu = new CollectionsMenuService(collectionsProgress, global, menus::openMain);
         menus.collections(collectionsMenu);
@@ -412,6 +417,8 @@ extends JavaPlugin {
         pm.registerEvents((Listener)manaPotion, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
         pm.registerEvents((Listener)animalCrystal, (Plugin)this);
+        pm.registerEvents((Listener)tillingHoe, (Plugin)this);
+        pm.registerEvents((Listener)basketOfSeeds, (Plugin)this);
         pm.registerEvents((Listener)new CactusArmorService(), (Plugin)this);
         pm.registerEvents((Listener)new MushroomGrowthService(), (Plugin)this);
         pm.registerEvents((Listener)growthArmor, (Plugin)this);

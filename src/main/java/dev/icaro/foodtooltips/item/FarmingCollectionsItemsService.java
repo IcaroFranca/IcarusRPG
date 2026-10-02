@@ -399,6 +399,16 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('L', Material.LEATHER);
                     r.setIngredient('D', Material.DIAMOND);
                 });
+        this.newShapedRecipe(CollectionsCatalog.TILLING_HOE_RECIPE, TillingHoeService.createItem(),
+                new String[]{"BBB", "BHB", "BBB"}, r -> {
+                    r.setIngredient('B', Material.BEETROOT);
+                    r.setIngredient('H', Material.IRON_HOE);
+                });
+        this.newShapedRecipe(CollectionsCatalog.BASKET_OF_SEEDS_RECIPE, BasketOfSeedsService.createItem(),
+                new String[]{"BBB", "BUB", "BBB"}, r -> {
+                    r.setIngredient('B', Material.BEETROOT_SEEDS);
+                    r.setIngredient('U', Material.BUNDLE);
+                });
         this.newShapedRecipe(CollectionsCatalog.LANTERN_HELMET_RECIPE, this.lanternHelmet(),
                 new String[]{"PPP", "P P"}, r -> r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore())));
 
