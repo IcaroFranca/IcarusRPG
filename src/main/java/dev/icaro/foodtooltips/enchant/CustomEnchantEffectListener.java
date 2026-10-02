@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.enchant;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.SavannaBowService;
+import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -115,16 +116,19 @@ public final class CustomEnchantEffectListener implements Listener {
     private final EnchantService enchants;
     private final MobVisualService visuals;
     private final SavannaBowService savannaBow;
+    /** See {@link #burnTick}'s own doc on why Flame/Fire Aspect's burn needs this - correct kill attribution, not just safe damage math. */
+    private final CombatAbilityService abilities;
     /** Marks a bow whose tooltip already shows {@link #BASE_BOW_DAMAGE} - see {@link #applyBowDamageTooltip}. */
     private final NamespacedKey bowDamageTooltipKey;
     /** Marks a mob that's been hit by Fire Aspect - see {@link #fireAspectHit}/{@link #cookFireAspectDrops}. */
     private final NamespacedKey fireAspectCookedKey;
 
-    public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals, SavannaBowService savannaBow) {
+    public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals, SavannaBowService savannaBow, CombatAbilityService abilities) {
         this.plugin = plugin;
         this.enchants = enchants;
         this.visuals = visuals;
         this.savannaBow = savannaBow;
+        this.abilities = abilities;
         this.bowDamageTooltipKey = new NamespacedKey(plugin, "bow_damage_tooltip_applied");
         this.fireAspectCookedKey = new NamespacedKey(plugin, "fire_aspect_cooked");
     }
@@ -268,7 +272,7 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         int lvl = Math.min(level, FLAME_DURATION.length - 1);
-        this.burn(target, e.getFinalDamage(), FLAME_DURATION[lvl], FLAME_PERCENT[lvl]);
+        this.burn(shooter, target, e.getFinalDamage(), FLAME_DURATION[lvl], FLAME_PERCENT[lvl]);
     }
 
     /** Fire Aspect: same burn as Flame (see this class's own doc), read from the attacker's main-hand sword on a melee hit. Runs at MONITOR for the same reason as {@link #arrowHit}. Also tags {@code target} ({@link #fireAspectCookedKey}) so {@link #cookFireAspectDrops} cooks its meat drops whenever it eventually dies, regardless of what finishes it off - same "once ignited, stays that way until it dies" spirit as a real vanilla fire-kill, despite this never actually setting real fire ticks (see this class's own doc on why). */
@@ -283,7 +287,7 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         int lvl = Math.min(level, FIRE_ASPECT_DURATION.length - 1);
-        this.burn(target, e.getFinalDamage(), FIRE_ASPECT_DURATION[lvl], FIRE_ASPECT_PERCENT[lvl]);
+        this.burn(attacker, target, e.getFinalDamage(), FIRE_ASPECT_DURATION[lvl], FIRE_ASPECT_PERCENT[lvl]);
         target.getPersistentDataContainer().set(this.fireAspectCookedKey, PersistentDataType.BYTE, (byte) 1);
     }
 
@@ -291,8 +295,9 @@ public final class CustomEnchantEffectListener implements Listener {
      * Turns every raw meat drop in {@link #RAW_TO_COOKED_MEAT} into its cooked counterpart for
      * any mob {@link #fireAspectHit} tagged - per the player's own explicit spec. Runs at the
      * default (NORMAL) priority, strictly before {@code skills.GeneralSkillListener#animalDrop}'s
-     * own MONITOR-priority Collections credit scan, so that scan always sees the already-cooked
-     * drop (it reads {@link #RAW_TO_COOKED_MEAT} in reverse to still credit it correctly).
+     * own {@link EventPriority#HIGH} Collections credit scan, so that scan always sees the
+     * already-cooked drop (it reads {@link #RAW_TO_COOKED_MEAT} in reverse to still credit it
+     * correctly).
      */
     @EventHandler(ignoreCancelled = true)
     public void cookFireAspectDrops(EntityDeathEvent e) {
@@ -309,33 +314,55 @@ public final class CustomEnchantEffectListener implements Listener {
         }
     }
 
-    /** Shared by Flame/Fire Aspect - see this class's own doc for why this is cosmetic-particles-only rather than a real ignite, and why the first tick is immediate. */
-    private void burn(LivingEntity target, double finalDamage, double durationSeconds, double percentPerSecond) {
+    /**
+     * Shared by Flame/Fire Aspect - see this class's own doc for why this is
+     * cosmetic-particles-only rather than a real ignite, and why the first tick is
+     * immediate. {@code attacker} is threaded through to {@link #burnTick} - see that
+     * method's own doc on why every tick needs it, not just the first.
+     */
+    private void burn(Player attacker, LivingEntity target, double finalDamage, double durationSeconds, double percentPerSecond) {
         int ticks = (int) Math.floor(durationSeconds);
         if (ticks <= 0) {
             return;
         }
         double perTick = finalDamage * (percentPerSecond / 100.0);
-        this.burnTick(target, perTick);
+        this.burnTick(attacker, target, perTick);
         for (int i = 1; i < ticks; i++) {
-            Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.burnTick(target, perTick), i * 20L);
+            Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.burnTick(attacker, target, perTick), i * 20L);
         }
     }
 
-    private void burnTick(LivingEntity target, double perTick) {
+    /**
+     * Deals {@code perTick} via {@link CombatAbilityService#dealAbilityDamage} - NOT a bare
+     * {@code target.damage(perTick)} (what this used before) - for two reasons, both real bugs
+     * the player ran into: (1) unattributed damage never sets {@link LivingEntity#getKiller()},
+     * so a mob that dies from a LATE burn tick rather than the original hit died with no killer
+     * at all, silently skipping both {@code combat.CombatListener#death}'s own Telekinesis
+     * pickup AND {@code skills.GeneralSkillListener#animalDrop}'s Collections credit for that
+     * kill - exactly the player's own "Elas dropam o couro no chão mesmo com o telekinesis pra
+     * mob ligado, e quando pego não ta contando pro collection" report, reproduced with a Fire
+     * Aspect sword specifically. (2) {@code dealAbilityDamage} also flags the hit as ability
+     * damage in flight, so {@code CombatListener#damage} skips its own melee multiplier
+     * stack for it - attributing it to {@code attacker} without that flag would have let that
+     * formula reprocess {@code perTick} as if it were a brand new raw hit (Strength, crits,
+     * reforges and all), double-dipping on top of the percentage {@link #burn} already computed
+     * from the ORIGINAL hit's own final damage. Defense/Protection still apply either way (same
+     * as before) - those run in separate listeners this flag doesn't touch.
+     */
+    private void burnTick(Player attacker, LivingEntity target, double perTick) {
         if (!target.isValid() || target.isDead()) {
             return;
         }
         target.getWorld().spawnParticle(Particle.FLAME, target.getLocation().add(0.0, 1.0, 0.0), 8, 0.3, 0.5, 0.3, 0.01);
         // Read health before/after (rather than showing perTick itself) since
-        // target.damage() runs the real EntityDamageEvent pipeline to completion -
+        // dealAbilityDamage runs the real EntityDamageEvent pipeline to completion -
         // ArmorDefenseListener's Defense mitigation included - before returning, so the
         // theoretical perTick amount and what the target's health bar actually drops by
         // can diverge for anything with Defense (see
         // MobVisualService#queueDamageNumber's own doc for the same divergence on the
         // event-handler side of this bug).
         double before = this.visuals.effectiveHealth(target);
-        target.damage(perTick);
+        this.abilities.dealAbilityDamage(attacker, target, perTick);
         double actual = before - this.visuals.effectiveHealth(target);
         if (actual > 0.0) {
             this.visuals.damageNumber(target, actual, FIRE_ORANGE);

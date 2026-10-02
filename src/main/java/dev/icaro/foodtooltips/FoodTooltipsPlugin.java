@@ -379,7 +379,7 @@ extends JavaPlugin {
         if (pm.getPlugin("Citizens") != null) {
             pm.registerEvents((Listener)new ReforgeListener(reforgeMenu), (Plugin)this);
         }
-        CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals, savannaBow);
+        CustomEnchantEffectListener customEnchants = new CustomEnchantEffectListener((Plugin)this, enchants, this.visuals, savannaBow, abilities);
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals, abilities), (Plugin)this);
         pm.registerEvents((Listener)lapisExperience, (Plugin)this);
