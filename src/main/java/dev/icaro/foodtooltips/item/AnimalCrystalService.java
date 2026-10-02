@@ -33,11 +33,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -47,8 +49,10 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataHolder;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.RayTraceResult;
 
 /**
  * Animal Crystal (Cow/Leather Collection M1) - {@code FarmCrystalService}'s own "invisible
@@ -75,17 +79,28 @@ import org.bukkit.plugin.Plugin;
  * player's own spec, every unlocked species has an equal chance each pulse (so once all five are
  * unlocked, each is a plain 1-in-5, 20%).
  *
- * <p>Left-clicking (attacking) a placed crystal opens {@link #openMenu} instead of damaging it -
- * a small screen (see {@link AnimalCrystalMenuHolder}) where the crystal's own owner can
- * manually disable any species they've already unlocked via Collections, per their own "quero
- * poder escolher quais spawnam" spec - {@link #DISABLED_KEY} stores that per-crystal choice on
- * the stand itself (not the owner, so different crystals the same player owns can each be tuned
- * differently), and {@link #unlockedMobTypes} subtracts it from the Collections-driven set
- * before picking. Disabling every unlocked species simply stops that crystal from spawning
- * anything at all ({@link #pulseOne} bails out rather than falling back to Cow) - that's the
- * player's own explicit choice, not a bug. Only the owner can open or toggle this menu ({@link
- * #handleLeftClick}); anyone else gets a plain message instead, so a crystal can't be griefed
- * into spawning nothing for its own owner by a third party.
+ * <p>Left-clicking opens the same toggle screen (see {@link AnimalCrystalMenuHolder}) in TWO
+ * contexts, per the player's own "quero que isso seja com o cristal na mão também, não só com
+ * ele colocado" follow-up: attacking an already-placed crystal (via {@link #damage}, which never
+ * actually damages it) configures THAT stand, while swinging with the item simply held in hand
+ * and not currently aimed at a placed crystal (via {@link #swing}, same {@link
+ * PlayerAnimationEvent} technique {@code biome.BiomeWandListener} already uses for its own wand's
+ * left-click menu) configures the HELD ITEM instead - {@link #isTargetingAnimalCrystal} is what
+ * lets {@link #swing} tell the two cases apart (a short ray trace, so attacking a placed crystal
+ * while also holding one in hand doesn't open both at once). Either way {@link #DISABLED_KEY}
+ * stores the choice on whichever {@link PersistentDataHolder} (the stand, or the item's own
+ * {@link ItemMeta}) the menu is editing, via {@link #disabledTypes}/{@link #toggleDisabled} -
+ * generalized over that interface since both expose a plain {@code PersistentDataContainer}.
+ * {@link #place} copies a held item's own pre-configured choice onto the new stand ({@link
+ * #copyDisabled}) so configuring it before placing actually carries over, and {@link #interact}
+ * copies it back the other way when picking the crystal back up, so the choice survives a
+ * pickup/replace cycle too. Disabling every unlocked species simply stops that crystal from
+ * spawning anything at all once placed ({@link #pulseOne} bails out rather than falling back to
+ * Cow) - that's the player's own explicit choice, not a bug. Only the stand's own owner can open
+ * or toggle ITS menu ({@link #handleLeftClick}); anyone else gets a plain message instead, so a
+ * placed crystal can't be griefed into spawning nothing for its own owner by a third party - the
+ * held-item menu has no such restriction, since whoever is holding the item is by definition the
+ * one about to decide its configuration (nothing is configured yet for anyone to grief).
  *
  * <p>{@link #pulseOne} samples random columns within {@value #AREA_RADIUS} blocks (a square, not
  * a cube) and only spawns an animal on top of a bare {@link Material#GRASS_BLOCK} with at least
@@ -122,6 +137,8 @@ public final class AnimalCrystalService implements Listener {
     private static final int MENU_SIZE = 27;
     private static final int[] MENU_SLOTS = {11, 12, 13, 14, 15};
     private static final int MENU_CLOSE_SLOT = 22;
+    /** How far {@link #isTargetingAnimalCrystal} ray traces for a placed crystal in front of the player - roughly vanilla survival reach, generous enough to reliably catch "about to attack it" without false-positiving on one much farther away. */
+    private static final double TARGET_REACH = 4.5;
 
     /** One Farming Collections entry's own Milestone 1 unlocking a species on this crystal - see {@link #ANIMAL_UNLOCKS}. */
     private record AnimalUnlock(Material trackedMaterial, int milestoneNumber, EntityType mobType) {}
@@ -186,7 +203,8 @@ public final class AnimalCrystalService implements Listener {
                 Component.text("animal (Cow, Pig, Sheep, Chicken or Rabbit, as your own", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Farming Collections unlock them) somewhere in a " + (AREA_RADIUS * 2) + "x" + (AREA_RADIUS * 2), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("area every " + (PULSE_TICKS / 20) + "s, up to " + MAX_ANIMALS_IN_AREA + " animals.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text("Left-click it to choose which unlocked species spawn.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("Left-click it (placed or in hand) to choose which", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("unlocked species spawn.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Sneak + right-click it to remove.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         item.setItemMeta(meta);
         return item;
@@ -236,25 +254,33 @@ public final class AnimalCrystalService implements Listener {
         stand.getEquipment().setHelmet(createItem());
         stand.getPersistentDataContainer().set(CRYSTAL_KEY, PersistentDataType.BYTE, (byte) 1);
         stand.getPersistentDataContainer().set(OWNER_KEY, PersistentDataType.STRING, p.getUniqueId().toString());
+        ItemMeta heldMeta = item.getItemMeta();
+        if (heldMeta != null) {
+            copyDisabled(heldMeta, stand);
+        }
         if (p.getGameMode() != GameMode.CREATIVE) {
             item.setAmount(item.getAmount() - 1);
         }
     }
 
-    /** Sneak-right-click on an Animal Crystal to remove it, item back in hand. */
+    /** Sneak-right-click on an Animal Crystal to remove it, item back in hand - carries the stand's own current disabled set onto the returned item (see this class's own doc) so it survives a pickup/replace cycle. */
     @EventHandler(ignoreCancelled = true)
     public void interact(PlayerInteractEntityEvent e) {
-        if (!e.getPlayer().isSneaking() || !isAnimalCrystalEntity(e.getRightClicked())) {
+        if (!e.getPlayer().isSneaking() || !isAnimalCrystalEntity(e.getRightClicked()) || !(e.getRightClicked() instanceof ArmorStand stand)) {
             return;
         }
         e.setCancelled(true);
         e.getRightClicked().remove();
-        for (ItemStack overflow : e.getPlayer().getInventory().addItem(createItem()).values()) {
+        ItemStack returned = createItem();
+        ItemMeta returnedMeta = returned.getItemMeta();
+        copyDisabled(stand, returnedMeta);
+        returned.setItemMeta(returnedMeta);
+        for (ItemStack overflow : e.getPlayer().getInventory().addItem(returned).values()) {
             e.getPlayer().getWorld().dropItemNaturally(e.getPlayer().getLocation(), overflow);
         }
     }
 
-    /** Left-clicking (attacking) a placed crystal never damages it - it opens {@link #openMenu} instead, see this class's own doc. */
+    /** Left-clicking (attacking) a placed crystal never damages it - it opens {@link #openMenu} for that stand instead, see this class's own doc. */
     @EventHandler(ignoreCancelled = true)
     public void damage(EntityDamageEvent e) {
         if (!isAnimalCrystalEntity(e.getEntity())) {
@@ -268,23 +294,55 @@ public final class AnimalCrystalService implements Listener {
         }
     }
 
-    /** Only {@code stand}'s own owner (see {@link #OWNER_KEY}) may open {@link #openMenu} - anyone else just gets told so, per this class's own doc. */
+    /**
+     * The held-item half of this class's own left-click doc - swinging while holding an Animal
+     * Crystal that ISN'T currently aimed at a placed one (see {@link #isTargetingAnimalCrystal})
+     * opens {@link #openMenu} for the held item itself instead. {@code ignoreCancelled = true} +
+     * {@link EventPriority#HIGH} match {@code biome.BiomeWandListener#swing}'s own wand-menu
+     * wiring, the precedent this is copied from.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void swing(PlayerAnimationEvent e) {
+        Player p = e.getPlayer();
+        ItemStack held = p.getInventory().getItemInMainHand();
+        if (!isAnimalCrystalItem(held) || this.isTargetingAnimalCrystal(p)) {
+            return;
+        }
+        this.openMenu(p, null, p.getUniqueId());
+    }
+
+    /** Whether a placed Animal Crystal is the first thing within {@value #TARGET_REACH} blocks along {@code p}'s own look direction - see {@link #swing}'s own doc on why this is checked. */
+    private boolean isTargetingAnimalCrystal(Player p) {
+        RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(),
+                TARGET_REACH, 0.3, AnimalCrystalService::isAnimalCrystalEntity);
+        return hit != null;
+    }
+
+    /** Only {@code stand}'s own owner (see {@link #OWNER_KEY}) may open {@link #openMenu} for it - anyone else just gets told so, per this class's own doc. */
     private void handleLeftClick(Player p, ArmorStand stand) {
         OfflinePlayer owner = ownerOf(stand);
         if (owner == null || !owner.getUniqueId().equals(p.getUniqueId())) {
             p.sendMessage(Component.text("Only this crystal's own owner can configure it.", NamedTextColor.RED));
             return;
         }
-        this.openMenu(p, stand);
+        this.openMenu(p, stand, owner.getUniqueId());
     }
 
-    /** Backs {@link #openMenu}'s own screen to the exact {@link ArmorStand} it's configuring - see {@link #click}. */
+    /**
+     * Backs {@link #openMenu}'s own screen - either to the exact {@link ArmorStand} it's
+     * configuring, or, if {@code stand} is {@code null}, to {@code editingPlayer}'s own held
+     * item instead (re-read fresh from their main hand on every toggle, see {@link #click}, since
+     * an {@link ItemStack} reference can't be "held onto" safely the way an entity reference can
+     * - the player could swap hotbar slots or drop it while the menu is open).
+     */
     private static final class AnimalCrystalMenuHolder implements InventoryHolder {
         final ArmorStand stand;
+        final UUID editingPlayer;
         Inventory inventory;
 
-        AnimalCrystalMenuHolder(ArmorStand stand) {
+        AnimalCrystalMenuHolder(ArmorStand stand, UUID editingPlayer) {
             this.stand = stand;
+            this.editingPlayer = editingPlayer;
         }
 
         @Override
@@ -293,21 +351,33 @@ public final class AnimalCrystalService implements Listener {
         }
     }
 
-    private void openMenu(Player p, ArmorStand stand) {
-        AnimalCrystalMenuHolder holder = new AnimalCrystalMenuHolder(stand);
+    /** {@code stand == null} opens the held-item variant for {@code editingPlayer} instead - see {@link AnimalCrystalMenuHolder}'s own doc. */
+    private void openMenu(Player p, ArmorStand stand, UUID editingPlayer) {
+        AnimalCrystalMenuHolder holder = new AnimalCrystalMenuHolder(stand, editingPlayer);
         Inventory inv = Bukkit.createInventory(holder, MENU_SIZE, "Animal Crystal");
         holder.inventory = inv;
-        this.renderMenu(inv, stand);
+        this.renderMenu(holder);
         p.openInventory(inv);
     }
 
-    private void renderMenu(Inventory inv, ArmorStand stand) {
+    /** {@code holder.stand} drives both the owner (for locked/unlocked icons) and the disabled set when configuring a placed crystal; the held-item variant uses {@code holder.editingPlayer} (always online here - they're the one with the menu open) for both instead. */
+    private void renderMenu(AnimalCrystalMenuHolder holder) {
+        Inventory inv = holder.inventory;
         ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", NamedTextColor.GRAY, List.of());
         for (int i = 0; i < MENU_SIZE; i++) {
             inv.setItem(i, filler);
         }
-        OfflinePlayer owner = ownerOf(stand);
-        Set<EntityType> disabled = disabledTypes(stand);
+        OfflinePlayer owner;
+        Set<EntityType> disabled;
+        if (holder.stand != null) {
+            owner = ownerOf(holder.stand);
+            disabled = disabledTypes(holder.stand);
+        } else {
+            Player editing = Bukkit.getPlayer(holder.editingPlayer);
+            owner = editing;
+            ItemStack held = editing == null ? null : editing.getInventory().getItemInMainHand();
+            disabled = isAnimalCrystalItem(held) ? disabledTypes(held.getItemMeta()) : Set.of();
+        }
         for (int i = 0; i < ANIMAL_UNLOCKS.size(); i++) {
             AnimalUnlock unlock = ANIMAL_UNLOCKS.get(i);
             inv.setItem(MENU_SLOTS[i], this.toggleIcon(unlock, owner, disabled.contains(unlock.mobType())));
@@ -354,10 +424,20 @@ public final class AnimalCrystalService implements Listener {
                 continue;
             }
             AnimalUnlock unlock = ANIMAL_UNLOCKS.get(i);
-            if (this.isUnlockedByCollections(ownerOf(holder.stand), unlock)) {
-                toggleDisabled(holder.stand, unlock.mobType());
-                this.renderMenu(holder.inventory, holder.stand);
+            if (holder.stand != null) {
+                if (this.isUnlockedByCollections(ownerOf(holder.stand), unlock)) {
+                    toggleDisabled(holder.stand, unlock.mobType());
+                }
+            } else {
+                ItemStack held = p.getInventory().getItemInMainHand();
+                if (isAnimalCrystalItem(held) && this.isUnlockedByCollections(p, unlock)) {
+                    ItemMeta meta = held.getItemMeta();
+                    toggleDisabled(meta, unlock.mobType());
+                    held.setItemMeta(meta);
+                    p.getInventory().setItemInMainHand(held);
+                }
             }
+            this.renderMenu(holder);
             return;
         }
     }
@@ -465,9 +545,16 @@ public final class AnimalCrystalService implements Listener {
         return raw == null ? null : Bukkit.getOfflinePlayer(UUID.fromString(raw));
     }
 
-    /** {@code stand}'s own manually-disabled species (see {@link #DISABLED_KEY}) - empty if none, or if the stored value has nothing left to parse. */
-    private static Set<EntityType> disabledTypes(ArmorStand stand) {
-        String raw = stand.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.STRING);
+    /**
+     * {@code holder}'s own manually-disabled species (see {@link #DISABLED_KEY}) - empty if
+     * none, or if the stored value has nothing left to parse. Takes a plain {@link
+     * PersistentDataHolder} rather than an {@link ArmorStand} specifically so the exact same
+     * read/write logic covers both a placed crystal's stand and a held item's own {@link
+     * ItemMeta} (both implement it) - see this class's own doc on the two {@link #openMenu}
+     * contexts.
+     */
+    private static Set<EntityType> disabledTypes(PersistentDataHolder holder) {
+        String raw = holder.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.STRING);
         if (raw == null || raw.isEmpty()) {
             return Set.of();
         }
@@ -482,14 +569,27 @@ public final class AnimalCrystalService implements Listener {
         return result;
     }
 
-    /** Flips {@code type}'s own disabled state on {@code stand} and persists the result - see {@link #click}. */
-    private static void toggleDisabled(ArmorStand stand, EntityType type) {
-        Set<EntityType> disabled = new HashSet<>(disabledTypes(stand));
+    /**
+     * Flips {@code type}'s own disabled state on {@code holder} and persists the result - see
+     * {@link #click}. For an {@link ItemMeta} holder this only mutates the detached copy; the
+     * caller is responsible for reapplying it ({@code ItemStack#setItemMeta}) same as every
+     * other item-building method in this codebase already does.
+     */
+    private static void toggleDisabled(PersistentDataHolder holder, EntityType type) {
+        Set<EntityType> disabled = new HashSet<>(disabledTypes(holder));
         if (!disabled.remove(type)) {
             disabled.add(type);
         }
         String joined = disabled.stream().map(Enum::name).collect(Collectors.joining(","));
-        stand.getPersistentDataContainer().set(DISABLED_KEY, PersistentDataType.STRING, joined);
+        holder.getPersistentDataContainer().set(DISABLED_KEY, PersistentDataType.STRING, joined);
+    }
+
+    /** Copies {@code from}'s own {@link #DISABLED_KEY} value onto {@code to} verbatim (a no-op if {@code from} has none) - see this class's own doc on {@link #place}/{@link #interact} carrying the choice across a place/pickup cycle. */
+    private static void copyDisabled(PersistentDataHolder from, PersistentDataHolder to) {
+        String raw = from.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.STRING);
+        if (raw != null) {
+            to.getPersistentDataContainer().set(DISABLED_KEY, PersistentDataType.STRING, raw);
+        }
     }
 
     /**
