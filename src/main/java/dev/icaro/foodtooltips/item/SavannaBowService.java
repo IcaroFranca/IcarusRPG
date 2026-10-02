@@ -28,6 +28,18 @@ import org.bukkit.persistence.PersistentDataType;
  * at hit time" idiom {@code enchant.BowEnchantEffectListener#bowShoot}/{@code
  * #piercingHit} already uses, since by the time an arrow lands the shooter could easily
  * be holding something else entirely.
+ *
+ * <p>{@link #hit} runs at {@link EventPriority#HIGHEST}, strictly after {@code
+ * combat.CombatListener#damage}'s own {@link EventPriority#HIGH} formula has already
+ * turned the flat {@value #BASE_DAMAGE} into the hit's real final number (enchants,
+ * Global Strength, crits, reforges, the whole stack) - per the player's own explicit
+ * "quero que a multiplicação por dois aconteça após a equação do dano final" spec. The
+ * double is the very last word on the attacker's own side: {@code
+ * FoodTooltipsPlugin#onEnable} registers this service BEFORE {@code ArmorDefenseListener}/
+ * {@code ArmorEnchantEffectListener} (same {@link EventPriority#HIGHEST} tier, ordered by
+ * registration - see that method's own comment), so the target's Defense/Protection still
+ * mitigate the already-doubled number afterward, same as they would any other
+ * damage-increasing effect.
  */
 public final class SavannaBowService implements Listener {
     private static final NamespacedKey BOW_KEY = new NamespacedKey("foodtooltips", "savanna_bow");
@@ -68,8 +80,8 @@ public final class SavannaBowService implements Listener {
         arrow.getPersistentDataContainer().set(ARROW_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
-    /** Runs at NORMAL, same ordering {@code BowEnchantEffectListener#piercingHit} already relies on - before {@code CombatListener#damage}'s own HIGH-priority multiplier stack, so the double applies to the raw arrow damage those multipliers then scale further. */
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    /** See this class's own doc on why this is {@link EventPriority#HIGHEST}, not {@link EventPriority#NORMAL} ({@code BowEnchantEffectListener#piercingHit}'s own tier) - the double must come after the full damage formula, not before it. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void hit(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof AbstractArrow arrow) || !(e.getEntity() instanceof LivingEntity)) {
             return;

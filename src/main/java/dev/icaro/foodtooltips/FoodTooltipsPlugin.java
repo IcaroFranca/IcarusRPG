@@ -422,15 +422,20 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService);
         combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
-        // ArmorDefenseListener#defense and armorEnchants' protection() both reduce
-        // incoming damage at EventPriority.HIGHEST on EntityDamageEvent, same as
-        // CombatListener#secondWind - Bukkit runs same-priority handlers in
-        // registration order, and Second Wind needs to judge lethality using the
-        // FINAL, already-mitigated damage, not the raw pre-mitigation number. So
-        // these two must be registered before combatListener. (CombatListener#damage,
-        // the attacker-side damage calculation, is a separate EventPriority.HIGH
-        // handler and always runs before any HIGHEST handler regardless of
-        // registration order - see its own priority comment.)
+        // Registration order among these EventPriority.HIGHEST EntityDamageEvent handlers
+        // matters (Bukkit runs same-priority handlers in registration order):
+        // savannaBow#hit (doubles the attacker's own already-fully-computed damage, see
+        // that class's own doc) must run BEFORE ArmorDefenseListener#defense/armorEnchants'
+        // protection() (both reduce incoming damage), so the target's Defense/Protection
+        // mitigate the doubled number rather than the pre-double one - and those two, in
+        // turn, must run before combatListener (CombatListener#secondWind needs to judge
+        // lethality using the FINAL, already-mitigated damage, not the raw pre-mitigation
+        // number). (CombatListener#damage, the attacker-side damage calculation, is a
+        // separate EventPriority.HIGH handler and always runs before any HIGHEST handler
+        // regardless of registration order - see its own priority comment - which is also
+        // why savannaBow#hit, despite running first among these three, still sees that
+        // formula's own output rather than the raw pre-formula number.)
+        pm.registerEvents((Listener)savannaBow, (Plugin)this);
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
         pm.registerEvents((Listener)armorEnchants, (Plugin)this);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
@@ -453,7 +458,6 @@ extends JavaPlugin {
         SpruceAxeListener spruceAxeThrow = new SpruceAxeListener((Plugin)this, spruceAxe);
         pm.registerEvents((Listener)spruceAxeThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSpruceAxeThrowListener(spruceAxeThrow), (Plugin)this);
-        pm.registerEvents((Listener)savannaBow, (Plugin)this);
         TreecapitatorListener treecapitatorThrow = new TreecapitatorListener((Plugin)this, treecapitator);
         pm.registerEvents((Listener)treecapitatorThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockTreecapitatorThrowListener(treecapitatorThrow), (Plugin)this);
