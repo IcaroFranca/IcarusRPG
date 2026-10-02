@@ -6,6 +6,7 @@ import dev.icaro.foodtooltips.item.SavannaBowService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -25,6 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
@@ -93,6 +95,21 @@ public final class CustomEnchantEffectListener implements Listener {
     /** Fire Aspect's own level 1/2/3 lookup - see {@link #FLAME_DURATION}. */
     private static final double[] FIRE_ASPECT_DURATION = {0, 3, 4, 4};
     private static final double[] FIRE_ASPECT_PERCENT = {0, 3, 6, 9};
+    /**
+     * Every raw meat {@link #cookFireAspectDrops} can turn into its cooked counterpart - per
+     * the player's own "fire aspect tem que fazer os mobs droparem a carne assadas" spec.
+     * {@code BEEF} is included for parity (a Cow/Mooshroom kill still gets cooked drops) even
+     * though there's no Beef Collections entry to credit either way - see {@code
+     * skills.GeneralSkillListener#animalDrop}'s own doc for the Collections-crediting half of
+     * this (Chicken/Mutton/Porkchop/Rabbit), which reads this same raw-to-cooked mapping in
+     * reverse so a cooked drop still counts as its raw equivalent.
+     */
+    static final Map<Material, Material> RAW_TO_COOKED_MEAT = Map.of(
+            Material.CHICKEN, Material.COOKED_CHICKEN,
+            Material.BEEF, Material.COOKED_BEEF,
+            Material.PORKCHOP, Material.COOKED_PORKCHOP,
+            Material.MUTTON, Material.COOKED_MUTTON,
+            Material.RABBIT, Material.COOKED_RABBIT);
 
     private final Plugin plugin;
     private final EnchantService enchants;
@@ -100,6 +117,8 @@ public final class CustomEnchantEffectListener implements Listener {
     private final SavannaBowService savannaBow;
     /** Marks a bow whose tooltip already shows {@link #BASE_BOW_DAMAGE} - see {@link #applyBowDamageTooltip}. */
     private final NamespacedKey bowDamageTooltipKey;
+    /** Marks a mob that's been hit by Fire Aspect - see {@link #fireAspectHit}/{@link #cookFireAspectDrops}. */
+    private final NamespacedKey fireAspectCookedKey;
 
     public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals, SavannaBowService savannaBow) {
         this.plugin = plugin;
@@ -107,6 +126,7 @@ public final class CustomEnchantEffectListener implements Listener {
         this.visuals = visuals;
         this.savannaBow = savannaBow;
         this.bowDamageTooltipKey = new NamespacedKey(plugin, "bow_damage_tooltip_applied");
+        this.fireAspectCookedKey = new NamespacedKey(plugin, "fire_aspect_cooked");
     }
 
     /** Rewrites every bow in {@code p}'s inventory (storage and offhand) to show {@link #BASE_BOW_DAMAGE} as a "Damage" lore line (see {@link #bowTooltip} for why the Savanna Bow is skipped), the same one-shot idea as {@code SwordDamageService}'s own "Attack Damage" line - called every tick from {@code FoodTooltipsPlugin}'s existing periodic re-derivation loop. */
@@ -251,7 +271,7 @@ public final class CustomEnchantEffectListener implements Listener {
         this.burn(target, e.getFinalDamage(), FLAME_DURATION[lvl], FLAME_PERCENT[lvl]);
     }
 
-    /** Fire Aspect: same burn as Flame (see this class's own doc), read from the attacker's main-hand sword on a melee hit. Runs at MONITOR for the same reason as {@link #arrowHit}. */
+    /** Fire Aspect: same burn as Flame (see this class's own doc), read from the attacker's main-hand sword on a melee hit. Runs at MONITOR for the same reason as {@link #arrowHit}. Also tags {@code target} ({@link #fireAspectCookedKey}) so {@link #cookFireAspectDrops} cooks its meat drops whenever it eventually dies, regardless of what finishes it off - same "once ignited, stays that way until it dies" spirit as a real vanilla fire-kill, despite this never actually setting real fire ticks (see this class's own doc on why). */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void fireAspectHit(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player attacker) || !(e.getEntity() instanceof LivingEntity target)) {
@@ -264,6 +284,29 @@ public final class CustomEnchantEffectListener implements Listener {
         }
         int lvl = Math.min(level, FIRE_ASPECT_DURATION.length - 1);
         this.burn(target, e.getFinalDamage(), FIRE_ASPECT_DURATION[lvl], FIRE_ASPECT_PERCENT[lvl]);
+        target.getPersistentDataContainer().set(this.fireAspectCookedKey, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    /**
+     * Turns every raw meat drop in {@link #RAW_TO_COOKED_MEAT} into its cooked counterpart for
+     * any mob {@link #fireAspectHit} tagged - per the player's own explicit spec. Runs at the
+     * default (NORMAL) priority, strictly before {@code skills.GeneralSkillListener#animalDrop}'s
+     * own MONITOR-priority Collections credit scan, so that scan always sees the already-cooked
+     * drop (it reads {@link #RAW_TO_COOKED_MEAT} in reverse to still credit it correctly).
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void cookFireAspectDrops(EntityDeathEvent e) {
+        if (!e.getEntity().getPersistentDataContainer().has(this.fireAspectCookedKey, PersistentDataType.BYTE)) {
+            return;
+        }
+        List<ItemStack> drops = e.getDrops();
+        for (int i = 0; i < drops.size(); i++) {
+            ItemStack drop = drops.get(i);
+            Material cooked = RAW_TO_COOKED_MEAT.get(drop.getType());
+            if (cooked != null) {
+                drops.set(i, new ItemStack(cooked, drop.getAmount()));
+            }
+        }
     }
 
     /** Shared by Flame/Fire Aspect - see this class's own doc for why this is cosmetic-particles-only rather than a real ignite, and why the first tick is immediate. */

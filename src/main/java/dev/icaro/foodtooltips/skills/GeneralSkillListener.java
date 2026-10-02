@@ -207,7 +207,12 @@ implements Listener {
      * also comes from Horse/Donkey/Mule (equines, same as Cow/Mooshroom) and from Hoglin
      * (which drops both Leather and Raw Porkchop, being a boar-like Nether mob). MONITOR,
      * same tier {@code CombatListener#death} runs its own Bestiary/Combat-XP handling at, so
-     * this never races anything there that might still cancel the event first.
+     * this never races anything there that might still cancel the event first - and also
+     * strictly after {@code enchant.CustomEnchantEffectListener#cookFireAspectDrops}'s own
+     * default-priority handler, which can turn one of these raw drops into its cooked
+     * counterpart first (Fire Aspect) - {@link #rawMeatEquivalent} is what still credits that
+     * cooked drop as its raw material here, per the player's own explicit "mesmo assadas vão
+     * contar pros collections" spec, so a Fire Aspect kill never costs the player progress.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void animalDrop(EntityDeathEvent e) {
@@ -216,13 +221,13 @@ implements Listener {
             return;
         }
         Set<Material> tracked = switch (e.getEntity().getType()) {
-            case EntityType.CHICKEN -> EnumSet.of(Material.FEATHER, Material.CHICKEN);
+            case EntityType.CHICKEN -> EnumSet.of(Material.FEATHER, Material.CHICKEN, Material.COOKED_CHICKEN);
             case EntityType.COW, EntityType.MOOSHROOM, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE ->
                     EnumSet.of(Material.LEATHER);
-            case EntityType.SHEEP -> EnumSet.of(Material.MUTTON);
-            case EntityType.PIG -> EnumSet.of(Material.PORKCHOP);
-            case EntityType.HOGLIN -> EnumSet.of(Material.LEATHER, Material.PORKCHOP);
-            case EntityType.RABBIT -> EnumSet.of(Material.RABBIT);
+            case EntityType.SHEEP -> EnumSet.of(Material.MUTTON, Material.COOKED_MUTTON);
+            case EntityType.PIG -> EnumSet.of(Material.PORKCHOP, Material.COOKED_PORKCHOP);
+            case EntityType.HOGLIN -> EnumSet.of(Material.LEATHER, Material.PORKCHOP, Material.COOKED_PORKCHOP);
+            case EntityType.RABBIT -> EnumSet.of(Material.RABBIT, Material.COOKED_RABBIT);
             default -> null;
         };
         if (tracked == null) {
@@ -231,12 +236,23 @@ implements Listener {
         Map<Material, Integer> amounts = new HashMap<>();
         for (ItemStack drop : e.getDrops()) {
             if (tracked.contains(drop.getType())) {
-                amounts.merge(drop.getType(), drop.getAmount(), Integer::sum);
+                amounts.merge(rawMeatEquivalent(drop.getType()), drop.getAmount(), Integer::sum);
             }
         }
         for (Map.Entry<Material, Integer> entry : amounts.entrySet()) {
             this.applyCollections(p, entry.getKey(), entry.getValue());
         }
+    }
+
+    /** A cooked meat variant's own raw material (see {@link #animalDrop}'s own doc on Fire Aspect) - any other material passes through unchanged. */
+    private static Material rawMeatEquivalent(Material dropped) {
+        return switch (dropped) {
+            case COOKED_CHICKEN -> Material.CHICKEN;
+            case COOKED_MUTTON -> Material.MUTTON;
+            case COOKED_PORKCHOP -> Material.PORKCHOP;
+            case COOKED_RABBIT -> Material.RABBIT;
+            default -> dropped;
+        };
     }
 
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)

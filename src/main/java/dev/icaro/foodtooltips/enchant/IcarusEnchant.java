@@ -272,7 +272,7 @@ public enum IcarusEnchant {
             case LUCK_OF_THE_SEA -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), EnchantText.Token.colored(treasureChanceText(level) + " ⛃ Treasure Chance", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(", which increases the chance of fishing treasure.")));
             case FIRE_ASPECT -> EnchantText.wrap(List.of(EnchantText.Token.plain("Ignites your enemies for"), lookup(FIRE_ASPECT_DURATION, level), EnchantText.Token.plain("s, dealing"),
-                            lookup(FIRE_ASPECT_PERCENT, level), EnchantText.Token.plain("% of your damage per level per second.")));
+                            lookup(FIRE_ASPECT_PERCENT, level), EnchantText.Token.plain("% of your damage per level per second. Animals killed this way drop cooked meat.")));
             case PROTECTION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 4), EnchantText.Token.colored("❈ Defense", LABEL_COLOR), EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
             case FIRE_PROTECTION -> EnchantText.wrap(List.of(EnchantText.Token.plain("Grants"), plusValue(level, l -> l * 2), EnchantText.Token.colored("❂ True Defense", LABEL_COLOR),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("against fire and lava.")));
