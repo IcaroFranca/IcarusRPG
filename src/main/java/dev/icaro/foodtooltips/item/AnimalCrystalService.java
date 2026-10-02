@@ -3,15 +3,17 @@ package dev.icaro.foodtooltips.item;
 import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.collections.CollectionsEntry;
 import dev.icaro.foodtooltips.collections.CollectionsProgressService;
-import dev.icaro.foodtooltips.i18n.Language;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -33,10 +35,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -68,6 +75,18 @@ import org.bukkit.plugin.Plugin;
  * player's own spec, every unlocked species has an equal chance each pulse (so once all five are
  * unlocked, each is a plain 1-in-5, 20%).
  *
+ * <p>Left-clicking (attacking) a placed crystal opens {@link #openMenu} instead of damaging it -
+ * a small screen (see {@link AnimalCrystalMenuHolder}) where the crystal's own owner can
+ * manually disable any species they've already unlocked via Collections, per their own "quero
+ * poder escolher quais spawnam" spec - {@link #DISABLED_KEY} stores that per-crystal choice on
+ * the stand itself (not the owner, so different crystals the same player owns can each be tuned
+ * differently), and {@link #unlockedMobTypes} subtracts it from the Collections-driven set
+ * before picking. Disabling every unlocked species simply stops that crystal from spawning
+ * anything at all ({@link #pulseOne} bails out rather than falling back to Cow) - that's the
+ * player's own explicit choice, not a bug. Only the owner can open or toggle this menu ({@link
+ * #handleLeftClick}); anyone else gets a plain message instead, so a crystal can't be griefed
+ * into spawning nothing for its own owner by a third party.
+ *
  * <p>{@link #pulseOne} samples random columns within {@value #AREA_RADIUS} blocks (a square, not
  * a cube) and only spawns an animal on top of a bare {@link Material#GRASS_BLOCK} with at least
  * two blocks of open air above it (room for the mob to stand without suffocating) - same
@@ -77,11 +96,16 @@ import org.bukkit.plugin.Plugin;
  * (counting every one already there, not just ones this crystal spawned - same "don't let an
  * unbounded herd pile up" reasoning as {@code WoodcuttingCrystalService#MAX_TREES_IN_AREA}), at
  * which point a pulse does nothing until some are cleared out (bred, killed, wandered off, etc).
+ * {@link #withinRangeOfAnother} still keeps two crystals' own {@value #AREA_RADIUS}-block areas
+ * from overlapping at all, unchanged by any of the above - per the player's own explicit "um tem
+ * que respeitar a area do outro" spec.
  */
 public final class AnimalCrystalService implements Listener {
     private static final NamespacedKey CRYSTAL_KEY = new NamespacedKey("foodtooltips", "animal_crystal");
     /** The placing player's own UUID (as a plain string) - see this class's own doc on why the owner is tracked. */
     private static final NamespacedKey OWNER_KEY = new NamespacedKey("foodtooltips", "animal_crystal_owner");
+    /** Comma-joined {@link EntityType} names the owner manually turned off on THIS crystal via {@link #openMenu} - see this class's own doc. */
+    private static final NamespacedKey DISABLED_KEY = new NamespacedKey("foodtooltips", "animal_crystal_disabled");
     private static final UUID ITEM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:animal_crystal".getBytes(StandardCharsets.UTF_8));
     /** 5 seconds, per the player's own explicit spec. */
     private static final int PULSE_TICKS = 100;
@@ -95,6 +119,10 @@ public final class AnimalCrystalService implements Listener {
     private static final int MAX_ANIMALS_IN_AREA = 30;
     private static final double BEAM_PARTICLE_SPACING = 0.3;
 
+    private static final int MENU_SIZE = 27;
+    private static final int[] MENU_SLOTS = {11, 12, 13, 14, 15};
+    private static final int MENU_CLOSE_SLOT = 22;
+
     /** One Farming Collections entry's own Milestone 1 unlocking a species on this crystal - see {@link #ANIMAL_UNLOCKS}. */
     private record AnimalUnlock(Material trackedMaterial, int milestoneNumber, EntityType mobType) {}
 
@@ -103,7 +131,8 @@ public final class AnimalCrystalService implements Listener {
      * each one for a given owner - checked live against {@link #collectionsProgress} on every
      * pulse (see this class's own doc), not baked into the item at craft time. Cow's own entry
      * is here too (not special-cased) purely for uniformity - a legitimate owner always clears
-     * it, since Cow Collection M1 is what gates crafting the crystal itself.
+     * it, since Cow Collection M1 is what gates crafting the crystal itself. Declaration order
+     * is also {@link #MENU_SLOTS}' own order.
      */
     private static final List<AnimalUnlock> ANIMAL_UNLOCKS = List.of(
             new AnimalUnlock(Material.LEATHER, 1, EntityType.COW),
@@ -114,6 +143,14 @@ public final class AnimalCrystalService implements Listener {
 
     /** Every species {@link #ANIMAL_UNLOCKS} can ever produce - what {@link #countAnimalsInArea} counts towards the shared cap. */
     private static final Set<EntityType> ALL_ANIMAL_TYPES = EnumSet.copyOf(ANIMAL_UNLOCKS.stream().map(AnimalUnlock::mobType).toList());
+
+    /** {@link #openMenu}'s own icon per species - a plain spawn egg, closest vanilla stand-in for "this animal" in an inventory slot. */
+    private static final Map<EntityType, Material> SPAWN_EGG = Map.of(
+            EntityType.COW, Material.COW_SPAWN_EGG,
+            EntityType.PIG, Material.PIG_SPAWN_EGG,
+            EntityType.SHEEP, Material.SHEEP_SPAWN_EGG,
+            EntityType.CHICKEN, Material.CHICKEN_SPAWN_EGG,
+            EntityType.RABBIT, Material.RABBIT_SPAWN_EGG);
 
     private final Plugin plugin;
     /** Wired in after construction (it's built later in {@code FoodTooltipsPlugin#onEnable} than this service) - see {@link #unlockedMobTypes}. */
@@ -149,6 +186,7 @@ public final class AnimalCrystalService implements Listener {
                 Component.text("animal (Cow, Pig, Sheep, Chicken or Rabbit, as your own", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Farming Collections unlock them) somewhere in a " + (AREA_RADIUS * 2) + "x" + (AREA_RADIUS * 2), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("area every " + (PULSE_TICKS / 20) + "s, up to " + MAX_ANIMALS_IN_AREA + " animals.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("Left-click it to choose which unlocked species spawn.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Sneak + right-click it to remove.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         item.setItemMeta(meta);
         return item;
@@ -181,7 +219,6 @@ public final class AnimalCrystalService implements Listener {
         Player p = e.getPlayer();
         Location spawnAt = clicked.getLocation().add(0.5, 2.5, 0.5);
         if (this.withinRangeOfAnother(spawnAt)) {
-            Language l = Language.of(p);
             p.sendMessage(Component.text("There's already an Animal Crystal too close to here.", NamedTextColor.RED));
             return;
         }
@@ -217,10 +254,111 @@ public final class AnimalCrystalService implements Listener {
         }
     }
 
+    /** Left-clicking (attacking) a placed crystal never damages it - it opens {@link #openMenu} instead, see this class's own doc. */
     @EventHandler(ignoreCancelled = true)
     public void damage(EntityDamageEvent e) {
-        if (isAnimalCrystalEntity(e.getEntity())) {
-            e.setCancelled(true);
+        if (!isAnimalCrystalEntity(e.getEntity())) {
+            return;
+        }
+        e.setCancelled(true);
+        if (e instanceof EntityDamageByEntityEvent byEntity
+                && byEntity.getDamager() instanceof Player p
+                && e.getEntity() instanceof ArmorStand stand) {
+            this.handleLeftClick(p, stand);
+        }
+    }
+
+    /** Only {@code stand}'s own owner (see {@link #OWNER_KEY}) may open {@link #openMenu} - anyone else just gets told so, per this class's own doc. */
+    private void handleLeftClick(Player p, ArmorStand stand) {
+        OfflinePlayer owner = ownerOf(stand);
+        if (owner == null || !owner.getUniqueId().equals(p.getUniqueId())) {
+            p.sendMessage(Component.text("Only this crystal's own owner can configure it.", NamedTextColor.RED));
+            return;
+        }
+        this.openMenu(p, stand);
+    }
+
+    /** Backs {@link #openMenu}'s own screen to the exact {@link ArmorStand} it's configuring - see {@link #click}. */
+    private static final class AnimalCrystalMenuHolder implements InventoryHolder {
+        final ArmorStand stand;
+        Inventory inventory;
+
+        AnimalCrystalMenuHolder(ArmorStand stand) {
+            this.stand = stand;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return this.inventory;
+        }
+    }
+
+    private void openMenu(Player p, ArmorStand stand) {
+        AnimalCrystalMenuHolder holder = new AnimalCrystalMenuHolder(stand);
+        Inventory inv = Bukkit.createInventory(holder, MENU_SIZE, "Animal Crystal");
+        holder.inventory = inv;
+        this.renderMenu(inv, stand);
+        p.openInventory(inv);
+    }
+
+    private void renderMenu(Inventory inv, ArmorStand stand) {
+        ItemStack filler = this.item(Material.GRAY_STAINED_GLASS_PANE, " ", NamedTextColor.GRAY, List.of());
+        for (int i = 0; i < MENU_SIZE; i++) {
+            inv.setItem(i, filler);
+        }
+        OfflinePlayer owner = ownerOf(stand);
+        Set<EntityType> disabled = disabledTypes(stand);
+        for (int i = 0; i < ANIMAL_UNLOCKS.size(); i++) {
+            AnimalUnlock unlock = ANIMAL_UNLOCKS.get(i);
+            inv.setItem(MENU_SLOTS[i], this.toggleIcon(unlock, owner, disabled.contains(unlock.mobType())));
+        }
+        inv.setItem(MENU_CLOSE_SLOT, this.customHead(HeadTexture.CLOSE, "Close", List.of()));
+    }
+
+    private ItemStack toggleIcon(AnimalUnlock unlock, OfflinePlayer owner, boolean disabled) {
+        String name = displayName(unlock.mobType());
+        Material icon = SPAWN_EGG.get(unlock.mobType());
+        List<Component> lore = new ArrayList<>();
+        if (!this.isUnlockedByCollections(owner, unlock)) {
+            lore.add(this.text("Locked - reach Milestone " + unlock.milestoneNumber()
+                    + " of its own Collection to unlock.", NamedTextColor.RED));
+            return this.item(icon, "🔒 " + name, NamedTextColor.DARK_GRAY, lore);
+        }
+        boolean enabled = !disabled;
+        lore.add(this.text(enabled ? "Click to disable" : "Click to enable", NamedTextColor.YELLOW));
+        return this.item(icon, (enabled ? "✔ " : "✖ ") + name, enabled ? NamedTextColor.GREEN : NamedTextColor.RED, lore);
+    }
+
+    private static String displayName(EntityType type) {
+        String raw = type.name().toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(raw.charAt(0)) + raw.substring(1);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void click(InventoryClickEvent e) {
+        if (!(e.getWhoClicked() instanceof Player p)
+                || !(e.getView().getTopInventory().getHolder() instanceof AnimalCrystalMenuHolder holder)) {
+            return;
+        }
+        e.setCancelled(true);
+        int raw = e.getRawSlot();
+        if (raw < 0 || raw >= e.getView().getTopInventory().getSize()) {
+            return;
+        }
+        if (raw == MENU_CLOSE_SLOT) {
+            p.closeInventory();
+            return;
+        }
+        for (int i = 0; i < MENU_SLOTS.length; i++) {
+            if (MENU_SLOTS[i] != raw) {
+                continue;
+            }
+            AnimalUnlock unlock = ANIMAL_UNLOCKS.get(i);
+            if (this.isUnlockedByCollections(ownerOf(holder.stand), unlock)) {
+                toggleDisabled(holder.stand, unlock.mobType());
+                this.renderMenu(holder.inventory, holder.stand);
+            }
+            return;
         }
     }
 
@@ -250,12 +388,18 @@ public final class AnimalCrystalService implements Listener {
      * {@code stand} - the first sampled column whose ground is bare grass with open air above it
      * gets an animal, same single-success-per-pulse shape as {@code
      * WoodcuttingCrystalService#pulseOne}. Which species is picked is uniform at random among
-     * {@link #unlockedMobTypes} for this stand's own owner (see this class's own doc).
+     * {@link #unlockedMobTypes} for this stand's own owner (see this class's own doc) - computed
+     * once up front, since it's the same regardless of which column ends up valid; bails out
+     * immediately if that comes back empty (every unlocked species manually disabled).
      */
     private void pulseOne(ArmorStand stand) {
         World world = stand.getWorld();
         Location origin = stand.getLocation();
         if (countAnimalsInArea(world, origin) >= MAX_ANIMALS_IN_AREA) {
+            return;
+        }
+        List<EntityType> unlocked = this.unlockedMobTypes(stand);
+        if (unlocked.isEmpty()) {
             return;
         }
         for (int i = 0; i < SAMPLE_ATTEMPTS; i++) {
@@ -271,7 +415,6 @@ public final class AnimalCrystalService implements Listener {
                 continue;
             }
             Location spawnAt = ground.getLocation().add(0.5, 1.0, 0.5);
-            List<EntityType> unlocked = this.unlockedMobTypes(stand);
             EntityType chosen = unlocked.get(ThreadLocalRandom.current().nextInt(unlocked.size()));
             world.spawnEntity(spawnAt, chosen);
             this.beamEffect(origin, spawnAt);
@@ -280,28 +423,73 @@ public final class AnimalCrystalService implements Listener {
     }
 
     /**
-     * Every species {@code stand}'s own owner (see {@link #OWNER_KEY}) has unlocked, per {@link
-     * #ANIMAL_UNLOCKS} - an equal chance each, per the player's own spec (so this crystal always
-     * picks uniformly among whatever this returns, never weighting Cow higher just because it's
-     * everyone's own baseline). Falls back to {@code [COW]} alone if the owner can't be resolved
-     * (missing PDC value on an item from before this field existed) or {@link
-     * #collectionsProgress} hasn't been wired yet - same defensive fallback shape as {@code
-     * biome.BiomeWandService#availableOptions}.
+     * Every species {@code stand}'s own owner (see {@link #OWNER_KEY}) has unlocked via
+     * Collections, minus whatever's been manually {@link #DISABLED_KEY} on this specific
+     * crystal - an equal chance each among what's left, per the player's own spec (so this
+     * crystal always picks uniformly among whatever this returns, never weighting Cow higher
+     * just because it's everyone's own Collections-driven baseline). Falls back to {@code [COW]}
+     * before the manual-disable subtraction if the owner can't be resolved (missing PDC value
+     * on an item from before that field existed) or {@link #collectionsProgress} hasn't been
+     * wired yet - same defensive fallback shape as {@code biome.BiomeWandService#
+     * availableOptions} - but the result can still end up empty if the owner disabled Cow too;
+     * see {@link #pulseOne}'s own doc on why that's a deliberate "don't spawn anything", not a
+     * bug to paper over.
      */
     private List<EntityType> unlockedMobTypes(ArmorStand stand) {
-        String rawOwner = stand.getPersistentDataContainer().get(OWNER_KEY, PersistentDataType.STRING);
-        if (rawOwner == null || this.collectionsProgress == null) {
-            return List.of(EntityType.COW);
-        }
-        OfflinePlayer owner = Bukkit.getOfflinePlayer(UUID.fromString(rawOwner));
+        OfflinePlayer owner = ownerOf(stand);
         List<EntityType> unlocked = new ArrayList<>();
         for (AnimalUnlock unlock : ANIMAL_UNLOCKS) {
-            Optional<CollectionsEntry> entry = CollectionsCatalog.find(unlock.trackedMaterial());
-            if (entry.isPresent() && this.collectionsProgress.achieved(owner, entry.get()) >= unlock.milestoneNumber()) {
+            if (this.isUnlockedByCollections(owner, unlock)) {
                 unlocked.add(unlock.mobType());
             }
         }
-        return unlocked.isEmpty() ? List.of(EntityType.COW) : unlocked;
+        if (unlocked.isEmpty()) {
+            unlocked.add(EntityType.COW);
+        }
+        Set<EntityType> disabled = disabledTypes(stand);
+        unlocked.removeIf(disabled::contains);
+        return unlocked;
+    }
+
+    /** Whether {@code owner} has crossed {@code unlock}'s own Collections milestone - {@code owner == null} or {@link #collectionsProgress} unwired falls back to "only Cow counts", same defensive shape {@link #unlockedMobTypes} itself used to inline before {@link #openMenu} needed the same check for rendering locked icons. */
+    private boolean isUnlockedByCollections(OfflinePlayer owner, AnimalUnlock unlock) {
+        if (owner == null || this.collectionsProgress == null) {
+            return unlock.mobType() == EntityType.COW;
+        }
+        Optional<CollectionsEntry> entry = CollectionsCatalog.find(unlock.trackedMaterial());
+        return entry.isPresent() && this.collectionsProgress.achieved(owner, entry.get()) >= unlock.milestoneNumber();
+    }
+
+    private static OfflinePlayer ownerOf(ArmorStand stand) {
+        String raw = stand.getPersistentDataContainer().get(OWNER_KEY, PersistentDataType.STRING);
+        return raw == null ? null : Bukkit.getOfflinePlayer(UUID.fromString(raw));
+    }
+
+    /** {@code stand}'s own manually-disabled species (see {@link #DISABLED_KEY}) - empty if none, or if the stored value has nothing left to parse. */
+    private static Set<EntityType> disabledTypes(ArmorStand stand) {
+        String raw = stand.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.STRING);
+        if (raw == null || raw.isEmpty()) {
+            return Set.of();
+        }
+        Set<EntityType> result = EnumSet.noneOf(EntityType.class);
+        for (String part : raw.split(",")) {
+            try {
+                result.add(EntityType.valueOf(part));
+            } catch (IllegalArgumentException ignored) {
+                // Stale/unknown entry (e.g. a future save migrated away from) - skip it rather than failing the whole read.
+            }
+        }
+        return result;
+    }
+
+    /** Flips {@code type}'s own disabled state on {@code stand} and persists the result - see {@link #click}. */
+    private static void toggleDisabled(ArmorStand stand, EntityType type) {
+        Set<EntityType> disabled = new HashSet<>(disabledTypes(stand));
+        if (!disabled.remove(type)) {
+            disabled.add(type);
+        }
+        String joined = disabled.stream().map(Enum::name).collect(Collectors.joining(","));
+        stand.getPersistentDataContainer().set(DISABLED_KEY, PersistentDataType.STRING, joined);
     }
 
     /**
@@ -337,7 +525,7 @@ public final class AnimalCrystalService implements Listener {
         }
     }
 
-    /** Whether another Animal Crystal already sits within {@value #AREA_RADIUS} blocks of {@code spawnAt} - keeps two crystals' own 20x20 areas from overlapping. */
+    /** Whether another Animal Crystal already sits within {@value #AREA_RADIUS} blocks of {@code spawnAt} - keeps two crystals' own 20x20 areas from overlapping, per the player's own explicit spec (see this class's own doc). */
     private boolean withinRangeOfAnother(Location spawnAt) {
         for (Entity entity : spawnAt.getWorld().getNearbyEntities(spawnAt, AREA_RADIUS, AREA_RADIUS, AREA_RADIUS)) {
             if (isAnimalCrystalEntity(entity)) {
@@ -345,5 +533,36 @@ public final class AnimalCrystalService implements Listener {
             }
         }
         return false;
+    }
+
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        var profile = Bukkit.createProfile(UUID.randomUUID());
+        profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", texture));
+        meta.setPlayerProfile(profile);
+        meta.displayName(this.text(name).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack item(Material material, String name, NamedTextColor color, List<Component> lore) {
+        ItemStack stack = new ItemStack(material);
+        ItemMeta meta = stack.getItemMeta();
+        meta.displayName(this.text(name, color));
+        meta.lore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    private Component text(String s) {
+        return Component.text(s).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private Component text(String s, NamedTextColor c) {
+        return this.text(s).color(c);
     }
 }
