@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -35,18 +36,21 @@ import org.bukkit.plugin.Plugin;
  * in this screen, so renaming an item here is impossible by construction, not by a
  * runtime check.
  *
- * <p>Combine only for now (Reforge was going to be a second mode here, but it's being
- * tied to an NPC instead - no mode-switching structure left to carry): {@link
+ * <p>Combine or repair (Reforge was going to be a third mode here, but it's being tied
+ * to an NPC instead - no mode-switching structure left to carry): {@link
  * #MAIN_ITEM_SLOT} takes the item to keep, {@link #SECONDARY_ITEM_SLOT} takes either
- * another item of the exact same {@link Material} or a real enchanted book - every
- * enchantment (custom or vanilla) the secondary item/book offers is checked against the
- * main item the same way the Enchanting Table itself would ({@link
- * EnchantService#vanillaBlockReason}/{@link EnchantService#customBlockReason} - same
- * type-compatibility and conflict rules, no duplicated logic), merged in (matching level
- * bumps it by one, capped at the entry's own max; a higher level on either side wins)
- * into a live preview at {@link #PREVIEW_SLOT}. Clicking the preview - when it's a real
- * item, not an explanation - consumes both inputs and hands the result to the player,
- * exactly like clicking a real anvil's own output slot.
+ * another item of the exact same {@link Material}, a real enchanted book, or one of
+ * {@link #REPAIR_MATERIALS}' own ores/ingots - every enchantment (custom or vanilla)
+ * the secondary item/book offers is checked against the main item the same way the
+ * Enchanting Table itself would ({@link EnchantService#vanillaBlockReason}/{@link
+ * EnchantService#customBlockReason} - same type-compatibility and conflict rules, no
+ * duplicated logic), merged in (matching level bumps it by one, capped at the entry's
+ * own max; a higher level on either side wins); a repair material instead restores a
+ * flat percentage of {@link #MAIN_ITEM_SLOT}'s own current Max Durability (see {@link
+ * #computeRepair}'s own doc on why that's independent of the item's own material).
+ * Either way the result lands as a live preview at {@link #PREVIEW_SLOT}. Clicking the
+ * preview - when it's a real item, not an explanation - consumes both inputs and hands
+ * the result to the player, exactly like clicking a real anvil's own output slot.
  *
  * <p>Closing the screen always hands back whatever sits in {@link #MAIN_ITEM_SLOT}/
  * {@link #SECONDARY_ITEM_SLOT} first ({@link #returnInputItems}) - never consumed except
@@ -61,6 +65,24 @@ public final class AnvilMenuService {
     private static final int[] VISIBLE_WORK_SLOTS = {
             MAIN_ITEM_SLOT, SECONDARY_ITEM_SLOT, PREVIEW_SLOT, LABEL_SLOT, CLOSE_SLOT
     };
+    /**
+     * Fraction of {@link #MAIN_ITEM_SLOT}'s own Max Durability a single {@link
+     * #SECONDARY_ITEM_SLOT} item of this material restores - checked before the
+     * enchantment-combine path in {@link #computeCombine}, so any of these placed as the
+     * secondary item always repairs instead, regardless of what the main item actually is
+     * (a Netherite Ingot repairs a Wooden Hoe exactly as much as a Netherite Pickaxe - see
+     * {@link #computeRepair}'s own doc). Netherite Ingot's {@code 1.0} fully repairs
+     * whatever damage is left, same spirit as the other tiers scaled up to "all of it".
+     */
+    private static final Map<Material, Double> REPAIR_MATERIALS = Map.of(
+            Material.COAL, 0.05,
+            Material.COPPER_INGOT, 0.15,
+            Material.IRON_INGOT, 0.25,
+            Material.GOLD_INGOT, 0.30,
+            Material.DIAMOND, 0.50,
+            Material.NETHERITE_INGOT, 1.0);
+    /** Netherite Ingot's own extra perk on top of the full repair every {@link #REPAIR_MATERIALS} entry gets at {@code 1.0} - see {@link #computeRepair}'s own doc on why this stacks uncapped. */
+    private static final int NETHERITE_MAX_DURABILITY_BOOST_PERCENT = 10;
 
     private final Plugin plugin;
     private final EnchantService enchants;
@@ -168,6 +190,10 @@ public final class AnvilMenuService {
         if (main == null || main.isEmpty() || secondary == null || secondary.isEmpty()) {
             return new CombineOutcome(null, null);
         }
+        Double repairFraction = REPAIR_MATERIALS.get(secondary.getType());
+        if (repairFraction != null) {
+            return this.computeRepair(main, repairFraction);
+        }
         if (main.getType() == Material.BOOK || main.getType() == Material.ENCHANTED_BOOK) {
             return new CombineOutcome(null, "The main item needs to be a piece of equipment, not a book.");
         }
@@ -231,6 +257,70 @@ public final class AnvilMenuService {
         return new CombineOutcome(preview, null);
     }
 
+    /**
+     * Restores {@code fraction} of {@code main}'s own current Max Durability (see {@link
+     * #REPAIR_MATERIALS}), reading {@link Damageable#getMaxDamage} rather than {@link
+     * Material#getMaxDurability} so this repairs the SAME number this plugin's own {@code
+     * item.DurabilityService} multiplier already shows the player (e.g. a tool whose real
+     * max is 5x vanilla gets 5x the repair too) - never the raw vanilla number underneath
+     * it. Deliberately keyed only by {@code main}'s own current Max Durability, never its
+     * {@link Material} - the player's own explicit spec ("independe do material que o item
+     * é feito"): a Coal repairs a Netherite Pickaxe by the exact same 5% of ITS OWN max
+     * that it would a Wooden Hoe, not some material-scaled amount.
+     *
+     * <p>Netherite Ingot ({@code fraction == 1.0}) does both: a full repair AND a
+     * permanent +{@value #NETHERITE_MAX_DURABILITY_BOOST_PERCENT}% bump to the item's own
+     * Max Durability (see {@link #boostedMaxDurability}) - stacking multiplicatively with
+     * no cap on repeated use, per the player's own explicit choice (Netherite's own real
+     * scarcity/cost already self-limits how often this happens, so no artificial per-item
+     * guard was added). Unlike every other repair material, this one still does something
+     * useful even at full durability (the boost alone), so it's the one case allowed
+     * through despite {@code currentDamage} being 0.
+     */
+    private CombineOutcome computeRepair(ItemStack main, double fraction) {
+        ItemMeta currentMeta = main.getItemMeta();
+        if (!(currentMeta instanceof Damageable damageable) || main.getType().getMaxDurability() <= 0) {
+            return new CombineOutcome(null, "That item doesn't have durability to repair.");
+        }
+        int currentDamage = damageable.getDamage();
+        boolean isNetherite = fraction >= 1.0;
+        if (currentDamage <= 0 && !isNetherite) {
+            return new CombineOutcome(null, "That item is already at full durability.");
+        }
+        int currentMax = damageable.getMaxDamage();
+        int restored = repairAmount(currentDamage, currentMax, fraction);
+        ItemStack preview = main.clone();
+        ItemMeta previewMeta = preview.getItemMeta();
+        Damageable previewDamageable = (Damageable) previewMeta;
+        previewDamageable.setDamage(currentDamage - restored);
+        List<Component> lore = new ArrayList<>(previewMeta.hasLore() ? previewMeta.lore() : List.of());
+        lore.add(Component.empty());
+        if (restored > 0) {
+            lore.add(this.text("Repairs " + restored + " durability.", NamedTextColor.AQUA));
+        }
+        if (isNetherite) {
+            int newMax = boostedMaxDurability(currentMax);
+            previewDamageable.setMaxDamage(newMax);
+            lore.add(this.text("Increases Max Durability by " + NETHERITE_MAX_DURABILITY_BOOST_PERCENT + "% (" + currentMax + " → " + newMax + ").", NamedTextColor.LIGHT_PURPLE));
+        }
+        previewMeta.lore(lore);
+        preview.setItemMeta(previewMeta);
+        return new CombineOutcome(preview, null);
+    }
+
+    /** {@code currentMax} increased by {@value #NETHERITE_MAX_DURABILITY_BOOST_PERCENT}% - pure math, see {@code AnvilMenuServiceTest}. */
+    static int boostedMaxDurability(int currentMax) {
+        return (int) Math.round(currentMax * (1.0 + NETHERITE_MAX_DURABILITY_BOOST_PERCENT / 100.0));
+    }
+
+    /** Pure repair-amount math (no Bukkit statics touched) - see {@code AnvilMenuServiceTest}. Never more than {@code currentDamage} itself, so a repair can't overshoot into negative damage. */
+    static int repairAmount(int currentDamage, int maxDurability, double fraction) {
+        if (currentDamage <= 0) {
+            return 0;
+        }
+        return fraction >= 1.0 ? currentDamage : Math.min(currentDamage, (int) Math.round(maxDurability * fraction));
+    }
+
     /** Same "matching level bumps by one, otherwise the higher one wins" rule a real vanilla anvil uses, capped at the entry's own max level - only recorded in {@code toApply} if it actually differs from what {@code main} already has (so a redundant lower-level entry from the secondary item never shows up as a change). */
     private void mergeIfChanged(Map<EnchantEntry, Integer> current, Map<EnchantEntry, Integer> toApply, EnchantEntry entry, int incomingLevel) {
         int currentLevel = current.getOrDefault(entry, 0);
@@ -251,7 +341,7 @@ public final class AnvilMenuService {
             ItemMeta meta = shown.getItemMeta();
             List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
             lore.add(Component.empty());
-            lore.add(this.text("Click to confirm the combination.", NamedTextColor.GREEN));
+            lore.add(this.text("Click to confirm.", NamedTextColor.GREEN));
             meta.lore(lore);
             shown.setItemMeta(meta);
             return shown;
@@ -273,7 +363,7 @@ public final class AnvilMenuService {
     private ItemStack labelIcon(Player p) {
         boolean pt = Language.of(p) == Language.PT;
         List<Component> lore = new ArrayList<>();
-        for (String part : LoreWrap.wrapText("Combines the enchantments of two compatible items, or an item and an enchanted book.", LoreWrap.DEFAULT_WIDTH)) {
+        for (String part : LoreWrap.wrapText("Combines the enchantments of two compatible items, or an item and an enchanted book. Place Coal, a Copper/Iron/Gold Ingot, a Diamond or a Netherite Ingot instead to repair durability - a Netherite Ingot also permanently increases Max Durability by " + NETHERITE_MAX_DURABILITY_BOOST_PERCENT + "%.", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GRAY));
         }
         return this.item(Material.ANVIL, "Combine Items", lore);
