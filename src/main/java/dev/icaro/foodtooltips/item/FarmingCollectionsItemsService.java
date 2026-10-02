@@ -82,6 +82,7 @@ public final class FarmingCollectionsItemsService {
     private static final UUID MUSHROOM_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mushroom_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID MELON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:melon_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potato_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID BEETROOT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:beetroot_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_ring".getBytes(StandardCharsets.UTF_8));
     private static final UUID BAKED_POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:baked_potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_artifact".getBytes(StandardCharsets.UTF_8));
@@ -404,9 +405,16 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('B', Material.BEETROOT);
                     r.setIngredient('H', Material.IRON_HOE);
                 });
+        this.newShapedRecipe(CollectionsCatalog.BEETROOT_CORE_RECIPE, this.beetrootCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.BEETROOT);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        // Basket of Seeds (M9) - the player's own explicit spec: its own crafting must
+        // include the Beetroot Core, unlocked earlier at M4 specifically for this.
         this.newShapedRecipe(CollectionsCatalog.BASKET_OF_SEEDS_RECIPE, BasketOfSeedsService.createItem(),
-                new String[]{"BBB", "BUB", "BBB"}, r -> {
-                    r.setIngredient('B', Material.BEETROOT_SEEDS);
+                new String[]{"CCC", "CUC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.beetrootCore()));
                     r.setIngredient('U', Material.BUNDLE);
                 });
         this.newShapedRecipe(CollectionsCatalog.LANTERN_HELMET_RECIPE, this.lanternHelmet(),
@@ -961,6 +969,16 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.POTATO_CORE, POTATO_CORE_PROFILE);
         meta.displayName(Component.text("Potato Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Beetroot Collection M4 - see {@code BasketOfSeedsService}'s own doc for why M9's own recipe needs this already unlocked. */
+    private org.bukkit.inventory.ItemStack beetrootCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.BEETROOT_CORE, BEETROOT_CORE_PROFILE);
+        meta.displayName(Component.text("Beetroot Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

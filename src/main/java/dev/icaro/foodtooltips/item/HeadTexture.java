@@ -143,6 +143,10 @@ public final class HeadTexture {
      * both, so both share this one constant rather than two identical copies of it.
      */
     public static final String POTION_AFFINITY_RING_AND_ARTIFACT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTRkMWE0MTA4ZTc5MGUxMjQxYTNkMjNlM2QxNjM3ZTkyMDI2OWYyMDRlM2U0Zjg5MjcwZWQ3MTIzNGZiODVlYiJ9fX0=";
+    /** "Beetroot" (minecraft-heads.com Custom Head ID 47449) - the Beetroot Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String BEETROOT_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWM5ZTE3MTg3N2EzMTA3MzhmYTM3NzVjODAzOWE3N2FiMTQxNDE3ZjU2ZDI3NmE3MzE4OWM5NzQ5MjBlMjRkMiJ9fX0=";
+    /** "Picnic Basket" (minecraft-heads.com Custom Head ID 11930) - the Basket of Seeds item, see {@code BasketOfSeedsService}. */
+    public static final String PICNIC_BASKET = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2E2YmY5MTZlMjhjY2I4MGI0ZWJmYWNmOTg2ODZhZDZhZjdjNGZiMjU3ZTU3YThjYjc4YzcxZDE5ZGNjYjIifX19";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -151,7 +155,8 @@ public final class HeadTexture {
             RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, ANIMAL_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE, MANGROVE_CORE, FLOWERED_MANGROVE_CORE,
             CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
-            FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT);
+            FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
+            BEETROOT_CORE, PICNIC_BASKET);
 
     private HeadTexture() {
     }

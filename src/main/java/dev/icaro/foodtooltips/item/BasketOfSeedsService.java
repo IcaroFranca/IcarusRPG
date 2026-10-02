@@ -3,9 +3,11 @@ package dev.icaro.foodtooltips.item;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -27,6 +29,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -67,6 +70,7 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 public final class BasketOfSeedsService implements Listener {
     private static final NamespacedKey BASKET_KEY = new NamespacedKey("foodtooltips", "basket_of_seeds");
     private static final NamespacedKey CONTENTS_KEY = new NamespacedKey("foodtooltips", "basket_of_seeds_contents");
+    private static final UUID ITEM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:basket_of_seeds".getBytes(StandardCharsets.UTF_8));
     private static final int SIZE = 54;
     /** How long {@link #plantStep} waits between blocks - per the player's own "não de forma brusca" spec. */
     private static final int PLANT_DELAY_TICKS = 4;
@@ -97,8 +101,11 @@ public final class BasketOfSeedsService implements Listener {
     }
 
     public static ItemStack createItem() {
-        ItemStack item = new ItemStack(Material.BUNDLE);
-        ItemMeta meta = item.getItemMeta();
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        var profile = Bukkit.createProfile(ITEM_PROFILE);
+        profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", HeadTexture.PICNIC_BASKET));
+        meta.setPlayerProfile(profile);
         meta.getPersistentDataContainer().set(BASKET_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Basket of Seeds", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(

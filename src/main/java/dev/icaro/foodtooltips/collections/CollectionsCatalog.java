@@ -80,6 +80,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey ANIMAL_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "animal_crystal");
     public static final NamespacedKey TILLING_HOE_RECIPE = new NamespacedKey("foodtooltips", "tilling_hoe");
     public static final NamespacedKey BASKET_OF_SEEDS_RECIPE = new NamespacedKey("foodtooltips", "basket_of_seeds");
+    public static final NamespacedKey BEETROOT_CORE_RECIPE = new NamespacedKey("foodtooltips", "beetroot_core");
     public static final NamespacedKey FARMHAND_HELMET_RECIPE = new NamespacedKey("foodtooltips", "farmhand_helmet");
     public static final NamespacedKey FARMHAND_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "farmhand_chestplate");
     public static final NamespacedKey FARMHAND_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "farmhand_leggings");
@@ -506,13 +507,20 @@ public final class CollectionsCatalog {
             // the Tilling Hoe recipe (3x3 area); M3/M5/M7 grow that SAME hoe's own area
             // live (5x5/7x7/9x9, see item.TillingHoeService's own doc) rather than
             // unlocking new recipes, same "Wardrobe column" shape as Leather's own M3/M5/M7
-            // above; M9 unlocks the Basket of Seeds.
+            // above; M4 unlocks the Beetroot Core (same "processed Core fills an open
+            // generic-XP slot" placement as Wheat's own Core at M4) - unlocked here
+            // specifically so it's already available by M9, which needs it as the Basket
+            // of Seeds' own crafting ingredient (the player's own explicit spec); M9
+            // unlocks the Basket of Seeds itself.
             new CollectionsEntry(Material.BEETROOTS, Material.BEETROOT, CollectionsCategory.FARMING, "Beterraba", "Beetroot", genericXpWithOverrides(
                     at(1, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[0],
                             "Desbloqueia a receita da Enxada Agrícola (área 3x3)", "Unlocks the Tilling Hoe recipe (3x3 area)",
                             TILLING_HOE_RECIPE)),
                     at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Enxada Agrícola: área aumenta para 5x5", "Tilling Hoe: area grows to 5x5")),
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Beetroot Core", "Unlocks the Beetroot Core recipe",
+                            BEETROOT_CORE_RECIPE)),
                     at(5, new CollectionsMilestone(DEFAULT_THRESHOLDS[4], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Enxada Agrícola: área aumenta para 7x7", "Tilling Hoe: area grows to 7x7")),
                     at(7, new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
