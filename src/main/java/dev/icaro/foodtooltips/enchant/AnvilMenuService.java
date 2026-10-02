@@ -15,6 +15,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -22,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -313,6 +315,82 @@ public final class AnvilMenuService {
             return 0;
         }
         return fraction >= 1.0 ? currentDamage : Math.min(currentDamage, (int) Math.round(maxDurability * fraction));
+    }
+
+    /** For {@link #cleanupStaleRepairLore}'s own stale-lore-line detection. */
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+
+    /**
+     * One-time cleanup for any item that got "Repairs X durability." and/or "Increases Max
+     * Durability by X% (...)." permanently baked into its own lore by {@link #computeRepair}
+     * before the player asked for those lines to be dropped from the preview entirely - a real
+     * repaired item handed out via {@link #confirm} before this fix got that exact lore, not
+     * just the preview. Called once from {@code AnvilMenuListener}'s own {@code PlayerJoinEvent}
+     * handler, scanning {@code p}'s storage, armor, and offhand (every slot a repaired tool or
+     * piece of armor could actually be sitting in).
+     */
+    public void cleanupStaleRepairLore(Player p) {
+        PlayerInventory inv = p.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        boolean storageChanged = false;
+        for (int i = 0; i < storage.length; i++) {
+            if (stripStaleRepairLore(storage[i])) {
+                storageChanged = true;
+            }
+        }
+        if (storageChanged) {
+            inv.setStorageContents(storage);
+        }
+        ItemStack[] armorContents = inv.getArmorContents();
+        boolean armorChanged = false;
+        for (int i = 0; i < armorContents.length; i++) {
+            if (stripStaleRepairLore(armorContents[i])) {
+                armorChanged = true;
+            }
+        }
+        if (armorChanged) {
+            inv.setArmorContents(armorContents);
+        }
+        ItemStack offhand = inv.getItemInOffHand();
+        if (stripStaleRepairLore(offhand)) {
+            inv.setItemInOffHand(offhand);
+        }
+    }
+
+    /**
+     * Mutates {@code item}'s own {@link ItemMeta} in place if its lore has either stale line
+     * from {@link #computeRepair}'s own doc, returning whether anything changed. Also drops the
+     * blank {@link Component#empty()} line {@link #computeRepair} always inserted right before
+     * them, if removing the stale line(s) left it dangling at the very end.
+     */
+    private static boolean stripStaleRepairLore(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasLore()) {
+            return false;
+        }
+        List<Component> lore = meta.lore();
+        List<Component> updated = new ArrayList<>(lore.size());
+        boolean removedAny = false;
+        for (Component line : lore) {
+            String plain = PLAIN.serialize(line);
+            if ((plain.startsWith("Repairs ") && plain.endsWith(" durability.")) || plain.startsWith("Increases Max Durability by ")) {
+                removedAny = true;
+                continue;
+            }
+            updated.add(line);
+        }
+        if (!removedAny) {
+            return false;
+        }
+        if (!updated.isEmpty() && PLAIN.serialize(updated.get(updated.size() - 1)).isEmpty()) {
+            updated.remove(updated.size() - 1);
+        }
+        meta.lore(updated);
+        item.setItemMeta(meta);
+        return true;
     }
 
     /** Same "matching level bumps by one, otherwise the higher one wins" rule a real vanilla anvil uses, capped at the entry's own max level - only recorded in {@code toApply} if it actually differs from what {@code main} already has (so a redundant lower-level entry from the secondary item never shows up as a change). */

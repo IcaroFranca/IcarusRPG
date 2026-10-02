@@ -11,6 +11,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 /**
@@ -23,6 +24,11 @@ import org.bukkit.inventory.EquipmentSlot;
  * AnvilMenuService#MAIN_ITEM_SLOT}/{@link AnvilMenuService#SECONDARY_ITEM_SLOT}) accept
  * real placement/pickup - everything else in the top inventory is a fixed control,
  * always cancelled.
+ *
+ * <p>{@link #join} is unrelated to the menu itself - a one-time migration cleanup for
+ * whatever repaired items a returning player already has (see {@link
+ * AnvilMenuService#cleanupStaleRepairLore}'s own doc), living here only because this is
+ * where the rest of this feature's own wiring already sits.
  */
 public final class AnvilMenuListener implements Listener {
     private static final Set<Material> ANVILS = Set.of(Material.ANVIL, Material.CHIPPED_ANVIL, Material.DAMAGED_ANVIL);
@@ -31,6 +37,12 @@ public final class AnvilMenuListener implements Listener {
 
     public AnvilMenuListener(AnvilMenuService menu) {
         this.menu = menu;
+    }
+
+    /** One-time cleanup for whatever repaired items a returning player already has with the stale repair-preview lore baked in - see {@link AnvilMenuService#cleanupStaleRepairLore}'s own doc. */
+    @EventHandler
+    public void join(PlayerJoinEvent e) {
+        this.menu.cleanupStaleRepairLore(e.getPlayer());
     }
 
     @EventHandler(ignoreCancelled = true)
