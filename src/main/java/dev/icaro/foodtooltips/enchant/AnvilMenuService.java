@@ -275,7 +275,9 @@ public final class AnvilMenuService {
      * scarcity/cost already self-limits how often this happens, so no artificial per-item
      * guard was added). Unlike every other repair material, this one still does something
      * useful even at full durability (the boost alone), so it's the one case allowed
-     * through despite {@code currentDamage} being 0.
+     * through despite {@code currentDamage} being 0. Neither effect is narrated in the
+     * preview item's own lore - per the player's own "não quero isso na lore dos itens" -
+     * the item's real stats (current/max durability) already show the result once applied.
      */
     private CombineOutcome computeRepair(ItemStack main, double fraction) {
         ItemMeta currentMeta = main.getItemMeta();
@@ -293,17 +295,9 @@ public final class AnvilMenuService {
         ItemMeta previewMeta = preview.getItemMeta();
         Damageable previewDamageable = (Damageable) previewMeta;
         previewDamageable.setDamage(currentDamage - restored);
-        List<Component> lore = new ArrayList<>(previewMeta.hasLore() ? previewMeta.lore() : List.of());
-        lore.add(Component.empty());
-        if (restored > 0) {
-            lore.add(this.text("Repairs " + restored + " durability.", NamedTextColor.AQUA));
-        }
         if (isNetherite) {
-            int newMax = boostedMaxDurability(currentMax);
-            previewDamageable.setMaxDamage(newMax);
-            lore.add(this.text("Increases Max Durability by " + NETHERITE_MAX_DURABILITY_BOOST_PERCENT + "% (" + currentMax + " → " + newMax + ").", NamedTextColor.LIGHT_PURPLE));
+            previewDamageable.setMaxDamage(boostedMaxDurability(currentMax));
         }
-        previewMeta.lore(lore);
         preview.setItemMeta(previewMeta);
         return new CombineOutcome(preview, null);
     }
