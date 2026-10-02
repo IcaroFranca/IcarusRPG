@@ -92,8 +92,8 @@ public final class HeadTexture {
     public static final String SPRUCE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGFjYzU4ODhmMDc2MDQyY2QyMDM0MmM4MzVmOWQ2Y2I4YjgzN2UzNTAyYjRiZWUzYzhkMDI2MDQ4OTFjNzE1NSJ9fX0=";
     /** "Woodcutting Crystal" (minecraft-heads.com Custom Head ID 128316) - the Woodcutting Crystal item and its own floating/spinning placed representation, see {@code WoodcuttingCrystalService}. */
     public static final String WOODCUTTING_CRYSTAL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRjM2I5YTRjNTkxY2Q3YmJlZDNlMTZiMzRhZDhkNTA3NjA4ZmJlNDRkYzcyOGE3ZWQxNDFmMmUxNzI5ZDgyIn19fQ==";
-    /** "Wheat Crystal" (minecraft-heads.com Custom Head ID 128322) - the Wheat Crystal item and its own floating/spinning placed representation, see {@code WheatCrystalService}. */
-    public static final String WHEAT_CRYSTAL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTgzMDJmZjIyYTIzMmUxMGQ2Y2Y2MGJkZDRkMjgwNjFjYWFhOTc0Y2FmOTA3YTBkYzNkZjk3ZTA3MWU0MmQzMSJ9fX0=";
+    /** "Wheat Crystal" on minecraft-heads.com (Custom Head ID 128322) - that's the head's own name on that site, not the item's; it's used in-game as the Animal Crystal item and its own floating/spinning placed representation, see {@code AnimalCrystalService}. */
+    public static final String ANIMAL_CRYSTAL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTgzMDJmZjIyYTIzMmUxMGQ2Y2Y2MGJkZDRkMjgwNjFjYWFhOTc0Y2FmOTA3YTBkYzNkZjk3ZTA3MWU0MmQzMSJ9fX0=";
     /** "Dark Oak Log" (minecraft-heads.com Custom Head ID 89451) - the Dark Oak Core crafting item, see {@code ForagingCollectionsItemsService}. */
     public static final String DARK_OAK_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzM2ZGZiNGM4ZDY5NzFkZDk2ZjVhMWZlNGI0NzIwYTM5NTE2MTcwMmQ2YzI5YWI4NzE0MjJlNjYwNjNkYmIwYSJ9fX0=";
     /** "Acacia Log" (minecraft-heads.com Custom Head ID 89450) - the Acacia Core crafting item, see {@code ForagingCollectionsItemsService}. */
@@ -148,7 +148,7 @@ public final class HeadTexture {
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
-            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, WHEAT_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE, MANGROVE_CORE, FLOWERED_MANGROVE_CORE,
+            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, ANIMAL_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE, MANGROVE_CORE, FLOWERED_MANGROVE_CORE,
             CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT);

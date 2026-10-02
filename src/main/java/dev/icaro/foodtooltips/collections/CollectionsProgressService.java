@@ -19,7 +19,7 @@ import org.bukkit.persistence.PersistentDataType;
  * CollectionsEntry)} take an {@link OfflinePlayer} rather than a {@link Player} - a read-only
  * widening ({@code Player} already implements {@code OfflinePlayer}, so every existing call
  * site with a live {@code Player} still compiles unchanged) added for {@code
- * item.WheatCrystalService}, which needs to check a placed crystal's own owner's Collections
+ * item.AnimalCrystalService}, which needs to check a placed crystal's own owner's Collections
  * progress on every pulse even while that owner is offline - {@link OfflinePlayer#
  * getPersistentDataContainer()} returns a read-only view, which is all a pure read needs.
  * {@link #addCollected} stays {@code Player}-only since writing requires the live, mutable

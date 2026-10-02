@@ -295,8 +295,8 @@ final class CollectionsCatalogTest {
         for (int i : new int[]{2, 4, 6}) {
             assertTrue(m.get(i).recipes().isEmpty(), "milestone index " + i);
         }
-        // M1 also carries a real recipe (Wheat Crystal) alongside its Wardrobe feature unlock.
-        assertEquals(List.of(CollectionsCatalog.WHEAT_CRYSTAL_RECIPE), m.get(0).recipes());
+        // M1 also carries a real recipe (Animal Crystal) alongside its Wardrobe feature unlock.
+        assertEquals(List.of(CollectionsCatalog.ANIMAL_CRYSTAL_RECIPE), m.get(0).recipes());
         // M2/M4/M6 carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead of
         // the generic ladder's own plain Farming XP.
         assertEquals(List.of(CollectionsCatalog.COW_HAT_RECIPE), m.get(1).recipes());

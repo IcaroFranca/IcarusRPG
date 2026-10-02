@@ -44,13 +44,14 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Wheat Crystal (Cow/Leather Collection M1) - {@code FarmCrystalService}'s own "invisible
+ * Animal Crystal (Cow/Leather Collection M1) - {@code FarmCrystalService}'s own "invisible
  * {@link ArmorStand} wearing a custom head" floating/spinning technique, copied wholesale (same
  * {@link #place}/{@link #interact}/{@link #damage}/{@link #spin} shape as that class and {@code
  * WoodcuttingCrystalService}), but {@link #pulse} spawns farm animals instead of maturing crops
- * or regrowing trees. The display name/texture ("Wheat Crystal", minecraft-heads.com Custom Head
- * ID 128322) is the exact one the player handed over for this - it names the head itself on that
- * site, not what it does in-game; the actual mechanic, per the player's own spec, is spawning
+ * or regrowing trees. The texture itself (minecraft-heads.com Custom Head ID 128322, see {@link
+ * HeadTexture#ANIMAL_CRYSTAL}) is named "Wheat Crystal" on that site - that's just the head's own
+ * name there, not this item's; the player later corrected the in-game name to "Animal Crystal",
+ * which actually matches the mechanic, per the player's own spec: spawning
  * animals in a {@value #AREA_RADIUS}x2-blocks-per-side square around it, same shape as {@code
  * WoodcuttingCrystalService}'s own 20x20 tree-regrowth area.
  *
@@ -77,11 +78,11 @@ import org.bukkit.plugin.Plugin;
  * unbounded herd pile up" reasoning as {@code WoodcuttingCrystalService#MAX_TREES_IN_AREA}), at
  * which point a pulse does nothing until some are cleared out (bred, killed, wandered off, etc).
  */
-public final class WheatCrystalService implements Listener {
-    private static final NamespacedKey CRYSTAL_KEY = new NamespacedKey("foodtooltips", "wheat_crystal");
+public final class AnimalCrystalService implements Listener {
+    private static final NamespacedKey CRYSTAL_KEY = new NamespacedKey("foodtooltips", "animal_crystal");
     /** The placing player's own UUID (as a plain string) - see this class's own doc on why the owner is tracked. */
-    private static final NamespacedKey OWNER_KEY = new NamespacedKey("foodtooltips", "wheat_crystal_owner");
-    private static final UUID ITEM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_crystal".getBytes(StandardCharsets.UTF_8));
+    private static final NamespacedKey OWNER_KEY = new NamespacedKey("foodtooltips", "animal_crystal_owner");
+    private static final UUID ITEM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:animal_crystal".getBytes(StandardCharsets.UTF_8));
     /** 5 seconds, per the player's own explicit spec. */
     private static final int PULSE_TICKS = 100;
     private static final int SPIN_TICKS = 2;
@@ -118,7 +119,7 @@ public final class WheatCrystalService implements Listener {
     /** Wired in after construction (it's built later in {@code FoodTooltipsPlugin#onEnable} than this service) - see {@link #unlockedMobTypes}. */
     private CollectionsProgressService collectionsProgress;
 
-    public WheatCrystalService(Plugin plugin) {
+    public AnimalCrystalService(Plugin plugin) {
         this.plugin = plugin;
     }
 
@@ -127,7 +128,7 @@ public final class WheatCrystalService implements Listener {
         this.collectionsProgress = collectionsProgress;
     }
 
-    public static boolean isWheatCrystalItem(ItemStack item) {
+    public static boolean isAnimalCrystalItem(ItemStack item) {
         if (item == null || item.isEmpty()) {
             return false;
         }
@@ -139,10 +140,10 @@ public final class WheatCrystalService implements Listener {
         var item = new ItemStack(Material.PLAYER_HEAD);
         var meta = (SkullMeta) item.getItemMeta();
         var profile = Bukkit.createProfile(ITEM_PROFILE);
-        profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", HeadTexture.WHEAT_CRYSTAL));
+        profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", HeadTexture.ANIMAL_CRYSTAL));
         meta.setPlayerProfile(profile);
         meta.getPersistentDataContainer().set(CRYSTAL_KEY, PersistentDataType.BYTE, (byte) 1);
-        meta.displayName(Component.text("Wheat Crystal", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("Animal Crystal", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
                 Component.text("Place on top of a block in a grassy area - spawns an", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("animal (Cow, Pig, Sheep, Chicken or Rabbit, as your own", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
@@ -153,7 +154,7 @@ public final class WheatCrystalService implements Listener {
         return item;
     }
 
-    private static boolean isWheatCrystalEntity(Entity e) {
+    private static boolean isAnimalCrystalEntity(Entity e) {
         return e.getType() == EntityType.ARMOR_STAND && e.getPersistentDataContainer().has(CRYSTAL_KEY, PersistentDataType.BYTE);
     }
 
@@ -169,7 +170,7 @@ public final class WheatCrystalService implements Listener {
             return;
         }
         ItemStack item = e.getItem();
-        if (!isWheatCrystalItem(item)) {
+        if (!isAnimalCrystalItem(item)) {
             return;
         }
         Block clicked = e.getClickedBlock();
@@ -181,7 +182,7 @@ public final class WheatCrystalService implements Listener {
         Location spawnAt = clicked.getLocation().add(0.5, 2.5, 0.5);
         if (this.withinRangeOfAnother(spawnAt)) {
             Language l = Language.of(p);
-            p.sendMessage(Component.text("There's already a Wheat Crystal too close to here.", NamedTextColor.RED));
+            p.sendMessage(Component.text("There's already an Animal Crystal too close to here.", NamedTextColor.RED));
             return;
         }
         ArmorStand stand = clicked.getWorld().spawn(spawnAt, ArmorStand.class);
@@ -203,10 +204,10 @@ public final class WheatCrystalService implements Listener {
         }
     }
 
-    /** Sneak-right-click on a Wheat Crystal to remove it, item back in hand. */
+    /** Sneak-right-click on an Animal Crystal to remove it, item back in hand. */
     @EventHandler(ignoreCancelled = true)
     public void interact(PlayerInteractEntityEvent e) {
-        if (!e.getPlayer().isSneaking() || !isWheatCrystalEntity(e.getRightClicked())) {
+        if (!e.getPlayer().isSneaking() || !isAnimalCrystalEntity(e.getRightClicked())) {
             return;
         }
         e.setCancelled(true);
@@ -218,7 +219,7 @@ public final class WheatCrystalService implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void damage(EntityDamageEvent e) {
-        if (isWheatCrystalEntity(e.getEntity())) {
+        if (isAnimalCrystalEntity(e.getEntity())) {
             e.setCancelled(true);
         }
     }
@@ -226,7 +227,7 @@ public final class WheatCrystalService implements Listener {
     private void spin() {
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntitiesByClass(ArmorStand.class)) {
-                if (isWheatCrystalEntity(entity)) {
+                if (isAnimalCrystalEntity(entity)) {
                     Location loc = entity.getLocation();
                     entity.setRotation((loc.getYaw() + SPIN_DEGREES_PER_STEP) % 360.0f, loc.getPitch());
                 }
@@ -237,7 +238,7 @@ public final class WheatCrystalService implements Listener {
     private void pulse() {
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntitiesByClass(ArmorStand.class)) {
-                if (isWheatCrystalEntity(entity)) {
+                if (isAnimalCrystalEntity(entity)) {
                     this.pulseOne((ArmorStand) entity);
                 }
             }
@@ -336,10 +337,10 @@ public final class WheatCrystalService implements Listener {
         }
     }
 
-    /** Whether another Wheat Crystal already sits within {@value #AREA_RADIUS} blocks of {@code spawnAt} - keeps two crystals' own 20x20 areas from overlapping. */
+    /** Whether another Animal Crystal already sits within {@value #AREA_RADIUS} blocks of {@code spawnAt} - keeps two crystals' own 20x20 areas from overlapping. */
     private boolean withinRangeOfAnother(Location spawnAt) {
         for (Entity entity : spawnAt.getWorld().getNearbyEntities(spawnAt, AREA_RADIUS, AREA_RADIUS, AREA_RADIUS)) {
-            if (isWheatCrystalEntity(entity)) {
+            if (isAnimalCrystalEntity(entity)) {
                 return true;
             }
         }

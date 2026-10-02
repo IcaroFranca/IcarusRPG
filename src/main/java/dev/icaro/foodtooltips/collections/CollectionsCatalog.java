@@ -77,7 +77,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey WHEAT_CORE_RECIPE = new NamespacedKey("foodtooltips", "wheat_core");
     public static final NamespacedKey FARMER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "farmer_boots");
     public static final NamespacedKey FARM_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "farm_crystal");
-    public static final NamespacedKey WHEAT_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "wheat_crystal");
+    public static final NamespacedKey ANIMAL_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "animal_crystal");
     public static final NamespacedKey FARMHAND_HELMET_RECIPE = new NamespacedKey("foodtooltips", "farmhand_helmet");
     public static final NamespacedKey FARMHAND_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "farmhand_chestplate");
     public static final NamespacedKey FARMHAND_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "farmhand_leggings");
@@ -303,14 +303,14 @@ public final class CollectionsCatalog {
             // Wardrobe unlock/expansion milestones carry no recipes of their own (a feature
             // unlock, not a craftable item) - see skills.WardrobeService for the actual
             // mechanic, which reads this entry's own achieved() count directly rather than
-            // any recipe key. M1 also carries a real recipe (Wheat Crystal) alongside that
+            // any recipe key. M1 also carries a real recipe (Animal Crystal) alongside that
             // feature unlock - CollectionsMilestone#recipes is a list precisely so one
             // milestone can grant more than one reward at once (see that class's own doc).
             // M2/M4/M6 carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead
             // of the generic ladder's own plain Farming XP.
             new CollectionsEntry(Material.LEATHER, Material.LEATHER, CollectionsCategory.FARMING, "Couro", "Leather", genericXpWithOverrides(
-                    at(1, new CollectionsMilestone(25, RewardKind.RECIPE_UNLOCK, 0, List.of(WHEAT_CRYSTAL_RECIPE), null, 0.0,
-                            "Desbloqueia o Wardrobe (3 colunas) e a receita do Wheat Crystal", "Unlocks the Wardrobe (3 columns) and the Wheat Crystal recipe")),
+                    at(1, new CollectionsMilestone(25, RewardKind.RECIPE_UNLOCK, 0, List.of(ANIMAL_CRYSTAL_RECIPE), null, 0.0,
+                            "Desbloqueia o Wardrobe (3 colunas) e a receita do Animal Crystal", "Unlocks the Wardrobe (3 columns) and the Animal Crystal recipe")),
                     at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
                             "Desbloqueia a receita do Cow Hat", "Unlocks the Cow Hat recipe",
                             COW_HAT_RECIPE)),
@@ -358,12 +358,12 @@ public final class CollectionsCatalog {
             // M2/M4/M6 carry real crafted rewards (Mana Potion/Wool Core/Rainbow Wool Core)
             // instead of the generic ladder's own plain Farming XP.
             new CollectionsEntry(Material.MUTTON, Material.MUTTON, CollectionsCategory.FARMING, "Carneiro Cru", "Raw Mutton", genericXpWithOverrides(
-                    // Unlocks this entry's own slot in WheatCrystalService's live per-owner
+                    // Unlocks this entry's own slot in AnimalCrystalService's live per-owner
                     // check (see that class's own ANIMAL_UNLOCKS) - same plain Farming XP
                     // reward as before, just with that unlock mentioned in the text too.
                     at(1, CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
-                            "+1000 XP de Agricultura e desbloqueia a chance de Ovelhas no Wheat Crystal",
-                            "+1000 Farming XP and unlocks the chance for Sheep in the Wheat Crystal")),
+                            "+1000 XP de Agricultura e desbloqueia a chance de Ovelhas no Animal Crystal",
+                            "+1000 Farming XP and unlocks the chance for Sheep in the Animal Crystal")),
                     // A PotionMix, not a real CraftingRecipe - same "unlocked in name only"
                     // limitation as the Archery Potion (Feather M6) above.
                     at(2, new CollectionsMilestone(DEFAULT_THRESHOLDS[1], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
@@ -449,25 +449,25 @@ public final class CollectionsCatalog {
                     at(7, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
                             "Desbloqueia a receita do Lantern Helmet", "Unlocks the Lantern Helmet recipe",
                             LANTERN_HELMET_RECIPE)))),
-            // M1 unlocks this entry's own slot in WheatCrystalService's live per-owner check
+            // M1 unlocks this entry's own slot in AnimalCrystalService's live per-owner check
             // (see that class's own ANIMAL_UNLOCKS) - same plain Farming XP reward as every
             // other tier here, just with that unlock mentioned in the text too.
             new CollectionsEntry(Material.CHICKEN, Material.CHICKEN, CollectionsCategory.FARMING, "Frango Cru", "Raw Chicken", genericXpWithOverrides(
                     at(1, CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
-                            "+1000 XP de Agricultura e desbloqueia a chance de Galinhas no Wheat Crystal",
-                            "+1000 Farming XP and unlocks the chance for Chickens in the Wheat Crystal")))),
+                            "+1000 XP de Agricultura e desbloqueia a chance de Galinhas no Animal Crystal",
+                            "+1000 Farming XP and unlocks the chance for Chickens in the Animal Crystal")))),
             new CollectionsEntry(Material.PORKCHOP, Material.PORKCHOP, CollectionsCategory.FARMING, "Porco Cru", "Raw Porkchop", genericXpWithOverrides(
                     at(1, CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
-                            "+1000 XP de Agricultura e desbloqueia a chance de Porcos no Wheat Crystal",
-                            "+1000 Farming XP and unlocks the chance for Pigs in the Wheat Crystal")))),
+                            "+1000 XP de Agricultura e desbloqueia a chance de Porcos no Animal Crystal",
+                            "+1000 Farming XP and unlocks the chance for Pigs in the Animal Crystal")))),
             new CollectionsEntry(Material.RABBIT, Material.RABBIT, CollectionsCategory.FARMING, "Coelho Cru", "Raw Rabbit", genericXpWithOverrides(
-                    // Also unlocks this entry's own slot in WheatCrystalService's live
+                    // Also unlocks this entry's own slot in AnimalCrystalService's live
                     // per-owner check (see that class's own ANIMAL_UNLOCKS) - the enchant
                     // discount reward itself is unchanged, just with that unlock mentioned
                     // in the text too.
                     at(1, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[0], IcarusEnchant.LUCK, 25.0,
-                            "-25% de custo em XP para Sorte e desbloqueia a chance de Coelhos no Wheat Crystal",
-                            "-25% XP cost for Luck and unlocks the chance for Rabbits in the Wheat Crystal")),
+                            "-25% de custo em XP para Sorte e desbloqueia a chance de Coelhos no Animal Crystal",
+                            "-25% XP cost for Luck and unlocks the chance for Rabbits in the Animal Crystal")),
                     at(2, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.LUCK_OF_THE_SEA, 25.0,
                             "-25% de custo em XP para Sorte do Mar", "-25% XP cost for Luck of the Sea")),
                     at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
