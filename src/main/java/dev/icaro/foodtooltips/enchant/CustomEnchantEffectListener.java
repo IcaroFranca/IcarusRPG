@@ -2,6 +2,7 @@ package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.SavannaBowService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -10,6 +11,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -49,6 +51,14 @@ import org.bukkit.plugin.Plugin;
  * Complements {@link ArmorEnchantEffectListener}, which covers armor-slot
  * (helmet/chest/legs/boots) effects instead.
  *
+ * <p>{@link #bowTooltip} shows a plain "Damage" line, never "Arrow Damage" - per the
+ * player's own explicit "os arcos tem que falar só o damage" spec - and skips any bow
+ * {@link SavannaBowService#isSavannaBow} already recognizes, since that one builds its
+ * own "Damage" line (a different, higher number - its own {@code BASE_DAMAGE}) straight
+ * into {@link SavannaBowService#create}'s own lore; without that check this class used to
+ * also stack its own flat {@value #BASE_BOW_DAMAGE} line on top of it, showing both at
+ * once on the same bow.
+ *
  * <p>The bow-shoot hook (damage + Infinite Quiver's arrow-save roll) mirrors
  * vanilla's own Infinity implementation, which uses this exact same {@code
  * EntityShootBowEvent#setConsumeItem} flag.
@@ -73,6 +83,8 @@ import org.bukkit.plugin.Plugin;
  */
 public final class CustomEnchantEffectListener implements Listener {
     private static final double BASE_BOW_DAMAGE = 30.0;
+    /** For {@link #migrateArrowDamageWording}'s own stale-lore-line detection. */
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
     /** Same "fire orange" {@code ElementalDamageListener} uses for real fire/lava damage numbers - duplicated here rather than shared, same as that class's own comment on duplicating small constants. */
     private static final TextColor FIRE_ORANGE = TextColor.color(0xFF8C00);
     /** Flame's level 1/2 (duration seconds, damage % of the hit per second) - see IcarusEnchant's own doc for why this is a lookup, not a formula. */
@@ -85,17 +97,19 @@ public final class CustomEnchantEffectListener implements Listener {
     private final Plugin plugin;
     private final EnchantService enchants;
     private final MobVisualService visuals;
+    private final SavannaBowService savannaBow;
     /** Marks a bow whose tooltip already shows {@link #BASE_BOW_DAMAGE} - see {@link #applyBowDamageTooltip}. */
     private final NamespacedKey bowDamageTooltipKey;
 
-    public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals) {
+    public CustomEnchantEffectListener(Plugin plugin, EnchantService enchants, MobVisualService visuals, SavannaBowService savannaBow) {
         this.plugin = plugin;
         this.enchants = enchants;
         this.visuals = visuals;
+        this.savannaBow = savannaBow;
         this.bowDamageTooltipKey = new NamespacedKey(plugin, "bow_damage_tooltip_applied");
     }
 
-    /** Rewrites every bow in {@code p}'s inventory (storage and offhand) to show {@link #BASE_BOW_DAMAGE} as an "Arrow Damage" lore line, the same one-shot idea as {@code SwordDamageService}'s own "Attack Damage" line - called every tick from {@code FoodTooltipsPlugin}'s existing periodic re-derivation loop. */
+    /** Rewrites every bow in {@code p}'s inventory (storage and offhand) to show {@link #BASE_BOW_DAMAGE} as a "Damage" lore line (see {@link #bowTooltip} for why the Savanna Bow is skipped), the same one-shot idea as {@code SwordDamageService}'s own "Attack Damage" line - called every tick from {@code FoodTooltipsPlugin}'s existing periodic re-derivation loop. */
     public void applyBowDamageTooltip(Player p) {
         Language l = Language.of(p);
         PlayerInventory inv = p.getInventory();
@@ -117,20 +131,76 @@ public final class CustomEnchantEffectListener implements Listener {
         }
     }
 
-    /** Returns the mutated item if it needed the lore line, or null if it's not a bow or already has it. */
+    /** Returns the mutated item if it needed a new or migrated lore line, or null if it's not a plain bow (or is one of this plugin's own special bows with its own "Damage" line already - see this class's own doc), or already has the current wording. */
     private ItemStack bowTooltip(ItemStack item, Language l) {
         if (item == null || !IcarusEnchant.isBow(item.getType())) {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
-        if (meta == null || meta.getPersistentDataContainer().has(this.bowDamageTooltipKey, PersistentDataType.BYTE)) {
+        if (meta == null) {
             return null;
         }
+        if (this.savannaBow.isSavannaBow(item)) {
+            // Only relevant to a Savanna Bow that got this stray line added before this
+            // class learned to skip it entirely - see this class's own doc.
+            return this.removeStrayArrowDamageLine(item, meta);
+        }
+        if (meta.getPersistentDataContainer().has(this.bowDamageTooltipKey, PersistentDataType.BYTE)) {
+            return this.migrateArrowDamageWording(item, meta);
+        }
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-        lore.add(0, Component.text("Arrow Damage: " + Math.round(BASE_BOW_DAMAGE), NamedTextColor.RED)
+        lore.add(0, Component.text("Damage: " + Math.round(BASE_BOW_DAMAGE), NamedTextColor.RED)
                 .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.getPersistentDataContainer().set(this.bowDamageTooltipKey, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * One-time migration for a bow already tagged by {@link #bowDamageTooltipKey} from before
+     * the wording changed from "Arrow Damage" to plain "Damage" (see this class's own doc) -
+     * rewrites that one stale lore line in place, preserving everything else about the item.
+     * Null if there's nothing stale to fix (a bow tagged after the wording changed, most of the
+     * time).
+     */
+    private ItemStack migrateArrowDamageWording(ItemStack item, ItemMeta meta) {
+        if (!meta.hasLore()) {
+            return null;
+        }
+        List<Component> lore = meta.lore();
+        for (int i = 0; i < lore.size(); i++) {
+            if (PLAIN.serialize(lore.get(i)).startsWith("Arrow Damage:")) {
+                List<Component> updated = new ArrayList<>(lore);
+                updated.set(i, Component.text("Damage: " + Math.round(BASE_BOW_DAMAGE), NamedTextColor.RED)
+                        .decoration(TextDecoration.ITALIC, false));
+                meta.lore(updated);
+                item.setItemMeta(meta);
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Cleans up a Savanna Bow that got this class's own generic "Arrow Damage" line stacked on
+     * top of its real "Damage" line from before {@link #bowTooltip} learned to skip Savanna
+     * Bows entirely - see this class's own doc on the bug. Also clears {@link
+     * #bowDamageTooltipKey} so there's nothing left to check again on this exact item. Null if
+     * there's no stray line (the normal case - a Savanna Bow never legitimately gets this key
+     * set at all once {@link #bowTooltip}'s own skip is in place).
+     */
+    private ItemStack removeStrayArrowDamageLine(ItemStack item, ItemMeta meta) {
+        if (!meta.getPersistentDataContainer().has(this.bowDamageTooltipKey, PersistentDataType.BYTE) || !meta.hasLore()) {
+            return null;
+        }
+        List<Component> lore = new ArrayList<>(meta.lore());
+        boolean removed = lore.removeIf(c -> PLAIN.serialize(c).startsWith("Arrow Damage:"));
+        if (!removed) {
+            return null;
+        }
+        meta.lore(lore);
+        meta.getPersistentDataContainer().remove(this.bowDamageTooltipKey);
         item.setItemMeta(meta);
         return item;
     }
