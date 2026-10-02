@@ -96,6 +96,7 @@ import dev.icaro.foodtooltips.item.TreecapitatorService;
 import dev.icaro.foodtooltips.item.TreecapitatorListener;
 import dev.icaro.foodtooltips.item.BedrockTreecapitatorThrowListener;
 import dev.icaro.foodtooltips.item.WoodcuttingCrystalService;
+import dev.icaro.foodtooltips.item.WheatCrystalService;
 import dev.icaro.foodtooltips.item.LapisExperienceService;
 import dev.icaro.foodtooltips.item.SwordDamageListener;
 import dev.icaro.foodtooltips.item.SwordDamageService;
@@ -216,6 +217,8 @@ extends JavaPlugin {
         EnchantedCarrotStickService enchantedCarrotStick = new EnchantedCarrotStickService();
         FarmCrystalService farmCrystal = new FarmCrystalService((Plugin)this);
         farmCrystal.start();
+        WheatCrystalService wheatCrystal = new WheatCrystalService((Plugin)this);
+        wheatCrystal.start();
         BrewingStandFuelService brewingStandFuel = new BrewingStandFuelService((Plugin)this);
         brewingStandFuel.start();
         MushroomArmorService mushroomArmor = new MushroomArmorService();
@@ -407,6 +410,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)archeryPotion, (Plugin)this);
         pm.registerEvents((Listener)manaPotion, (Plugin)this);
         pm.registerEvents((Listener)farmCrystal, (Plugin)this);
+        pm.registerEvents((Listener)wheatCrystal, (Plugin)this);
         pm.registerEvents((Listener)new CactusArmorService(), (Plugin)this);
         pm.registerEvents((Listener)new MushroomGrowthService(), (Plugin)this);
         pm.registerEvents((Listener)growthArmor, (Plugin)this);

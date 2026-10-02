@@ -77,6 +77,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey WHEAT_CORE_RECIPE = new NamespacedKey("foodtooltips", "wheat_core");
     public static final NamespacedKey FARMER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "farmer_boots");
     public static final NamespacedKey FARM_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "farm_crystal");
+    public static final NamespacedKey WHEAT_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "wheat_crystal");
     public static final NamespacedKey FARMHAND_HELMET_RECIPE = new NamespacedKey("foodtooltips", "farmhand_helmet");
     public static final NamespacedKey FARMHAND_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "farmhand_chestplate");
     public static final NamespacedKey FARMHAND_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "farmhand_leggings");
@@ -299,13 +300,17 @@ public final class CollectionsCatalog {
                             "-25% de custo em XP para Tiro Longo", "-25% XP cost for Snipe"),
                     new CollectionsMilestone(100000, RewardKind.RECIPE_UNLOCK, 0, List.of(FEATHER_ARTIFACT_RECIPE), null, 0.0,
                             "Desbloqueia a receita do Feather Artifact", "Unlocks the Feather Artifact recipe"))),
-            // Wardrobe unlock/expansion milestones carry no recipes (a feature unlock, not a
-            // craftable item) - see skills.WardrobeService for the actual mechanic. M2/M4/M6
-            // carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead of the
-            // generic ladder's own plain Farming XP.
+            // Wardrobe unlock/expansion milestones carry no recipes of their own (a feature
+            // unlock, not a craftable item) - see skills.WardrobeService for the actual
+            // mechanic, which reads this entry's own achieved() count directly rather than
+            // any recipe key. M1 also carries a real recipe (Wheat Crystal) alongside that
+            // feature unlock - CollectionsMilestone#recipes is a list precisely so one
+            // milestone can grant more than one reward at once (see that class's own doc).
+            // M2/M4/M6 carry real crafted rewards (Cow Hat/Milk Core/Milkshake Core) instead
+            // of the generic ladder's own plain Farming XP.
             new CollectionsEntry(Material.LEATHER, Material.LEATHER, CollectionsCategory.FARMING, "Couro", "Leather", genericXpWithOverrides(
-                    at(1, new CollectionsMilestone(25, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
-                            "Desbloqueia o Wardrobe (3 colunas)", "Unlocks the Wardrobe (3 columns)")),
+                    at(1, new CollectionsMilestone(25, RewardKind.RECIPE_UNLOCK, 0, List.of(WHEAT_CRYSTAL_RECIPE), null, 0.0,
+                            "Desbloqueia o Wardrobe (3 colunas) e a receita do Wheat Crystal", "Unlocks the Wardrobe (3 columns) and the Wheat Crystal recipe")),
                     at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
                             "Desbloqueia a receita do Cow Hat", "Unlocks the Cow Hat recipe",
                             COW_HAT_RECIPE)),

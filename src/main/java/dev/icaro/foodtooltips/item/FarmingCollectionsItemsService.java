@@ -392,6 +392,13 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore()));
                     r.setIngredient('D', Material.DIAMOND);
                 });
+        // Cow/Leather Collection M1 - plain Leather rather than a processed Core, since
+        // Milk Core (this collection's own first processed ingredient) isn't unlocked until M4.
+        this.newShapedRecipe(CollectionsCatalog.WHEAT_CRYSTAL_RECIPE, WheatCrystalService.createItem(),
+                new String[]{"LLL", "LDL", "LLL"}, r -> {
+                    r.setIngredient('L', Material.LEATHER);
+                    r.setIngredient('D', Material.DIAMOND);
+                });
         this.newShapedRecipe(CollectionsCatalog.LANTERN_HELMET_RECIPE, this.lanternHelmet(),
                 new String[]{"PPP", "P P"}, r -> r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore())));
 
