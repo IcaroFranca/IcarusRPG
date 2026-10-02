@@ -275,10 +275,29 @@ public final class CustomEnchantEffectListener implements Listener {
         this.burn(shooter, target, e.getFinalDamage(), FLAME_DURATION[lvl], FLAME_PERCENT[lvl]);
     }
 
-    /** Fire Aspect: same burn as Flame (see this class's own doc), read from the attacker's main-hand sword on a melee hit. Runs at MONITOR for the same reason as {@link #arrowHit}. Also tags {@code target} ({@link #fireAspectCookedKey}) so {@link #cookFireAspectDrops} cooks its meat drops whenever it eventually dies, regardless of what finishes it off - same "once ignited, stays that way until it dies" spirit as a real vanilla fire-kill, despite this never actually setting real fire ticks (see this class's own doc on why). */
+    /**
+     * Fire Aspect: same burn as Flame (see this class's own doc), read from the attacker's
+     * main-hand sword on a melee hit. Runs at MONITOR for the same reason as {@link #arrowHit}.
+     * Also tags {@code target} ({@link #fireAspectCookedKey}) so {@link #cookFireAspectDrops}
+     * cooks its meat drops whenever it eventually dies, regardless of what finishes it off - same
+     * "once ignited, stays that way until it dies" spirit as a real vanilla fire-kill, despite
+     * this never actually setting real fire ticks (see this class's own doc on why).
+     *
+     * <p>Must skip while {@link CombatAbilityService#isAbilityDamageInFlight} is true for {@code
+     * attacker} - {@link #burnTick} deals its own damage via {@code dealAbilityDamage}, which
+     * fires a brand new {@link EntityDamageByEntityEvent} with the SAME attacker as damager, so
+     * without this guard every single burn tick would land back here and restart {@link #burn}
+     * from scratch - each one scheduling a whole fresh run of ticks that each restart it again,
+     * exploding into exponentially many scheduled tasks within seconds and crashing the server.
+     * This was the actual cause of the player's own "o fire aspect ta bugando, chegou a crashar"
+     * report.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void fireAspectHit(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player attacker) || !(e.getEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        if (this.abilities.isAbilityDamageInFlight(attacker)) {
             return;
         }
         ItemStack weapon = attacker.getInventory().getItemInMainHand();
