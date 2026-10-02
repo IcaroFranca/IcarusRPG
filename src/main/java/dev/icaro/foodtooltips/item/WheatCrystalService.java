@@ -90,8 +90,8 @@ public final class WheatCrystalService implements Listener {
     private static final int AREA_RADIUS = 10;
     /** How many random columns {@link #pulseOne} samples per pulse before giving up for that pass. */
     private static final int SAMPLE_ATTEMPTS = 12;
-    /** Max animals (any species combined) {@link #countAnimalsInArea} lets stand in the crystal's own area before {@link #pulseOne} stops spawning more - same spirit as {@code WoodcuttingCrystalService#MAX_TREES_IN_AREA}. */
-    private static final int MAX_ANIMALS_IN_AREA = 10;
+    /** Max animals (any species combined) {@link #countAnimalsInArea} lets stand in the crystal's own area before {@link #pulseOne} stops spawning more - per the player's own "pra não sobrecarregar" cap. */
+    private static final int MAX_ANIMALS_IN_AREA = 30;
     private static final double BEAM_PARTICLE_SPACING = 0.3;
 
     /** One Farming Collections entry's own Milestone 1 unlocking a species on this crystal - see {@link #ANIMAL_UNLOCKS}. */
