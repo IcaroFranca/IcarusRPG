@@ -244,6 +244,7 @@ extends JavaPlugin {
         menus.reforge(reforgeService);
         CollectionsProgressService collectionsProgress = new CollectionsProgressService();
         biomeWand.collectionsProgress(collectionsProgress);
+        wheatCrystal.collectionsProgress(collectionsProgress);
         CollectionsService collectionsService = new CollectionsService(collectionsProgress, global);
         CollectionsMenuService collectionsMenu = new CollectionsMenuService(collectionsProgress, global, menus::openMain);
         menus.collections(collectionsMenu);

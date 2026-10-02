@@ -358,6 +358,12 @@ public final class CollectionsCatalog {
             // M2/M4/M6 carry real crafted rewards (Mana Potion/Wool Core/Rainbow Wool Core)
             // instead of the generic ladder's own plain Farming XP.
             new CollectionsEntry(Material.MUTTON, Material.MUTTON, CollectionsCategory.FARMING, "Carneiro Cru", "Raw Mutton", genericXpWithOverrides(
+                    // Unlocks this entry's own slot in WheatCrystalService's live per-owner
+                    // check (see that class's own ANIMAL_UNLOCKS) - same plain Farming XP
+                    // reward as before, just with that unlock mentioned in the text too.
+                    at(1, CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+1000 XP de Agricultura e desbloqueia a chance de Ovelhas no Wheat Crystal",
+                            "+1000 Farming XP and unlocks the chance for Sheep in the Wheat Crystal")),
                     // A PotionMix, not a real CraftingRecipe - same "unlocked in name only"
                     // limitation as the Archery Potion (Feather M6) above.
                     at(2, new CollectionsMilestone(DEFAULT_THRESHOLDS[1], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
@@ -443,11 +449,25 @@ public final class CollectionsCatalog {
                     at(7, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
                             "Desbloqueia a receita do Lantern Helmet", "Unlocks the Lantern Helmet recipe",
                             LANTERN_HELMET_RECIPE)))),
-            new CollectionsEntry(Material.CHICKEN, Material.CHICKEN, CollectionsCategory.FARMING, "Frango Cru", "Raw Chicken", genericXp()),
-            new CollectionsEntry(Material.PORKCHOP, Material.PORKCHOP, CollectionsCategory.FARMING, "Porco Cru", "Raw Porkchop", genericXp()),
+            // M1 unlocks this entry's own slot in WheatCrystalService's live per-owner check
+            // (see that class's own ANIMAL_UNLOCKS) - same plain Farming XP reward as every
+            // other tier here, just with that unlock mentioned in the text too.
+            new CollectionsEntry(Material.CHICKEN, Material.CHICKEN, CollectionsCategory.FARMING, "Frango Cru", "Raw Chicken", genericXpWithOverrides(
+                    at(1, CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+1000 XP de Agricultura e desbloqueia a chance de Galinhas no Wheat Crystal",
+                            "+1000 Farming XP and unlocks the chance for Chickens in the Wheat Crystal")))),
+            new CollectionsEntry(Material.PORKCHOP, Material.PORKCHOP, CollectionsCategory.FARMING, "Porco Cru", "Raw Porkchop", genericXpWithOverrides(
+                    at(1, CollectionsMilestone.farmingXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+1000 XP de Agricultura e desbloqueia a chance de Porcos no Wheat Crystal",
+                            "+1000 Farming XP and unlocks the chance for Pigs in the Wheat Crystal")))),
             new CollectionsEntry(Material.RABBIT, Material.RABBIT, CollectionsCategory.FARMING, "Coelho Cru", "Raw Rabbit", genericXpWithOverrides(
+                    // Also unlocks this entry's own slot in WheatCrystalService's live
+                    // per-owner check (see that class's own ANIMAL_UNLOCKS) - the enchant
+                    // discount reward itself is unchanged, just with that unlock mentioned
+                    // in the text too.
                     at(1, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[0], IcarusEnchant.LUCK, 25.0,
-                            "-25% de custo em XP para Sorte", "-25% XP cost for Luck")),
+                            "-25% de custo em XP para Sorte e desbloqueia a chance de Coelhos no Wheat Crystal",
+                            "-25% XP cost for Luck and unlocks the chance for Rabbits in the Wheat Crystal")),
                     at(2, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.LUCK_OF_THE_SEA, 25.0,
                             "-25% de custo em XP para Sorte do Mar", "-25% XP cost for Luck of the Sea")),
                     at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],

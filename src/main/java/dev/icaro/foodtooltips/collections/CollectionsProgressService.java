@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.collections;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -13,10 +14,20 @@ import org.bukkit.persistence.PersistentDataType;
  * exactly as the player's own spec states it), not a per-step increment, so {@link #achieved}
  * is a simple "how many thresholds does this total already clear" count rather than
  * consuming a shared step array.
+ *
+ * <p>{@link #collected(OfflinePlayer, CollectionsEntry)}/{@link #achieved(OfflinePlayer,
+ * CollectionsEntry)} take an {@link OfflinePlayer} rather than a {@link Player} - a read-only
+ * widening ({@code Player} already implements {@code OfflinePlayer}, so every existing call
+ * site with a live {@code Player} still compiles unchanged) added for {@code
+ * item.WheatCrystalService}, which needs to check a placed crystal's own owner's Collections
+ * progress on every pulse even while that owner is offline - {@link OfflinePlayer#
+ * getPersistentDataContainer()} returns a read-only view, which is all a pure read needs.
+ * {@link #addCollected} stays {@code Player}-only since writing requires the live, mutable
+ * container only an online player exposes.
  */
 public final class CollectionsProgressService {
 
-    public int collected(Player player, CollectionsEntry entry) {
+    public int collected(OfflinePlayer player, CollectionsEntry entry) {
         return player.getPersistentDataContainer().getOrDefault(collectedKey(entry), PersistentDataType.INTEGER, 0);
     }
 
@@ -27,7 +38,7 @@ public final class CollectionsProgressService {
         return total;
     }
 
-    public int achieved(Player player, CollectionsEntry entry) {
+    public int achieved(OfflinePlayer player, CollectionsEntry entry) {
         return this.achieved(entry, this.collected(player, entry));
     }
 
