@@ -50,9 +50,11 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * with no buttons/fillers - the player drags seeds in and out exactly like a real chest, not a
  * structured menu); not sneaking instead {@link #plantLine}s whatever seeds are inside, per the
  * player's own "vai servir para plantar as sementes que estão nele em toda a linha de blocos na
- * direção que o jogador estava olhando" spec. {@link #cardinalFacing} snaps the player's own yaw
- * to one of the 4 horizontal directions - a planted row only ever makes sense running along one
- * straight line of farmland, not an arbitrary diagonal.
+ * direção que o jogador estava olhando" spec. A right-click into open air - no block to plant on
+ * anyway - always opens the storage too, sneaking or not, per the player's own explicit follow-up
+ * ask. {@link #cardinalFacing} snaps the player's own yaw to one of the 4 horizontal directions -
+ * a planted row only ever makes sense running along one straight line of farmland, not an
+ * arbitrary diagonal.
  *
  * <p>{@link #plantStep} is deliberately one block per call, self-rescheduling {@value
  * #PLANT_DELAY_TICKS} ticks later rather than planting the whole line synchronously - per the
@@ -75,7 +77,7 @@ public final class BasketOfSeedsService implements Listener {
     /** How long {@link #plantStep} waits between blocks - per the player's own "não de forma brusca" spec. */
     private static final int PLANT_DELAY_TICKS = 4;
     /** Safety cap on how far a single line can run, regardless of how much farmland is actually open ahead. */
-    private static final int MAX_LINE_LENGTH = 32;
+    private static final int MAX_LINE_LENGTH = 100;
 
     /** Every seed {@link #plantLine} can plant, and the crop block it grows into - every vanilla seed that's actually plantable on farmland. */
     private static final Map<Material, Material> PLANTABLE_SEEDS = Map.of(
@@ -110,7 +112,8 @@ public final class BasketOfSeedsService implements Listener {
         meta.displayName(Component.text("Basket of Seeds", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
                 Component.text("Holds " + SIZE + " stacks of crop seeds.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text("Sneak + right-click to open its storage.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("Sneak + right-click (or right-click the air)", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("to open its storage.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Right-click farmland to plant a whole row", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("in the direction you're facing.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
@@ -138,7 +141,7 @@ public final class BasketOfSeedsService implements Listener {
         }
         Player p = e.getPlayer();
         e.setCancelled(true);
-        if (p.isSneaking()) {
+        if (p.isSneaking() || e.getAction() == Action.RIGHT_CLICK_AIR) {
             this.openStorage(p, e.getItem());
             return;
         }
