@@ -1058,6 +1058,14 @@ public final class CombatListener implements Listener {
         }
     }
 
+    /**
+     * Telekinesis: hands every drop straight to {@code p} and clears {@link
+     * EntityDeathEvent#getDrops()} so none of it also spawns on the ground. {@code
+     * skills.GeneralSkillListener#animalDrop}'s own Collections credit is deliberately
+     * {@link EventPriority#HIGH} (strictly before this class's own MONITOR {@link #death})
+     * specifically so it always reads the full list before this clears it - see that
+     * method's own doc.
+     */
     private void collectItemDrops(Player p, EntityDeathEvent e) {
         for (ItemStack drop : new ArrayList<>(e.getDrops())) {
             for (ItemStack overflow : p.getInventory().addItem(drop).values()) {

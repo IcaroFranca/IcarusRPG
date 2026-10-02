@@ -205,16 +205,30 @@ implements Listener {
      * already applies to every harvest. Every vanilla mob that can naturally drop one of
      * these five materials is listed here, not just the "obvious" one per material - Leather
      * also comes from Horse/Donkey/Mule (equines, same as Cow/Mooshroom) and from Hoglin
-     * (which drops both Leather and Raw Porkchop, being a boar-like Nether mob). MONITOR,
-     * same tier {@code CombatListener#death} runs its own Bestiary/Combat-XP handling at, so
-     * this never races anything there that might still cancel the event first - and also
-     * strictly after {@code enchant.CustomEnchantEffectListener#cookFireAspectDrops}'s own
-     * default-priority handler, which can turn one of these raw drops into its cooked
-     * counterpart first (Fire Aspect) - {@link #rawMeatEquivalent} is what still credits that
-     * cooked drop as its raw material here, per the player's own explicit "mesmo assadas vão
-     * contar pros collections" spec, so a Fire Aspect kill never costs the player progress.
+     * (which drops both Leather and Raw Porkchop, being a boar-like Nether mob). Never
+     * keyed by how the mob came to exist - a wild/bred animal and one {@code
+     * item.AnimalCrystalService} spawned are the exact same {@link EntityType} with the
+     * exact same drops, so crediting here needs no special case for the crystal at all; it
+     * already covers "the crystal is for grinding" per the player's own spec, as long as
+     * this itself runs reliably.
+     *
+     * <p>{@link EventPriority#HIGH}, deliberately NOT {@link EventPriority#MONITOR} -
+     * {@code CombatListener#death}'s own Telekinesis handling (also on this event) hands
+     * every drop straight into the killer's inventory and then CLEARS {@link
+     * EntityDeathEvent#getDrops()} entirely once the player has it unlocked, so crediting
+     * here has to read the list before that happens. Relying on registration order alone
+     * (both methods used to sit at MONITOR, where same-tier handlers run in registration
+     * order) was fragile - a future reordering of {@code FoodTooltipsPlugin#onEnable}'s own
+     * registerEvents calls could have silently broken Collections crediting for every
+     * Telekinesis user without either method's own code changing at all, per the player's
+     * own "telekinesis também tem que ser aplicado aos drops dos animais" report. HIGH
+     * guarantees this runs before ANY MONITOR handler regardless of registration order,
+     * while still running after {@code enchant.CustomEnchantEffectListener#
+     * cookFireAspectDrops}'s own default (NORMAL) priority, so a Fire Aspect kill's cooked
+     * drop is already in place by the time this reads {@link #rawMeatEquivalent} back off
+     * it - see that method's own doc on why cooked still credits as raw.
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void animalDrop(EntityDeathEvent e) {
         Player p = e.getEntity().getKiller();
         if (p == null) {
