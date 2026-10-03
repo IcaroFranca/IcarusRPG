@@ -1,14 +1,18 @@
 package dev.icaro.foodtooltips.mining;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.inventory.CampfireRecipe;
 import org.bukkit.inventory.CookingRecipe;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemType;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.RecipeChoice;
 
@@ -53,12 +57,29 @@ public final class SmeltingCatalog {
         return cache;
     }
 
+    /**
+     * {@link RecipeChoice.ItemTypeChoice} is the one shape {@link RecipeChoice.MaterialChoice}/
+     * {@link RecipeChoice.ExactChoice} alone didn't cover - real vanilla furnace recipes this
+     * Paper version registers (Ancient Debris -&gt; Netherite Scrap among them, per the
+     * player's own explicit "Mining Fortune também tem que valer para o ancient debris quando
+     * a picareta tiver smelting touch") report their input this way, not as a
+     * {@code MaterialChoice} - without this case {@link #smeltedForm} silently returned null
+     * for every one of them, so Smelting Touch never converted their drop at all despite the
+     * recipe genuinely existing. {@link RegistryAccess#registryAccess()} is safe here (unlike
+     * a static field initializer elsewhere in this project that crashed under a server-less
+     * test environment) since {@link #table} only ever runs lazily, well after a real server
+     * has finished booting.
+     */
     private static List<Material> inputs(RecipeChoice choice) {
         if (choice instanceof RecipeChoice.MaterialChoice mc) {
             return mc.getChoices();
         }
         if (choice instanceof RecipeChoice.ExactChoice ec) {
             return ec.getChoices().stream().map(ItemStack::getType).toList();
+        }
+        if (choice instanceof RecipeChoice.ItemTypeChoice itc) {
+            Registry<ItemType> registry = RegistryAccess.registryAccess().getRegistry(RegistryKey.ITEM);
+            return itc.itemTypes().resolve(registry).stream().map(ItemType::asMaterial).toList();
         }
         return List.of();
     }
