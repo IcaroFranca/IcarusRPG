@@ -1,5 +1,13 @@
 package dev.icaro.foodtooltips.item;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -37,8 +45,18 @@ import org.bukkit.plugin.Plugin;
  * of its own, since a shield is already guaranteed to pass through here (it's damageable,
  * see this class's own doc) and {@link ItemMeta#setUnbreakable} is naturally idempotent
  * (setting it to already-true again is a no-op), so it doesn't need its own PDC marker.
+ *
+ * <p>Also keeps a live "Durability: X / Y" lore line on every damageable item, since F3+H
+ * (vanilla's own Advanced Tooltips overlay, the only other place durability numbers show)
+ * is entirely client-side - a server plugin has no API surface to filter or reformat it, so
+ * the only way to show a player their exact durability without requiring F3+H is this
+ * plugin's own always-visible line. Unlike the one-shot multiplier/Unbreakable flag above,
+ * this line is rebuilt on every {@link #multiply} call (every HUD tick, not gated by {@link
+ * #appliedKey}) since current damage keeps changing as the item is used - same
+ * strip-old-line-then-reinsert-before-TIER pattern as {@code FoodTooltipService#update}.
  */
 public final class DurabilityService {
+    private static final PlainTextComponentSerializer P = PlainTextComponentSerializer.plainText();
     /** Flat Max Durability every {@code GOLDEN_*} item gets instead of the usual multiplier - see this class's own doc. */
     private static final int GOLD_MAX_DURABILITY = 1000;
     private final NamespacedKey appliedKey;
@@ -108,9 +126,80 @@ public final class DurabilityService {
             meta.getPersistentDataContainer().set(this.appliedKey, PersistentDataType.BYTE, (byte) 1);
             changed = true;
         }
+        if (this.syncDurabilityLore(meta, damageable)) {
+            changed = true;
+        }
         if (changed) {
             item.setItemMeta(meta);
         }
         return changed;
+    }
+
+    /** Rebuilds {@code meta}'s "Durability: X / Y" lore line from {@code damageable}'s current state; returns true if the lore actually changed. */
+    private boolean syncDurabilityLore(ItemMeta meta, Damageable damageable) {
+        List<Component> original = Objects.requireNonNullElse(meta.lore(), List.of());
+        ArrayList<Component> lore = new ArrayList<Component>(original);
+        this.removeDurabilityLine(lore);
+        int max = damageable.getMaxDamage();
+        int damage = damageable.hasDamage() ? damageable.getDamage() : 0;
+        int remaining = Math.max(0, max - damage);
+        List<Component> block = List.of(this.line("Durability: " + remaining + " / " + max, NamedTextColor.GRAY));
+        this.insertBeforeTier(lore, block);
+        if (lore.equals(original)) {
+            return false;
+        }
+        meta.lore(lore);
+        return true;
+    }
+
+    /**
+     * Same ordering fix as {@code FoodTooltipService#insertBeforeTier}: always resolves this
+     * line to immediately before the item's "TIER ..." line (appending at the end if there
+     * isn't one), so two otherwise-identical stacks never end up with this block in a
+     * different relative position and permanently fail to stack.
+     */
+    private void insertBeforeTier(List<Component> lore, List<Component> block) {
+        int at = this.findTierIndex(lore);
+        if (at < 0) {
+            at = lore.size();
+        }
+        if (at == 0 || !this.isBlank(lore.get(at - 1))) {
+            lore.add(at++, Component.empty());
+        }
+        lore.addAll(at, block);
+        at += block.size();
+        if (at < lore.size() && !this.isBlank(lore.get(at))) {
+            lore.add(at, Component.empty());
+        }
+    }
+
+    private int findTierIndex(List<Component> lore) {
+        for (int i = 0; i < lore.size(); i++) {
+            if (P.serialize(lore.get(i)).startsWith("TIER ")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isBlank(Component c) {
+        return P.serialize(c).isEmpty();
+    }
+
+    private void removeDurabilityLine(List<Component> lore) {
+        int i = 0;
+        while (i < lore.size()) {
+            if (!P.serialize(lore.get(i)).startsWith("Durability: ")) {
+                i++;
+                continue;
+            }
+            int from = i > 0 && this.isBlank(lore.get(i - 1)) ? i - 1 : i;
+            lore.subList(from, i + 1).clear();
+            i = Math.max(0, from - 1);
+        }
+    }
+
+    private Component line(String s, NamedTextColor c) {
+        return Component.text(s, (TextColor) c).decoration(TextDecoration.ITALIC, false);
     }
 }
