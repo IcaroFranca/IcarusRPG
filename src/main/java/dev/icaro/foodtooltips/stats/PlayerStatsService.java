@@ -61,6 +61,10 @@ public final class PlayerStatsService {
     private LegendaryWeaponService legendary;
     private ReforgeService reforge;
     private AccessoryBagService accessoryBag;
+    /** The Rotten Flesh Collection's own Zombie Sword - +50 Strength while it's the held main-hand weapon (see {@code item.ZombieSwordService#heldStrengthBonus}), same late-bound idea as {@link #legendary}'s own {@code heldAgilityBonus} for Baruka's Dagger. */
+    private java.util.function.ToIntFunction<Player> heldWeaponStrengthBonus = p -> 0;
+    /** The Rotten Flesh Collection's own Zombie Sword - +50 Intelligence while held (see {@code item.ZombieSwordService#heldIntelligenceBonus}), folded into {@link #effectiveIntelligence} alongside {@link #accessoryBag}'s own bonus. */
+    private java.util.function.ToIntFunction<Player> heldWeaponIntelligenceBonus = p -> 0;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -108,6 +112,16 @@ public final class PlayerStatsService {
 
     public void accessoryBag(AccessoryBagService accessoryBag) {
         this.accessoryBag = accessoryBag;
+    }
+
+    /** Wired in after construction - see {@link #heldWeaponStrengthBonus}. */
+    public void heldWeaponStrengthBonus(java.util.function.ToIntFunction<Player> heldWeaponStrengthBonus) {
+        this.heldWeaponStrengthBonus = heldWeaponStrengthBonus;
+    }
+
+    /** Wired in after construction - see {@link #heldWeaponIntelligenceBonus}. */
+    public void heldWeaponIntelligenceBonus(java.util.function.ToIntFunction<Player> heldWeaponIntelligenceBonus) {
+        this.heldWeaponIntelligenceBonus = heldWeaponIntelligenceBonus;
     }
 
     // ---- Base config values (for the Combat Stats breakdown - see SkillsMenuService#combatStatsItem) ----
@@ -164,7 +178,8 @@ public final class PlayerStatsService {
                         + this.reforge.bowStatsOf(p.getInventory().getItemInMainHand()).intelligence()
                         + this.reforge.totalArmorStats(p).intelligence();
         double accessoryBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalIntelligenceBonus(p);
-        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + accessoryBonus;
+        double weaponBonus = this.heldWeaponIntelligenceBonus.applyAsInt(p);
+        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + accessoryBonus + weaponBonus;
     }
 
     /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant, plus any stored Accessory Bag bonus (the Bone Collection's own Skeleton Hat - {@link AccessoryBagService#applyAccessorySpeed} separately turns this same number into the real Movement Speed attribute) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
@@ -198,14 +213,16 @@ public final class PlayerStatsService {
     public PlayerStats stats(Player p) {
         double effectiveMaxMana = this.effectiveMaxMana(p);
         double storedMana = this.get(p, this.mana, effectiveMaxMana);
-        double storedMaxVitality = this.get(p, this.maxVitality, this.baseVitality);
-        double storedVitality = this.get(p, this.vitality, storedMaxVitality);
+        double accessoryVitalityBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalVitalityBonus(p);
+        double effectiveMaxVitality = this.get(p, this.maxVitality, this.baseVitality) + accessoryVitalityBonus;
+        double storedVitality = this.get(p, this.vitality, effectiveMaxVitality);
         AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
-        long globalStrength = this.global == null ? 0L : this.global.snapshot(p).strength();
+        long globalStrength = (this.global == null ? 0L : this.global.snapshot(p).strength()) + this.heldWeaponStrengthBonus.applyAsInt(p);
 
         double swingRangeBonus = this.abilities == null ? 0.0 : this.abilities.swingRangeBonus(p);
         double healthRegenBonus = this.abilities == null ? 0.0 : this.abilities.healthRegenBonus(p);
         double mendingBonus = this.abilities == null ? 0.0 : this.abilities.mendingBonus(p);
+        double accessoryMendingBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalMendingBonus(p);
 
         return new PlayerStats(
                 p.getHealth(),
@@ -218,9 +235,9 @@ public final class PlayerStatsService {
                 this.effectiveIntelligence(p),
                 this.abilityDamage,
                 this.healthRegen + healthRegenBonus,
-                Math.min(storedMaxVitality, storedVitality),
-                storedMaxVitality,
-                this.mending + mendingBonus,
+                Math.min(effectiveMaxVitality, storedVitality),
+                effectiveMaxVitality,
+                this.mending + mendingBonus + accessoryMendingBonus,
                 this.trueDefense);
     }
 

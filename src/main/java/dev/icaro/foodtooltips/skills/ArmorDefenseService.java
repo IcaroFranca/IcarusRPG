@@ -61,6 +61,8 @@ public final class ArmorDefenseService {
     private java.util.function.ToDoubleFunction<LivingEntity> defenseMultiplier = e -> 1.0;
     /** Farmer Boots' own level-scaling Defense bonus (see {@code item.FarmingCollectionsItemsService#farmerBootsDefenseBonus}) - added alongside {@link GeneralSkillService#bonusDefense}, outside {@link #defenseMultiplier}, since it's unrelated to Miner's/Mushroom Armor's own multiplier mechanic. Defaults to always-0. */
     private java.util.function.ToIntFunction<LivingEntity> farmerBootsBonus = e -> 0;
+    /** The Rotten Flesh Collection's own Zombie Hat - +10 Defense per real Zombie within 8 blocks of the wearer (see {@code item.ZombieHatService#defenseBonus}), same late-bound idea as {@link #farmerBootsBonus}. */
+    private java.util.function.ToIntFunction<LivingEntity> zombieHatBonus = e -> 0;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
@@ -92,6 +94,11 @@ public final class ArmorDefenseService {
         this.farmerBootsBonus = farmerBootsBonus;
     }
 
+    /** Wired in after construction - see {@link #zombieHatBonus}. */
+    public void zombieHatBonus(java.util.function.ToIntFunction<LivingEntity> zombieHatBonus) {
+        this.zombieHatBonus = zombieHatBonus;
+    }
+
     /**
      * Sum of the equipped helmet/chestplate/leggings/boots' Defense values plus the
      * Protection enchant's own Defense (see {@link #protectionBonus}), both scaled by
@@ -113,7 +120,7 @@ public final class ArmorDefenseService {
         int protection = this.protectionBonus.applyAsInt(e);
         double multiplier = this.defenseMultiplier.applyAsDouble(e);
         int total = (int) Math.round((armorDefense + protection) * multiplier) + skillBonus
-                + this.farmerBootsBonus.applyAsInt(e) - this.lethalityPenalty.applyAsInt(e);
+                + this.farmerBootsBonus.applyAsInt(e) + this.zombieHatBonus.applyAsInt(e) - this.lethalityPenalty.applyAsInt(e);
         return Math.max(0, total);
     }
 

@@ -388,6 +388,51 @@ public final class AccessoryBagService {
         }
     }
 
+    /** Sum of {@link AccessoryItems#healthBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - same shape as {@link #totalIntelligenceBonus}; {@link #applyAccessoryHealth} separately turns this into the real Max Health attribute. */
+    public int totalHealthBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.healthBonus(item);
+        }
+        return total;
+    }
+
+    /** Sum of {@link AccessoryItems#vitalityBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - read by {@code stats.PlayerStatsService} to raise effective Max Vitality the same way {@link #totalIntelligenceBonus} raises effective Max Mana. */
+    public int totalVitalityBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.vitalityBonus(item);
+        }
+        return total;
+    }
+
+    /** Sum of {@link AccessoryItems#mendingBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - read by {@code stats.PlayerStatsService#stats} alongside {@code CombatAbilityService#mendingBonus}. */
+    public int totalMendingBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.mendingBonus(item);
+        }
+        return total;
+    }
+
+    private static final NamespacedKey ACCESSORY_HEALTH_KEY = new NamespacedKey("foodtooltips", "accessory_health_bonus_attribute");
+
+    /** Converts {@link #totalHealthBonus} into the real vanilla Max Health attribute - same remove-then-reapply-if-still-earned idempotent pattern {@link #applyAccessorySpeed} uses, called from the same periodic per-player sweep in {@code FoodTooltipsPlugin}. A distinct {@link NamespacedKey} from every other Max Health source ({@code GeneralSkillService#applyBonusHealth}, {@code BestiaryProgressService}, {@code GlobalLevelService}) so they all stack independently. */
+    public void applyAccessoryHealth(Player p) {
+        AttributeInstance health = p.getAttribute(Attribute.MAX_HEALTH);
+        if (health == null) {
+            return;
+        }
+        AttributeModifier old = health.getModifier(Key.key(ACCESSORY_HEALTH_KEY.getNamespace(), ACCESSORY_HEALTH_KEY.getKey()));
+        if (old != null) {
+            health.removeModifier(old);
+        }
+        int bonus = this.totalHealthBonus(p);
+        if (bonus > 0) {
+            health.addTransientModifier(new AttributeModifier(ACCESSORY_HEALTH_KEY, bonus, AttributeModifier.Operation.ADD_NUMBER));
+        }
+    }
+
     /**
      * Whether {@code p} currently has any stored accessory belonging to {@code family} - a
      * plain existence check, unlike {@link #totalFallHeightBonus}/{@link

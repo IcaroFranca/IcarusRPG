@@ -34,16 +34,29 @@ import org.bukkit.inventory.meta.SkullMeta;
 public final class CombatCollectionsItemsService {
     private static final UUID BONE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:bone_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID PILE_OF_BONE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pile_of_bone_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID ROTTEN_FLESH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:rotten_flesh_core".getBytes(StandardCharsets.UTF_8));
 
     private final HurricaneBowService hurricaneBow;
     private final SkeletonsHelmetService skeletonsHelmet;
+    private final ZombiePickaxeService zombiePickaxe;
+    private final ZombieHatService zombieHat;
+    private final ZombiesHeartService zombiesHeart;
+    private final ZombieSwordService zombieSword;
+    private final ZombieArmorService zombieArmor;
 
-    public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonsHelmetService skeletonsHelmet) {
+    public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonsHelmetService skeletonsHelmet,
+            ZombiePickaxeService zombiePickaxe, ZombieHatService zombieHat, ZombiesHeartService zombiesHeart,
+            ZombieSwordService zombieSword, ZombieArmorService zombieArmor) {
         this.hurricaneBow = hurricaneBow;
         this.skeletonsHelmet = skeletonsHelmet;
+        this.zombiePickaxe = zombiePickaxe;
+        this.zombieHat = zombieHat;
+        this.zombiesHeart = zombiesHeart;
+        this.zombieSword = zombieSword;
+        this.zombieArmor = zombieArmor;
     }
 
-    /** Registers every recipe this class owns - Bone Collection M4 through M9. */
+    /** Registers every recipe this class owns - Bone Collection M4 through M9, Rotten Flesh Collection M2 through M8. */
     public void registerRecipes() {
         this.newShapedRecipe(CollectionsCatalog.SKELETON_HAT_RECIPE, SkeletonHatService.createItem(),
                 new String[]{"BBB", "B B", "BBB"}, r -> r.setIngredient('B', Material.BONE));
@@ -79,6 +92,40 @@ public final class CombatCollectionsItemsService {
                     // collections.CollectionsRecipeGateListener already uses elsewhere.
                     r.setIngredient('H', Material.BOW);
                 });
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_PICKAXE_RECIPE, this.zombiePickaxe.createItem(),
+                new String[]{"RRR", " S ", " S "}, r -> {
+                    r.setIngredient('R', Material.ROTTEN_FLESH);
+                    r.setIngredient('S', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.ROTTEN_FLESH_CORE_RECIPE, this.rottenFleshCore(),
+                new String[]{"RRR", "RDR", "RRR"}, r -> {
+                    r.setIngredient('R', Material.ROTTEN_FLESH);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_HAT_RECIPE, this.zombieHat.createItem(),
+                new String[]{"RRR", "R R", "RRR"}, r -> r.setIngredient('R', Material.ROTTEN_FLESH));
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIES_HEART_RECIPE, this.zombiesHeart.createItem(),
+                new String[]{"CCC", "C C", "CCC"}, r -> r.setIngredient('C', new RecipeChoice.ExactChoice(this.rottenFleshCore())));
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_SWORD_RECIPE, this.zombieSword.createItem(),
+                new String[]{" Z", " Z", " S"}, r -> {
+                    r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem()));
+                    r.setIngredient('S', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_CHESTPLATE_RECIPE, this.zombieArmor.createChestplate(),
+                new String[]{"Z Z", "ZZZ", "ZZZ"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_LEGGINGS_RECIPE, this.zombieArmor.createLeggings(),
+                new String[]{"ZZZ", "Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_BOOTS_RECIPE, this.zombieArmor.createBoots(),
+                new String[]{"Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
+    }
+
+    private ItemStack rottenFleshCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.ROTTEN_FLESH_CORE, ROTTEN_FLESH_CORE_PROFILE);
+        meta.displayName(Component.text("Rotten Flesh Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack boneCore() {

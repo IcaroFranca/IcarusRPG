@@ -47,6 +47,9 @@ public final class AccessoryItems {
     private static final NamespacedKey HEAT_RESISTANCE_KEY = new NamespacedKey("foodtooltips", "accessory_heat_resistance");
     private static final NamespacedKey INTELLIGENCE_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_intelligence_bonus");
     private static final NamespacedKey SPEED_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_speed_bonus");
+    private static final NamespacedKey HEALTH_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_health_bonus");
+    private static final NamespacedKey VITALITY_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_vitality_bonus");
+    private static final NamespacedKey MENDING_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_mending_bonus");
 
     private AccessoryItems() {
     }
@@ -63,6 +66,21 @@ public final class AccessoryItems {
     public static void markIntelligenceAndSpeed(ItemMeta meta, int intelligenceBonus, int speedBonus) {
         meta.getPersistentDataContainer().set(INTELLIGENCE_BONUS_KEY, PersistentDataType.INTEGER, intelligenceBonus);
         meta.getPersistentDataContainer().set(SPEED_BONUS_KEY, PersistentDataType.INTEGER, speedBonus);
+    }
+
+    /**
+     * A third, separate tagging call for {@code healthBonus}/{@code vitalityBonus}/{@code
+     * mendingBonus} - the Rotten Flesh Collection's own Zombie's Heart is the first accessory
+     * to grant any of these, same "don't touch {@link #mark}'s own 23 call sites for a stat
+     * only one item uses" reasoning {@link #markIntelligenceAndSpeed} already gives. Summed
+     * across every stored accessory the same way - see {@code
+     * skills.AccessoryBagService#totalHealthBonus}/{@code #totalVitalityBonus}/{@code
+     * #totalMendingBonus}.
+     */
+    public static void markHealthVitalityMending(ItemMeta meta, int healthBonus, int vitalityBonus, int mendingBonus) {
+        meta.getPersistentDataContainer().set(HEALTH_BONUS_KEY, PersistentDataType.INTEGER, healthBonus);
+        meta.getPersistentDataContainer().set(VITALITY_BONUS_KEY, PersistentDataType.INTEGER, vitalityBonus);
+        meta.getPersistentDataContainer().set(MENDING_BONUS_KEY, PersistentDataType.INTEGER, mendingBonus);
     }
 
     /**
@@ -220,5 +238,32 @@ public final class AccessoryItems {
         }
         ItemMeta meta = item.getItemMeta();
         return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(SPEED_BONUS_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Extra Max Health {@code item} grants (the Rotten Flesh Collection's own Zombie's Heart) - see {@link #markHealthVitalityMending}. */
+    public static int healthBonus(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(HEALTH_BONUS_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Extra Max Vitality {@code item} grants (the Rotten Flesh Collection's own Zombie's Heart) - see {@link #markHealthVitalityMending}. */
+    public static int vitalityBonus(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(VITALITY_BONUS_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Extra Mending {@code item} grants (the Rotten Flesh Collection's own Zombie's Heart) - see {@link #markHealthVitalityMending}. */
+    public static int mendingBonus(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(MENDING_BONUS_KEY, PersistentDataType.INTEGER, 0);
     }
 }

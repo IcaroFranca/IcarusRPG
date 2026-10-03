@@ -155,6 +155,10 @@ public final class HeadTexture {
     public static final String BONE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzMwMTM5MmJmMDUyZjkxZDNhYTU2YjVhNWMxN2Q1ZWEyNjFlMTJjNWRiZmViOGYwNGZlMmEwMjhkMzBmYTU5NCJ9fX0=";
     /** "Pile of Bones" (minecraft-heads.com Custom Head ID 71780) - the Pile of Bone Core crafting item, {@link #BONE_CORE}'s own upgrade - see {@code CombatCollectionsItemsService}. */
     public static final String PILE_OF_BONE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjMxY2IwMTYzYjg2YjRjMjJlZjMxYjlkZDk3YzI1YTU3OWY5OWY3YTNhOWFhMmRmM2ZiZTE2ZTMyMzVkOTY2ZiJ9fX0=";
+    /** "Rotten Apple" (minecraft-heads.com Custom Head ID 65522) - the Rotten Flesh Core crafting item, see {@code CombatCollectionsItemsService}. */
+    public static final String ROTTEN_FLESH_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2RhNmJhOTU1N2ZhMjNiNjBlOWFmODYyY2U4ZTkwNmIxMzlkNDljYzkwOTUzZDQ1MTRjZDA2OGQwNThjMTgxNyJ9fX0=";
+    /** "Heart (moldy)" (minecraft-heads.com Custom Head ID 60520) - the Zombie's Heart item, see {@code item.ZombiesHeartService}. */
+    public static final String ZOMBIES_HEART = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjUwYWFjYzE3YTA5ZDkwMzNkNTQ1NzliNjNiMTY0OGI3MzZkMjc0MDUwZmU4N2JkNGMxMDExNjYyMjhkZjEzMCJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -164,7 +168,8 @@ public final class HeadTexture {
             CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
-            BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, BONE_CORE, PILE_OF_BONE_CORE);
+            BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, BONE_CORE, PILE_OF_BONE_CORE,
+            ROTTEN_FLESH_CORE, ZOMBIES_HEART);
 
     private HeadTexture() {
     }

@@ -163,6 +163,14 @@ public final class CollectionsCatalog {
     public static final NamespacedKey PILE_OF_BONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "pile_of_bone_core");
     public static final NamespacedKey SKELETONS_HELMET_RECIPE = new NamespacedKey("foodtooltips", "skeletons_helmet");
     public static final NamespacedKey RUNAANS_BOW_RECIPE = new NamespacedKey("foodtooltips", "runaans_bow");
+    public static final NamespacedKey ZOMBIE_PICKAXE_RECIPE = new NamespacedKey("foodtooltips", "zombie_pickaxe");
+    public static final NamespacedKey ROTTEN_FLESH_CORE_RECIPE = new NamespacedKey("foodtooltips", "rotten_flesh_core");
+    public static final NamespacedKey ZOMBIE_HAT_RECIPE = new NamespacedKey("foodtooltips", "zombie_hat");
+    public static final NamespacedKey ZOMBIES_HEART_RECIPE = new NamespacedKey("foodtooltips", "zombies_heart");
+    public static final NamespacedKey ZOMBIE_SWORD_RECIPE = new NamespacedKey("foodtooltips", "zombie_sword");
+    public static final NamespacedKey ZOMBIE_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "zombie_chestplate");
+    public static final NamespacedKey ZOMBIE_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "zombie_leggings");
+    public static final NamespacedKey ZOMBIE_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "zombie_boots");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -208,7 +216,31 @@ public final class CollectionsCatalog {
             // milestones are decided, but each starts with an empty list, same "collect
             // freely, nothing unlocks yet" convention Foraging's own wood-log templates
             // below (Mangrove Log onward) already use.
-            new CollectionsEntry(Material.ROTTEN_FLESH, Material.ROTTEN_FLESH, CollectionsCategory.COMBAT, "Carne Podre", "Rotten Flesh", List.of()),
+            new CollectionsEntry(Material.ROTTEN_FLESH, Material.ROTTEN_FLESH, CollectionsCategory.COMBAT, "Carne Podre", "Rotten Flesh", List.of(
+                    CollectionsMilestone.combatXp(50, 1000,
+                            "+1000 XP de Combate", "+1000 Combat XP"),
+                    CollectionsMilestone.recipeUnlock(100,
+                            "Desbloqueia a receita do Zombie Pickaxe", "Unlocks the Zombie Pickaxe recipe",
+                            ZOMBIE_PICKAXE_RECIPE),
+                    CollectionsMilestone.vanillaEnchantDiscount(250, NamespacedKey.minecraft("smite"), 25.0,
+                            "-25% de custo em XP para Castigo", "-25% XP cost for Smite"),
+                    CollectionsMilestone.recipeUnlock(1000,
+                            "Desbloqueia a receita do Rotten Flesh Core", "Unlocks the Rotten Flesh Core recipe",
+                            ROTTEN_FLESH_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(2500,
+                            "Desbloqueia a receita do Zombie Hat", "Unlocks the Zombie Hat recipe",
+                            ZOMBIE_HAT_RECIPE),
+                    CollectionsMilestone.recipeUnlock(5000,
+                            "Desbloqueia a receita do Zombie's Heart", "Unlocks the Zombie's Heart recipe",
+                            ZOMBIES_HEART_RECIPE),
+                    CollectionsMilestone.recipeUnlock(10000,
+                            "Desbloqueia a receita do Zombie Sword", "Unlocks the Zombie Sword recipe",
+                            ZOMBIE_SWORD_RECIPE),
+                    CollectionsMilestone.recipeUnlock(25000,
+                            "Desbloqueia a receita da Zombie Armor", "Unlocks the Zombie Armor recipe",
+                            ZOMBIE_CHESTPLATE_RECIPE, ZOMBIE_LEGGINGS_RECIPE, ZOMBIE_BOOTS_RECIPE),
+                    CollectionsMilestone.combatXp(50000, 50000,
+                            "+50000 XP de Combate", "+50000 Combat XP"))),
             new CollectionsEntry(Material.BONE, Material.BONE, CollectionsCategory.COMBAT, "Osso", "Bone", List.of(
                     CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
                             "+" + DEFAULT_XP[0] + " XP de Combate", "+" + DEFAULT_XP[0] + " Combat XP"),

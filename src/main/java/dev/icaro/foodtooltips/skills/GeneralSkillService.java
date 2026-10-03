@@ -85,6 +85,8 @@ public final class GeneralSkillService {
     private java.util.function.ToIntFunction<Player> heatMiningSpeedBonus = p -> 0;
     /** The Nether's own Heat mechanic's live Mining Fortune bonus (+1 per current Heat point) - same late-bound idea as {@link #heatMiningSpeedBonus}, read by {@link #heatFortuneBonus}'s own MINING case. */
     private java.util.function.ToIntFunction<Player> heatMiningFortuneBonus = p -> 0;
+    /** The Rotten Flesh Collection's own Zombie Pickaxe "Rotten" ability - +5 Mining Fortune per Undead mob within 30 blocks while it's the held tool, capped at +25 (see {@code item.ZombiePickaxeService#miningFortuneBonus}) - same late-bound idea as {@link #heatMiningFortuneBonus}, folded into {@link #fortune}'s own MINING case alongside it. */
+    private java.util.function.ToIntFunction<Player> pickaxeMiningFortuneBonus = p -> 0;
 
     /** Wired in after construction, same pattern as {@code ArmorDefenseService#protectionBonus} - see {@link #armorMiningSpeedBonus}. */
     public void armorMiningSpeedBonus(java.util.function.ToIntFunction<Player> armorMiningSpeedBonus) {
@@ -129,6 +131,11 @@ public final class GeneralSkillService {
     /** Wired in after construction - see {@link #heatMiningFortuneBonus}. */
     public void heatMiningFortuneBonus(java.util.function.ToIntFunction<Player> heatMiningFortuneBonus) {
         this.heatMiningFortuneBonus = heatMiningFortuneBonus;
+    }
+
+    /** Wired in after construction - see {@link #pickaxeMiningFortuneBonus}. */
+    public void pickaxeMiningFortuneBonus(java.util.function.ToIntFunction<Player> pickaxeMiningFortuneBonus) {
+        this.pickaxeMiningFortuneBonus = pickaxeMiningFortuneBonus;
     }
 
     /** Just the Mangrove-accessory portion of {@link #sweep} - broken out so the Stats screen can show it as its own line, same reasoning {@link #armorFortuneBonus} already gives. */
@@ -200,7 +207,15 @@ public final class GeneralSkillService {
             case SkillType.MINING, SkillType.FARMING, SkillType.FORAGING -> this.progress(player, type).level() * FORTUNE_PER_LEVEL;
             default -> 0;
         };
-        return base + this.armorFortuneBonus(player, type) + this.accessoryFortuneBonus(player, type) + this.heatFortuneBonus(player, type);
+        return base + this.armorFortuneBonus(player, type) + this.accessoryFortuneBonus(player, type) + this.heatFortuneBonus(player, type) + this.pickaxeFortuneBonus(player, type);
+    }
+
+    /** Just the Zombie Pickaxe's own "Rotten" ability portion of {@link #fortune} (Mining only - see {@link #pickaxeMiningFortuneBonus}) - broken out the same reason {@link #heatFortuneBonus} is. */
+    public int pickaxeFortuneBonus(Player player, SkillType type) {
+        return switch (type) {
+            case MINING -> this.pickaxeMiningFortuneBonus.applyAsInt(player);
+            default -> 0;
+        };
     }
 
     /** Just the armor-piece portion of {@link #fortune} (Lapis Lazuli Armor for Mining, Sprout/Farmhand/Haymaker/Farmer Boots for Farming, Leaflet Armor for Foraging) - broken out so the Stats screen can show it as its own line instead of folding it silently into the level-based total. */
