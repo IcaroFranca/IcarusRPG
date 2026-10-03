@@ -147,6 +147,10 @@ public final class HeadTexture {
     public static final String BEETROOT_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWM5ZTE3MTg3N2EzMTA3MzhmYTM3NzVjODAzOWE3N2FiMTQxNDE3ZjU2ZDI3NmE3MzE4OWM5NzQ5MjBlMjRkMiJ9fX0=";
     /** "Picnic Basket" (minecraft-heads.com Custom Head ID 11930) - the Basket of Seeds item, see {@code BasketOfSeedsService}. */
     public static final String PICNIC_BASKET = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2E2YmY5MTZlMjhjY2I4MGI0ZWJmYWNmOTg2ODZhZDZhZjdjNGZiMjU3ZTU3YThjYjc4YzcxZDE5ZGNjYjIifX19";
+    /** "Fire Flower" (minecraft-heads.com Custom Head ID 124104) - the Torchflower Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String TORCHFLOWER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDE2NmNhZGY0YjY2MWNiZTQ1YTA1MGJiMWE1NzFlY2MyYzAxNTQwNDg5MjVkOWYwYmMyYWMyMWI3MjRiZWFlNiJ9fX0=";
+    /** "Fire Snake (head)" (minecraft-heads.com Custom Head ID 124144) - the Radiant Torchflower Core crafting item, {@link #TORCHFLOWER_CORE}'s own upgrade - see {@code FarmingCollectionsItemsService}. */
+    public static final String RADIANT_TORCHFLOWER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTQ2M2YxMjdiMmI5OTkxMDdmNWIzNmEzOGU0NGI3N2RjZGYyZjhhNzQ4ODg1MGYzM2QyM2M0NTc2YjA5OTAwMCJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -156,7 +160,7 @@ public final class HeadTexture {
             CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
-            BEETROOT_CORE, PICNIC_BASKET);
+            BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE);
 
     private HeadTexture() {
     }

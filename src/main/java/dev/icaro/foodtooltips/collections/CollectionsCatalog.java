@@ -151,6 +151,10 @@ public final class CollectionsCatalog {
     public static final NamespacedKey MANGROVE_SWEEP_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_talisman");
     public static final NamespacedKey MANGROVE_SWEEP_RING_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_ring");
     public static final NamespacedKey MANGROVE_SWEEP_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_artifact");
+    public static final NamespacedKey TORCHFLOWER_CORE_RECIPE = new NamespacedKey("foodtooltips", "torchflower_core");
+    public static final NamespacedKey RADIANT_TORCHFLOWER_CORE_RECIPE = new NamespacedKey("foodtooltips", "radiant_torchflower_core");
+    /** The real vanilla recipe key for Suspicious Stew (a {@link org.bukkit.inventory.ComplexRecipe}, not a normal shaped/shapeless one - see {@code CollectionsRecipeGateListener}'s own doc on why gating it needed that class to learn about this recipe kind too) - this plugin never registers a recipe of its own for it, same "real vanilla key, gated without owning it" trick {@link #RED_MUSHROOM_BLOCK_RECIPE}/{@link #BROWN_MUSHROOM_BLOCK_RECIPE} already use. */
+    public static final NamespacedKey SUSPICIOUS_STEW_RECIPE = NamespacedKey.minecraft("suspicious_stew");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -532,16 +536,29 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.KELP_PLANT, Material.KELP, CollectionsCategory.FARMING, "Kelp", "Kelp", List.of()),
             new CollectionsEntry(Material.SWEET_BERRY_BUSH, Material.SWEET_BERRIES, CollectionsCategory.FARMING, "Frutas Silvestres", "Sweet Berries", List.of()),
             new CollectionsEntry(Material.CAVE_VINES, Material.GLOW_BERRIES, CollectionsCategory.FARMING, "Frutas Brilhantes", "Glow Berries", List.of()),
-            // Plain Farming XP ladder for now - no Core item yet, since every other Core in
-            // this catalog is a real minecraft-heads.com custom head (see
-            // FarmingCollectionsItemsService#potatoCore/melonCore and HeadTexture's own doc),
-            // and the player hasn't sent a real texture for either of these two yet. Both are
-            // genuinely farmable now (not just inert templates) thanks to
+            // Genuinely farmable now (not just an inert template) thanks to
             // GeneralSkillListener#reseedTorchflower - Torchflower's own real vanilla harvest
             // never returns a seed (unlike literally every other crop here), which would
-            // otherwise hard-wall this Collection behind a single Sniffer/Suspicious Sand
-            // find; Pitcher Pod already reseeds itself in vanilla, so it needed no such fix.
-            new CollectionsEntry(Material.TORCHFLOWER_CROP, Material.TORCHFLOWER, CollectionsCategory.FARMING, "Flor-Tocha", "Torchflower", genericXp()),
+            // otherwise hard-wall this Collection behind a single Sniffer/Suspicious Sand find.
+            new CollectionsEntry(Material.TORCHFLOWER_CROP, Material.TORCHFLOWER, CollectionsCategory.FARMING, "Flor-Tocha", "Torchflower", genericXpWithOverrides(
+                    at(2, CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.DELICATE, 25.0,
+                            "-25% de custo em XP para Delicadeza", "-25% XP cost for Delicate")),
+                    at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Torchflower Core", "Unlocks the Torchflower Core recipe",
+                            TORCHFLOWER_CORE_RECIPE)),
+                    // A vanilla recipe this plugin never registers its own copy of - gated by
+                    // its real key, same trick RED_MUSHROOM_BLOCK_RECIPE/BROWN_MUSHROOM_BLOCK_RECIPE
+                    // already use. Thematically exact, not just a filler unlock: Suspicious Stew
+                    // made with an actual Torchflower already gives real vanilla Night Vision.
+                    at(6, new CollectionsMilestone(DEFAULT_THRESHOLDS[5], RewardKind.RECIPE_UNLOCK, 0,
+                            List.of(SUSPICIOUS_STEW_RECIPE), null, 0.0,
+                            "Desbloqueia a receita da Suspicious Stew", "Unlocks the Suspicious Stew recipe")),
+                    at(8, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
+                            "Desbloqueia a receita do Radiant Torchflower Core", "Unlocks the Radiant Torchflower Core recipe",
+                            RADIANT_TORCHFLOWER_CORE_RECIPE)))),
+            // Pitcher Pod already reseeds itself in vanilla (its own harvest returns 2-4 pods),
+            // so it needed no equivalent fix - still a plain XP ladder for now, no Core item
+            // yet (same "no real texture sent" reasoning Torchflower's own doc used to carry).
             new CollectionsEntry(Material.PITCHER_CROP, Material.PITCHER_POD, CollectionsCategory.FARMING, "Vagem de Jarro", "Pitcher Pod", genericXp()),
             // Personal Storage unlock/expansion milestones carry no recipes, same reasoning
             // as the Wardrobe (Leather)/Potion Bag (Nether Wart) entries above - see

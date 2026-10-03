@@ -83,6 +83,8 @@ public final class FarmingCollectionsItemsService {
     private static final UUID MELON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:melon_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID BEETROOT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:beetroot_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID TORCHFLOWER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:torchflower_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID RADIANT_TORCHFLOWER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:radiant_torchflower_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_ring".getBytes(StandardCharsets.UTF_8));
     private static final UUID BAKED_POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:baked_potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_artifact".getBytes(StandardCharsets.UTF_8));
@@ -419,6 +421,16 @@ public final class FarmingCollectionsItemsService {
                 });
         this.newShapedRecipe(CollectionsCatalog.LANTERN_HELMET_RECIPE, this.lanternHelmet(),
                 new String[]{"PPP", "P P"}, r -> r.setIngredient('P', new RecipeChoice.ExactChoice(this.pumpkinCore())));
+        this.newShapedRecipe(CollectionsCatalog.TORCHFLOWER_CORE_RECIPE, this.torchflowerCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.TORCHFLOWER);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.RADIANT_TORCHFLOWER_CORE_RECIPE, this.radiantTorchflowerCore(),
+                new String[]{"XXX", "XDX", "XXX"}, r -> {
+                    r.setIngredient('X', new RecipeChoice.ExactChoice(this.torchflowerCore()));
+                    r.setIngredient('D', Material.NETHERITE_INGOT);
+                });
 
         // Sprout Armor: an upgrade recipe, not a from-scratch one - same "Core surrounds the
         // matching upgrade-source piece" shape as newHaymakerRecipe, but 8 Carrot Cores
@@ -979,6 +991,26 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.BEETROOT_CORE, BEETROOT_CORE_PROFILE);
         meta.displayName(Component.text("Beetroot Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Torchflower Collection M3. */
+    private org.bukkit.inventory.ItemStack torchflowerCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.TORCHFLOWER_CORE, TORCHFLOWER_CORE_PROFILE);
+        meta.displayName(Component.text("Torchflower Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Torchflower Collection M8's own upgrade to {@link #torchflowerCore()} - same "8 of the base Core around a Netherite Ingot" shape as {@link #flowerCactusCore()}/{@link #trueChocolateCore()}. */
+    private org.bukkit.inventory.ItemStack radiantTorchflowerCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.RADIANT_TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE_PROFILE);
+        meta.displayName(Component.text("Radiant Torchflower Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }
