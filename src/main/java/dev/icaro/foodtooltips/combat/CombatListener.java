@@ -174,6 +174,8 @@ public final class CombatListener implements Listener {
     private java.util.function.ToDoubleFunction<Player> spiderHatCritChanceBonus = p -> 0.0;
     /** The Spider Eye Collection's own Leaping Sword - +25 Crit Damage while held (see {@code item.LeapingSwordService#critDamageBonus}), folded into {@link #attack}'s own crit multiplier. Defaults to always-0. */
     private java.util.function.ToDoubleFunction<ItemStack> heldWeaponCritDamageBonus = w -> 0.0;
+    /** The Gunpowder Collection's own Creeper Hat - +5 Crit Damage while worn (see {@code item.CreeperHatService#critDamageBonus}), folded into {@link #attack}'s own crit multiplier. A separate field from {@link #heldWeaponCritDamageBonus} since this one is keyed by the wearer, not the held weapon. Defaults to always-0. */
+    private java.util.function.ToDoubleFunction<Player> creeperHatCritDamageBonus = p -> 0.0;
     private final CollectionsService collections;
     /** See {@code skills.GeneralSkillListener#openCollectionsEntry}'s own doc - same callback, wired from {@code FoodTooltipsPlugin}, so {@link CollectionsService#announce}'s own clickable recipe-reward line works for a Combat Collection too. */
     private BiConsumer<Player, Material> openCollectionsEntry = (p, m) -> {};
@@ -196,6 +198,11 @@ public final class CombatListener implements Listener {
     /** Wired after construction - see {@link #heldWeaponCritDamageBonus}'s own doc. */
     public void heldWeaponCritDamageBonus(java.util.function.ToDoubleFunction<ItemStack> heldWeaponCritDamageBonus) {
         this.heldWeaponCritDamageBonus = heldWeaponCritDamageBonus;
+    }
+
+    /** Wired after construction - see {@link #creeperHatCritDamageBonus}'s own doc. */
+    public void creeperHatCritDamageBonus(java.util.function.ToDoubleFunction<Player> creeperHatCritDamageBonus) {
+        this.creeperHatCritDamageBonus = creeperHatCritDamageBonus;
     }
 
     /** See {@link #openCollectionsEntry}'s own doc. */
@@ -450,6 +457,7 @@ public final class CombatListener implements Listener {
                 ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus
                         + (this.reforge.statsOf(weapon).critDamage() + armorReforge.critDamage() + bowReforge.critDamage()) / 100.0
                         + this.heldWeaponCritDamageBonus.applyAsDouble(weapon) / 100.0
+                        + this.creeperHatCritDamageBonus.applyAsDouble(p) / 100.0
                 : 1.0;
         double damage;
         if (melee) {

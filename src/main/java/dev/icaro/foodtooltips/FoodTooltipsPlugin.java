@@ -18,6 +18,7 @@ import dev.icaro.foodtooltips.builder.BuilderWandService;
 import dev.icaro.foodtooltips.combat.AnimalSeparationService;
 import dev.icaro.foodtooltips.combat.CombatListener;
 import dev.icaro.foodtooltips.combat.ElementalDamageListener;
+import dev.icaro.foodtooltips.combat.EnderPearlAggroListener;
 import dev.icaro.foodtooltips.combat.MinerVariantService;
 import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
@@ -76,6 +77,9 @@ import dev.icaro.foodtooltips.item.SpiderHatService;
 import dev.icaro.foodtooltips.item.SpiderSwordService;
 import dev.icaro.foodtooltips.item.LeapingSwordService;
 import dev.icaro.foodtooltips.item.SpidersBootsService;
+import dev.icaro.foodtooltips.item.CreeperHatService;
+import dev.icaro.foodtooltips.item.CreeperPantsService;
+import dev.icaro.foodtooltips.item.ExplosiveBowService;
 import dev.icaro.foodtooltips.item.SkeletonsHelmetService;
 import dev.icaro.foodtooltips.item.ZombieArmorService;
 import dev.icaro.foodtooltips.item.ZombieHatService;
@@ -431,17 +435,28 @@ extends JavaPlugin {
         armor.incomingMobTypeMultiplier(spiderHat::arthropodDamageMultiplier);
         LeapingSwordService leapingSword = new LeapingSwordService((Plugin)this, tiers, stats, abilities);
         pm.registerEvents((Listener)leapingSword, (Plugin)this);
-        stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p));
         // String Collection (M2-M9) - wired alongside Bone/Rotten Flesh/Spider Eye's own items.
         SpidersBootsService spidersBoots = new SpidersBootsService(stats);
         pm.registerEvents((Listener)spidersBoots, (Plugin)this);
         // Skeleton Hat (helmet) and Spider's Boots (boots) occupy different armor slots and
         // can both be worn at once, so their Intelligence/Speed bonuses are summed here
         // rather than overwriting each other.
-        stats.skeletonHatIntelligenceBonus(p -> skeletonHat.intelligenceBonus(p) + spidersBoots.intelligenceBonus(p));
+        // Gunpowder Collection (M2/M8/M9) - wired alongside Bone/Rotten Flesh/Spider Eye/String's own items.
+        CreeperHatService creeperHat = new CreeperHatService(tiers);
+        pm.registerEvents((Listener)creeperHat, (Plugin)this);
+        CreeperPantsService creeperPants = new CreeperPantsService(tiers, abilities);
+        pm.registerEvents((Listener)creeperPants, (Plugin)this);
+        ExplosiveBowService explosiveBow = new ExplosiveBowService(tiers, abilities);
+        pm.registerEvents((Listener)explosiveBow, (Plugin)this);
+        // Skeleton Hat (helmet), Spider's Boots (boots) and Creeper Hat (helmet, but Creeper
+        // Hat and Skeleton Hat can't both be worn at once anyway) occupy either different
+        // armor slots or none at all, so their Intelligence/Speed/Strength/Crit Chance
+        // bonuses are summed here rather than overwriting each other.
+        stats.skeletonHatIntelligenceBonus(p -> skeletonHat.intelligenceBonus(p) + spidersBoots.intelligenceBonus(p) + creeperHat.intelligenceBonus(p));
         stats.skeletonHatSpeedBonus(p -> skeletonHat.speedBonus(p) + spidersBoots.speedBonus(p));
+        stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p) + creeperHat.strengthBonus(p));
         new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor,
-                spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots).registerRecipes();
+                spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots, creeperHat, creeperPants, explosiveBow).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
@@ -483,8 +498,9 @@ extends JavaPlugin {
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService, collectionsService);
         combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
         combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
-        combatListener.spiderHatCritChanceBonus(spiderHat::critChanceBonus);
+        combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);
+        combatListener.creeperHatCritDamageBonus(creeperHat::critDamageBonus);
         combatListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
                 .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         // Registration order among these EventPriority.HIGHEST EntityDamageEvent handlers
@@ -506,6 +522,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)combatListener, (Plugin)this);
         pm.registerEvents((Listener)minerVariants, (Plugin)this);
         pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
+        pm.registerEvents((Listener)new EnderPearlAggroListener((Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsItemsMenuListener(collectionsItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);

@@ -19,15 +19,17 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 /**
  * The craftable rewards Combat's own {@link CollectionsCatalog} entries (Bone, Rotten Flesh,
- * Spider Eye, String) unlock - same role {@code FarmingCollectionsItemsService}/{@code
- * ForagingCollectionsItemsService} play for their own categories. Bone Core/Pile of Bone Core/
- * Spider Eye Core/Fermented Spider Eye Core/String Core are plain collectible crafted items here
- * (no behavior of their own, just an ingredient for the recipes below); Skeleton Hat, Hurricane/
- * Runaan's Bow, Skeleton's Helmet, Spider Sword, Spider Hat, Leaping Sword, Grappling Hook and
- * Spider's Boots all have real behavior of their own, so their own item-building logic lives
- * WITH that behavior instead ({@link SkeletonHatService}/{@link HurricaneBowService}/{@link
+ * Spider Eye, String, Gunpowder) unlock - same role {@code FarmingCollectionsItemsService}/
+ * {@code ForagingCollectionsItemsService} play for their own categories. Bone Core/Pile of Bone
+ * Core/Spider Eye Core/Fermented Spider Eye Core/String Core/Gunpowder Core/Firework Core are
+ * plain collectible crafted items here (no behavior of their own, just an ingredient for the
+ * recipes below); Skeleton Hat, Hurricane/Runaan's Bow, Skeleton's Helmet, Spider Sword, Spider
+ * Hat, Leaping Sword, Grappling Hook, Spider's Boots, Creeper Hat, Creeper Pants and Explosive
+ * Bow all have real behavior of their own, so their own item-building logic lives WITH that
+ * behavior instead ({@link SkeletonHatService}/{@link HurricaneBowService}/{@link
  * SkeletonsHelmetService}/{@link SpiderSwordService}/{@link SpiderHatService}/{@link
- * LeapingSwordService}/{@link GrapplingHookService}/{@link SpidersBootsService}) - this class
+ * LeapingSwordService}/{@link GrapplingHookService}/{@link SpidersBootsService}/{@link
+ * CreeperHatService}/{@link CreeperPantsService}/{@link ExplosiveBowService}) - this class
  * only calls into them when registering its own recipes, same "effect service builds its own
  * item, items-service just registers the recipe" split {@code ForagingCollectionsItemsService}
  * already uses for e.g. its own Sculptor's Axe. The Web milestone (String M2) doesn't register
@@ -48,6 +50,8 @@ public final class CombatCollectionsItemsService {
     private static final UUID SPIDER_EYE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spider_eye_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FERMENTED_SPIDER_EYE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:fermented_spider_eye_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID STRING_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:string_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID GUNPOWDER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:gunpowder_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID FIREWORK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:firework_core".getBytes(StandardCharsets.UTF_8));
 
     private final HurricaneBowService hurricaneBow;
     private final SkeletonHatService skeletonHat;
@@ -62,12 +66,16 @@ public final class CombatCollectionsItemsService {
     private final LeapingSwordService leapingSword;
     private final GrapplingHookService grapplingHook;
     private final SpidersBootsService spidersBoots;
+    private final CreeperHatService creeperHat;
+    private final CreeperPantsService creeperPants;
+    private final ExplosiveBowService explosiveBow;
 
     public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonHatService skeletonHat,
             SkeletonsHelmetService skeletonsHelmet, ZombiePickaxeService zombiePickaxe, ZombieHatService zombieHat,
             ZombiesHeartService zombiesHeart, ZombieSwordService zombieSword, ZombieArmorService zombieArmor,
             SpiderSwordService spiderSword, SpiderHatService spiderHat, LeapingSwordService leapingSword,
-            GrapplingHookService grapplingHook, SpidersBootsService spidersBoots) {
+            GrapplingHookService grapplingHook, SpidersBootsService spidersBoots,
+            CreeperHatService creeperHat, CreeperPantsService creeperPants, ExplosiveBowService explosiveBow) {
         this.hurricaneBow = hurricaneBow;
         this.skeletonHat = skeletonHat;
         this.skeletonsHelmet = skeletonsHelmet;
@@ -78,6 +86,9 @@ public final class CombatCollectionsItemsService {
         this.zombieArmor = zombieArmor;
         this.spiderSword = spiderSword;
         this.spiderHat = spiderHat;
+        this.creeperHat = creeperHat;
+        this.creeperPants = creeperPants;
+        this.explosiveBow = explosiveBow;
         this.leapingSword = leapingSword;
         this.grapplingHook = grapplingHook;
         this.spidersBoots = spidersBoots;
@@ -184,6 +195,47 @@ public final class CombatCollectionsItemsService {
         // Armor's own pieces use for Zombie's Heart.
         this.newShapedRecipe(CollectionsCatalog.SPIDERS_BOOTS_RECIPE, this.spidersBoots.createItem(),
                 new String[]{"C C", "C C"}, r -> r.setIngredient('C', new RecipeChoice.ExactChoice(this.stringCore())));
+        this.newShapedRecipe(CollectionsCatalog.CREEPER_HAT_RECIPE, this.creeperHat.createItem(),
+                new String[]{"GGG", "G G", "GGG"}, r -> r.setIngredient('G', Material.GUNPOWDER));
+        this.newShapedRecipe(CollectionsCatalog.GUNPOWDER_CORE_RECIPE, this.gunpowderCore(),
+                new String[]{"GGG", "GDG", "GGG"}, r -> {
+                    r.setIngredient('G', Material.GUNPOWDER);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.FIREWORK_CORE_RECIPE, this.fireworkCore(),
+                new String[]{"CCC", "CNC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.gunpowderCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                });
+        // Real vanilla Leggings shape (4 Iron Ingots) with the Iron Ingots swapped for a
+        // Gunpowder Core, same trick Spider's Boots/Zombie Armor's own pieces already use.
+        this.newShapedRecipe(CollectionsCatalog.CREEPER_PANTS_RECIPE, this.creeperPants.createItem(),
+                new String[]{"GGG", "G G", "G G"}, r -> r.setIngredient('G', new RecipeChoice.ExactChoice(this.gunpowderCore())));
+        // Real vanilla Bow shape (3 Sticks, 3 String) with the Stick slots swapped for a
+        // Firework Core, per the player's own explicit "invés de stick vai usar Firework core".
+        this.newShapedRecipe(CollectionsCatalog.EXPLOSIVE_BOW_RECIPE, this.explosiveBow.createItem(),
+                new String[]{" FS", "F S", " FS"}, r -> {
+                    r.setIngredient('F', new RecipeChoice.ExactChoice(this.fireworkCore()));
+                    r.setIngredient('S', Material.STRING);
+                });
+    }
+
+    private ItemStack gunpowderCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.GUNPOWDER_CORE, GUNPOWDER_CORE_PROFILE);
+        meta.displayName(Component.text("Gunpowder Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack fireworkCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.FIREWORK_CORE, FIREWORK_CORE_PROFILE);
+        meta.displayName(Component.text("Firework Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack stringCore() {
