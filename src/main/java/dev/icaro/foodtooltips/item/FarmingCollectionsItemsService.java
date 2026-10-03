@@ -1024,9 +1024,21 @@ public final class FarmingCollectionsItemsService {
      * own doc. No custom head texture was given for this one (unlike the Core/Ring/Artifact
      * items), so it's represented by a plain Poisonous Potato instead, same "reuse the
      * ingredient's own material" choice {@code featherTalisman} makes with a plain Feather.
+     *
+     * <p>Unlike every other Talisman's own base material, a real Poisonous Potato carries a
+     * vanilla {@code FoodProperties} component - {@code food.FoodTooltipListener}'s own
+     * per-item refresh sweep (every inventory click/open/join) adds a "Food attributes"
+     * nutrition block to ANY item with one, the instant this Talisman sits in a player's
+     * real inventory, which this freshly-built reference (used as the Vaccine Ring recipe's
+     * own {@code RecipeChoice.ExactChoice} ingredient) never goes through - silently
+     * breaking that recipe for good the moment the sweep first touches the player's copy,
+     * same bug class {@link #tagged}'s own doc describes for the tier tag, just triggered by
+     * food tooltips instead. Stripping the component here (it was never meant to be eaten as
+     * an accessory anyway) keeps both copies identical.
      */
     private org.bukkit.inventory.ItemStack vaccineTalisman() {
         var item = new org.bukkit.inventory.ItemStack(Material.POISONOUS_POTATO);
+        item.unsetData(io.papermc.paper.datacomponent.DataComponentTypes.FOOD);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Vaccine Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
         AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0, 0.0, 0, 0, 0, 0);
