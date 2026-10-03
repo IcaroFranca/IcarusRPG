@@ -70,6 +70,7 @@ import org.bukkit.util.Vector;
  */
 public final class HurricaneBowService implements Listener {
     private static final Key HURRICANE_MODEL = Key.key("icarus", "hurricane_bow");
+    private static final Key RUNAANS_MODEL = Key.key("icarus", "runaans_bow");
     private static final NamespacedKey HURRICANE_KEY = new NamespacedKey("foodtooltips", "hurricane_bow");
     private static final NamespacedKey RUNAANS_KEY = new NamespacedKey("foodtooltips", "runaans_bow");
     private static final NamespacedKey KILLS_KEY = new NamespacedKey("foodtooltips", "hurricane_bow_kills");
@@ -149,6 +150,7 @@ public final class HurricaneBowService implements Listener {
                 Component.text("damage and home to targets.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
+        applyBowAppearance(item);
         return item;
     }
 
@@ -198,14 +200,15 @@ public final class HurricaneBowService implements Listener {
         lore.add(Component.text("Kills: " + kills, NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         item.setItemMeta(meta);
-        applyHurricaneAppearance(item);
+        applyBowAppearance(item);
         return item;
     }
 
-    /** Applies the resource-pack model to newly crafted bows and to legacy bows when their kill lore refreshes. */
-    private static void applyHurricaneAppearance(ItemStack item) {
-        if (isHurricaneBow(item) && !HURRICANE_MODEL.equals(item.getData(DataComponentTypes.ITEM_MODEL))) {
-            item.setData(DataComponentTypes.ITEM_MODEL, HURRICANE_MODEL);
+    /** Applies each bow's resource-pack model; Hurricane legacy pieces also refresh here whenever their kill lore changes. */
+    private static void applyBowAppearance(ItemStack item) {
+        Key model = isHurricaneBow(item) ? HURRICANE_MODEL : isRunaansBow(item) ? RUNAANS_MODEL : null;
+        if (model != null && !model.equals(item.getData(DataComponentTypes.ITEM_MODEL))) {
+            item.setData(DataComponentTypes.ITEM_MODEL, model);
         }
     }
 
