@@ -763,6 +763,7 @@ public final class CombatListener implements Listener {
         });
         this.rollMinerLegendaryDrop(e, p);
         this.rollEquipmentDrops(e, p);
+        this.sanitizeEndermanDrops(e);
         this.creditCombatCollections(p, e);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
@@ -1062,6 +1063,24 @@ public final class CombatListener implements Listener {
         // an unbounded leak with no cap).
         this.deathLocations.remove(e.getPlayer().getUniqueId());
         this.teleportArmed.remove(e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * An Enderman is only ever meant to drop Ender Pearl here - some of the terrain/overhaul
+     * datapacks this server runs (StellarityLite, confirmed by the player) rewrite the vanilla
+     * Enderman loot table to drop Chorus Fruit instead, which would otherwise slip past {@link
+     * #creditCombatCollections} as a bogus Ender Pearl Collection credit (it only reads {@link
+     * EntityDeathEvent#getDrops()}'s own Material, it has no way to tell a datapack-swapped drop
+     * from a real one) and clutter the kill with an item that has nothing to do with this mob.
+     * Stripped back to vanilla's own shape regardless of whatever loot table actually produced
+     * the drops, so any other datapack/plugin pulling the same trick on this or another server is
+     * covered too - not specific to Chorus Fruit.
+     */
+    private void sanitizeEndermanDrops(EntityDeathEvent e) {
+        if (e.getEntityType() != EntityType.ENDERMAN) {
+            return;
+        }
+        e.getDrops().removeIf(drop -> drop.getType() != Material.ENDER_PEARL);
     }
 
     /** A Zombie Miner (only - Skeleton Miner has no special drop) has a small chance of dropping the Undead's Sword - the first non-admin way to obtain it (previously {@code /rpgitems}-only, via {@code LegendaryItemsMenuService}). */
