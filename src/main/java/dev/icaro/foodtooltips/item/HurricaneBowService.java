@@ -3,10 +3,12 @@ package dev.icaro.foodtooltips.item;
 import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
@@ -67,6 +69,7 @@ import org.bukkit.util.Vector;
  * Runaan's Bow mint free vanilla arrows.
  */
 public final class HurricaneBowService implements Listener {
+    private static final Key HURRICANE_MODEL = Key.key("icarus", "hurricane_bow");
     private static final NamespacedKey HURRICANE_KEY = new NamespacedKey("foodtooltips", "hurricane_bow");
     private static final NamespacedKey RUNAANS_KEY = new NamespacedKey("foodtooltips", "runaans_bow");
     private static final NamespacedKey KILLS_KEY = new NamespacedKey("foodtooltips", "hurricane_bow_kills");
@@ -195,7 +198,15 @@ public final class HurricaneBowService implements Listener {
         lore.add(Component.text("Kills: " + kills, NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         item.setItemMeta(meta);
+        applyHurricaneAppearance(item);
         return item;
+    }
+
+    /** Applies the resource-pack model to newly crafted bows and to legacy bows when their kill lore refreshes. */
+    private static void applyHurricaneAppearance(ItemStack item) {
+        if (isHurricaneBow(item) && !HURRICANE_MODEL.equals(item.getData(DataComponentTypes.ITEM_MODEL))) {
+            item.setData(DataComponentTypes.ITEM_MODEL, HURRICANE_MODEL);
+        }
     }
 
     /**
