@@ -350,45 +350,7 @@ public final class AccessoryBagService {
         return total;
     }
 
-    /** Sum of {@link AccessoryItems#intelligenceBonus} across every accessory {@code p} currently has stored (the Bone Collection's own Skeleton Hat) - read by {@code stats.PlayerStatsService#effectiveIntelligence} (wired in as its own late-bound {@code accessoryBag} field), same shape as {@link #totalSweepBonus}/{@link #totalForagingFortuneBonus}. */
-    public int totalIntelligenceBonus(Player p) {
-        int total = 0;
-        for (ItemStack item : this.stored(p)) {
-            total += AccessoryItems.intelligenceBonus(item);
-        }
-        return total;
-    }
-
-    /** Sum of {@link AccessoryItems#speedBonus} across every accessory {@code p} currently has stored (the Bone Collection's own Skeleton Hat) - the number shown on the Stats screen (read by {@code stats.PlayerStatsService#effectiveAgility}); {@link #applyAccessorySpeed} separately turns this same number into the real Movement Speed attribute, since an accessory in the bag (unlike a worn armor piece) has no equip slot of its own for a baked-in {@link AttributeModifier} to apply automatically. */
-    public int totalSpeedBonus(Player p) {
-        int total = 0;
-        for (ItemStack item : this.stored(p)) {
-            total += AccessoryItems.speedBonus(item);
-        }
-        return total;
-    }
-
-    private static final NamespacedKey ACCESSORY_SPEED_KEY = new NamespacedKey("foodtooltips", "accessory_speed_bonus_attribute");
-    /** Same "Speed point -> real Movement Speed" conversion every other Speed source in this plugin uses - see {@code item.SpeedsterArmorService#SPEED_POINT_TO_ATTRIBUTE}'s own doc. */
-    private static final double SPEED_POINT_TO_ATTRIBUTE = 0.001;
-
-    /** Converts {@link #totalSpeedBonus} into the real vanilla Movement Speed attribute - same remove-then-reapply-if-still-earned idempotent pattern {@code item.SpeedsterArmorService#applyFullSetSpeed} uses, called from the same periodic per-player sweep in {@code FoodTooltipsPlugin}. */
-    public void applyAccessorySpeed(Player p) {
-        AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
-        if (speed == null) {
-            return;
-        }
-        AttributeModifier old = speed.getModifier(Key.key(ACCESSORY_SPEED_KEY.getNamespace(), ACCESSORY_SPEED_KEY.getKey()));
-        if (old != null) {
-            speed.removeModifier(old);
-        }
-        int bonus = this.totalSpeedBonus(p);
-        if (bonus > 0) {
-            speed.addTransientModifier(new AttributeModifier(ACCESSORY_SPEED_KEY, bonus * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER));
-        }
-    }
-
-    /** Sum of {@link AccessoryItems#healthBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - same shape as {@link #totalIntelligenceBonus}; {@link #applyAccessoryHealth} separately turns this into the real Max Health attribute. */
+    /** Sum of {@link AccessoryItems#healthBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - same shape as {@link #totalHeatResistance}; {@link #applyAccessoryHealth} separately turns this into the real Max Health attribute. */
     public int totalHealthBonus(Player p) {
         int total = 0;
         for (ItemStack item : this.stored(p)) {
@@ -397,7 +359,7 @@ public final class AccessoryBagService {
         return total;
     }
 
-    /** Sum of {@link AccessoryItems#vitalityBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - read by {@code stats.PlayerStatsService} to raise effective Max Vitality the same way {@link #totalIntelligenceBonus} raises effective Max Mana. */
+    /** Sum of {@link AccessoryItems#vitalityBonus} across every accessory {@code p} currently has stored (the Rotten Flesh Collection's own Zombie's Heart) - read by {@code stats.PlayerStatsService} to raise effective Max Vitality the same way {@link #totalHeatResistance} raises effective Heat tick interval. */
     public int totalVitalityBonus(Player p) {
         int total = 0;
         for (ItemStack item : this.stored(p)) {
@@ -417,7 +379,7 @@ public final class AccessoryBagService {
 
     private static final NamespacedKey ACCESSORY_HEALTH_KEY = new NamespacedKey("foodtooltips", "accessory_health_bonus_attribute");
 
-    /** Converts {@link #totalHealthBonus} into the real vanilla Max Health attribute - same remove-then-reapply-if-still-earned idempotent pattern {@link #applyAccessorySpeed} uses, called from the same periodic per-player sweep in {@code FoodTooltipsPlugin}. A distinct {@link NamespacedKey} from every other Max Health source ({@code GeneralSkillService#applyBonusHealth}, {@code BestiaryProgressService}, {@code GlobalLevelService}) so they all stack independently. */
+    /** Converts {@link #totalHealthBonus} into the real vanilla Max Health attribute - same remove-then-reapply-if-still-earned idempotent pattern {@code item.SkeletonHatService#applySpeedAttribute} uses, called from the same periodic per-player sweep in {@code FoodTooltipsPlugin}. A distinct {@link NamespacedKey} from every other Max Health source ({@code GeneralSkillService#applyBonusHealth}, {@code BestiaryProgressService}, {@code GlobalLevelService}) so they all stack independently. */
     public void applyAccessoryHealth(Player p) {
         AttributeInstance health = p.getAttribute(Attribute.MAX_HEALTH);
         if (health == null) {

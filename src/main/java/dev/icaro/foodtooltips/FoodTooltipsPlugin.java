@@ -403,8 +403,10 @@ extends JavaPlugin {
         // Bone Collection (M4/M6/M8/M9) - SkeletonsHelmetService must be registered before
         // combatListener below (see that class's own doc) so a ready Bone Shield charge
         // takes priority over Second Wind's own cooldown at the same HIGHEST tier.
-        SkeletonHatService skeletonHat = new SkeletonHatService(this.accessoryBag, abilities);
+        SkeletonHatService skeletonHat = new SkeletonHatService(tiers, abilities);
         pm.registerEvents((Listener)skeletonHat, (Plugin)this);
+        stats.skeletonHatIntelligenceBonus(skeletonHat::intelligenceBonus);
+        stats.skeletonHatSpeedBonus(skeletonHat::speedBonus);
         SkeletonsHelmetService skeletonsHelmet = new SkeletonsHelmetService(tiers);
         pm.registerEvents((Listener)skeletonsHelmet, (Plugin)this);
         skeletonsHelmet.start((Plugin)this);
@@ -422,7 +424,7 @@ extends JavaPlugin {
         stats.heldWeaponIntelligenceBonus(zombieSword::heldIntelligenceBonus);
         ZombieArmorService zombieArmor = new ZombieArmorService((Plugin)this, tiers, stats);
         pm.registerEvents((Listener)zombieArmor, (Plugin)this);
-        new CombatCollectionsItemsService(hurricaneBow, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor).registerRecipes();
+        new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
@@ -696,7 +698,7 @@ extends JavaPlugin {
             // on Java (or the skin patch on Bedrock) until the next sweep.
             minerVariants.applyToInventory((Player)p);
             this.accessoryBag.refreshStandingEffects((Player)p);
-            this.accessoryBag.applyAccessorySpeed((Player)p);
+            skeletonHat.applySpeedAttribute((Player)p);
             this.accessoryBag.applyAccessoryHealth((Player)p);
             this.quiver.topUp((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));

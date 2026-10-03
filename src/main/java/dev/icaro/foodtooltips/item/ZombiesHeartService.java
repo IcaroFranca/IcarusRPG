@@ -22,7 +22,7 @@ import org.bukkit.inventory.meta.SkullMeta;
  * {@code skills.AccessoryBagService#totalHealthBonus}/{@code #totalVitalityBonus}/{@code
  * #totalMendingBonus} - the Health portion turned into a real Max Health attribute by {@code
  * skills.AccessoryBagService#applyAccessoryHealth}, same "remove old, reapply if still earned"
- * idempotent pattern {@code #applyAccessorySpeed} already uses).
+ * idempotent pattern {@code item.SkeletonHatService#applySpeedAttribute} already uses).
  *
  * <p>Tagged {@link AccessoryType#CHARM} (a standalone accessory, not part of a Talisman/Ring/
  * Artifact upgrade chain) with its own single-member {@code "zombies_heart"} family, purely so

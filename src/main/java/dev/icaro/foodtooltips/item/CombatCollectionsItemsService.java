@@ -37,6 +37,7 @@ public final class CombatCollectionsItemsService {
     private static final UUID ROTTEN_FLESH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:rotten_flesh_core".getBytes(StandardCharsets.UTF_8));
 
     private final HurricaneBowService hurricaneBow;
+    private final SkeletonHatService skeletonHat;
     private final SkeletonsHelmetService skeletonsHelmet;
     private final ZombiePickaxeService zombiePickaxe;
     private final ZombieHatService zombieHat;
@@ -44,10 +45,11 @@ public final class CombatCollectionsItemsService {
     private final ZombieSwordService zombieSword;
     private final ZombieArmorService zombieArmor;
 
-    public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonsHelmetService skeletonsHelmet,
-            ZombiePickaxeService zombiePickaxe, ZombieHatService zombieHat, ZombiesHeartService zombiesHeart,
-            ZombieSwordService zombieSword, ZombieArmorService zombieArmor) {
+    public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonHatService skeletonHat,
+            SkeletonsHelmetService skeletonsHelmet, ZombiePickaxeService zombiePickaxe, ZombieHatService zombieHat,
+            ZombiesHeartService zombiesHeart, ZombieSwordService zombieSword, ZombieArmorService zombieArmor) {
         this.hurricaneBow = hurricaneBow;
+        this.skeletonHat = skeletonHat;
         this.skeletonsHelmet = skeletonsHelmet;
         this.zombiePickaxe = zombiePickaxe;
         this.zombieHat = zombieHat;
@@ -58,7 +60,7 @@ public final class CombatCollectionsItemsService {
 
     /** Registers every recipe this class owns - Bone Collection M4 through M9, Rotten Flesh Collection M2 through M8. */
     public void registerRecipes() {
-        this.newShapedRecipe(CollectionsCatalog.SKELETON_HAT_RECIPE, SkeletonHatService.createItem(),
+        this.newShapedRecipe(CollectionsCatalog.SKELETON_HAT_RECIPE, this.skeletonHat.createItem(),
                 new String[]{"BBB", "B B", "BBB"}, r -> r.setIngredient('B', Material.BONE));
         this.newShapedRecipe(CollectionsCatalog.BONE_CORE_RECIPE, this.boneCore(),
                 new String[]{"BBB", "BDB", "BBB"}, r -> {

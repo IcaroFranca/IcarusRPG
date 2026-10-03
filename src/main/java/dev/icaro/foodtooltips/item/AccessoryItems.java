@@ -45,8 +45,6 @@ public final class AccessoryItems {
     private static final NamespacedKey FORAGING_FORTUNE_KEY = new NamespacedKey("foodtooltips", "accessory_foraging_fortune_bonus");
     private static final NamespacedKey CREAKING_SIGHT_RANGE_KEY = new NamespacedKey("foodtooltips", "accessory_creaking_sight_range");
     private static final NamespacedKey HEAT_RESISTANCE_KEY = new NamespacedKey("foodtooltips", "accessory_heat_resistance");
-    private static final NamespacedKey INTELLIGENCE_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_intelligence_bonus");
-    private static final NamespacedKey SPEED_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_speed_bonus");
     private static final NamespacedKey HEALTH_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_health_bonus");
     private static final NamespacedKey VITALITY_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_vitality_bonus");
     private static final NamespacedKey MENDING_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_mending_bonus");
@@ -55,25 +53,12 @@ public final class AccessoryItems {
     }
 
     /**
-     * A second, separate tagging call for {@code intelligenceBonus}/{@code speedBonus} - the
-     * Bone Collection's own Skeleton Hat is the first accessory to grant either stat, and
-     * {@link #mark}'s own parameter list already has 23 call sites across the codebase, so
-     * adding two more positional ints there would mean touching every one of them for a stat
-     * only this one item uses so far. Called in addition to {@link #mark}, not instead of it.
-     * Summed the same way as {@link #heatResistance} - see {@code
-     * skills.AccessoryBagService#totalIntelligenceBonus}/{@code #totalSpeedBonus}.
-     */
-    public static void markIntelligenceAndSpeed(ItemMeta meta, int intelligenceBonus, int speedBonus) {
-        meta.getPersistentDataContainer().set(INTELLIGENCE_BONUS_KEY, PersistentDataType.INTEGER, intelligenceBonus);
-        meta.getPersistentDataContainer().set(SPEED_BONUS_KEY, PersistentDataType.INTEGER, speedBonus);
-    }
-
-    /**
-     * A third, separate tagging call for {@code healthBonus}/{@code vitalityBonus}/{@code
+     * A second, separate tagging call for {@code healthBonus}/{@code vitalityBonus}/{@code
      * mendingBonus} - the Rotten Flesh Collection's own Zombie's Heart is the first accessory
-     * to grant any of these, same "don't touch {@link #mark}'s own 23 call sites for a stat
-     * only one item uses" reasoning {@link #markIntelligenceAndSpeed} already gives. Summed
-     * across every stored accessory the same way - see {@code
+     * to grant any of these, and {@link #mark}'s own parameter list already has 23 call sites
+     * across the codebase, so adding more positional ints there would mean touching every one
+     * of them for stats only this one item uses so far. Called in addition to {@link #mark},
+     * not instead of it. Summed across every stored accessory the same way - see {@code
      * skills.AccessoryBagService#totalHealthBonus}/{@code #totalVitalityBonus}/{@code
      * #totalMendingBonus}.
      */
@@ -220,24 +205,6 @@ public final class AccessoryItems {
         }
         ItemMeta meta = item.getItemMeta();
         return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(HEAT_RESISTANCE_KEY, PersistentDataType.INTEGER, 0);
-    }
-
-    /** Extra Intelligence {@code item} grants (the Bone Collection's own Skeleton Hat) - see {@link #markIntelligenceAndSpeed}. */
-    public static int intelligenceBonus(ItemStack item) {
-        if (item == null || item.isEmpty()) {
-            return 0;
-        }
-        ItemMeta meta = item.getItemMeta();
-        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(INTELLIGENCE_BONUS_KEY, PersistentDataType.INTEGER, 0);
-    }
-
-    /** Extra Speed {@code item} grants (the Bone Collection's own Skeleton Hat) - see {@link #markIntelligenceAndSpeed}. */
-    public static int speedBonus(ItemStack item) {
-        if (item == null || item.isEmpty()) {
-            return 0;
-        }
-        ItemMeta meta = item.getItemMeta();
-        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(SPEED_BONUS_KEY, PersistentDataType.INTEGER, 0);
     }
 
     /** Extra Max Health {@code item} grants (the Rotten Flesh Collection's own Zombie's Heart) - see {@link #markHealthVitalityMending}. */

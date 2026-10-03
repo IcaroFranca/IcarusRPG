@@ -63,8 +63,12 @@ public final class PlayerStatsService {
     private AccessoryBagService accessoryBag;
     /** The Rotten Flesh Collection's own Zombie Sword - +50 Strength while it's the held main-hand weapon (see {@code item.ZombieSwordService#heldStrengthBonus}), same late-bound idea as {@link #legendary}'s own {@code heldAgilityBonus} for Baruka's Dagger. */
     private java.util.function.ToIntFunction<Player> heldWeaponStrengthBonus = p -> 0;
-    /** The Rotten Flesh Collection's own Zombie Sword - +50 Intelligence while held (see {@code item.ZombieSwordService#heldIntelligenceBonus}), folded into {@link #effectiveIntelligence} alongside {@link #accessoryBag}'s own bonus. */
+    /** The Rotten Flesh Collection's own Zombie Sword - +50 Intelligence while held (see {@code item.ZombieSwordService#heldIntelligenceBonus}), folded into {@link #effectiveIntelligence} alongside {@link #skeletonHatIntelligenceBonus}. */
     private java.util.function.ToIntFunction<Player> heldWeaponIntelligenceBonus = p -> 0;
+    /** The Bone Collection's own Skeleton Hat - +10 Intelligence while worn as a helmet (see {@code item.SkeletonHatService#intelligenceBonus}), same late-bound shape as {@link #heldWeaponIntelligenceBonus}. */
+    private java.util.function.ToIntFunction<Player> skeletonHatIntelligenceBonus = p -> 0;
+    /** The Bone Collection's own Skeleton Hat - +2 Speed while worn as a helmet (see {@code item.SkeletonHatService#speedBonus}), folded into {@link #effectiveAgility}. */
+    private java.util.function.ToIntFunction<Player> skeletonHatSpeedBonus = p -> 0;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -124,6 +128,16 @@ public final class PlayerStatsService {
         this.heldWeaponIntelligenceBonus = heldWeaponIntelligenceBonus;
     }
 
+    /** Wired in after construction - see {@link #skeletonHatIntelligenceBonus}. */
+    public void skeletonHatIntelligenceBonus(java.util.function.ToIntFunction<Player> skeletonHatIntelligenceBonus) {
+        this.skeletonHatIntelligenceBonus = skeletonHatIntelligenceBonus;
+    }
+
+    /** Wired in after construction - see {@link #skeletonHatSpeedBonus}. */
+    public void skeletonHatSpeedBonus(java.util.function.ToIntFunction<Player> skeletonHatSpeedBonus) {
+        this.skeletonHatSpeedBonus = skeletonHatSpeedBonus;
+    }
+
     // ---- Base config values (for the Combat Stats breakdown - see SkillsMenuService#combatStatsItem) ----
 
     public double baseHealth() {
@@ -171,22 +185,22 @@ public final class PlayerStatsService {
         return this.get(p, this.maxMana, this.base) + this.effectiveIntelligence(p);
     }
 
-    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon and equipped armor reforges grant (see {@link ReforgeService}), plus any stored Accessory Bag bonus (the Bone Collection's own Skeleton Hat) - same "held/worn item bonus" pairing {@link #effectiveAgility} uses for Agility. */
+    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon and equipped armor reforges grant (see {@link ReforgeService}), plus the Bone Collection's own Skeleton Hat bonus while worn ({@link #skeletonHatIntelligenceBonus}) - same "held/worn item bonus" pairing {@link #effectiveAgility} uses for Agility. */
     private double effectiveIntelligence(Player p) {
         double reforgeBonus = this.reforge == null ? 0.0
                 : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence()
                         + this.reforge.bowStatsOf(p.getInventory().getItemInMainHand()).intelligence()
                         + this.reforge.totalArmorStats(p).intelligence();
-        double accessoryBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalIntelligenceBonus(p);
+        double skeletonHatBonus = this.skeletonHatIntelligenceBonus.applyAsInt(p);
         double weaponBonus = this.heldWeaponIntelligenceBonus.applyAsInt(p);
-        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + accessoryBonus + weaponBonus;
+        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + skeletonHatBonus + weaponBonus;
     }
 
-    /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant, plus any stored Accessory Bag bonus (the Bone Collection's own Skeleton Hat - {@link AccessoryBagService#applyAccessorySpeed} separately turns this same number into the real Movement Speed attribute) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
+    /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant, plus the Bone Collection's own Skeleton Hat bonus while worn ({@link #skeletonHatSpeedBonus} - {@code item.SkeletonHatService#applySpeedAttribute} separately turns this same number into the real Movement Speed attribute) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
     public double effectiveAgility(Player p) {
         double reforgeArmorAgility = this.reforge == null ? 0.0 : this.reforge.totalArmorStats(p).agility();
-        double accessoryBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalSpeedBonus(p);
-        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p)) + reforgeArmorAgility + accessoryBonus;
+        double skeletonHatBonus = this.skeletonHatSpeedBonus.applyAsInt(p);
+        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p)) + reforgeArmorAgility + skeletonHatBonus;
     }
 
     public void init(Player p) {
