@@ -30,6 +30,7 @@ import org.bukkit.inventory.CraftingRecipe;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
@@ -51,7 +52,9 @@ import org.bukkit.util.Vector;
  * reduced-damage trade-off), and only the main arrow ({@code e.getProjectile()}) ever homes
  * via Aiming - that already falls out for free, since {@link BowEnchantEffectListener#bowShoot}
  * (a separate handler on the same {@link EntityShootBowEvent}) only ever starts homing on the
- * event's own native projectile, never on the extra arrows this class spawns itself.
+ * event's own native projectile, never on the extra arrows this class spawns itself. {@value
+ * #HURRICANE_MAX_DURABILITY} max durability, per the player's own explicit spec - Runaan's Bow
+ * (its own upgrade) is unbreakable instead.
  *
  * <p><b>Runaan's Bow - Ability: Triple Shot.</b> {@value #RUNAANS_DAMAGE} Damage + {@value
  * #HURRICANE_STRENGTH} Strength, always {@value #RUNAANS_ARROWS} arrows, no kill tracking of
@@ -88,6 +91,8 @@ public final class HurricaneBowService implements Listener {
     public static final int HURRICANE_DAMAGE = 120;
     public static final int HURRICANE_STRENGTH = 50;
     public static final double HURRICANE_TOTAL_DAMAGE = HURRICANE_DAMAGE + HURRICANE_STRENGTH;
+    /** Per the player's own explicit spec - Runaan's Bow (its own upgrade) is unbreakable instead, see {@link #createRunaansBow}. */
+    public static final int HURRICANE_MAX_DURABILITY = 10000;
     public static final int RUNAANS_DAMAGE = 160;
     public static final double RUNAANS_TOTAL_DAMAGE = RUNAANS_DAMAGE + HURRICANE_STRENGTH;
     private static final double RUNAANS_EXTRA_FRACTION = 0.40;
@@ -137,6 +142,7 @@ public final class HurricaneBowService implements Listener {
         meta.getPersistentDataContainer().set(KILLS_KEY, PersistentDataType.INTEGER, 0);
         this.tiers.forceTier(meta, ItemTier.A);
         meta.displayName(Component.text("Hurricane Bow").decoration(TextDecoration.ITALIC, false));
+        ((Damageable) meta).setMaxDamage(HURRICANE_MAX_DURABILITY);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return applyHurricaneLore(item, 0);
@@ -147,6 +153,7 @@ public final class HurricaneBowService implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(RUNAANS_KEY, PersistentDataType.BYTE, (byte) 1);
         this.tiers.forceTier(meta, ItemTier.S);
+        meta.setUnbreakable(true);
         meta.displayName(Component.text("Runaan's Bow").decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
                 Component.text("Damage: +" + RUNAANS_DAMAGE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
