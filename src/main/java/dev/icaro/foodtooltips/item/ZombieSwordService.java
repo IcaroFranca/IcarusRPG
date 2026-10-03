@@ -1,11 +1,13 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
@@ -48,6 +50,7 @@ import org.bukkit.persistence.PersistentDataType;
  * item.SpruceAxeListener}'s own throw cooldown already uses.
  */
 public final class ZombieSwordService implements Listener {
+    private static final Key MODEL = Key.key("icarus", "zombie_sword");
     private static final NamespacedKey KEY = new NamespacedKey("foodtooltips", "zombie_sword");
     private static final NamespacedKey DAMAGE_KEY = new NamespacedKey("foodtooltips", "zombie_sword_damage");
     private static final NamespacedKey BASE_ZERO_KEY = new NamespacedKey("foodtooltips", "zombie_sword_base_zero");
@@ -97,6 +100,7 @@ public final class ZombieSwordService implements Listener {
                 Component.text("Vitality Cost: " + Math.round(VITALITY_COST_PERCENT) + "%", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
+        item.setData(DataComponentTypes.ITEM_MODEL, MODEL);
         return item;
     }
 
