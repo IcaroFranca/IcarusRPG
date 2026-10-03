@@ -232,8 +232,19 @@ public final class CombatListener implements Listener {
         this.pvpFullDamageStack = p.getConfig().getBoolean("combat.pvp-full-damage-stack", true);
     }
 
+    /**
+     * Glow Squid is water-ambient, not hostile - it never competes with the Monster mob
+     * cap a spawner chamber relies on, but players running one still don't want it
+     * cluttering the water intake/kill chamber. Blocking only {@code NATURAL} spawns
+     * (not spawn eggs, spawners, or anything else) keeps every other way of getting one
+     * untouched.
+     */
     @EventHandler
     public void spawn(CreatureSpawnEvent e) {
+        if (e.getEntityType() == EntityType.GLOW_SQUID && e.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
+            e.setCancelled(true);
+            return;
+        }
         this.difficulty.scale(e.getEntity());
         this.armor.neutralizeVanillaArmor(e.getEntity());
         Bukkit.getScheduler().runTask(this.plugin, () -> this.visuals.track(e.getEntity()));
