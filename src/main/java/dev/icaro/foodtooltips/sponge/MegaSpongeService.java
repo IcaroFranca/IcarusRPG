@@ -26,18 +26,20 @@ import org.bukkit.util.RayTraceResult;
 /**
  * The Mega Sponge: {@code dev.icaro.foodtooltips.prisma.PrismaPumpService}'s mirror
  * image - instead of leveling a connected pocket of air into water, it dries out a
- * whole connected body of water back into air. Right-click while aiming at any part of
- * the water (a raytrace that explicitly includes fluids, since the natural target - an
- * open sea's surface, as opposed to Prismapump's usual "next to a hole" placement -
- * usually has no solid block to aim at within reach) starts a full 3D flood fill (not
- * just a single Y level, unlike Prismapump - a sea has depth and slopes, not a flat
- * floor) that follows the water itself in every direction, converting each block it
- * finds to air.
+ * whole connected body of water (or, per the player's own explicit request, lava) back
+ * into air. Right-click while aiming at any part of the fluid (a raytrace that
+ * explicitly includes fluids, since the natural target - an open sea's surface, as
+ * opposed to Prismapump's usual "next to a hole" placement - usually has no solid block
+ * to aim at within reach) starts a full 3D flood fill (not just a single Y level, unlike
+ * Prismapump - a sea or lava lake has depth and slopes, not a flat floor) that follows
+ * that same fluid (whichever one the raytrace actually landed on - a drain never mixes
+ * water and lava into the same fill) in every direction, converting each block it finds
+ * to air.
  *
- * <p>A real sea can be enormous, so the fill is spread across several ticks instead of
- * running synchronously in one - see {@link #drain} - and still stops at {@link
- * #SEARCH_LIMIT}, generous enough to fully dry a large lake or bay in one go without
- * ever risking an unbounded fill on a whole ocean.
+ * <p>A real sea (or a Nether lava ocean) can be enormous, so the fill is spread across
+ * several ticks instead of running synchronously in one - see {@link #drain} - and still
+ * stops at {@link #SEARCH_LIMIT}, generous enough to fully dry a large lake or bay in one
+ * go without ever risking an unbounded fill on a whole ocean.
  *
  * <p>Admin-only for now, same as the other world-editing tools - reachable only via
  * {@code FoodTooltipsPlugin}'s {@code /megasponge} executor.
@@ -79,8 +81,8 @@ public final class MegaSpongeService {
         meta.displayName(this.line("Mega Sponge", NamedTextColor.YELLOW)
                 .decoration(TextDecoration.BOLD, true));
         List<Component> lore = List.of(
-                this.line("Right-click while aiming at water to dry", NamedTextColor.GRAY),
-                this.line("the whole body of water connected to it.", NamedTextColor.GRAY));
+                this.line("Right-click while aiming at water or lava to", NamedTextColor.GRAY),
+                this.line("dry the whole connected body of fluid.", NamedTextColor.GRAY));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
@@ -97,12 +99,13 @@ public final class MegaSpongeService {
 
     /**
      * Raytraces from {@code p}'s eyes (fluids included, unlike most of this plugin's
-     * other raytraces - the whole point here is finding water) and, if it lands on a
-     * water block, starts draining the connected body it belongs to. Sends {@code p} an
-     * actionbar explaining why nothing happened if there's no water in range or a drain
-     * is already running for them; the eventual "done" actionbar is sent once the whole
-     * fill finishes, which - being spread across ticks - is not necessarily this same
-     * server tick.
+     * other raytraces - the whole point here is finding a fluid) and, if it lands on
+     * water or lava, starts draining the connected body it belongs to - whichever of the
+     * two it actually hit, never both at once (see this class's own doc). Sends {@code p}
+     * an actionbar explaining why nothing happened if there's no fluid in range or a
+     * drain is already running for them; the eventual "done" actionbar is sent once the
+     * whole fill finishes, which - being spread across ticks - is not necessarily this
+     * same server tick.
      */
     public void drain(Player p) {
         Language l = Language.of(p);
@@ -112,8 +115,9 @@ public final class MegaSpongeService {
         }
         RayTraceResult hit = p.rayTraceBlocks(RANGE, FluidCollisionMode.ALWAYS);
         Block seed = hit == null ? null : hit.getHitBlock();
-        if (seed == null || seed.getType() != Material.WATER) {
-            p.sendActionBar(this.line("Aim at water.", NamedTextColor.RED));
+        Material fluid = seed == null ? null : seed.getType();
+        if (fluid != Material.WATER && fluid != Material.LAVA) {
+            p.sendActionBar(this.line("Aim at water or lava.", NamedTextColor.RED));
             return;
         }
         this.draining.add(p.getUniqueId());
@@ -121,31 +125,31 @@ public final class MegaSpongeService {
         visited.add(Pos.of(seed));
         ArrayDeque<Block> queue = new ArrayDeque<>();
         queue.add(seed);
-        this.processBatch(p, l, queue, visited, 0);
+        this.processBatch(p, l, fluid, queue, visited, 0);
     }
 
     /**
      * One batch of the drain's flood fill: pops up to {@link #BLOCKS_PER_TICK} blocks off
-     * {@code queue}, turns any that are still water into air (re-checked here since many
-     * ticks can pass between a block being queued and actually processed), and queues
-     * their unvisited neighbors in all 6 directions. Reschedules itself one tick later if
-     * there's still work left under {@link #SEARCH_LIMIT}; otherwise reports the final
-     * total and frees {@code p} up to start another drain.
+     * {@code queue}, turns any that are still {@code fluid} into air (re-checked here
+     * since many ticks can pass between a block being queued and actually processed), and
+     * queues their unvisited {@code fluid} neighbors in all 6 directions. Reschedules
+     * itself one tick later if there's still work left under {@link #SEARCH_LIMIT};
+     * otherwise reports the final total and frees {@code p} up to start another drain.
      */
-    private void processBatch(Player p, Language l, ArrayDeque<Block> queue, Set<Pos> visited, int totalDried) {
+    private void processBatch(Player p, Language l, Material fluid, ArrayDeque<Block> queue, Set<Pos> visited, int totalDried) {
         int dried = totalDried;
         int processed = 0;
         while (processed < BLOCKS_PER_TICK && !queue.isEmpty() && visited.size() < SEARCH_LIMIT) {
             Block b = queue.poll();
             processed++;
-            if (b.getType() != Material.WATER) {
+            if (b.getType() != fluid) {
                 continue;
             }
             b.setType(Material.AIR);
             dried++;
             for (BlockFace face : FACES) {
                 Block next = b.getRelative(face);
-                if (next.getType() == Material.WATER && visited.add(Pos.of(next))) {
+                if (next.getType() == fluid && visited.add(Pos.of(next))) {
                     queue.add(next);
                 }
             }
@@ -154,14 +158,15 @@ public final class MegaSpongeService {
         if (queue.isEmpty() || visited.size() >= SEARCH_LIMIT) {
             this.draining.remove(p.getUniqueId());
             if (p.isOnline()) {
-                p.sendActionBar(this.line("-" + finalDried + " " + "water (dried)", NamedTextColor.AQUA));
+                String label = fluid == Material.WATER ? "water (dried)" : "lava (dried)";
+                p.sendActionBar(this.line("-" + finalDried + " " + label, NamedTextColor.AQUA));
             }
             return;
         }
         new BukkitRunnable() {
             @Override
             public void run() {
-                MegaSpongeService.this.processBatch(p, l, queue, visited, finalDried);
+                MegaSpongeService.this.processBatch(p, l, fluid, queue, visited, finalDried);
             }
         }.runTask(this.plugin);
     }
