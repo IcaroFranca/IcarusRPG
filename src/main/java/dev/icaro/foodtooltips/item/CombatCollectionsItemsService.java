@@ -15,27 +15,31 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 /**
  * The craftable rewards Combat's own {@link CollectionsCatalog} entries (Bone, Rotten Flesh,
- * Spider Eye, String, Gunpowder) unlock - same role {@code FarmingCollectionsItemsService}/
- * {@code ForagingCollectionsItemsService} play for their own categories. Bone Core/Pile of Bone
- * Core/Spider Eye Core/Fermented Spider Eye Core/String Core/Gunpowder Core/Firework Core are
- * plain collectible crafted items here (no behavior of their own, just an ingredient for the
- * recipes below); Skeleton Hat, Hurricane/Runaan's Bow, Skeleton's Helmet, Spider Sword, Spider
- * Hat, Leaping Sword, Grappling Hook, Spider's Boots, Creeper Hat, Creeper Pants and Explosive
- * Bow all have real behavior of their own, so their own item-building logic lives WITH that
- * behavior instead ({@link SkeletonHatService}/{@link HurricaneBowService}/{@link
- * SkeletonsHelmetService}/{@link SpiderSwordService}/{@link SpiderHatService}/{@link
- * LeapingSwordService}/{@link GrapplingHookService}/{@link SpidersBootsService}/{@link
- * CreeperHatService}/{@link CreeperPantsService}/{@link ExplosiveBowService}) - this class
- * only calls into them when registering its own recipes, same "effect service builds its own
- * item, items-service just registers the recipe" split {@code ForagingCollectionsItemsService}
- * already uses for e.g. its own Sculptor's Axe. The Web milestone (String M2) doesn't register
- * anything of its own at all - it gates the real vanilla Cobweb recipe by its own key, same
- * "real vanilla key, gated without owning it" trick {@code CollectionsCatalog#SUSPICIOUS_STEW_RECIPE}
- * already uses.
+ * Spider Eye, String, Gunpowder, Ender Pearl) unlock - same role {@code
+ * FarmingCollectionsItemsService}/{@code ForagingCollectionsItemsService} play for their own
+ * categories. Bone Core/Pile of Bone Core/Spider Eye Core/Fermented Spider Eye Core/String Core/
+ * Gunpowder Core/Firework Core/Ender Pearl Core/Eye of Ender Core/Teleport Pad are plain
+ * collectible crafted items here (no behavior of their own yet, just an ingredient for the
+ * recipes below - Teleport Pad's own future ability is still pending the player's own follow-up
+ * spec); Skeleton Hat, Hurricane/Runaan's Bow, Skeleton's Helmet, Spider Sword, Spider Hat,
+ * Leaping Sword, Grappling Hook, Spider's Boots, Creeper Hat, Creeper Pants, Explosive Bow,
+ * Ender Bow, Aspect of the End and Saving Grace all have real behavior of their own, so their
+ * own item-building logic lives WITH that behavior instead ({@link SkeletonHatService}/{@link
+ * HurricaneBowService}/{@link SkeletonsHelmetService}/{@link SpiderSwordService}/{@link
+ * SpiderHatService}/{@link LeapingSwordService}/{@link GrapplingHookService}/{@link
+ * SpidersBootsService}/{@link CreeperHatService}/{@link CreeperPantsService}/{@link
+ * ExplosiveBowService}/{@link EnderBowService}/{@link AspectOfTheEndService}/{@link
+ * SavingGraceService}) - this class only calls into them when registering its own recipes, same
+ * "effect service builds its own item, items-service just registers the recipe" split {@code
+ * ForagingCollectionsItemsService} already uses for e.g. its own Sculptor's Axe. The Web
+ * milestone (String M2) doesn't register anything of its own at all - it gates the real vanilla
+ * Cobweb recipe by its own key, same "real vanilla key, gated without owning it" trick {@code
+ * CollectionsCatalog#SUSPICIOUS_STEW_RECIPE} already uses.
  *
  * <p>Hurricane/Runaan's Bow both replace the real vanilla bow recipe's own two {@code STICK}
  * slots with a Core - the vanilla bow recipe's own center slot is empty, which Runaan's Bow
@@ -52,6 +56,8 @@ public final class CombatCollectionsItemsService {
     private static final UUID STRING_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:string_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID GUNPOWDER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:gunpowder_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID FIREWORK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:firework_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID ENDER_PEARL_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ender_pearl_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID EYE_OF_ENDER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:eye_of_ender_core".getBytes(StandardCharsets.UTF_8));
 
     private final HurricaneBowService hurricaneBow;
     private final SkeletonHatService skeletonHat;
@@ -69,13 +75,17 @@ public final class CombatCollectionsItemsService {
     private final CreeperHatService creeperHat;
     private final CreeperPantsService creeperPants;
     private final ExplosiveBowService explosiveBow;
+    private final EnderBowService enderBow;
+    private final AspectOfTheEndService aspectOfTheEnd;
+    private final SavingGraceService savingGrace;
 
     public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonHatService skeletonHat,
             SkeletonsHelmetService skeletonsHelmet, ZombiePickaxeService zombiePickaxe, ZombieHatService zombieHat,
             ZombiesHeartService zombiesHeart, ZombieSwordService zombieSword, ZombieArmorService zombieArmor,
             SpiderSwordService spiderSword, SpiderHatService spiderHat, LeapingSwordService leapingSword,
             GrapplingHookService grapplingHook, SpidersBootsService spidersBoots,
-            CreeperHatService creeperHat, CreeperPantsService creeperPants, ExplosiveBowService explosiveBow) {
+            CreeperHatService creeperHat, CreeperPantsService creeperPants, ExplosiveBowService explosiveBow,
+            EnderBowService enderBow, AspectOfTheEndService aspectOfTheEnd, SavingGraceService savingGrace) {
         this.hurricaneBow = hurricaneBow;
         this.skeletonHat = skeletonHat;
         this.skeletonsHelmet = skeletonsHelmet;
@@ -92,6 +102,9 @@ public final class CombatCollectionsItemsService {
         this.leapingSword = leapingSword;
         this.grapplingHook = grapplingHook;
         this.spidersBoots = spidersBoots;
+        this.enderBow = enderBow;
+        this.aspectOfTheEnd = aspectOfTheEnd;
+        this.savingGrace = savingGrace;
     }
 
     /** Registers every recipe this class owns - Bone Collection M4 through M9, Rotten Flesh Collection M2 through M8. */
@@ -218,6 +231,69 @@ public final class CombatCollectionsItemsService {
                     r.setIngredient('F', new RecipeChoice.ExactChoice(this.fireworkCore()));
                     r.setIngredient('S', Material.STRING);
                 });
+        this.newShapedRecipe(CollectionsCatalog.ENDER_PEARL_CORE_RECIPE, this.enderPearlCore(),
+                new String[]{"EEE", "EDE", "EEE"}, r -> {
+                    r.setIngredient('E', Material.ENDER_PEARL);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        // Real vanilla Bow shape (3 Sticks, 3 String) with the Stick slots swapped for an
+        // Ender Pearl Core, same "real vanilla shape, Core instead of the usual material"
+        // trick every other Core-based recipe here already uses.
+        this.newShapedRecipe(CollectionsCatalog.ENDER_BOW_RECIPE, this.enderBow.createItem(),
+                new String[]{" CS", "C S", " CS"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.enderPearlCore()));
+                    r.setIngredient('S', Material.STRING);
+                });
+        this.newShapedRecipe(CollectionsCatalog.EYE_OF_ENDER_CORE_RECIPE, this.eyeOfEnderCore(),
+                new String[]{"CCC", "CNC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.enderPearlCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                });
+        // No behavior of its own yet - per the player's own explicit "Implementa o collection
+        // primeiro que depois te falo as configurações que ele vai ter", just the recipe and
+        // the milestone for now.
+        this.newShapedRecipe(CollectionsCatalog.TELEPORT_PAD_RECIPE, this.teleportPad(),
+                new String[]{"OOO", "OEO", "OOO"}, r -> {
+                    r.setIngredient('O', Material.OBSIDIAN);
+                    r.setIngredient('E', new RecipeChoice.ExactChoice(this.eyeOfEnderCore()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.ASPECT_OF_THE_END_RECIPE, this.aspectOfTheEnd.createItem(),
+                new String[]{"E", "S", "E"}, r -> {
+                    r.setIngredient('E', new RecipeChoice.ExactChoice(this.eyeOfEnderCore()));
+                    r.setIngredient('S', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.SAVING_GRACE_RECIPE, this.savingGrace.createItem(),
+                new String[]{"CCC", "CGC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.enderPearlCore()));
+                    r.setIngredient('G', Material.ENCHANTED_GOLDEN_APPLE);
+                });
+    }
+
+    private ItemStack enderPearlCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.ENDER_PEARL_CORE, ENDER_PEARL_CORE_PROFILE);
+        meta.displayName(Component.text("Ender Pearl Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack eyeOfEnderCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.EYE_OF_ENDER_CORE, EYE_OF_ENDER_CORE_PROFILE);
+        meta.displayName(Component.text("Eye of Ender Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** No behavior yet - see this class's own registration comment for the Teleport Pad recipe. */
+    private ItemStack teleportPad() {
+        var item = new ItemStack(Material.END_PORTAL_FRAME);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Teleport Pad", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack gunpowderCore() {

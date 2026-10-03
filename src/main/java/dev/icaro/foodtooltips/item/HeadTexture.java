@@ -171,6 +171,10 @@ public final class HeadTexture {
     public static final String GUNPOWDER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzBhOWU3NDM5NGMyNzBhZTY1MmQwODM2NGZkZTJlZGNkMGFmMjllZjMzZTNkYzMxOGFhYTM1M2ZmNjdlYmU1MSJ9fX0=";
     /** "Firework Rocket" (minecraft-heads.com Custom Head ID 4446) - the Firework Core crafting item, {@link #GUNPOWDER_CORE}'s own upgrade - see {@code CombatCollectionsItemsService}. */
     public static final String FIREWORK_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzAyZjQ4ZjM0ZDIyZGVkNzQwNGY3NmU4YTEzMmFmNWQ3OTE5YzhkY2Q1MWRmNmU3YTg1ZGRmYWM4NWFiIn19fQ==";
+    /** "Ender Pearl" (minecraft-heads.com Custom Head ID 116) - the Ender Pearl Core crafting item, see {@code CombatCollectionsItemsService}. */
+    public static final String ENDER_PEARL_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWNiN2MyMWNjNDNkYzE3Njc4ZWU2ZjE2NTkxZmZhYWIxZjYzN2MzN2Y0ZjZiYmQ4Y2VhNDk3NDUxZDc2ZGI2ZCJ9fX0=";
+    /** "Eye of Ender" (minecraft-heads.com Custom Head ID 126728) - the Eye of Ender Core crafting item, {@link #ENDER_PEARL_CORE}'s own upgrade - see {@code CombatCollectionsItemsService}. */
+    public static final String EYE_OF_ENDER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzRiZTY3YWVkZWRlMzE2ZTVmMDBhN2FkM2ZiZTMwYTgxY2VmNjdkNGRmN2NlZDEzMGZiZTAyYmUwMTU0OGJjZSJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -181,7 +185,8 @@ public final class HeadTexture {
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
             BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, BONE_CORE, PILE_OF_BONE_CORE,
-            ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE, STRING_CORE, GUNPOWDER_CORE, FIREWORK_CORE);
+            ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE, STRING_CORE, GUNPOWDER_CORE, FIREWORK_CORE,
+            ENDER_PEARL_CORE, EYE_OF_ENDER_CORE);
 
     private HeadTexture() {
     }

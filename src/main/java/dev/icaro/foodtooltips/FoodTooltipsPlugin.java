@@ -80,6 +80,9 @@ import dev.icaro.foodtooltips.item.SpidersBootsService;
 import dev.icaro.foodtooltips.item.CreeperHatService;
 import dev.icaro.foodtooltips.item.CreeperPantsService;
 import dev.icaro.foodtooltips.item.ExplosiveBowService;
+import dev.icaro.foodtooltips.item.EnderBowService;
+import dev.icaro.foodtooltips.item.AspectOfTheEndService;
+import dev.icaro.foodtooltips.item.SavingGraceService;
 import dev.icaro.foodtooltips.item.SkeletonsHelmetService;
 import dev.icaro.foodtooltips.item.ZombieArmorService;
 import dev.icaro.foodtooltips.item.ZombieHatService;
@@ -438,9 +441,6 @@ extends JavaPlugin {
         // String Collection (M2-M9) - wired alongside Bone/Rotten Flesh/Spider Eye's own items.
         SpidersBootsService spidersBoots = new SpidersBootsService(stats);
         pm.registerEvents((Listener)spidersBoots, (Plugin)this);
-        // Skeleton Hat (helmet) and Spider's Boots (boots) occupy different armor slots and
-        // can both be worn at once, so their Intelligence/Speed bonuses are summed here
-        // rather than overwriting each other.
         // Gunpowder Collection (M2/M8/M9) - wired alongside Bone/Rotten Flesh/Spider Eye/String's own items.
         CreeperHatService creeperHat = new CreeperHatService(tiers);
         pm.registerEvents((Listener)creeperHat, (Plugin)this);
@@ -448,6 +448,13 @@ extends JavaPlugin {
         pm.registerEvents((Listener)creeperPants, (Plugin)this);
         ExplosiveBowService explosiveBow = new ExplosiveBowService(tiers, abilities);
         pm.registerEvents((Listener)explosiveBow, (Plugin)this);
+        // Ender Pearl Collection (M5/M8/M9) - wired alongside Bone/Rotten Flesh/Spider Eye/String/Gunpowder's own items.
+        EnderBowService enderBow = new EnderBowService(tiers, stats, abilities);
+        pm.registerEvents((Listener)enderBow, (Plugin)this);
+        AspectOfTheEndService aspectOfTheEnd = new AspectOfTheEndService((Plugin)this, tiers, stats);
+        pm.registerEvents((Listener)aspectOfTheEnd, (Plugin)this);
+        // Registered later (after combatListener exists below) - see this class's own doc on why.
+        SavingGraceService savingGrace = new SavingGraceService();
         // Skeleton Hat (helmet), Spider's Boots (boots) and Creeper Hat (helmet, but Creeper
         // Hat and Skeleton Hat can't both be worn at once anyway) occupy either different
         // armor slots or none at all, so their Intelligence/Speed/Strength/Crit Chance
@@ -456,7 +463,8 @@ extends JavaPlugin {
         stats.skeletonHatSpeedBonus(p -> skeletonHat.speedBonus(p) + spidersBoots.speedBonus(p));
         stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p) + creeperHat.strengthBonus(p));
         new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor,
-                spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots, creeperHat, creeperPants, explosiveBow).registerRecipes();
+                spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots, creeperHat, creeperPants, explosiveBow,
+                enderBow, aspectOfTheEnd, savingGrace).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
@@ -520,6 +528,10 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new ArmorDefenseListener(armor), (Plugin)this);
         pm.registerEvents((Listener)armorEnchants, (Plugin)this);
         pm.registerEvents((Listener)combatListener, (Plugin)this);
+        // Saving Grace (Ender Pearl Collection M9) - registered right after combatListener so
+        // Second Wind's own free, repeatable save always gets first crack at the same near-
+        // lethal hit (see SavingGraceService's own doc).
+        pm.registerEvents((Listener)savingGrace, (Plugin)this);
         pm.registerEvents((Listener)minerVariants, (Plugin)this);
         pm.registerEvents((Listener)new ElementalDamageListener(this.visuals), (Plugin)this);
         pm.registerEvents((Listener)new EnderPearlAggroListener((Plugin)this), (Plugin)this);

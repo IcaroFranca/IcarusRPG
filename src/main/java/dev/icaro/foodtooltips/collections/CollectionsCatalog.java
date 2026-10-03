@@ -186,6 +186,12 @@ public final class CollectionsCatalog {
     public static final NamespacedKey FIREWORK_CORE_RECIPE = new NamespacedKey("foodtooltips", "firework_core");
     public static final NamespacedKey CREEPER_PANTS_RECIPE = new NamespacedKey("foodtooltips", "creeper_pants");
     public static final NamespacedKey EXPLOSIVE_BOW_RECIPE = new NamespacedKey("foodtooltips", "explosive_bow");
+    public static final NamespacedKey ENDER_PEARL_CORE_RECIPE = new NamespacedKey("foodtooltips", "ender_pearl_core");
+    public static final NamespacedKey ENDER_BOW_RECIPE = new NamespacedKey("foodtooltips", "ender_bow");
+    public static final NamespacedKey EYE_OF_ENDER_CORE_RECIPE = new NamespacedKey("foodtooltips", "eye_of_ender_core");
+    public static final NamespacedKey TELEPORT_PAD_RECIPE = new NamespacedKey("foodtooltips", "teleport_pad");
+    public static final NamespacedKey ASPECT_OF_THE_END_RECIPE = new NamespacedKey("foodtooltips", "aspect_of_the_end");
+    public static final NamespacedKey SAVING_GRACE_RECIPE = new NamespacedKey("foodtooltips", "saving_grace");
 
     /**
      * The threshold ladder every Combat Collection entry uses (the player's own explicit
@@ -362,7 +368,31 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[8],
                             "Desbloqueia a receita do Explosive Bow", "Unlocks the Explosive Bow recipe",
                             EXPLOSIVE_BOW_RECIPE))),
-            new CollectionsEntry(Material.ENDER_PEARL, Material.ENDER_PEARL, CollectionsCategory.COMBAT, "Pérola do Fim", "Ender Pearl", List.of()),
+            new CollectionsEntry(Material.ENDER_PEARL, Material.ENDER_PEARL, CollectionsCategory.COMBAT, "Pérola do Fim", "Ender Pearl", List.of(
+                    CollectionsMilestone.combatXp(COMBAT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Combate", "+1000 Combat XP"),
+                    CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Ender Pearl Core", "Unlocks the Ender Pearl Core recipe",
+                            ENDER_PEARL_CORE_RECIPE),
+                    CollectionsMilestone.enchantDiscount(COMBAT_THRESHOLDS[2], IcarusEnchant.ENDER_SLAYER, 25.0,
+                            "-25% de custo em XP para Flagelo do Fim", "-25% XP cost for Ender Slayer"),
+                    CollectionsMilestone.combatXp(COMBAT_THRESHOLDS[3], 25000,
+                            "+25000 XP de Combate", "+25000 Combat XP"),
+                    CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Ender Bow", "Unlocks the Ender Bow recipe",
+                            ENDER_BOW_RECIPE),
+                    CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Eye of Ender Core", "Unlocks the Eye of Ender Core recipe",
+                            EYE_OF_ENDER_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Teleport Pad", "Unlocks the Teleport Pad recipe",
+                            TELEPORT_PAD_RECIPE),
+                    CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[7],
+                            "Desbloqueia a receita do Aspect of the End", "Unlocks the Aspect of the End recipe",
+                            ASPECT_OF_THE_END_RECIPE),
+                    CollectionsMilestone.recipeUnlock(COMBAT_THRESHOLDS[8],
+                            "Desbloqueia a receita do Saving Grace", "Unlocks the Saving Grace recipe",
+                            SAVING_GRACE_RECIPE))),
             new CollectionsEntry(Material.GHAST_TEAR, Material.GHAST_TEAR, CollectionsCategory.COMBAT, "Lágrima de Ghast", "Ghast Tear", List.of()),
             new CollectionsEntry(Material.SLIME_BALL, Material.SLIME_BALL, CollectionsCategory.COMBAT, "Bola de Slime", "Slime Ball", List.of()),
             new CollectionsEntry(Material.BLAZE_ROD, Material.BLAZE_ROD, CollectionsCategory.COMBAT, "Bastão de Blaze", "Blaze Rod", List.of()),
