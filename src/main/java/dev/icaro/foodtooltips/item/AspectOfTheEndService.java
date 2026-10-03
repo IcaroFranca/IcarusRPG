@@ -34,16 +34,19 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.RayTraceResult;
 
 /**
- * Ender Pearl Collection M8 - a plain {@link Material#STICK}, {@link ItemTier#B} (the real
- * Hypixel Skyblock item this is modeled on is a weaponized Stick too - no custom resource-pack
- * model given for this one, unlike {@code item.ZombieSwordService}'s own Zombie Sword, so none
- * is set here). Per the player's own
- * explicit spec: Damage +{@value #DAMAGE}, Strength +{@value #STRENGTH} (both real {@link
- * Attribute#ATTACK_DAMAGE}/base-zero-cancel/attack-speed modifiers baked into the item, same
- * shape {@code item.ZombieSwordService}/{@code item.LeapingSwordService} already use - {@code
- * item.SwordDamageService}'s own generic per-material formula never touches a {@code STICK} to
- * begin with, so it doesn't need the same skip-guard those two needed for their own {@code
- * _SWORD} materials), and Ability: Instant Transmission (right click) - teleports the wielder
+ * Ender Pearl Collection M8 - a plain {@link Material#DIAMOND_SWORD}, {@link ItemTier#B} (per
+ * the player's own explicit "tem que ser representada por uma espada de diamante" - no custom
+ * resource-pack model given for this one, unlike {@code item.ZombieSwordService}'s own Zombie
+ * Sword, so none is set here). Still crafted from 1 Stick and 2 Eye of Ender Core (see {@code
+ * item.CombatCollectionsItemsService}) - only the output item's own Material changed, not the
+ * recipe. Per the player's own explicit spec: Damage +{@value #DAMAGE}, Strength +{@value
+ * #STRENGTH} (both real {@link Attribute#ATTACK_DAMAGE}/base-zero-cancel/attack-speed modifiers
+ * baked into the item, same shape {@code item.ZombieSwordService}/{@code
+ * item.LeapingSwordService} already use - unlike those two's own {@code _SWORD} materials,
+ * {@code DIAMOND_SWORD} as a Material already has an entry in {@code
+ * item.SwordDamageService#totalDamage}, so this item needed adding to that class's own skip-
+ * guard too, same reason the other two needed it), and Ability: Instant Transmission (right
+ * click) - teleports the wielder
  * {@value #TELEPORT_DISTANCE} blocks forward (stopped short by {@link #safeDistance} if a wall
  * is in the way) and grants +{@value #SPEED_BONUS} Speed for {@value #SPEED_SECONDS} seconds (a
  * real, temporary {@link Attribute#MOVEMENT_SPEED} modifier - same {@value
@@ -83,7 +86,7 @@ public final class AspectOfTheEndService implements Listener {
     }
 
     public ItemStack createItem() {
-        ItemStack item = new ItemStack(Material.STICK);
+        ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(KEY, PersistentDataType.BYTE, (byte) 1);
         this.tiers.forceTier(meta, ItemTier.B);
