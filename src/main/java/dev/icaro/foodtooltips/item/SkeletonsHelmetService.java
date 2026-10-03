@@ -52,11 +52,19 @@ import org.bukkit.plugin.Plugin;
  * <p>Per the player's own explicit "quero que os jogadores e eu possam ver os ossos girando
  * em minha volta", the helmet also orbits {@value #ORBIT_COUNT} real {@link ItemDisplay}
  * bones around the wearer (visible to everyone, not a client-side-only effect) the whole time
- * it's worn - purely cosmetic, not tied to the shield charge's own ready/regenerating state.
- * {@link #start} schedules its own dedicated fast timer for this (same "needs smoother motion
- * than the shared per-player HUD sweep's own default 5-tick cadence" reasoning {@code
- * item.AnimalCrystalService#spin}'s own separate timer already uses), rather than riding the
- * shared loop.
+ * it's worn. {@link #start} schedules its own dedicated fast timer for this (same "needs
+ * smoother motion than the shared per-player HUD sweep's own default 5-tick cadence" reasoning
+ * {@code item.AnimalCrystalService#spin}'s own separate timer already uses), rather than
+ * riding the shared loop.
+ *
+ * <p>Per the player's own follow-up spec ("os ossos são referentes ao escudo"), the orbit is
+ * no longer purely cosmetic: it doubles as the Bone Shield's own charge indicator. All {@value
+ * #ORBIT_COUNT} bones show while a charge is ready; taking a hit that consumes the charge (see
+ * {@link #boneShield}) makes every bone vanish at once, and they reappear one by one as the
+ * {@value #REGEN_SECONDS}-second regen progresses, back to all {@value #ORBIT_COUNT} right when
+ * the shield is ready again (see {@link #boneCountForRemaining}) - hidden bones stay real
+ * entities at their own orbit slot (an empty {@link ItemStack}, not removed/respawned), so
+ * nothing jumps around when one reappears.
  */
 public final class SkeletonsHelmetService implements Listener {
     private static final NamespacedKey HELMET_KEY = new NamespacedKey("foodtooltips", "skeletons_helmet");
@@ -70,8 +78,8 @@ public final class SkeletonsHelmetService implements Listener {
     private static final double ORBIT_RADIUS = 0.9;
     /** Vertical offset from the wearer's feet, in blocks - roughly chest height. */
     private static final double ORBIT_HEIGHT = 1.1;
-    /** How far the whole ring turns per {@link #tickOrbits} call. */
-    private static final double ORBIT_DEGREES_PER_STEP = 6.0;
+    /** How far the whole ring turns per {@link #tickOrbits} call - per the player's own explicit "quero que os ossos girem mais rápido" (bumped up from the original 6.0). */
+    private static final double ORBIT_DEGREES_PER_STEP = 16.0;
     /** How often {@link #tickOrbits} runs - smoother than the shared per-player sweep's own default cadence. */
     private static final long ORBIT_PERIOD_TICKS = 2L;
 
@@ -143,7 +151,7 @@ public final class SkeletonsHelmetService implements Listener {
         this.removeOrbit(e.getPlayer());
     }
 
-    /** One pass over every online player: spawns/removes each one's own orbiting bones to match whether they currently have the helmet on, and advances the ring's own rotation for anyone who does. */
+    /** One pass over every online player: spawns/removes each one's own orbiting bones to match whether they currently have the helmet on, advances the ring's own rotation for anyone who does, and shows/hides individual bones to match their current Bone Shield charge. */
     private void tickOrbits() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             EntityEquipment eq = p.getEquipment();
@@ -153,8 +161,24 @@ public final class SkeletonsHelmetService implements Listener {
             }
             List<ItemDisplay> displays = this.orbitDisplays.computeIfAbsent(p.getUniqueId(), id -> this.spawnOrbit(p));
             double angle = this.orbitAngles.merge(p.getUniqueId(), ORBIT_DEGREES_PER_STEP, Double::sum) % 360.0;
-            this.positionOrbit(p, displays, angle);
+            int visible = boneCountForRemaining(this.shieldReadyAt.getOrDefault(p.getUniqueId(), 0L) - System.currentTimeMillis());
+            this.positionOrbit(p, displays, angle, visible);
         }
+    }
+
+    /**
+     * How many of the {@value #ORBIT_COUNT} bones should currently be visible, given {@code
+     * remainingMillis} left on the Bone Shield's own regen (0 or negative means ready - full
+     * {@value #ORBIT_COUNT}) - pure math, broken out from {@link #tickOrbits} so it's
+     * unit-testable without a live {@link Player}/world, same reasoning {@code
+     * HurricaneBowService#arrowCountFor} is its own static method.
+     */
+    static int boneCountForRemaining(long remainingMillis) {
+        if (remainingMillis <= 0L) {
+            return ORBIT_COUNT;
+        }
+        double progress = 1.0 - Math.min(1.0, (double) remainingMillis / (double) REGEN_MILLIS);
+        return (int) Math.round(Math.max(0.0, Math.min(ORBIT_COUNT, progress * ORBIT_COUNT)));
     }
 
     private List<ItemDisplay> spawnOrbit(Player p) {
@@ -168,13 +192,18 @@ public final class SkeletonsHelmetService implements Listener {
         return displays;
     }
 
-    /** Places each of {@code displays} evenly around a circle of {@link #ORBIT_RADIUS} centered on {@code p}, {@code baseAngleDegrees} offsetting the whole ring so it visibly turns over time. */
-    private void positionOrbit(Player p, List<ItemDisplay> displays, double baseAngleDegrees) {
+    /** Places each of {@code displays} evenly around a circle of {@link #ORBIT_RADIUS} centered on {@code p} ({@code baseAngleDegrees} offsetting the whole ring so it visibly turns over time), and shows/hides them (an empty {@link ItemStack} for a hidden slot, the real Bone for a visible one) so exactly {@code visibleCount} of them show at once - see {@link #boneCountForRemaining}. Slots stay at their own fixed index/position either way, so a bone reappearing never jumps to a different spot in the ring. */
+    private void positionOrbit(Player p, List<ItemDisplay> displays, double baseAngleDegrees, int visibleCount) {
         Location center = p.getLocation().add(0.0, ORBIT_HEIGHT, 0.0);
         for (int i = 0; i < displays.size(); i++) {
             ItemDisplay d = displays.get(i);
             if (!d.isValid()) {
                 continue;
+            }
+            boolean shouldShow = i < visibleCount;
+            boolean currentlyShown = !d.getItemStack().isEmpty();
+            if (shouldShow != currentlyShown) {
+                d.setItemStack(shouldShow ? new ItemStack(Material.BONE) : new ItemStack(Material.AIR));
             }
             double angle = Math.toRadians(baseAngleDegrees + i * (360.0 / displays.size()));
             double x = center.getX() + ORBIT_RADIUS * Math.cos(angle);
