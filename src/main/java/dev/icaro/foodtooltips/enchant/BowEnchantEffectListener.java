@@ -7,6 +7,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -187,13 +188,21 @@ public final class BowEnchantEffectListener implements Listener {
      * straight-line distance would steal the homing lock from a mob the player can
      * actually see and is trying to hit, redirecting the arrow into the ground
      * instead - the exact bug reported.
+     *
+     * <p>{@link EntityType#ZOMBIFIED_PIGLIN} is excluded despite Bukkit classifying it
+     * under {@link Enemy} - same "neutral unless provoked" exception {@code
+     * creaking.EntityClassifier}'s own {@code NEUTRAL_TYPES} already carves out for it -
+     * per the player's own explicit "quero que o Aiming comece a ignorar o Zombie
+     * Piglin": homing arrows snapping onto a peaceful one mid-flight provoke the whole
+     * horde for a fight the player never asked for.
      */
     private static LivingEntity nearestEnemy(AbstractArrow arrow, double range) {
         LivingEntity nearest = null;
         double nearestDistanceSquared = Double.MAX_VALUE;
         Location arrowLocation = arrow.getLocation();
         for (Entity nearby : arrow.getWorld().getNearbyEntities(arrowLocation, range, range, range)) {
-            if (!(nearby instanceof Enemy enemy) || !enemy.isValid() || enemy.isDead()) {
+            if (!(nearby instanceof Enemy enemy) || !enemy.isValid() || enemy.isDead()
+                    || enemy.getType() == EntityType.ZOMBIFIED_PIGLIN) {
                 continue;
             }
             double distanceSquared = enemy.getLocation().distanceSquared(arrowLocation);
