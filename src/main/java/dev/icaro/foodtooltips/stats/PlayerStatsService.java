@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.stats;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
+import dev.icaro.foodtooltips.skills.AccessoryBagService;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import net.kyori.adventure.key.Key;
@@ -59,6 +60,7 @@ public final class PlayerStatsService {
     private GeneralSkillService general;
     private LegendaryWeaponService legendary;
     private ReforgeService reforge;
+    private AccessoryBagService accessoryBag;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -102,6 +104,10 @@ public final class PlayerStatsService {
 
     public void reforge(ReforgeService reforge) {
         this.reforge = reforge;
+    }
+
+    public void accessoryBag(AccessoryBagService accessoryBag) {
+        this.accessoryBag = accessoryBag;
     }
 
     // ---- Base config values (for the Combat Stats breakdown - see SkillsMenuService#combatStatsItem) ----
@@ -151,19 +157,21 @@ public final class PlayerStatsService {
         return this.get(p, this.maxMana, this.base) + this.effectiveIntelligence(p);
     }
 
-    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon and equipped armor reforges grant (see {@link ReforgeService}) - same "held/worn item bonus" pairing {@link #effectiveAgility} uses for Agility. */
+    /** Base Intelligence plus Alchemy/Enchanting's per-level bonus, plus whatever the player's currently-held weapon and equipped armor reforges grant (see {@link ReforgeService}), plus any stored Accessory Bag bonus (the Bone Collection's own Skeleton Hat) - same "held/worn item bonus" pairing {@link #effectiveAgility} uses for Agility. */
     private double effectiveIntelligence(Player p) {
         double reforgeBonus = this.reforge == null ? 0.0
                 : this.reforge.statsOf(p.getInventory().getItemInMainHand()).intelligence()
                         + this.reforge.bowStatsOf(p.getInventory().getItemInMainHand()).intelligence()
                         + this.reforge.totalArmorStats(p).intelligence();
-        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus;
+        double accessoryBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalIntelligenceBonus(p);
+        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + accessoryBonus;
     }
 
-    /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
+    /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant, plus any stored Accessory Bag bonus (the Bone Collection's own Skeleton Hat - {@link AccessoryBagService#applyAccessorySpeed} separately turns this same number into the real Movement Speed attribute) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
     public double effectiveAgility(Player p) {
         double reforgeArmorAgility = this.reforge == null ? 0.0 : this.reforge.totalArmorStats(p).agility();
-        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p)) + reforgeArmorAgility;
+        double accessoryBonus = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalSpeedBonus(p);
+        return this.agility + (this.legendary == null ? 0 : this.legendary.heldAgilityBonus(p)) + reforgeArmorAgility + accessoryBonus;
     }
 
     public void init(Player p) {

@@ -32,8 +32,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -577,8 +575,6 @@ implements Listener {
         if (!update.any()) {
             return;
         }
-        Language l = Language.of(p);
-        boolean pt = l == Language.PT;
         for (CollectionsMilestone milestone : update.unlocked()) {
             if (milestone.kind() == RewardKind.FARMING_XP) {
                 this.gain(p, SkillType.FARMING, milestone.xpAmount());
@@ -586,30 +582,7 @@ implements Listener {
                 this.gain(p, SkillType.FORAGING, milestone.xpAmount());
             }
         }
-        Component title = Component.text("✦ ", NamedTextColor.GOLD)
-                .append(Component.text("COLLECTION MILESTONE! ", NamedTextColor.GOLD))
-                .append(Component.translatable(drop.translationKey(), NamedTextColor.GOLD))
-                .append(Component.text(" ✦", NamedTextColor.GOLD));
-        List<Component> lines = new ArrayList<>();
-        for (CollectionsMilestone milestone : update.unlocked()) {
-            Component line = Component.text(milestone.reward(pt), NamedTextColor.GREEN);
-            if (milestone.kind() == RewardKind.RECIPE_UNLOCK && !milestone.recipes().isEmpty()) {
-                // Clicking the recipe's own reward line jumps straight to this Collection's
-                // milestone ladder (see #openCollectionsEntry's own doc) - "se eu clicar na
-                // receita no chat... ele me leva até o collection correspondente".
-                line = line.decorate(TextDecoration.UNDERLINED)
-                        .clickEvent(ClickEvent.callback(audience -> {
-                            if (audience instanceof Player clicker) {
-                                this.openCollectionsEntry.accept(clicker, drop);
-                            }
-                        }))
-                        .hoverEvent(HoverEvent.showText(Component.text(
-                                "Click to view in the Collection", NamedTextColor.YELLOW)));
-            }
-            lines.add(line);
-        }
-        lines.add(Component.text("+" + update.globalXp() + " " + "Global Level XP", NamedTextColor.AQUA));
-        dev.icaro.foodtooltips.util.AnnouncementMessage.send(p, title, lines);
+        this.collections.announce(p, drop, update, this.openCollectionsEntry);
     }
 
     /**

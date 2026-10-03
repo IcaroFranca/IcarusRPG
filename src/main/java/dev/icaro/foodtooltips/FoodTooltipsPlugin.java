@@ -69,6 +69,10 @@ import dev.icaro.foodtooltips.item.DurabilityService;
 import dev.icaro.foodtooltips.item.ItemTierListener;
 import dev.icaro.foodtooltips.item.ItemTierService;
 import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
+import dev.icaro.foodtooltips.item.CombatCollectionsItemsService;
+import dev.icaro.foodtooltips.item.HurricaneBowService;
+import dev.icaro.foodtooltips.item.SkeletonHatService;
+import dev.icaro.foodtooltips.item.SkeletonsHelmetService;
 import dev.icaro.foodtooltips.item.MushroomArmorService;
 import dev.icaro.foodtooltips.item.MushroomSoupFlightService;
 import dev.icaro.foodtooltips.item.FarmCrystalService;
@@ -263,6 +267,7 @@ extends JavaPlugin {
         this.accessoryBag = new AccessoryBagService((Plugin)this, menus::openMain);
         menus.accessoryBag(this.accessoryBag);
         this.accessoryBag.start();
+        stats.accessoryBag(this.accessoryBag);
         this.creakingSight = new dev.icaro.foodtooltips.creaking.CreakingSightService((Plugin)this, this.accessoryBag);
         this.getServer().getPluginManager().registerEvents((Listener)this.creakingSight, (Plugin)this);
         this.creakingSight.start();
@@ -388,7 +393,18 @@ extends JavaPlugin {
         pm.registerEvents((Listener)customEnchants, (Plugin)this);
         pm.registerEvents((Listener)new MeleeEnchantEffectListener((Plugin)this, enchants, this.visuals, abilities), (Plugin)this);
         pm.registerEvents((Listener)lapisExperience, (Plugin)this);
-        pm.registerEvents((Listener)new BowEnchantEffectListener((Plugin)this, enchants), (Plugin)this);
+        BowEnchantEffectListener bowEnchantEffectListener = new BowEnchantEffectListener((Plugin)this, enchants);
+        pm.registerEvents((Listener)bowEnchantEffectListener, (Plugin)this);
+        // Bone Collection (M4/M6/M8/M9) - SkeletonsHelmetService must be registered before
+        // combatListener below (see that class's own doc) so a ready Bone Shield charge
+        // takes priority over Second Wind's own cooldown at the same HIGHEST tier.
+        SkeletonHatService skeletonHat = new SkeletonHatService(this.accessoryBag, abilities);
+        pm.registerEvents((Listener)skeletonHat, (Plugin)this);
+        SkeletonsHelmetService skeletonsHelmet = new SkeletonsHelmetService(tiers);
+        pm.registerEvents((Listener)skeletonsHelmet, (Plugin)this);
+        HurricaneBowService hurricaneBow = new HurricaneBowService(tiers, enchants, bowEnchantEffectListener);
+        pm.registerEvents((Listener)hurricaneBow, (Plugin)this);
+        new CombatCollectionsItemsService(hurricaneBow, skeletonsHelmet).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
@@ -427,8 +443,10 @@ extends JavaPlugin {
         pm.registerEvents((Listener)gems, (Plugin)this);
         pm.registerEvents((Listener)new MiningMenuListener(mining, menus, gems), (Plugin)this);
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
-        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService);
+        CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService, collectionsService);
         combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
+        combatListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
+                .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         // Registration order among these EventPriority.HIGHEST EntityDamageEvent handlers
         // matters (Bukkit runs same-priority handlers in registration order):
         // savannaBow#hit (doubles the attacker's own already-fully-computed damage, see
@@ -660,6 +678,7 @@ extends JavaPlugin {
             // on Java (or the skin patch on Bedrock) until the next sweep.
             minerVariants.applyToInventory((Player)p);
             this.accessoryBag.refreshStandingEffects((Player)p);
+            this.accessoryBag.applyAccessorySpeed((Player)p);
             this.quiver.topUp((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);

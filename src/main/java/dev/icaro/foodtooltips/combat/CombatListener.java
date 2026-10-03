@@ -4,6 +4,9 @@ import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
 import dev.icaro.foodtooltips.bestiary.BestiaryProgressService;
 import dev.icaro.foodtooltips.citizens.CitizensIntegrationService;
+import dev.icaro.foodtooltips.collections.CollectionsMilestone;
+import dev.icaro.foodtooltips.collections.CollectionsService;
+import dev.icaro.foodtooltips.collections.RewardKind;
 import dev.icaro.foodtooltips.combat.MobDifficultyService;
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
@@ -40,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -164,10 +168,18 @@ public final class CombatListener implements Listener {
     private final long teleportArmWindowMillis;
     /** Archery Potion's own +12.5% bow/arrow damage (see {@code item.ArcheryPotionService}) - late-bound, same "no direct dependency on an unrelated feature" shape {@code skills.ArmorDefenseService#protectionBonus} already uses, wired from {@code FoodTooltipsPlugin}. Defaults to always-0 so this class works before it's ever wired. */
     private java.util.function.ToDoubleFunction<Player> archeryPotionPercent = p -> 0.0;
+    private final CollectionsService collections;
+    /** See {@code skills.GeneralSkillListener#openCollectionsEntry}'s own doc - same callback, wired from {@code FoodTooltipsPlugin}, so {@link CollectionsService#announce}'s own clickable recipe-reward line works for a Combat Collection too. */
+    private BiConsumer<Player, Material> openCollectionsEntry = (p, m) -> {};
 
     /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link #archeryPotionPercent}'s own doc. */
     public void archeryPotionPercent(java.util.function.ToDoubleFunction<Player> archeryPotionPercent) {
         this.archeryPotionPercent = archeryPotionPercent;
+    }
+
+    /** See {@link #openCollectionsEntry}'s own doc. */
+    public void openCollectionsEntry(BiConsumer<Player, Material> openCollectionsEntry) {
+        this.openCollectionsEntry = openCollectionsEntry;
     }
 
     /** One target's current Lethality debuff - {@code level} is whichever hit most recently refreshed it (see {@link #addLethalityStack}), not tracked per-stack, since every active stack refreshes together anyway. */
@@ -178,9 +190,10 @@ public final class CombatListener implements Listener {
                            CombatAbilityService abilityService, GlobalLevelService global,
                            PlayerStatsService stats, CombatValorService valor, ArmorDefenseService armor, GeneralSkillService general,
                            LegendaryWeaponService legendary, EnchantService enchants, MobDifficultyService difficulty, PassiveAbilityService passives,
-                           ReforgeService reforge) {
+                           ReforgeService reforge, CollectionsService collections) {
         this.plugin = p;
         this.reforge = reforge;
+        this.collections = collections;
         this.combat = c;
         this.visuals = v;
         this.bestiary = b;
@@ -707,6 +720,7 @@ public final class CombatListener implements Listener {
         });
         this.rollMinerLegendaryDrop(e, p);
         this.rollEquipmentDrops(e, p);
+        this.creditCombatCollections(p, e);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
         // kill for valor/XP.
@@ -742,6 +756,55 @@ public final class CombatListener implements Listener {
                     this.sweepNearbyDrops(p, e.getEntity().getLocation(), radius);
                 }
             }
+        }
+    }
+
+    /**
+     * Credits Combat Collections (Bone, Rotten Flesh, String, Gunpowder...) from {@code
+     * e.getDrops()}'s own real final amounts - called from {@link #death} itself, directly
+     * after {@link #rollMinerLegendaryDrop}/{@link #rollEquipmentDrops} (the loot-bonus
+     * multiplier {@link #applyLootBonus} duplicates drops through) but before the
+     * Telekinesis block right below clears the list entirely - unlike {@code
+     * skills.GeneralSkillListener#animalDrop}, this can't just be its own separate {@link
+     * EventPriority#HIGH} handler, since {@link #applyLootBonus}'s own duplication happens
+     * INSIDE this same {@link EventPriority#MONITOR} {@link #death} method - a HIGH-priority
+     * handler would run before that duplication and undercount. Grants each freshly-crossed
+     * milestone's own Combat XP directly through {@link CombatSkillService#addXp} (Combat
+     * has no {@code skills.SkillType} of its own to go through {@code
+     * GeneralSkillService#gain} the way Farming/Foraging do) and announces every kind of
+     * unlock via {@link CollectionsService#announce}.
+     */
+    private void creditCombatCollections(Player p, EntityDeathEvent e) {
+        Map<Material, Integer> totals = new HashMap<>();
+        for (ItemStack drop : e.getDrops()) {
+            totals.merge(drop.getType(), drop.getAmount(), Integer::sum);
+        }
+        for (Map.Entry<Material, Integer> entry : totals.entrySet()) {
+            CollectionsService.Update update = this.collections.record(p, entry.getKey(), entry.getValue());
+            if (!update.any()) {
+                continue;
+            }
+            for (CollectionsMilestone milestone : update.unlocked()) {
+                if (milestone.kind() != RewardKind.COMBAT_XP) {
+                    continue;
+                }
+                // Same level-up handling (progress bar, chat message, Global Level credit,
+                // Second Wind-style bonus Valor) a real kill's own Combat XP gets in #death
+                // just above - a Collections milestone shouldn't feel like a lesser XP source.
+                int oldLevel = this.combat.progress(p).level();
+                int levels = this.combat.addXp(p, milestone.xpAmount());
+                int newLevel = this.combat.progress(p).level();
+                this.progressBar.showCombat(p, milestone.xpAmount(), this.combat.progress(p), this.combat.maxLevel());
+                if (levels > 0) {
+                    long reward = this.global.creditSkillLevels(p, GlobalSkill.COMBAT, oldLevel, newLevel);
+                    long bonusValor = this.valor.levelUpValor(levels);
+                    if (bonusValor > 0L) {
+                        this.valor.deposit(p, bonusValor);
+                    }
+                    this.levelUpMessage(p, oldLevel, newLevel, reward, bonusValor);
+                }
+            }
+            this.collections.announce(p, entry.getKey(), update, this.openCollectionsEntry);
         }
     }
 

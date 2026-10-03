@@ -9,5 +9,9 @@ public enum RewardKind {
     /** Unlocks {@code CollectionsMilestone#recipe} (see {@link CollectionsService#hasUnlockedRecipe}). */
     RECIPE_UNLOCK,
     /** Discounts {@code CollectionsMilestone#discountEnchant}'s own Enchanting Table XP cost by {@code CollectionsMilestone#discountPercent} - see {@code EnchantMenuService#discountedCost}. */
-    ENCHANT_DISCOUNT
+    ENCHANT_DISCOUNT,
+    /** Grants {@code CollectionsMilestone#xpAmount} Combat XP (see {@code skills.CombatSkillService#addXp}) - Combat has no {@code skills.SkillType} of its own, unlike Farming/Foraging, so this is granted directly rather than through {@code skills.GeneralSkillService#gain}. */
+    COMBAT_XP,
+    /** Same as {@link #ENCHANT_DISCOUNT}, but for a real vanilla {@link org.bukkit.enchantments.Enchantment} (e.g. Power) instead of one of this plugin's own {@code IcarusEnchant}s - see {@code CollectionsMilestone#vanillaDiscountEnchant}/{@code CollectionsService#vanillaEnchantDiscountPercent}. */
+    VANILLA_ENCHANT_DISCOUNT
 }

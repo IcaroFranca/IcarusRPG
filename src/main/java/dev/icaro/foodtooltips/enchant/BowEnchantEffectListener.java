@@ -150,8 +150,15 @@ public final class BowEnchantEffectListener implements Listener {
      * cancels itself the moment the arrow is no longer actually flying (invalid,
      * dead, landed) or {@link #AIMING_MAX_TICKS} is hit. A tick with no qualifying
      * target nearby just leaves the arrow's own vanilla trajectory alone.
+     *
+     * <p>Public (not called from {@link #bowShoot} alone) so {@code
+     * item.HurricaneBowService} can apply the exact same homing to its own Runaan's
+     * Bow extra arrows too - those are spawned by that class's own code, never by
+     * the vanilla {@link EntityShootBowEvent#getProjectile()} this class's own {@link
+     * #bowShoot} already homes automatically, so without this they'd never home at
+     * all despite the bow carrying a real Aiming enchant level.
      */
-    private void startHoming(AbstractArrow arrow, double range) {
+    public void startHoming(AbstractArrow arrow, double range) {
         BukkitTask[] holder = new BukkitTask[1];
         int[] ticks = {0};
         holder[0] = Bukkit.getScheduler().runTaskTimer(this.plugin, () -> {

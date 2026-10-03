@@ -19,19 +19,21 @@ import org.bukkit.NamespacedKey;
  * onward - Mangrove Log's own template has since been filled in) - milestones to be filled in later, same
  * as Combat's own 14 entries (every material a real hostile {@code bestiary.BestiaryCatalog}
  * mob commonly drops, minus one-off boss loot and anything an aquatic mob drops, reserved
- * for Fishing instead), all inert too per the player's own "vou te falar com o tempo o que
- * cada um vai ter". Mining/Fishing still have no entries at all, though both are real
+ * for Fishing instead) - 13 still inert per the player's own "vou te falar com o tempo o que
+ * cada um vai ter", Bone's own template now filled in. Mining/Fishing still have no entries at all, though both are real
  * {@link CollectionsCategory} values already (so {@link CollectionsMenuService}'s category
  * screen never has to change shape once any of them are filled in).
  *
  * <p>The recipe keys below are this class's own - {@code
- * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService} registers its actual {@code
- * Bukkit.addRecipe} calls under these exact same keys, so a milestone's {@link
+ * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService}/{@code
+ * ForagingCollectionsItemsService}/{@code CombatCollectionsItemsService} register their
+ * actual {@code Bukkit.addRecipe} calls under these exact same keys, so a milestone's {@link
  * CollectionsMilestone#recipes} and the real registered recipe always agree on identity. The
- * two {@code MUSHROOM_BLOCK} keys are the exception - real *vanilla* recipe keys (Bukkit
- * ships one already for each), gated here without this plugin ever registering a recipe of
- * its own for them; see {@code collections.CollectionsRecipeGateListener}, which checks any
- * {@code CraftingRecipe} regardless of who registered it, not just this plugin's own.
+ * {@code MUSHROOM_BLOCK} and {@link #SUSPICIOUS_STEW_RECIPE} keys are the exception - real
+ * *vanilla* recipe keys (Bukkit ships one already for each), gated here without this plugin
+ * ever registering a recipe of its own for them; see {@code
+ * collections.CollectionsRecipeGateListener}, which checks any {@code CraftingRecipe} or
+ * {@code ComplexRecipe} regardless of who registered it, not just this plugin's own.
  */
 public final class CollectionsCatalog {
     public static final NamespacedKey CACTUS_CORE_RECIPE = new NamespacedKey("foodtooltips", "cactus_core");
@@ -155,6 +157,12 @@ public final class CollectionsCatalog {
     public static final NamespacedKey RADIANT_TORCHFLOWER_CORE_RECIPE = new NamespacedKey("foodtooltips", "radiant_torchflower_core");
     /** The real vanilla recipe key for Suspicious Stew (a {@link org.bukkit.inventory.ComplexRecipe}, not a normal shaped/shapeless one - see {@code CollectionsRecipeGateListener}'s own doc on why gating it needed that class to learn about this recipe kind too) - this plugin never registers a recipe of its own for it, same "real vanilla key, gated without owning it" trick {@link #RED_MUSHROOM_BLOCK_RECIPE}/{@link #BROWN_MUSHROOM_BLOCK_RECIPE} already use. */
     public static final NamespacedKey SUSPICIOUS_STEW_RECIPE = NamespacedKey.minecraft("suspicious_stew");
+    public static final NamespacedKey BONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "bone_core");
+    public static final NamespacedKey SKELETON_HAT_RECIPE = new NamespacedKey("foodtooltips", "skeleton_hat");
+    public static final NamespacedKey HURRICANE_BOW_RECIPE = new NamespacedKey("foodtooltips", "hurricane_bow");
+    public static final NamespacedKey PILE_OF_BONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "pile_of_bone_core");
+    public static final NamespacedKey SKELETONS_HELMET_RECIPE = new NamespacedKey("foodtooltips", "skeletons_helmet");
+    public static final NamespacedKey RUNAANS_BOW_RECIPE = new NamespacedKey("foodtooltips", "runaans_bow");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -201,7 +209,31 @@ public final class CollectionsCatalog {
             // freely, nothing unlocks yet" convention Foraging's own wood-log templates
             // below (Mangrove Log onward) already use.
             new CollectionsEntry(Material.ROTTEN_FLESH, Material.ROTTEN_FLESH, CollectionsCategory.COMBAT, "Carne Podre", "Rotten Flesh", List.of()),
-            new CollectionsEntry(Material.BONE, Material.BONE, CollectionsCategory.COMBAT, "Osso", "Bone", List.of()),
+            new CollectionsEntry(Material.BONE, Material.BONE, CollectionsCategory.COMBAT, "Osso", "Bone", List.of(
+                    CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+" + DEFAULT_XP[0] + " XP de Combate", "+" + DEFAULT_XP[0] + " Combat XP"),
+                    CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[1], DEFAULT_XP[1],
+                            "+" + DEFAULT_XP[1] + " XP de Combate", "+" + DEFAULT_XP[1] + " Combat XP"),
+                    CollectionsMilestone.vanillaEnchantDiscount(DEFAULT_THRESHOLDS[2], NamespacedKey.minecraft("power"), 25.0,
+                            "-25% de custo em XP para Poder", "-25% XP cost for Power"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Skeleton Hat", "Unlocks the Skeleton Hat recipe",
+                            SKELETON_HAT_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Bone Core", "Unlocks the Bone Core recipe",
+                            BONE_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Hurricane Bow", "Unlocks the Hurricane Bow recipe",
+                            HURRICANE_BOW_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Pile of Bone Core", "Unlocks the Pile of Bone Core recipe",
+                            PILE_OF_BONE_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
+                            "Desbloqueia a receita do Skeleton's Helmet", "Unlocks the Skeleton's Helmet recipe",
+                            SKELETONS_HELMET_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita do Runaan's Bow", "Unlocks the Runaan's Bow recipe",
+                            RUNAANS_BOW_RECIPE))),
             new CollectionsEntry(Material.STRING, Material.STRING, CollectionsCategory.COMBAT, "Barbante", "String", List.of()),
             new CollectionsEntry(Material.SPIDER_EYE, Material.SPIDER_EYE, CollectionsCategory.COMBAT, "Olho de Aranha", "Spider Eye", List.of()),
             new CollectionsEntry(Material.GUNPOWDER, Material.GUNPOWDER, CollectionsCategory.COMBAT, "Pólvora", "Gunpowder", List.of()),

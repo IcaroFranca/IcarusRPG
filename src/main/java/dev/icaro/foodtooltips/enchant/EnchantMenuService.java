@@ -909,6 +909,10 @@ public final class EnchantMenuService {
         double collectionsDiscount = 0.0;
         if (this.collections != null && e instanceof CustomEnchantEntry c) {
             collectionsDiscount = this.collections.enchantDiscountPercent(p, c.enchant()) / 100.0;
+        } else if (this.collections != null && e instanceof VanillaEnchantEntry v) {
+            // Power's own discount (the Bone Collection) is the first user of this branch -
+            // see CollectionsService#vanillaEnchantDiscountPercent's own doc.
+            collectionsDiscount = this.collections.vanillaEnchantDiscountPercent(p, v.enchantment()) / 100.0;
         }
         double remaining = Math.max(0.0, (1.0 - levelDiscount) * (1.0 - collectionsDiscount));
         return (int) Math.round(original * remaining);

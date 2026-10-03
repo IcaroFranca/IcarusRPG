@@ -3,11 +3,19 @@ package dev.icaro.foodtooltips.collections;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.global.GlobalLevelService;
 import dev.icaro.foodtooltips.global.GlobalXpSource;
+import dev.icaro.foodtooltips.util.AnnouncementMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiConsumer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 
 /**
@@ -139,6 +147,21 @@ public final class CollectionsService {
         return percent;
     }
 
+    /** Same as {@link #enchantDiscountPercent}, but for a real vanilla {@link Enchantment} (see {@link RewardKind#VANILLA_ENCHANT_DISCOUNT}) - Power's own discount (the Bone Collection) is the first user of this. Compared by {@link Enchantment#getKey()} rather than identity - {@link CollectionsMilestone#vanillaDiscountEnchant} stores a plain {@link NamespacedKey}, not a live {@link Enchantment}, so the catalog's own eager static data never has to resolve one (see that field's own doc on the {@code RegistryAccess} crash that would otherwise cause outside a running server). */
+    public double vanillaEnchantDiscountPercent(Player player, Enchantment enchant) {
+        double percent = 0.0;
+        for (CollectionsEntry entry : CollectionsCatalog.entries()) {
+            int achieved = this.progress.achieved(player, entry);
+            for (int i = 0; i < achieved; i++) {
+                CollectionsMilestone milestone = entry.milestones().get(i);
+                if (milestone.kind() == RewardKind.VANILLA_ENCHANT_DISCOUNT && enchant.getKey().equals(milestone.vanillaDiscountEnchant())) {
+                    percent += milestone.discountPercent();
+                }
+            }
+        }
+        return percent;
+    }
+
     /** Syncs every gated recipe's real vanilla discovery state to {@code player}'s current progress - called on join so a recipe unlocked in a past session (or one added to the catalog after they'd already have qualified) still shows up without needing a fresh milestone crossing. Never touches a recipe this catalog doesn't gate. */
     public void syncDiscoveredRecipes(Player player) {
         for (CollectionsEntry entry : CollectionsCatalog.entries()) {
@@ -159,5 +182,47 @@ public final class CollectionsService {
                 }
             }
         }
+    }
+
+    /**
+     * Announces every kind of unlock in {@code update} (XP, recipe, enchant discount alike)
+     * in one combined chat message - shared by every category's own crediting call site
+     * ({@code skills.GeneralSkillListener#applyCollections} for Farming/Foraging, {@code
+     * combat.CombatListener}'s own mob-drop credit for Combat) so the announcement itself
+     * never drifts between categories; a no-op for an {@link Update} with nothing unlocked.
+     * Does NOT grant any milestone's own skill XP - that part still varies too much between
+     * categories to share (Farming/Foraging go through {@code skills.GeneralSkillService#gain}
+     * keyed by a {@code SkillType}; Combat has none and goes through {@code
+     * skills.CombatSkillService#addXp} directly instead), so the caller grants that itself,
+     * from the same {@code update.unlocked()} list, before calling this.
+     */
+    public void announce(Player player, Material drop, Update update, BiConsumer<Player, Material> openEntry) {
+        if (!update.any()) {
+            return;
+        }
+        Component title = Component.text("✦ ", NamedTextColor.GOLD)
+                .append(Component.text("COLLECTION MILESTONE! ", NamedTextColor.GOLD))
+                .append(Component.translatable(drop.translationKey(), NamedTextColor.GOLD))
+                .append(Component.text(" ✦", NamedTextColor.GOLD));
+        List<Component> lines = new ArrayList<>();
+        for (CollectionsMilestone milestone : update.unlocked()) {
+            Component line = Component.text(milestone.reward(true), NamedTextColor.GREEN);
+            if (milestone.kind() == RewardKind.RECIPE_UNLOCK && !milestone.recipes().isEmpty()) {
+                // Clicking the recipe's own reward line jumps straight to this Collection's
+                // milestone ladder - "se eu clicar na receita no chat... ele me leva até o
+                // collection correspondente".
+                line = line.decorate(TextDecoration.UNDERLINED)
+                        .clickEvent(ClickEvent.callback(audience -> {
+                            if (audience instanceof Player clicker) {
+                                openEntry.accept(clicker, drop);
+                            }
+                        }))
+                        .hoverEvent(HoverEvent.showText(Component.text(
+                                "Click to view in the Collection", NamedTextColor.YELLOW)));
+            }
+            lines.add(line);
+        }
+        lines.add(Component.text("+" + update.globalXp() + " " + "Global Level XP", NamedTextColor.AQUA));
+        AnnouncementMessage.send(player, title, lines);
     }
 }

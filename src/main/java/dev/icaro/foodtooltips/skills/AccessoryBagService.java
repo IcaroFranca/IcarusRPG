@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -27,6 +28,9 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
@@ -344,6 +348,44 @@ public final class AccessoryBagService {
             total += AccessoryItems.heatResistance(item);
         }
         return total;
+    }
+
+    /** Sum of {@link AccessoryItems#intelligenceBonus} across every accessory {@code p} currently has stored (the Bone Collection's own Skeleton Hat) - read by {@code stats.PlayerStatsService#effectiveIntelligence} (wired in as its own late-bound {@code accessoryBag} field), same shape as {@link #totalSweepBonus}/{@link #totalForagingFortuneBonus}. */
+    public int totalIntelligenceBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.intelligenceBonus(item);
+        }
+        return total;
+    }
+
+    /** Sum of {@link AccessoryItems#speedBonus} across every accessory {@code p} currently has stored (the Bone Collection's own Skeleton Hat) - the number shown on the Stats screen (read by {@code stats.PlayerStatsService#effectiveAgility}); {@link #applyAccessorySpeed} separately turns this same number into the real Movement Speed attribute, since an accessory in the bag (unlike a worn armor piece) has no equip slot of its own for a baked-in {@link AttributeModifier} to apply automatically. */
+    public int totalSpeedBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.speedBonus(item);
+        }
+        return total;
+    }
+
+    private static final NamespacedKey ACCESSORY_SPEED_KEY = new NamespacedKey("foodtooltips", "accessory_speed_bonus_attribute");
+    /** Same "Speed point -> real Movement Speed" conversion every other Speed source in this plugin uses - see {@code item.SpeedsterArmorService#SPEED_POINT_TO_ATTRIBUTE}'s own doc. */
+    private static final double SPEED_POINT_TO_ATTRIBUTE = 0.001;
+
+    /** Converts {@link #totalSpeedBonus} into the real vanilla Movement Speed attribute - same remove-then-reapply-if-still-earned idempotent pattern {@code item.SpeedsterArmorService#applyFullSetSpeed} uses, called from the same periodic per-player sweep in {@code FoodTooltipsPlugin}. */
+    public void applyAccessorySpeed(Player p) {
+        AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (speed == null) {
+            return;
+        }
+        AttributeModifier old = speed.getModifier(Key.key(ACCESSORY_SPEED_KEY.getNamespace(), ACCESSORY_SPEED_KEY.getKey()));
+        if (old != null) {
+            speed.removeModifier(old);
+        }
+        int bonus = this.totalSpeedBonus(p);
+        if (bonus > 0) {
+            speed.addTransientModifier(new AttributeModifier(ACCESSORY_SPEED_KEY, bonus * SPEED_POINT_TO_ATTRIBUTE, AttributeModifier.Operation.ADD_NUMBER));
+        }
     }
 
     /**
