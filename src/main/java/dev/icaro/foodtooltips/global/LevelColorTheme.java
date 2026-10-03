@@ -16,10 +16,6 @@ public record LevelColorTheme(String id, String name, int requiredLevel, Materia
         return this.intervalTicks > 0 ? this.intervalTicks : 7;
     }
 
-    public boolean colorsWholeBadge() {
-        return this.intervalTicks > 0;
-    }
-
     public int[] palette() {
         return Arrays.copyOf(this.palette, this.palette.length);
     }

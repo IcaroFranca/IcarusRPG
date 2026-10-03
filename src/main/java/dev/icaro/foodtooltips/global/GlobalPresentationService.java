@@ -156,11 +156,19 @@ implements Listener {
      * than a hard override so a future per-player chat color preference (planned,
      * not implemented yet) can still color the message explicitly upstream of this
      * renderer and have that respected instead of being overwritten here.
+     *
+     * <p>The sender's own NAME, unlike the message, DOES get tinted with their level
+     * color (same {@link #cachedColor} the tab list name and the nametag's own
+     * scoreboard team already use) - per the player's own explicit "as cores dos
+     * niveis tem que aplicar nos nicknames... também", this used to be hardcoded white
+     * here, the one place that still ignored the theme.
      */
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void chat(AsyncChatEvent e) {
-        Component badge = this.cachedBadge(e.getPlayer().getUniqueId());
-        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), (TextColor)NamedTextColor.WHITE)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
+        UUID id = e.getPlayer().getUniqueId();
+        Component badge = this.cachedBadge(id);
+        TextColor nameColor = this.cachedColor(id);
+        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), nameColor)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
     }
 
     private record BadgeState(long level, LevelColorTheme theme) {

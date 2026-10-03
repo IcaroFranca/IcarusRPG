@@ -12,7 +12,6 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 
 public final class LevelBadgeRenderer {
-    private static final TextColor BRACKET = TextColor.color((int)0x555555);
     private final Map<Key, List<Component>> cache = new ConcurrentHashMap<Key, List<Component>>();
     /** Same per-frame colors {@link #build} turns into badge {@link Component}s, cached separately (keyed only by theme, not level) since the color sequence itself never depends on the level's digits - {@link #activeColor} reads this directly so the player's name can be tinted with the exact same color as whatever frame the badge is currently showing. */
     private final Map<String, List<TextColor>> colorCache = new ConcurrentHashMap<String, List<TextColor>>();
@@ -46,16 +45,16 @@ public final class LevelBadgeRenderer {
         this.colorCache.clear();
     }
 
+    /** The whole "[N] " badge - brackets included - is always tinted with the theme's own active color (no separate fixed gray for the brackets) per the player's own explicit "as cores dos niveis tem que aplicar... nos colchetes também". */
     private List<Component> build(long level, LevelColorTheme theme) {
         String digits = Long.toString(Math.max(0L, level));
         List<TextColor> colors = this.colorFrames(theme);
         if (!theme.animated()) {
-            return List.of(((TextComponent)Component.text((String)"[", (TextColor)BRACKET).append((Component)Component.text((String)digits, colors.get(0)))).append((Component)Component.text((String)"] ", (TextColor)BRACKET)));
+            return List.of(Component.text("[" + digits + "] ", colors.get(0)));
         }
         ArrayList<TextComponent> frames = new ArrayList<TextComponent>();
         for (TextColor active : colors) {
-            TextComponent frame = theme.colorsWholeBadge() ? Component.text((String)("[" + digits + "] "), active) : ((TextComponent)Component.text((String)"[", (TextColor)BRACKET).append((Component)Component.text((String)digits, active))).append((Component)Component.text((String)"] ", (TextColor)BRACKET));
-            frames.add(frame);
+            frames.add(Component.text("[" + digits + "] ", active));
         }
         return List.copyOf(frames);
     }
