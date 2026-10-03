@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.food;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.AccessoryItems;
 import dev.icaro.foodtooltips.skills.GeneralSkillService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.FoodProperties;
@@ -22,7 +23,22 @@ public final class FoodTooltipService {
     private static final PlainTextComponentSerializer P = PlainTextComponentSerializer.plainText();
     private final GeneralSkillService skills = new GeneralSkillService();
 
+    /**
+     * A real Collections accessory ({@link AccessoryItems#type} says so - the Vaccine
+     * Talisman's own Poisonous Potato is the one built on an inherently-food Material) is
+     * skipped outright, before even checking for a {@link FoodProperties} component: this
+     * tooltip's own per-item sweep running on it would retroactively add a "Food attributes"
+     * block to a player's real copy that a freshly-built reference (used as the next tier's
+     * own {@code RecipeChoice.ExactChoice} ingredient) never goes through, silently and
+     * permanently breaking that evolution recipe the moment the sweep first touches the
+     * item - same bug class {@code item.FarmingCollectionsItemsService#tagged}'s own doc
+     * describes for the tier tag, just triggered by food tooltips instead of by the Material
+     * itself having a default FOOD component some future accessory might also pick.
+     */
     public boolean update(ItemStack item, Language l, Player p) {
+        if (AccessoryItems.type(item) != null) {
+            return false;
+        }
         FoodProperties food = (FoodProperties)item.getData(DataComponentTypes.FOOD);
         boolean pickaxe = item.getType().name().endsWith("_PICKAXE");
         if (food == null && !pickaxe) {

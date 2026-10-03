@@ -823,10 +823,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.TALISMAN, "feather", 5, 0.0, 0.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
-                Component.text("+5 blocos de altura sem dano de queda", NamedTextColor.AQUA),
+                Component.text("+5 blocks of fall damage immunity", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Feather accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -843,11 +843,11 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.RING, "feather", 7, 5.0, 0.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
-                Component.text("+7 blocos de altura sem dano de queda", NamedTextColor.AQUA),
-                Component.text("-5% de dano de queda", NamedTextColor.AQUA),
+                Component.text("+7 blocks of fall damage immunity", NamedTextColor.AQUA),
+                Component.text("-5% fall damage", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Feather accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -863,11 +863,11 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "feather", 10, 15.0, 0.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
-                Component.text("+10 blocos de altura sem dano de queda", NamedTextColor.AQUA),
-                Component.text("-15% de dano de queda", NamedTextColor.AQUA),
+                Component.text("+10 blocks of fall damage immunity", NamedTextColor.AQUA),
+                Component.text("-15% fall damage", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Feather por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Feather accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -895,9 +895,9 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.CHARM, "night_vision", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
-                Component.text("Visão noturna permanente", NamedTextColor.AQUA),
+                Component.text("Permanent Night Vision", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1027,27 +1027,31 @@ public final class FarmingCollectionsItemsService {
      *
      * <p>Unlike every other Talisman's own base material, a real Poisonous Potato carries a
      * vanilla {@code FoodProperties} component - {@code food.FoodTooltipListener}'s own
-     * per-item refresh sweep (every inventory click/open/join) adds a "Food attributes"
-     * nutrition block to ANY item with one, the instant this Talisman sits in a player's
-     * real inventory, which this freshly-built reference (used as the Vaccine Ring recipe's
-     * own {@code RecipeChoice.ExactChoice} ingredient) never goes through - silently
-     * breaking that recipe for good the moment the sweep first touches the player's copy,
-     * same bug class {@link #tagged}'s own doc describes for the tier tag, just triggered by
-     * food tooltips instead. Stripping the component here (it was never meant to be eaten as
-     * an accessory anyway) keeps both copies identical.
+     * per-item refresh sweep (every inventory click/open/join) used to add a "Food attributes"
+     * nutrition block to ANY item with one, the instant this Talisman sat in a player's real
+     * inventory, which a freshly-built reference (used as the Vaccine Ring recipe's own
+     * {@code RecipeChoice.ExactChoice} ingredient) never went through - silently breaking
+     * that recipe for good the moment the sweep first touched the player's copy, same bug
+     * class {@link #tagged}'s own doc describes for the tier tag, just triggered by food
+     * tooltips instead. Fixed at the source instead ({@code FoodTooltipService#update} now
+     * skips any real accessory outright, {@link AccessoryItems#type} says so) rather than
+     * stripping the item's own {@code FoodProperties} component here - an earlier attempt at
+     * exactly that ({@code ItemStack#unsetData}) crashed {@code registerRecipes()} on a real
+     * server (FOOD isn't a removable component on an inherently-food Material), silently
+     * aborting every recipe registered after it in this class - never caught by this
+     * project's own tests, which can't exercise a live Bukkit recipe registry at all.
      */
     private org.bukkit.inventory.ItemStack vaccineTalisman() {
         var item = new org.bukkit.inventory.ItemStack(Material.POISONOUS_POTATO);
-        item.unsetData(io.papermc.paper.datacomponent.DataComponentTypes.FOOD);
         var meta = item.getItemMeta();
         meta.displayName(Component.text("Vaccine Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
         AccessoryItems.mark(meta, AccessoryType.TALISMAN, "vaccine", 0, 0.0, 10.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
-                Component.text("-10% de dano de envenenamento", NamedTextColor.AQUA),
+                Component.text("-10% poison damage", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Vaccine accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1065,10 +1069,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.RING, "vaccine", 0, 0.0, 25.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
-                Component.text("-25% de dano de envenenamento", NamedTextColor.AQUA),
+                Component.text("-25% poison damage", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Vaccine accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1095,10 +1099,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "vaccine", 0, 0.0, 50.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
-                Component.text("-50% de dano de envenenamento", NamedTextColor.AQUA),
+                Component.text("-50% poison damage", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Vaccine por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Vaccine accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1127,10 +1131,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.ORB, "farmer_orb", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
-                Component.text("Amadurece plantações instantaneamente numa área 5x5", NamedTextColor.AQUA),
-                Component.text("ao seu redor a cada 3 segundos", NamedTextColor.AQUA),
+                Component.text("Instantly matures crops in a 5x5 area", NamedTextColor.AQUA),
+                Component.text("around you every 3 seconds", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1214,10 +1218,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.TALISMAN, "potion_affinity", 0, 0.0, 0.0, 10.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.D);
         addStatLore(meta,
-                Component.text("+10% de duração de poções", NamedTextColor.AQUA),
+                Component.text("+10% potion duration", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Potion Affinity accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1235,10 +1239,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.RING, "potion_affinity", 0, 0.0, 0.0, 25.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.C);
         addStatLore(meta,
-                Component.text("+25% de duração de poções", NamedTextColor.AQUA),
+                Component.text("+25% potion duration", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Potion Affinity accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
@@ -1261,10 +1265,10 @@ public final class FarmingCollectionsItemsService {
         AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "potion_affinity", 0, 0.0, 0.0, 50.0, 0, 0, 0, 0);
         this.tiers.forceTier(meta, ItemTier.B);
         addStatLore(meta,
-                Component.text("+50% de duração de poções", NamedTextColor.AQUA),
+                Component.text("+50% potion duration", NamedTextColor.AQUA),
                 Component.empty(),
-                Component.text("Guarde na Bolsa de Acessórios.", NamedTextColor.GRAY),
-                Component.text("Só um acessório da linha Potion Affinity por vez.", NamedTextColor.DARK_GRAY));
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Potion Affinity accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
     }
