@@ -8,7 +8,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -433,30 +432,10 @@ public final class GeneralSkillService {
     }
 
     public MiningRecord recordMined(Player p, Material block) {
-        int before = this.miningMilestones(p, block);
         NamespacedKey k = this.minedKey(block);
         int count = (Integer)p.getPersistentDataContainer().getOrDefault(k, PersistentDataType.INTEGER, 0) + 1;
         p.getPersistentDataContainer().set(k, PersistentDataType.INTEGER, count);
-        MiningCatalog.find(block).ifPresent(e -> {
-            if (ThreadLocalRandom.current().nextInt(100) < 20) {
-                this.depositMineralDust(p, Math.max(1L, Math.round(e.skillXp() / 20.0)));
-            }
-        });
-        int after = this.miningMilestones(p, block);
-        if (after > before) {
-            this.depositMineralDust(p, (long)after * 50L);
-        }
         return new MiningRecord(count, this.recordCommission(p, block));
-    }
-
-    public long mineralDust(Player p) {
-        return (Long)p.getPersistentDataContainer().getOrDefault(new NamespacedKey("foodtooltips", "mineral_dust"), PersistentDataType.LONG, 0L);
-    }
-
-    public void depositMineralDust(Player p, long amount) {
-        if (amount > 0L) {
-            p.getPersistentDataContainer().set(new NamespacedKey("foodtooltips", "mineral_dust"), PersistentDataType.LONG, Math.max(0L, this.mineralDust(p) + amount));
-        }
     }
 
     public int mined(Player p, Material block) {
@@ -527,11 +506,7 @@ public final class GeneralSkillService {
         }
         int after = before + 1;
         d.set(countKey, PersistentDataType.INTEGER, after);
-        if (after == this.commissionGoal(p)) {
-            this.depositMineralDust(p, 250L);
-            return true;
-        }
-        return false;
+        return after == this.commissionGoal(p);
     }
 
     private NamespacedKey minedKey(Material block) {

@@ -59,14 +59,8 @@ public final class MiningMenuService {
             inv.setItem(this.entrySlot(i), this.item(e.block(), Component.translatable((String)e.block().translationKey()).color((TextColor)NamedTextColor.GOLD), lore));
         }
         Material target = this.skills.commissionTarget(p);
-        inv.setItem(45, this.item(Material.WRITABLE_BOOK, (Component)Component.text("Daily Commission", (TextColor)NamedTextColor.GOLD), List.of(Component.translatable((String)target.translationKey()).color((TextColor)NamedTextColor.YELLOW), this.line(this.skills.commissionProgress(p) + "/" + this.skills.commissionGoal(p), NamedTextColor.GREEN), this.line("Reward: 500 XP and 250 Mineral Dust", NamedTextColor.AQUA))));
+        inv.setItem(45, this.item(Material.WRITABLE_BOOK, (Component)Component.text("Daily Commission", (TextColor)NamedTextColor.GOLD), List.of(Component.translatable((String)target.translationKey()).color((TextColor)NamedTextColor.YELLOW), this.line(this.skills.commissionProgress(p) + "/" + this.skills.commissionGoal(p), NamedTextColor.GREEN), this.line("Reward: 500 XP", NamedTextColor.AQUA))));
         inv.setItem(46, this.treasureItem(p, l));
-        List<Component> mineralDustLore = new ArrayList<>();
-        mineralDustLore.add(this.line(Long.toString(this.skills.mineralDust(p)), NamedTextColor.AQUA));
-        for (String part : LoreWrap.wrapText("Used for future Mining upgrades.", LoreWrap.DEFAULT_WIDTH)) {
-            mineralDustLore.add(this.line(part, NamedTextColor.GRAY));
-        }
-        inv.setItem(47, this.item(Material.AMETHYST_SHARD, (Component)Component.text("Mineral Dust", (TextColor)NamedTextColor.LIGHT_PURPLE), mineralDustLore));
         inv.setItem(49, this.customHead(HeadTexture.BACK, (Component)Component.text("Back", (TextColor)NamedTextColor.GOLD), List.of()));
         p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);

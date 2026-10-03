@@ -116,7 +116,6 @@ public final class BuriedTreasureService {
     }
 
     private void deliver(Player p, TreasureRarity r, Reward reward, DoubleConsumer xpReward) {
-        this.skills.depositMineralDust(p, reward.dust);
         PersistentDataContainer data = p.getPersistentDataContainer();
         NamespacedKey key = this.countKey(r);
         data.set(key, PersistentDataType.INTEGER, ((Integer)data.getOrDefault(key, PersistentDataType.INTEGER, 0) + 1));
@@ -125,14 +124,13 @@ public final class BuriedTreasureService {
     }
 
     private Reward reward(TreasureRarity r) {
-        ThreadLocalRandom x = ThreadLocalRandom.current();
         return switch (r) {
             default -> throw new MatchException(null, null);
-            case TreasureRarity.COMMON -> new Reward(x.nextLong(25L, 51L), 25.0);
-            case TreasureRarity.UNCOMMON -> new Reward(x.nextLong(75L, 126L), 75.0);
-            case TreasureRarity.RARE -> new Reward(x.nextLong(250L, 401L), 200.0);
-            case TreasureRarity.EPIC -> new Reward(x.nextLong(750L, 1201L), 500.0);
-            case TreasureRarity.LEGENDARY -> new Reward(x.nextLong(2500L, 4001L), 1500.0);
+            case TreasureRarity.COMMON -> new Reward(25.0);
+            case TreasureRarity.UNCOMMON -> new Reward(75.0);
+            case TreasureRarity.RARE -> new Reward(200.0);
+            case TreasureRarity.EPIC -> new Reward(500.0);
+            case TreasureRarity.LEGENDARY -> new Reward(1500.0);
         };
     }
 
@@ -163,14 +161,13 @@ public final class BuriedTreasureService {
         p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
         p.sendMessage((Component)Component.text((String)("\u2726 " + "BURIED TREASURE!" + " \u2726"), (TextColor)r.color()));
         p.sendMessage((Component)Component.text((String)("Rarity: " + r.name(l == Language.PT)), (TextColor)r.color()));
-        p.sendMessage((Component)Component.text((String)("\u2727 " + reward.dust + " " + "Mineral Dust"), (TextColor)NamedTextColor.LIGHT_PURPLE));
         p.sendMessage((Component)Component.text((String)("+" + Math.round(reward.xp) + " XP " + "Mining XP"), (TextColor)NamedTextColor.AQUA));
         p.sendMessage((Component)Component.text((String)"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501", (TextColor)NamedTextColor.DARK_GRAY));
         p.playSound(p.getLocation(), r.ordinal() >= 3 ? Sound.ENTITY_ENDER_DRAGON_GROWL : Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
         p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0.0, 1.0, 0.0), 30, 0.5, 0.7, 0.5, 0.05);
     }
 
-    private record Reward(long dust, double xp) {
+    private record Reward(double xp) {
     }
 }
 
