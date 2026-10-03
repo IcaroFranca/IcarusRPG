@@ -420,7 +420,8 @@ extends JavaPlugin {
         pm.registerEvents((Listener)zombieSword, (Plugin)this);
         stats.heldWeaponStrengthBonus(zombieSword::heldStrengthBonus);
         stats.heldWeaponIntelligenceBonus(zombieSword::heldIntelligenceBonus);
-        ZombieArmorService zombieArmor = new ZombieArmorService(tiers);
+        ZombieArmorService zombieArmor = new ZombieArmorService((Plugin)this, tiers, stats);
+        pm.registerEvents((Listener)zombieArmor, (Plugin)this);
         new CombatCollectionsItemsService(hurricaneBow, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);

@@ -46,10 +46,6 @@ import org.bukkit.persistence.PersistentDataType;
  * stats.PlayerStatsService#withdrawVitality}) - refused with no cooldown spent if that can't be
  * afforded. {@value #COOLDOWN_SECONDS}s cooldown, same {@code Map<UUID, Long>} idiom {@code
  * item.SpruceAxeListener}'s own throw cooldown already uses.
- *
- * <p>"Gemstones: [ ] [ ]" in the lore is flavor only - this plugin has no gemstone-socketing
- * mechanic yet, so the two slots shown are purely decorative, matching the player's own
- * reference screenshot's layout without inventing a new game system nobody asked for yet.
  */
 public final class ZombieSwordService implements Listener {
     private static final NamespacedKey KEY = new NamespacedKey("foodtooltips", "zombie_sword");
@@ -93,7 +89,6 @@ public final class ZombieSwordService implements Listener {
                 Component.text("Damage: +" + DAMAGE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.text("Strength: +" + STRENGTH, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.text("Intelligence: +" + INTELLIGENCE, NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false),
-                Component.text("Gemstones: [ ] [ ]", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.empty().decoration(TextDecoration.ITALIC, false),
                 Component.text("Ability: Instant Heal ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false)
                         .append(Component.text("RIGHT CLICK", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
