@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.enchant.BowEnchantEffectListener;
 import dev.icaro.foodtooltips.enchant.EnchantService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
@@ -23,8 +24,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.CraftingRecipe;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
@@ -55,7 +60,10 @@ import org.bukkit.util.Vector;
  * the player's own explicit "nesse caso o aiming pode afetar as três flechas", this class
  * starts {@link BowEnchantEffectListener#startHoming} on them itself too (made {@code public}
  * for exactly this reuse), since {@code BowEnchantEffectListener}'s own automatic homing would
- * otherwise only ever reach the main arrow.
+ * otherwise only ever reach the main arrow. Its own recipe's center slot (the vanilla bow
+ * recipe's own always-empty middle) takes a whole Hurricane Bow - enforced by {@link
+ * #guardRunaansBowRecipe}, not the recipe's own ingredients (see that method's own doc on why a
+ * custom {@link org.bukkit.inventory.RecipeChoice} can't be used for this at all).
  *
  * <p>Known scope limit: the extra arrows this class spawns are brand new {@link Arrow}
  * entities, never the one {@link EntityShootBowEvent} itself produces - {@link
@@ -160,6 +168,31 @@ public final class HurricaneBowService implements Listener {
         }
         ItemMeta meta = item.getItemMeta();
         return meta != null && meta.getPersistentDataContainer().has(HURRICANE_KEY, PersistentDataType.BYTE);
+    }
+
+    /**
+     * Enforces the real "the center slot must actually be a Hurricane Bow (any kill count)"
+     * requirement Runaan's Bow's own recipe can't express through its ingredients alone - see
+     * {@code CombatCollectionsItemsService#registerRecipes}'s own doc on why that slot is a
+     * plain {@link Material#BOW} rather than a {@link org.bukkit.inventory.RecipeChoice} that
+     * could check identity directly (custom {@code RecipeChoice} implementations aren't
+     * supported by real recipe registration at all). Same "clear the result, same as a
+     * genuinely mismatched grid" enforcement idea {@code
+     * collections.CollectionsRecipeGateListener} already uses. The center slot is always
+     * matrix index 4 - the vanilla bow recipe (and this one, copying its shape) is always a
+     * fixed 3x3 shape with the center in the exact middle.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void guardRunaansBowRecipe(PrepareItemCraftEvent e) {
+        Recipe recipe = e.getRecipe();
+        if (!(recipe instanceof CraftingRecipe crafting) || !CollectionsCatalog.RUNAANS_BOW_RECIPE.equals(crafting.getKey())) {
+            return;
+        }
+        CraftingInventory inv = e.getInventory();
+        ItemStack center = inv.getMatrix()[4];
+        if (!isHurricaneBow(center)) {
+            inv.setResult(null);
+        }
     }
 
     public static boolean isRunaansBow(ItemStack item) {

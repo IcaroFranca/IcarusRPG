@@ -68,39 +68,17 @@ public final class CombatCollectionsItemsService {
                 new String[]{" PS", "PHS", " PS"}, r -> {
                     r.setIngredient('P', new RecipeChoice.ExactChoice(this.pileOfBoneCore()));
                     r.setIngredient('S', Material.STRING);
-                    // NOT ExactChoice: a real Hurricane Bow almost certainly has its own
-                    // accumulated Tempest kills by the time a player is ready for Runaan's
-                    // Bow, which means its lore has diverged from a freshly-crafted 0-kill
-                    // one - ExactChoice's own exact-meta match would then reject the
-                    // player's actual bow and only ever accept a brand new one, wasting
-                    // their progress. This matches on identity (HurricaneBowService#isHurricaneBow)
-                    // instead, regardless of kill count.
-                    r.setIngredient('H', new HurricaneBowChoice(this.hurricaneBow.createHurricaneBow()));
+                    // Plain Material.BOW, not a custom RecipeChoice: Bukkit/Paper can only
+                    // ever convert a MaterialChoice/ExactChoice into a real vanilla
+                    // Ingredient at Bukkit.addRecipe time - a third-party RecipeChoice
+                    // implementation has no such conversion and throws there instead,
+                    // which (since this runs during onEnable) silently disables the whole
+                    // plugin. HurricaneBowService#centerSlotMustBeHurricaneBow enforces the
+                    // real "must actually be a Hurricane Bow, any kill count" requirement
+                    // separately, the same gate-at-craft-time idea
+                    // collections.CollectionsRecipeGateListener already uses elsewhere.
+                    r.setIngredient('H', Material.BOW);
                 });
-    }
-
-    /** See {@link #registerRecipes}'s own doc on why Runaan's Bow can't gate its Hurricane Bow ingredient with a plain {@link RecipeChoice.ExactChoice}. */
-    private static final class HurricaneBowChoice implements RecipeChoice {
-        private final ItemStack example;
-
-        HurricaneBowChoice(ItemStack example) {
-            this.example = example;
-        }
-
-        @Override
-        public boolean test(ItemStack item) {
-            return HurricaneBowService.isHurricaneBow(item);
-        }
-
-        @Override
-        public ItemStack getItemStack() {
-            return this.example.clone();
-        }
-
-        @Override
-        public RecipeChoice clone() {
-            return new HurricaneBowChoice(this.example.clone());
-        }
     }
 
     private ItemStack boneCore() {
