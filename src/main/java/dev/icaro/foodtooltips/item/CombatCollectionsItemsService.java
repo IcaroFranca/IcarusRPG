@@ -16,16 +16,18 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.SkullMeta;
 
 /**
- * The craftable rewards Combat's own {@link CollectionsCatalog} entries (Bone) unlock - same
- * role {@code FarmingCollectionsItemsService}/{@code ForagingCollectionsItemsService} play for
- * their own categories. Bone Core/Pile of Bone Core are plain collectible crafted items here
- * (no behavior of their own, just an ingredient for the recipes below); Skeleton Hat, Hurricane/
- * Runaan's Bow and Skeleton's Helmet all have real behavior of their own, so their own
- * item-building logic lives WITH that behavior instead ({@link SkeletonHatService}/{@link
- * HurricaneBowService}/{@link SkeletonsHelmetService}) - this class only calls into them when
- * registering its own recipes, same "effect service builds its own item, items-service just
- * registers the recipe" split {@code ForagingCollectionsItemsService} already uses for e.g.
- * its own Sculptor's Axe.
+ * The craftable rewards Combat's own {@link CollectionsCatalog} entries (Bone, Rotten Flesh,
+ * Spider Eye) unlock - same role {@code FarmingCollectionsItemsService}/{@code
+ * ForagingCollectionsItemsService} play for their own categories. Bone Core/Pile of Bone Core/
+ * Spider Eye Core/Fermented Spider Eye Core are plain collectible crafted items here (no
+ * behavior of their own, just an ingredient for the recipes below); Skeleton Hat, Hurricane/
+ * Runaan's Bow, Skeleton's Helmet, Spider Sword, Spider Hat and Leaping Sword all have real
+ * behavior of their own, so their own item-building logic lives WITH that behavior instead
+ * ({@link SkeletonHatService}/{@link HurricaneBowService}/{@link SkeletonsHelmetService}/{@link
+ * SpiderSwordService}/{@link SpiderHatService}/{@link LeapingSwordService}) - this class only
+ * calls into them when registering its own recipes, same "effect service builds its own item,
+ * items-service just registers the recipe" split {@code ForagingCollectionsItemsService} already
+ * uses for e.g. its own Sculptor's Axe.
  *
  * <p>Hurricane/Runaan's Bow both replace the real vanilla bow recipe's own two {@code STICK}
  * slots with a Core - the vanilla bow recipe's own center slot is empty, which Runaan's Bow
@@ -35,6 +37,8 @@ public final class CombatCollectionsItemsService {
     private static final UUID BONE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:bone_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID PILE_OF_BONE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pile_of_bone_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID ROTTEN_FLESH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:rotten_flesh_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID SPIDER_EYE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spider_eye_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID FERMENTED_SPIDER_EYE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:fermented_spider_eye_core".getBytes(StandardCharsets.UTF_8));
 
     private final HurricaneBowService hurricaneBow;
     private final SkeletonHatService skeletonHat;
@@ -44,10 +48,14 @@ public final class CombatCollectionsItemsService {
     private final ZombiesHeartService zombiesHeart;
     private final ZombieSwordService zombieSword;
     private final ZombieArmorService zombieArmor;
+    private final SpiderSwordService spiderSword;
+    private final SpiderHatService spiderHat;
+    private final LeapingSwordService leapingSword;
 
     public CombatCollectionsItemsService(HurricaneBowService hurricaneBow, SkeletonHatService skeletonHat,
             SkeletonsHelmetService skeletonsHelmet, ZombiePickaxeService zombiePickaxe, ZombieHatService zombieHat,
-            ZombiesHeartService zombiesHeart, ZombieSwordService zombieSword, ZombieArmorService zombieArmor) {
+            ZombiesHeartService zombiesHeart, ZombieSwordService zombieSword, ZombieArmorService zombieArmor,
+            SpiderSwordService spiderSword, SpiderHatService spiderHat, LeapingSwordService leapingSword) {
         this.hurricaneBow = hurricaneBow;
         this.skeletonHat = skeletonHat;
         this.skeletonsHelmet = skeletonsHelmet;
@@ -56,6 +64,9 @@ public final class CombatCollectionsItemsService {
         this.zombiesHeart = zombiesHeart;
         this.zombieSword = zombieSword;
         this.zombieArmor = zombieArmor;
+        this.spiderSword = spiderSword;
+        this.spiderHat = spiderHat;
+        this.leapingSword = leapingSword;
     }
 
     /** Registers every recipe this class owns - Bone Collection M4 through M9, Rotten Flesh Collection M2 through M8. */
@@ -119,6 +130,28 @@ public final class CombatCollectionsItemsService {
                 new String[]{"ZZZ", "Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
         this.newShapedRecipe(CollectionsCatalog.ZOMBIE_BOOTS_RECIPE, this.zombieArmor.createBoots(),
                 new String[]{"Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
+        this.newShapedRecipe(CollectionsCatalog.SPIDER_SWORD_RECIPE, this.spiderSword.createItem(),
+                new String[]{" S", " S", " T"}, r -> {
+                    r.setIngredient('S', Material.SPIDER_EYE);
+                    r.setIngredient('T', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.SPIDER_HAT_RECIPE, this.spiderHat.createItem(),
+                new String[]{"SSS", "S S", "SSS"}, r -> r.setIngredient('S', Material.SPIDER_EYE));
+        this.newShapedRecipe(CollectionsCatalog.SPIDER_EYE_CORE_RECIPE, this.spiderEyeCore(),
+                new String[]{"SSS", "SDS", "SSS"}, r -> {
+                    r.setIngredient('S', Material.SPIDER_EYE);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.FERMENTED_SPIDER_EYE_CORE_RECIPE, this.fermentedSpiderEyeCore(),
+                new String[]{"CCC", "CNC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.spiderEyeCore()));
+                    r.setIngredient('N', Material.NETHERITE_INGOT);
+                });
+        this.newShapedRecipe(CollectionsCatalog.LEAPING_SWORD_RECIPE, this.leapingSword.createItem(),
+                new String[]{" F", " F", " T"}, r -> {
+                    r.setIngredient('F', new RecipeChoice.ExactChoice(this.fermentedSpiderEyeCore()));
+                    r.setIngredient('T', Material.STICK);
+                });
     }
 
     private ItemStack rottenFleshCore() {
@@ -144,6 +177,24 @@ public final class CombatCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.PILE_OF_BONE_CORE, PILE_OF_BONE_CORE_PROFILE);
         meta.displayName(Component.text("Pile of Bones", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack spiderEyeCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.SPIDER_EYE_CORE, SPIDER_EYE_CORE_PROFILE);
+        meta.displayName(Component.text("Spider Eye Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack fermentedSpiderEyeCore() {
+        var item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.FERMENTED_SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE_PROFILE);
+        meta.displayName(Component.text("Fermented Spider Eye Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

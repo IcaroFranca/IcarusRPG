@@ -171,6 +171,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey ZOMBIE_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "zombie_chestplate");
     public static final NamespacedKey ZOMBIE_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "zombie_leggings");
     public static final NamespacedKey ZOMBIE_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "zombie_boots");
+    public static final NamespacedKey SPIDER_SWORD_RECIPE = new NamespacedKey("foodtooltips", "spider_sword");
+    public static final NamespacedKey SPIDER_HAT_RECIPE = new NamespacedKey("foodtooltips", "spider_hat");
+    public static final NamespacedKey SPIDER_EYE_CORE_RECIPE = new NamespacedKey("foodtooltips", "spider_eye_core");
+    public static final NamespacedKey FERMENTED_SPIDER_EYE_CORE_RECIPE = new NamespacedKey("foodtooltips", "fermented_spider_eye_core");
+    public static final NamespacedKey LEAPING_SWORD_RECIPE = new NamespacedKey("foodtooltips", "leaping_sword");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -267,7 +272,30 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Runaan's Bow", "Unlocks the Runaan's Bow recipe",
                             RUNAANS_BOW_RECIPE))),
             new CollectionsEntry(Material.STRING, Material.STRING, CollectionsCategory.COMBAT, "Barbante", "String", List.of()),
-            new CollectionsEntry(Material.SPIDER_EYE, Material.SPIDER_EYE, CollectionsCategory.COMBAT, "Olho de Aranha", "Spider Eye", List.of()),
+            new CollectionsEntry(Material.SPIDER_EYE, Material.SPIDER_EYE, CollectionsCategory.COMBAT, "Olho de Aranha", "Spider Eye", List.of(
+                    CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+" + DEFAULT_XP[0] + " XP de Combate", "+" + DEFAULT_XP[0] + " Combat XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Spider Sword", "Unlocks the Spider Sword recipe",
+                            SPIDER_SWORD_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Spider Hat", "Unlocks the Spider Hat recipe",
+                            SPIDER_HAT_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Spider Eye Core", "Unlocks the Spider Eye Core recipe",
+                            SPIDER_EYE_CORE_RECIPE),
+                    CollectionsMilestone.vanillaEnchantDiscount(DEFAULT_THRESHOLDS[4], NamespacedKey.minecraft("bane_of_arthropods"), 25.0,
+                            "-25% de custo em XP para Punição às Artrópodes", "-25% XP cost for Bane of Arthropods"),
+                    CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[5], IcarusEnchant.VENOMOUS, 25.0,
+                            "-25% de custo em XP para Venenoso", "-25% XP cost for Venomous"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Fermented Spider Eye Core", "Unlocks the Fermented Spider Eye Core recipe",
+                            FERMENTED_SPIDER_EYE_CORE_RECIPE),
+                    CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[7], 25000,
+                            "+25000 XP de Combate", "+25000 Combat XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita do Leaping Sword", "Unlocks the Leaping Sword recipe",
+                            LEAPING_SWORD_RECIPE))),
             new CollectionsEntry(Material.GUNPOWDER, Material.GUNPOWDER, CollectionsCategory.COMBAT, "Pólvora", "Gunpowder", List.of()),
             new CollectionsEntry(Material.ENDER_PEARL, Material.ENDER_PEARL, CollectionsCategory.COMBAT, "Pérola do Fim", "Ender Pearl", List.of()),
             new CollectionsEntry(Material.GHAST_TEAR, Material.GHAST_TEAR, CollectionsCategory.COMBAT, "Lágrima de Ghast", "Ghast Tear", List.of()),

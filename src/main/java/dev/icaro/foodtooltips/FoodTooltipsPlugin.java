@@ -72,6 +72,9 @@ import dev.icaro.foodtooltips.item.FarmingCollectionsItemsService;
 import dev.icaro.foodtooltips.item.CombatCollectionsItemsService;
 import dev.icaro.foodtooltips.item.HurricaneBowService;
 import dev.icaro.foodtooltips.item.SkeletonHatService;
+import dev.icaro.foodtooltips.item.SpiderHatService;
+import dev.icaro.foodtooltips.item.SpiderSwordService;
+import dev.icaro.foodtooltips.item.LeapingSwordService;
 import dev.icaro.foodtooltips.item.SkeletonsHelmetService;
 import dev.icaro.foodtooltips.item.ZombieArmorService;
 import dev.icaro.foodtooltips.item.ZombieHatService;
@@ -420,11 +423,18 @@ extends JavaPlugin {
         ZombiesHeartService zombiesHeart = new ZombiesHeartService(tiers);
         ZombieSwordService zombieSword = new ZombieSwordService(tiers, stats);
         pm.registerEvents((Listener)zombieSword, (Plugin)this);
-        stats.heldWeaponStrengthBonus(zombieSword::heldStrengthBonus);
         stats.heldWeaponIntelligenceBonus(zombieSword::heldIntelligenceBonus);
         ZombieArmorService zombieArmor = new ZombieArmorService((Plugin)this, tiers, stats);
         pm.registerEvents((Listener)zombieArmor, (Plugin)this);
-        new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor).registerRecipes();
+        // Spider Eye Collection (M2/M3/M9) - wired alongside Bone/Rotten Flesh's own items.
+        SpiderSwordService spiderSword = new SpiderSwordService();
+        SpiderHatService spiderHat = new SpiderHatService(tiers);
+        armor.incomingMobTypeMultiplier(spiderHat::arthropodDamageMultiplier);
+        LeapingSwordService leapingSword = new LeapingSwordService((Plugin)this, tiers, stats, abilities);
+        pm.registerEvents((Listener)leapingSword, (Plugin)this);
+        stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p));
+        new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor,
+                spiderSword, spiderHat, leapingSword).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
@@ -465,6 +475,9 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService, collectionsService);
         combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
+        combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
+        combatListener.spiderHatCritChanceBonus(spiderHat::critChanceBonus);
+        combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);
         combatListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
                 .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         // Registration order among these EventPriority.HIGHEST EntityDamageEvent handlers

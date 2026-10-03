@@ -166,14 +166,17 @@ public final class SwordDamageService {
      * it depends on the wielder's Combat level, which can change at any time.
      */
     private ItemStack rewrite(ItemStack item, Player p, Language l) {
-        if (item == null || item.isEmpty() || LegendaryWeaponService.isLegendary(item) || ZombieSwordService.isZombieSword(item)) {
+        if (item == null || item.isEmpty() || LegendaryWeaponService.isLegendary(item) || ZombieSwordService.isZombieSword(item)
+                || LeapingSwordService.isLeapingSword(item)) {
             // Legendary weapons (Kasaka's Venom Fang, Demon King's Longsword...) are
             // built on ordinary _SWORD materials too, but manage their own Attack
             // Damage/Speed and lore entirely - see LegendaryWeaponService#create. The
             // Rotten Flesh Collection's own Zombie Sword (also an ordinary IRON_SWORD)
-            // does the same - see ZombieSwordService#createItem. Letting this class's
-            // generic per-material formula also run on either would overwrite their own
-            // custom numbers with the wrong (material-family) ones.
+            // and the Spider Eye Collection's own Leaping Sword (an ordinary
+            // DIAMOND_SWORD) do the same - see ZombieSwordService#createItem/
+            // LeapingSwordService#createItem. Letting this class's generic per-material
+            // formula also run on any of them would overwrite their own custom numbers
+            // with the wrong (material-family) ones.
             return null;
         }
         Double total = totalDamage(item.getType());

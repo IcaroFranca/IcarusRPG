@@ -4,6 +4,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
@@ -34,8 +35,13 @@ public final class ArmorDefenseListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void defense(EntityDamageEvent e) {
-        if (e.getEntity() instanceof LivingEntity target) {
-            e.setDamage(e.getDamage() * (1.0 - this.armor.damageReduction(target)));
+        if (!(e.getEntity() instanceof LivingEntity target)) {
+            return;
         }
+        double damage = e.getDamage() * (1.0 - this.armor.damageReduction(target));
+        if (e instanceof EntityDamageByEntityEvent byEntity && byEntity.getDamager() instanceof LivingEntity attacker) {
+            damage *= this.armor.incomingMultiplier(target, attacker);
+        }
+        e.setDamage(damage);
     }
 }

@@ -168,6 +168,12 @@ public final class CombatListener implements Listener {
     private final long teleportArmWindowMillis;
     /** Archery Potion's own +12.5% bow/arrow damage (see {@code item.ArcheryPotionService}) - late-bound, same "no direct dependency on an unrelated feature" shape {@code skills.ArmorDefenseService#protectionBonus} already uses, wired from {@code FoodTooltipsPlugin}. Defaults to always-0 so this class works before it's ever wired. */
     private java.util.function.ToDoubleFunction<Player> archeryPotionPercent = p -> 0.0;
+    /** The Spider Eye Collection's own Spider Sword - {@code item.SpiderSwordService#damageMultiplier} ({@value item.SpiderSwordService#PERCENT}% bonus vs Arthropod mobs), same shape {@code item.legendary.LegendaryWeaponService#undeadMultiplier} already is. Defaults to always-1.0 (no change). */
+    private java.util.function.ToDoubleBiFunction<LivingEntity, ItemStack> arthropodMultiplier = (target, weapon) -> 1.0;
+    /** The Spider Eye Collection's own Spider Hat - +25 Crit Chance while worn (see {@code item.SpiderHatService#critChanceBonus}), folded into {@link #attack}'s own crit-chance roll. Defaults to always-0. */
+    private java.util.function.ToDoubleFunction<Player> spiderHatCritChanceBonus = p -> 0.0;
+    /** The Spider Eye Collection's own Leaping Sword - +25 Crit Damage while held (see {@code item.LeapingSwordService#critDamageBonus}), folded into {@link #attack}'s own crit multiplier. Defaults to always-0. */
+    private java.util.function.ToDoubleFunction<ItemStack> heldWeaponCritDamageBonus = w -> 0.0;
     private final CollectionsService collections;
     /** See {@code skills.GeneralSkillListener#openCollectionsEntry}'s own doc - same callback, wired from {@code FoodTooltipsPlugin}, so {@link CollectionsService#announce}'s own clickable recipe-reward line works for a Combat Collection too. */
     private BiConsumer<Player, Material> openCollectionsEntry = (p, m) -> {};
@@ -175,6 +181,21 @@ public final class CombatListener implements Listener {
     /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link #archeryPotionPercent}'s own doc. */
     public void archeryPotionPercent(java.util.function.ToDoubleFunction<Player> archeryPotionPercent) {
         this.archeryPotionPercent = archeryPotionPercent;
+    }
+
+    /** Wired after construction - see {@link #arthropodMultiplier}'s own doc. */
+    public void arthropodMultiplier(java.util.function.ToDoubleBiFunction<LivingEntity, ItemStack> arthropodMultiplier) {
+        this.arthropodMultiplier = arthropodMultiplier;
+    }
+
+    /** Wired after construction - see {@link #spiderHatCritChanceBonus}'s own doc. */
+    public void spiderHatCritChanceBonus(java.util.function.ToDoubleFunction<Player> spiderHatCritChanceBonus) {
+        this.spiderHatCritChanceBonus = spiderHatCritChanceBonus;
+    }
+
+    /** Wired after construction - see {@link #heldWeaponCritDamageBonus}'s own doc. */
+    public void heldWeaponCritDamageBonus(java.util.function.ToDoubleFunction<ItemStack> heldWeaponCritDamageBonus) {
+        this.heldWeaponCritDamageBonus = heldWeaponCritDamageBonus;
     }
 
     /** See {@link #openCollectionsEntry}'s own doc. */
@@ -414,7 +435,8 @@ public final class CombatListener implements Listener {
         // (base, level scaling, and the ability tree bonus all stacked) can ever push a
         // hit past a guaranteed crit.
         double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p)
-                + this.reforge.statsOf(weapon).critChance() + armorReforge.critChance() + bowReforge.critChance());
+                + this.reforge.statsOf(weapon).critChance() + armorReforge.critChance() + bowReforge.critChance()
+                + this.spiderHatCritChanceBonus.applyAsDouble(p));
         boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
@@ -423,9 +445,11 @@ public final class CombatListener implements Listener {
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
         double undead = this.legendary.undeadMultiplier(target, weapon);
+        double arthropod = this.arthropodMultiplier.applyAsDouble(target, weapon);
         double critMultiplier = critical
                 ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus
                         + (this.reforge.statsOf(weapon).critDamage() + armorReforge.critDamage() + bowReforge.critDamage()) / 100.0
+                        + this.heldWeaponCritDamageBonus.applyAsDouble(weapon) / 100.0
                 : 1.0;
         double damage;
         if (melee) {
@@ -436,7 +460,7 @@ public final class CombatListener implements Listener {
             // "1 + CombatLevelBonus" (see CombatSkillService), so adding the rest
             // straight onto it gives the full sum without re-adding the leading 1.
             double damageMultiplier = this.combat.damageMultiplier(level) + enchantPercent / 100.0 + (this.abilities.outgoingMultiplier(p) - 1.0);
-            damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead;
+            damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead * arthropod;
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
             double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
@@ -448,7 +472,7 @@ public final class CombatListener implements Listener {
             double bowStrengthPercent = bowReforge.strength();
             double archeryPotionPercent = this.archeryPotionPercent.applyAsDouble(p);
             damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent + archeryPotionPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
-                    * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead;
+                    * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead * arthropod;
         }
         e.setDamage(damage);
         this.legendary.onHit(p, target, weapon);
