@@ -402,6 +402,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)skeletonHat, (Plugin)this);
         SkeletonsHelmetService skeletonsHelmet = new SkeletonsHelmetService(tiers);
         pm.registerEvents((Listener)skeletonsHelmet, (Plugin)this);
+        skeletonsHelmet.start((Plugin)this);
         HurricaneBowService hurricaneBow = new HurricaneBowService(tiers, enchants, bowEnchantEffectListener);
         pm.registerEvents((Listener)hurricaneBow, (Plugin)this);
         new CombatCollectionsItemsService(hurricaneBow, skeletonsHelmet).registerRecipes();
