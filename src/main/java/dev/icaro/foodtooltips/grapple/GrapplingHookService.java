@@ -33,10 +33,13 @@ import org.bukkit.util.Vector;
  * A test build of the Grappling Hook the player designed with Codex (see that
  * conversation's own "Minha escolha para começar": hook on blocks only, ~24 block range,
  * a progressive pull rather than an instant teleport, sneak cancels, collision/fall
- * damage/swing modes left for later). Not tied to any Collection - per the player's own
- * "não vao entrar em collections, serão pegos só pelo /rpgitems", the only way to get one
- * is {@code LegendaryItemsMenuService}'s own admin menu, same as the Grand/Titanic
- * Experience Bottles.
+ * damage/swing modes left for later). Originally admin-only ({@code
+ * LegendaryItemsMenuService}'s own menu, same as the Grand/Titanic Experience Bottles,
+ * per the player's own now-superseded "não vao entrar em collections, serão pegos só pelo
+ * /rpgitems") - since reconsidered: the String Collection's own M4 now gates a real
+ * crafting recipe for it too (see {@code item.CombatCollectionsItemsService}, the vanilla
+ * fishing rod shape with its own String slots replaced by String Core), alongside the
+ * still-available admin path.
  *
  * <p>Built on a plain {@link Material#FISHING_ROD} (the item this whole concept started
  * from) with every real fishing behavior cancelled by {@link

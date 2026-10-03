@@ -176,6 +176,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey SPIDER_EYE_CORE_RECIPE = new NamespacedKey("foodtooltips", "spider_eye_core");
     public static final NamespacedKey FERMENTED_SPIDER_EYE_CORE_RECIPE = new NamespacedKey("foodtooltips", "fermented_spider_eye_core");
     public static final NamespacedKey LEAPING_SWORD_RECIPE = new NamespacedKey("foodtooltips", "leaping_sword");
+    /** The real vanilla recipe key for Cobweb (9 String -> 1 Cobweb) - this plugin never registers a recipe of its own for it, same "real vanilla key, gated without owning it" trick {@link #SUSPICIOUS_STEW_RECIPE} already uses. */
+    public static final NamespacedKey WEB_RECIPE = NamespacedKey.minecraft("cobweb");
+    public static final NamespacedKey STRING_CORE_RECIPE = new NamespacedKey("foodtooltips", "string_core");
+    public static final NamespacedKey GRAPPLING_HOOK_RECIPE = new NamespacedKey("foodtooltips", "grappling_hook");
+    public static final NamespacedKey SPIDERS_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "spiders_boots");
 
     /**
      * The threshold ladder every "no special reward decided yet" entry uses (the player's
@@ -271,7 +276,28 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
                             "Desbloqueia a receita do Runaan's Bow", "Unlocks the Runaan's Bow recipe",
                             RUNAANS_BOW_RECIPE))),
-            new CollectionsEntry(Material.STRING, Material.STRING, CollectionsCategory.COMBAT, "Barbante", "String", List.of()),
+            new CollectionsEntry(Material.STRING, Material.STRING, CollectionsCategory.COMBAT, "Barbante", "String", List.of(
+                    CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+" + DEFAULT_XP[0] + " XP de Combate", "+" + DEFAULT_XP[0] + " Combat XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita da Teia de Aranha", "Unlocks the Web recipe",
+                            WEB_RECIPE),
+                    new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "+9 espaços na Aljava", "+9 Quiver slots"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do String Core e do Grappling Hook", "Unlocks the String Core and Grappling Hook recipes",
+                            STRING_CORE_RECIPE, GRAPPLING_HOOK_RECIPE),
+                    CollectionsMilestone.vanillaEnchantDiscount(DEFAULT_THRESHOLDS[4], NamespacedKey.minecraft("silk_touch"), 25.0,
+                            "-25% de custo em XP para Toque Suave", "-25% XP cost for Silk Touch"),
+                    CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[5], IcarusEnchant.INFINITE_QUIVER, 25.0,
+                            "-25% de custo em XP para Aljava Infinita (+9 espaços na Aljava)", "-25% XP cost for Infinite Quiver (+9 Quiver slots)"),
+                    CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[6], 25000,
+                            "+25000 XP de Combate", "+25000 Combat XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
+                            "Desbloqueia a receita da Spider's Boots", "Unlocks the Spider's Boots recipe",
+                            SPIDERS_BOOTS_RECIPE),
+                    new CollectionsMilestone(DEFAULT_THRESHOLDS[8], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "+9 espaços na Aljava", "+9 Quiver slots"))),
             new CollectionsEntry(Material.SPIDER_EYE, Material.SPIDER_EYE, CollectionsCategory.COMBAT, "Olho de Aranha", "Spider Eye", List.of(
                     CollectionsMilestone.combatXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
                             "+" + DEFAULT_XP[0] + " XP de Combate", "+" + DEFAULT_XP[0] + " Combat XP"),

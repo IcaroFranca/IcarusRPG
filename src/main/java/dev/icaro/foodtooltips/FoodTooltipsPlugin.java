@@ -75,6 +75,7 @@ import dev.icaro.foodtooltips.item.SkeletonHatService;
 import dev.icaro.foodtooltips.item.SpiderHatService;
 import dev.icaro.foodtooltips.item.SpiderSwordService;
 import dev.icaro.foodtooltips.item.LeapingSwordService;
+import dev.icaro.foodtooltips.item.SpidersBootsService;
 import dev.icaro.foodtooltips.item.SkeletonsHelmetService;
 import dev.icaro.foodtooltips.item.ZombieArmorService;
 import dev.icaro.foodtooltips.item.ZombieHatService;
@@ -266,7 +267,7 @@ extends JavaPlugin {
         CollectionsMenuService collectionsMenu = new CollectionsMenuService(collectionsProgress, global, menus::openMain);
         menus.collections(collectionsMenu);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
-        this.quiver = new QuiverService((Plugin)this, combat, skillsStar, menus::openMain);
+        this.quiver = new QuiverService((Plugin)this, combat, skillsStar, collectionsProgress, menus::openMain);
         menus.quiver(this.quiver);
         this.wardrobe = new WardrobeService((Plugin)this, collectionsProgress);
         menus.wardrobe(this.wardrobe);
@@ -408,8 +409,6 @@ extends JavaPlugin {
         // takes priority over Second Wind's own cooldown at the same HIGHEST tier.
         SkeletonHatService skeletonHat = new SkeletonHatService(tiers, abilities);
         pm.registerEvents((Listener)skeletonHat, (Plugin)this);
-        stats.skeletonHatIntelligenceBonus(skeletonHat::intelligenceBonus);
-        stats.skeletonHatSpeedBonus(skeletonHat::speedBonus);
         SkeletonsHelmetService skeletonsHelmet = new SkeletonsHelmetService(tiers);
         pm.registerEvents((Listener)skeletonsHelmet, (Plugin)this);
         skeletonsHelmet.start((Plugin)this);
@@ -433,8 +432,16 @@ extends JavaPlugin {
         LeapingSwordService leapingSword = new LeapingSwordService((Plugin)this, tiers, stats, abilities);
         pm.registerEvents((Listener)leapingSword, (Plugin)this);
         stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p));
+        // String Collection (M2-M9) - wired alongside Bone/Rotten Flesh/Spider Eye's own items.
+        SpidersBootsService spidersBoots = new SpidersBootsService(stats);
+        pm.registerEvents((Listener)spidersBoots, (Plugin)this);
+        // Skeleton Hat (helmet) and Spider's Boots (boots) occupy different armor slots and
+        // can both be worn at once, so their Intelligence/Speed bonuses are summed here
+        // rather than overwriting each other.
+        stats.skeletonHatIntelligenceBonus(p -> skeletonHat.intelligenceBonus(p) + spidersBoots.intelligenceBonus(p));
+        stats.skeletonHatSpeedBonus(p -> skeletonHat.speedBonus(p) + spidersBoots.speedBonus(p));
         new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor,
-                spiderSword, spiderHat, leapingSword).registerRecipes();
+                spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots).registerRecipes();
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
@@ -684,6 +691,7 @@ extends JavaPlugin {
             tiers.applyItemTiers((Player)p);
             enchants.applyToInventory((Player)p);
             durability.applyDurability((Player)p);
+            spidersBoots.resetIfGrounded((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
             polearmDamage.applyPolearmDamage((Player)p);

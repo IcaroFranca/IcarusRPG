@@ -2,6 +2,9 @@ package dev.icaro.foodtooltips.skills;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.collections.CollectionsEntry;
+import dev.icaro.foodtooltips.collections.CollectionsProgressService;
 import dev.icaro.foodtooltips.enchant.IcarusEnchant;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.HeadTexture;
@@ -38,13 +41,12 @@ import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
 /**
- * A per-player, single-chest-sized ({@value #STORAGE_SIZE} slots) arrow-only storage
- * - opened from the Skills menu's Quiver button ({@code SkillsMenuService}, unlocked
+ * A per-player, {@value #BASE_STORAGE_SIZE}-slot-or-larger (see {@link #storageSize}) arrow-only
+ * storage - opened from the Skills menu's Quiver button ({@code SkillsMenuService}, unlocked
  * once {@link #unlocked} at Combat level 5) and drawn from directly by the bow
  * ({@link #topUp}) so arrows never have to sit in the player's own inventory at all.
- * A fourth row below the storage (decorative filler apart from {@link #BACK_SLOT})
- * carries the back-to-Skills button, same as every other sub-screen in this menu
- * system.
+ * A decorative row directly below the storage rows carries the back-to-Skills button,
+ * same as every other sub-screen in this menu system.
  *
  * <p>Persisted in the player's own {@code PersistentDataContainer} (same mechanism
  * {@code GeneralSkillService}/{@code PlayerStatsService} already use for scalar
@@ -90,28 +92,28 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * {@link SkillsStarService#ensure} re-creates the star there the moment the bow comes back
  * down ({@link #reclaimVirtual}) - even if the Quiver ran dry in the meantime and there's
  * no arrow left to physically reclaim.
+ *
+ * <p>{@link #storageSize} grows past the base {@value #BASE_STORAGE_SIZE} (one chest) by
+ * {@value #BONUS_PER_TIER} per String Collection milestone crossed at M3/M6/M9 (see {@code
+ * CollectionsCatalog}'s own String entry) - same "real {@link Inventory} grown to exactly
+ * the unlocked size, old contents carried over on a mid-session change" shape {@code
+ * PersonalStorageService} already uses for its own Oak Log-driven growth, via the same
+ * {@link #cachedSize} bookkeeping. Growing never drops anything already stored: {@link
+ * #inventoryFor} only ever copies the old screen's own real-storage portion into the new,
+ * larger one, never discarding or truncating it.
  */
 public final class QuiverService {
-    /** The arrow-only storage area - the first {@value #STORAGE_SIZE} slots, the same as a single chest. */
-    public static final int STORAGE_SIZE = 27;
-    /**
-     * {@code 0..STORAGE_SIZE-1} - passed as {@code MenuBackground#apply}'s own "persistent
-     * slots" so an empty (but real, usable) storage cell stays visible instead of vanishing
-     * into the seamless background the instant no arrow is in it (see {@code
-     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
-     * player reported their Personal Storage's own empty cells doing exactly that).
-     */
-    private static final int[] STORAGE_SLOTS = java.util.stream.IntStream.range(0, STORAGE_SIZE).toArray();
-    /** Storage plus the decorative back-button row below it - the exact minimum canvas, now that {@code menu.MenuBackground#apply} has a working background glyph for every row count (see {@code skills.PersonalStorageService}'s own doc). */
-    private static final int TOTAL_SIZE = STORAGE_SIZE + 9;
-    /** Centered in the back-button row. */
-    private static final int BACK_SLOT = 31;
+    /** The arrow-only storage area's own base size before any String Collection bonus - one chest's worth, same as a player who hasn't grown it at all. */
+    private static final int BASE_STORAGE_SIZE = 27;
+    /** Extra storage slots per String Collection milestone crossed at M3/M6/M9 - see this class's own doc. */
+    private static final int BONUS_PER_TIER = 9;
     private static final int MIN_COMBAT_LEVEL = 5;
     private static final Set<Material> ARROW_TYPES = EnumSet.of(Material.ARROW, Material.SPECTRAL_ARROW, Material.TIPPED_ARROW);
 
     private final Plugin plugin;
     private final CombatSkillService combat;
     private final SkillsStarService star;
+    private final CollectionsProgressService collectionsProgress;
     private final Consumer<Player> back;
     private final NamespacedKey contentsKey;
     /**
@@ -132,14 +134,17 @@ public final class QuiverService {
     /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
     private final NamespacedKey fillerKey;
     private final Map<UUID, Inventory> cache = new HashMap<>();
+    /** How many real storage slots {@link #cache}'s own entry was last built for - see {@code PersonalStorageService#cachedSize}'s own doc for why {@code Inventory#getSize} alone isn't enough. */
+    private final Map<UUID, Integer> cachedSize = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
     /** Whose {@link SkillsStarService#SLOT} currently holds a topped-up arrow instead of the star - see this class's own doc. */
     private final Set<UUID> starHeldAside = new HashSet<>();
 
-    public QuiverService(Plugin plugin, CombatSkillService combat, SkillsStarService star, Consumer<Player> back) {
+    public QuiverService(Plugin plugin, CombatSkillService combat, SkillsStarService star, CollectionsProgressService collectionsProgress, Consumer<Player> back) {
         this.plugin = plugin;
         this.combat = combat;
         this.star = star;
+        this.collectionsProgress = collectionsProgress;
         this.back = back;
         this.contentsKey = new NamespacedKey("foodtooltips", "quiver_contents");
         this.legacyContentsKey = new NamespacedKey(plugin, "quiver_contents");
@@ -151,13 +156,46 @@ public final class QuiverService {
         return ARROW_TYPES.contains(m);
     }
 
-    /** Whether {@code slot} (a raw top-inventory slot) is part of the arrow storage area rather than the decorative back-button row. */
-    public static boolean isStorageSlot(int slot) {
-        return slot >= 0 && slot < STORAGE_SIZE;
+    /** {@value #BASE_STORAGE_SIZE} plus {@value #BONUS_PER_TIER} per String Collection milestone {@code p} has crossed at M3/M6/M9 - see this class's own doc. */
+    public int storageSize(Player p) {
+        int achieved = this.collectionsProgress.achieved(p, this.stringEntry());
+        int bonus = achieved >= 9 ? 3 * BONUS_PER_TIER : achieved >= 6 ? 2 * BONUS_PER_TIER : achieved >= 3 ? BONUS_PER_TIER : 0;
+        return BASE_STORAGE_SIZE + bonus;
     }
 
-    public static boolean isBackSlot(int slot) {
-        return slot == BACK_SLOT;
+    private CollectionsEntry stringEntry() {
+        return CollectionsCatalog.find(Material.STRING).orElseThrow();
+    }
+
+    /** {@code p}'s own currently unlocked storage size plus the decorative back-button row below it - the exact minimum canvas that fits them, same as {@code PersonalStorageService#totalSizeFor}. */
+    private int totalSizeFor(Player p) {
+        return this.storageSize(p) + 9;
+    }
+
+    /**
+     * {@code 0..storageSize(p)-1} - passed as {@code MenuBackground#apply}'s own "persistent
+     * slots" so an empty (but real, usable) storage cell stays visible instead of vanishing
+     * into the seamless background the instant no arrow is in it (see {@code
+     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
+     * player reported their Personal Storage's own empty cells doing exactly that).
+     */
+    private int[] storageSlots(Player p) {
+        return java.util.stream.IntStream.range(0, this.storageSize(p)).toArray();
+    }
+
+    /** Centered in the decorative row directly below {@code p}'s own currently unlocked storage rows - same idea {@code PersonalStorageService#closeSlot} already uses. */
+    private int backSlot(Player p) {
+        int rows = this.storageSize(p) / 9;
+        return rows * 9 + 4;
+    }
+
+    /** Whether {@code slot} (a raw top-inventory slot) is one of {@code p}'s own currently unlocked storage slots, rather than the decorative back-button row. */
+    public boolean isStorageSlot(Player p, int slot) {
+        return slot >= 0 && slot < this.storageSize(p);
+    }
+
+    public boolean isBackSlot(Player p, int slot) {
+        return slot == this.backSlot(p);
     }
 
     /** Whether the Quiver button/screen is available to {@code p} at all - Combat level {@value #MIN_COMBAT_LEVEL}+, per the user's own spec. */
@@ -175,7 +213,8 @@ public final class QuiverService {
     public int arrowCount(Player p) {
         int total = 0;
         Inventory inv = this.inventoryFor(p);
-        for (int i = 0; i < STORAGE_SIZE; i++) {
+        int size = this.storageSize(p);
+        for (int i = 0; i < size; i++) {
             ItemStack item = inv.getItem(i);
             if (item != null && isArrow(item.getType())) {
                 total += item.getAmount();
@@ -185,8 +224,12 @@ public final class QuiverService {
     }
 
     public void open(Player p) {
-        p.openInventory(this.inventoryFor(p));
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, STORAGE_SLOTS);
+        Inventory inv = this.inventoryFor(p);
+        // Re-asserted unconditionally, even on a cache hit - see {@code
+        // PersonalStorageService#open}'s own identical comment on why.
+        inv.setItem(this.backSlot(p), this.backButton(Language.of(p)));
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, this.storageSlots(p));
         this.viewing.add(p.getUniqueId());
     }
 
@@ -206,9 +249,10 @@ public final class QuiverService {
         this.starHeldAside.remove(p.getUniqueId());
         this.persist(p);
         this.cache.remove(p.getUniqueId());
+        this.cachedSize.remove(p.getUniqueId());
     }
 
-    /** {@link #BACK_SLOT} clicked - persists (same as a normal close) and hands control back to the Skills main menu. */
+    /** The decorative row's own back button clicked (see {@link #backSlot}) - persists (same as a normal close) and hands control back to the Skills main menu. */
     public void back(Player p) {
         this.viewing.remove(p.getUniqueId());
         this.persist(p);
@@ -239,10 +283,11 @@ public final class QuiverService {
                 return;
             }
             Inventory top = p.getOpenInventory().getTopInventory();
-            if (top.getSize() != TOTAL_SIZE) {
+            if (top.getSize() != this.totalSizeFor(p)) {
                 return;
             }
-            for (int i = 0; i < STORAGE_SIZE; i++) {
+            int size = this.storageSize(p);
+            for (int i = 0; i < size; i++) {
                 ItemStack item = top.getItem(i);
                 if (item != null && !item.isEmpty() && this.isFiller(item)) {
                     top.setItem(i, null);
@@ -343,7 +388,8 @@ public final class QuiverService {
     /** Removes exactly one arrow unit from the first arrow-holding slot (whatever specific type - plain/tipped/spectral - so the bow still fires the real thing) and returns a single-unit clone of it, or null if the Quiver is empty. */
     private ItemStack takeOne(Player p) {
         Inventory quiver = this.inventoryFor(p);
-        for (int i = 0; i < STORAGE_SIZE; i++) {
+        int size = this.storageSize(p);
+        for (int i = 0; i < size; i++) {
             ItemStack item = quiver.getItem(i);
             if (item != null && isArrow(item.getType())) {
                 ItemStack one = item.clone();
@@ -361,7 +407,8 @@ public final class QuiverService {
 
     private void giveBack(Player p, ItemStack item) {
         Inventory quiver = this.inventoryFor(p);
-        for (int i = 0; i < STORAGE_SIZE; i++) {
+        int size = this.storageSize(p);
+        for (int i = 0; i < size; i++) {
             ItemStack existing = quiver.getItem(i);
             if (existing == null || existing.isEmpty()) {
                 quiver.setItem(i, item);
@@ -378,39 +425,60 @@ public final class QuiverService {
     }
 
     /**
-     * Rebuilds (not just reuses) whenever the cached {@link Inventory}'s own size doesn't
-     * match {@value #TOTAL_SIZE} - guards against a stale in-memory object left over from an
-     * earlier, now-replaced canvas size (e.g. a plugin update whose server process wasn't
-     * fully restarted since a player last opened this), which would otherwise keep serving
-     * whatever raw filler happened to sit at today's own {@link #BACK_SLOT} forever, since
-     * {@link #TOTAL_SIZE} being a constant (not milestone-derived, unlike {@code
-     * PersonalStorageService}) means nothing else would ever trigger a rebuild.
+     * Rebuilds {@code p}'s Quiver inside the minimum canvas {@link #totalSizeFor} computes for
+     * their own currently unlocked {@link #storageSize} - reused from cache as-is if that size
+     * hasn't changed since it was last built (tracked via {@link #cachedSize}), otherwise
+     * rebuilt with the old inventory's own live contents (not last-persisted-to-PDC state)
+     * carried over, so a String Collection milestone crossed mid-session grows the Quiver
+     * correctly the next time it's opened without losing a single arrow already stored - same
+     * "grow the real inventory, carry old contents forward" shape {@code
+     * PersonalStorageService#inventoryFor} already uses for its own Oak Log-driven growth.
      */
     private Inventory inventoryFor(Player p) {
+        int size = this.storageSize(p);
+        int totalSize = this.totalSizeFor(p);
         Inventory cached = this.cache.get(p.getUniqueId());
-        if (cached != null && cached.getSize() == TOTAL_SIZE) {
+        Integer cachedForSize = this.cachedSize.get(p.getUniqueId());
+        // The cached Inventory's own real size must also still match totalSizeFor's current
+        // output, not just cachedForSize - guards against a stale object left over from an
+        // earlier, now-replaced version of that formula (its own dimensions are fixed forever
+        // once created), same as PersonalStorageService#inventoryFor's own identical check.
+        if (cached != null && cachedForSize != null && cachedForSize == size && cached.getSize() == totalSize) {
             return cached;
         }
         Language l = Language.of(p);
-        Inventory inv = Bukkit.createInventory(null, TOTAL_SIZE, "Quiver");
-        ItemStack filler = this.filler();
-        for (int i = STORAGE_SIZE; i < TOTAL_SIZE; i++) {
-            inv.setItem(i, filler);
+        Inventory inv = Bukkit.createInventory(null, totalSize, "Quiver");
+        // Only ever copy the OLD screen's own real-storage portion (its last known unlocked
+        // size, per cachedForSize - never its raw Inventory#getSize(), which can no longer
+        // tell "real storage" apart from "decorative padding" now that several unlocked sizes
+        // can share the very same canvas) - copying the whole thing would carry that old
+        // screen's own decorative filler/back-button items into what are now real, newly-
+        // unlocked storage slots the instant a milestone grows this mid-session.
+        ItemStack[] saved;
+        int realLength;
+        if (cached != null) {
+            saved = cached.getContents();
+            realLength = cachedForSize == null ? 0 : cachedForSize;
+        } else {
+            saved = this.load(p);
+            realLength = saved == null ? 0 : saved.length;
         }
-        inv.setItem(BACK_SLOT, this.backButton(l));
-        // Not a strict length check (a saved array shorter than STORAGE_SIZE is
-        // still valid - just an older/smaller Quiver, or one that's never held a
-        // full chest's worth) so a Quiver saved before this row existed loads
-        // straight into the storage slots without any migration step.
-        ItemStack[] saved = cached != null
-                ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), STORAGE_SIZE))
-                : this.load(p);
+        // Not a strict length check (a saved array shorter than the current size is still
+        // valid - just an older/smaller Quiver, or one that's never held a full chest's worth)
+        // so a Quiver saved before this row existed loads straight into the storage slots
+        // without any migration step.
         if (saved != null) {
-            for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
+            for (int i = 0; i < Math.min(realLength, size); i++) {
                 inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
             }
         }
+        ItemStack filler = this.filler();
+        for (int i = size; i < totalSize; i++) {
+            inv.setItem(i, filler);
+        }
+        inv.setItem(this.backSlot(p), this.backButton(l));
         this.cache.put(p.getUniqueId(), inv);
+        this.cachedSize.put(p.getUniqueId(), size);
         return inv;
     }
 
@@ -419,7 +487,8 @@ public final class QuiverService {
         if (inv == null) {
             return;
         }
-        ItemStack[] storage = Arrays.copyOfRange(inv.getContents(), 0, STORAGE_SIZE);
+        int size = this.storageSize(p);
+        ItemStack[] storage = Arrays.copyOfRange(inv.getContents(), 0, Math.min(size, inv.getSize()));
         p.getPersistentDataContainer().set(this.contentsKey, PersistentDataType.STRING, this.serialize(storage));
         p.getPersistentDataContainer().remove(this.legacyContentsKey);
     }

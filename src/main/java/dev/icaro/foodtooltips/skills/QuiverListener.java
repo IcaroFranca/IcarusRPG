@@ -30,12 +30,12 @@ public final class QuiverListener implements Listener {
         }
         int raw = e.getRawSlot();
         boolean topInventory = raw >= 0 && raw < e.getView().getTopInventory().getSize();
-        if (topInventory && QuiverService.isBackSlot(raw)) {
+        if (topInventory && this.quiver.isBackSlot(p, raw)) {
             e.setCancelled(true);
             this.quiver.back(p);
             return;
         }
-        if (topInventory && !QuiverService.isStorageSlot(raw)) {
+        if (topInventory && !this.quiver.isStorageSlot(p, raw)) {
             // Decorative filler in the back-button row - never a real slot.
             e.setCancelled(true);
             return;
@@ -49,7 +49,7 @@ public final class QuiverListener implements Listener {
             return;
         }
         int topSize = e.getView().getTopInventory().getSize();
-        boolean touchesDecorativeRow = e.getRawSlots().stream().anyMatch(slot -> slot < topSize && !QuiverService.isStorageSlot(slot));
+        boolean touchesDecorativeRow = e.getRawSlots().stream().anyMatch(slot -> slot < topSize && !this.quiver.isStorageSlot(p, slot));
         if (touchesDecorativeRow) {
             e.setCancelled(true);
             return;

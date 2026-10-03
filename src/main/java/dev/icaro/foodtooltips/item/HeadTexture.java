@@ -165,6 +165,8 @@ public final class HeadTexture {
     public static final String SPIDER_EYE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjA5NWVjMDMyNDA5ZGE1YjRhNzMxMTg3NTBjMWExMTFhNDU0MzIxYmQ4NWEyODJjNDE3MGM4NDQ3NTQ0MzhlYiJ9fX0=";
     /** "Fermented Spider Eye" (minecraft-heads.com Custom Head ID 96942) - the Fermented Spider Eye Core crafting item, {@link #SPIDER_EYE_CORE}'s own upgrade - see {@code CombatCollectionsItemsService}. */
     public static final String FERMENTED_SPIDER_EYE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTAxMjhlOWRiNGI1NDRlMTQ3ZWM2OGY5NGQ4NWY5ZGI4MTA5OTRhZWI5NDNiMDM4ZGQ0OTFlYTJlYTlhNDY5NiJ9fX0=";
+    /** "Spider Web Cocoon" (minecraft-heads.com Custom Head ID 61720) - the String Core crafting item, see {@code CombatCollectionsItemsService}. */
+    public static final String STRING_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmI1ODY0MWU3NmRhODI2MjE3MDhhM2Q2YzEwYmI0NTBjMjNkNDc1ZTUyMTAzMTBkMGI4N2U0NjBhNWZjMjM1NCJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -175,7 +177,7 @@ public final class HeadTexture {
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
             BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, BONE_CORE, PILE_OF_BONE_CORE,
-            ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE);
+            ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE, STRING_CORE);
 
     private HeadTexture() {
     }
