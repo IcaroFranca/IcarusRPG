@@ -93,7 +93,7 @@ import org.bukkit.plugin.Plugin;
 public final class WoodcuttingCrystalService implements Listener {
     private static final NamespacedKey CRYSTAL_KEY = new NamespacedKey("foodtooltips", "woodcutting_crystal");
     private static final UUID ITEM_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:woodcutting_crystal".getBytes(StandardCharsets.UTF_8));
-    private static final int PULSE_TICKS = 400;
+    private static final int PULSE_TICKS = 200;
     private static final int SPIN_TICKS = 2;
     private static final float SPIN_DEGREES_PER_STEP = 6.0f;
     /** Half the side of the square area this crystal regrows trees in - a 20x20 square, per the player's own spec. */
