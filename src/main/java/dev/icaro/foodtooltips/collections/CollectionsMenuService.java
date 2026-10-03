@@ -17,9 +17,12 @@ import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -161,10 +164,23 @@ public final class CollectionsMenuService {
             lore.add(this.text(unlocked ? "COMPLETED" : "LOCKED", unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
             List<ItemStack> preview = this.previewItems(milestone);
             if (preview.isEmpty()) {
-                Material pane = unlocked ? Material.LIME_STAINED_GLASS_PANE
-                        : inProgress ? Material.YELLOW_STAINED_GLASS_PANE
-                        : Material.RED_STAINED_GLASS_PANE;
-                inv.setItem(MILESTONE_SLOTS[i], this.item(pane, "Milestone " + (i + 1), lore));
+                // Enchant-discount milestones (custom or vanilla) get a representative
+                // Enchanted Book instead of the generic status pane, per the player's own
+                // explicit "coloque um livro encantado para representar" - named after
+                // whichever enchant it discounts, same status lore the pane used to carry.
+                // Deliberately not added to milestoneButtons below - there's no recipe/item
+                // preview screen behind it, same as the pane it replaces.
+                boolean enchantDiscount = milestone.kind() == RewardKind.ENCHANT_DISCOUNT || milestone.kind() == RewardKind.VANILLA_ENCHANT_DISCOUNT;
+                ItemStack icon;
+                if (enchantDiscount) {
+                    icon = this.enchantBookIcon(milestone, lore);
+                } else {
+                    Material pane = unlocked ? Material.LIME_STAINED_GLASS_PANE
+                            : inProgress ? Material.YELLOW_STAINED_GLASS_PANE
+                            : Material.RED_STAINED_GLASS_PANE;
+                    icon = this.item(pane, "Milestone " + (i + 1), lore);
+                }
+                inv.setItem(MILESTONE_SLOTS[i], icon);
                 continue;
             }
             // A real recipe reward shows the actual item (its own name/stat lore kept intact,
@@ -245,6 +261,20 @@ public final class CollectionsMenuService {
             }
         }
         return items;
+    }
+
+    /** An {@link Material#ENCHANTED_BOOK} icon named after whichever enchant {@code milestone} discounts (resolved from {@link CollectionsMilestone#discountEnchant}/{@link CollectionsMilestone#vanillaDiscountEnchant} depending on {@link CollectionsMilestone#kind}), carrying the same status lore the generic pane it replaces would have - see this class's own doc at the {@link #openEntry} call site. */
+    private ItemStack enchantBookIcon(CollectionsMilestone milestone, List<Component> lore) {
+        String name = milestone.kind() == RewardKind.VANILLA_ENCHANT_DISCOUNT
+                ? this.vanillaEnchantName(milestone.vanillaDiscountEnchant())
+                : milestone.discountEnchant().displayName(false);
+        return this.item(Material.ENCHANTED_BOOK, name, lore);
+    }
+
+    /** {@code key}'s own real vanilla display name (Paper resolves it server-side, same locale-independent trick {@code enchant.VanillaEnchantEntry#catalogName} already uses), or a generic fallback if the registry somehow doesn't know it. */
+    private String vanillaEnchantName(NamespacedKey key) {
+        Enchantment enchantment = Registry.ENCHANTMENT.get(key);
+        return enchantment == null ? "Enchantment" : PlainTextComponentSerializer.plainText().serialize(enchantment.displayName(1));
     }
 
     /** The same filter as {@link #previewItems}, same order, but the recipe keys themselves - used to open a real recipe's shape ({@link RecipeBookMenuService#openDetail(Player, NamespacedKey, Runnable)}) from {@link #openItemPreview}'s own tiles. */
