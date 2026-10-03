@@ -512,6 +512,15 @@ implements Listener {
             // directly instead. Both colors fold into the same RED_MUSHROOM catalog
             // entry (see the branch just above), 9 per block.
             this.applyCollections(p, Material.RED_MUSHROOM, 9);
+        } else if (m == Material.TORCHFLOWER_CROP) {
+            // Same generic Ageable harvest as the final else-branch below, but Torchflower
+            // needs one extra step: see #reseedTorchflower's own doc on why.
+            BlockData blockData = e.getBlock().getBlockData();
+            if (blockData instanceof Ageable a && a.getAge() == a.getMaximumAge()) {
+                this.gain(p, SkillType.FARMING, this.cropXp(m));
+                this.track(k, new Target(SkillType.FARMING, this.cropDrop(m)), p);
+                this.reseedTorchflower(p, e.getBlock());
+            }
         } else {
             Ageable a;
             BlockData blockData = e.getBlock().getBlockData();
@@ -523,6 +532,29 @@ implements Listener {
                 // credited generically in #drops instead, from the real dropped amount -
                 // no special case needed here.
             }
+        }
+    }
+
+    /**
+     * Gives {@code p} one Torchflower Seed back for every mature Torchflower harvested -
+     * the player's own explicit fix for a real vanilla gap: unlike literally every other
+     * crop this listener handles (wheat, carrots, potatoes, beetroot, cocoa, sweet
+     * berries...), breaking a mature Torchflower Crop only ever drops the flower itself,
+     * never a seed - the only renewable source is a Sniffer (itself gated behind a rare
+     * Warm Ocean Ruins egg) or Suspicious Sand/Gravel loot. Without this, the Torchflower
+     * Collection would hard-wall at whatever single seed the player started with, since a
+     * farm that can't replant itself can't ever grow. Pitcher Pod needs no equivalent fix -
+     * its own vanilla harvest already returns 2-4 pods. Same Telekinesis-aware
+     * give-or-drop-naturally path {@link #harvestCaneSegmentsAbove} already uses; no
+     * Collections credit of its own, since Torchflower Seeds isn't a tracked material.
+     */
+    private void reseedTorchflower(Player p, Block block) {
+        ItemStack seed = new ItemStack(Material.TORCHFLOWER_SEEDS);
+        boolean telekinesis = this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_BLOCK_DROPS);
+        if (telekinesis) {
+            this.give(p, seed);
+        } else {
+            block.getWorld().dropItemNaturally(block.getLocation(), seed);
         }
     }
 
@@ -1010,7 +1042,7 @@ implements Listener {
     private double cropXp(Material m) {
         return switch (m) {
             case Material.WHEAT, Material.CARROTS, Material.POTATOES, Material.BEETROOTS -> 4.0;
-            case Material.NETHER_WART -> 6.0;
+            case Material.NETHER_WART, Material.TORCHFLOWER_CROP, Material.PITCHER_CROP -> 6.0;
             case Material.COCOA, Material.SWEET_BERRY_BUSH -> 5.0;
             case Material.PUMPKIN, Material.MELON -> 10.0;
             default -> 3.0;
@@ -1026,6 +1058,8 @@ implements Listener {
             case Material.NETHER_WART -> Material.NETHER_WART;
             case Material.COCOA -> Material.COCOA_BEANS;
             case Material.SWEET_BERRY_BUSH -> Material.SWEET_BERRIES;
+            case Material.TORCHFLOWER_CROP -> Material.TORCHFLOWER;
+            case Material.PITCHER_CROP -> Material.PITCHER_POD;
             default -> m;
         };
     }

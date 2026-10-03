@@ -14,9 +14,9 @@ import org.bukkit.NamespacedKey;
  * player's own explicit "o resto vai passando com o tempo" ("the rest will come with
  * time") - though each now also carries a handful of inert templates (empty milestone
  * list) for a real material that was missing from the original lineup (Farming's own
- * Beetroot/Bamboo/Kelp/Sweet Berries/Glow Berries/Torchflower/Pitcher Pod; Foraging's later
- * wood-log entries below, from Cherry Log onward - Mangrove Log's own template has since been
- * filled in) - milestones to be filled in later, same
+ * Bamboo/Kelp/Sweet Berries/Glow Berries - Beetroot/Torchflower/Pitcher Pod's own templates
+ * have since been filled in; Foraging's later wood-log entries below, from Cherry Log
+ * onward - Mangrove Log's own template has since been filled in) - milestones to be filled in later, same
  * as Combat's own 14 entries (every material a real hostile {@code bestiary.BestiaryCatalog}
  * mob commonly drops, minus one-off boss loot and anything an aquatic mob drops, reserved
  * for Fishing instead), all inert too per the player's own "vou te falar com o tempo o que
@@ -532,8 +532,17 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.KELP_PLANT, Material.KELP, CollectionsCategory.FARMING, "Kelp", "Kelp", List.of()),
             new CollectionsEntry(Material.SWEET_BERRY_BUSH, Material.SWEET_BERRIES, CollectionsCategory.FARMING, "Frutas Silvestres", "Sweet Berries", List.of()),
             new CollectionsEntry(Material.CAVE_VINES, Material.GLOW_BERRIES, CollectionsCategory.FARMING, "Frutas Brilhantes", "Glow Berries", List.of()),
-            new CollectionsEntry(Material.TORCHFLOWER_CROP, Material.TORCHFLOWER, CollectionsCategory.FARMING, "Flor-Tocha", "Torchflower", List.of()),
-            new CollectionsEntry(Material.PITCHER_CROP, Material.PITCHER_POD, CollectionsCategory.FARMING, "Vagem de Jarro", "Pitcher Pod", List.of()),
+            // Plain Farming XP ladder for now - no Core item yet, since every other Core in
+            // this catalog is a real minecraft-heads.com custom head (see
+            // FarmingCollectionsItemsService#potatoCore/melonCore and HeadTexture's own doc),
+            // and the player hasn't sent a real texture for either of these two yet. Both are
+            // genuinely farmable now (not just inert templates) thanks to
+            // GeneralSkillListener#reseedTorchflower - Torchflower's own real vanilla harvest
+            // never returns a seed (unlike literally every other crop here), which would
+            // otherwise hard-wall this Collection behind a single Sniffer/Suspicious Sand
+            // find; Pitcher Pod already reseeds itself in vanilla, so it needed no such fix.
+            new CollectionsEntry(Material.TORCHFLOWER_CROP, Material.TORCHFLOWER, CollectionsCategory.FARMING, "Flor-Tocha", "Torchflower", genericXp()),
+            new CollectionsEntry(Material.PITCHER_CROP, Material.PITCHER_POD, CollectionsCategory.FARMING, "Vagem de Jarro", "Pitcher Pod", genericXp()),
             // Personal Storage unlock/expansion milestones carry no recipes, same reasoning
             // as the Wardrobe (Leather)/Potion Bag (Nether Wart) entries above - see
             // skills.PersonalStorageService. Custom thresholds (not DEFAULT_THRESHOLDS), per
