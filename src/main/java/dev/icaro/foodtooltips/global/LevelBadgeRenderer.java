@@ -45,18 +45,56 @@ public final class LevelBadgeRenderer {
         this.colorCache.clear();
     }
 
-    /** The whole "[N] " badge - brackets included - is always tinted with the theme's own active color (no separate fixed gray for the brackets) per the player's own explicit "as cores dos niveis tem que aplicar... nos colchetes também". */
+    /**
+     * The whole "[N] " badge - brackets included - is always tinted with the theme's own
+     * active color(s) (no separate fixed gray for the brackets) per the player's own explicit
+     * "as cores dos niveis tem que aplicar... nos colchetes também". For a theme with more
+     * than one color, this is a real spatial gradient across the badge's own characters (not
+     * just the whole string pulsing through one color at a time) per the player's own
+     * follow-up "quero os gradientes das cores que tem mais de uma cor" - see {@link
+     * #gradientText}.
+     */
     private List<Component> build(long level, LevelColorTheme theme) {
-        String digits = Long.toString(Math.max(0L, level));
+        String text = "[" + Long.toString(Math.max(0L, level)) + "] ";
         List<TextColor> colors = this.colorFrames(theme);
-        if (!theme.animated()) {
-            return List.of(Component.text("[" + digits + "] ", colors.get(0)));
-        }
-        ArrayList<TextComponent> frames = new ArrayList<TextComponent>();
-        for (TextColor active : colors) {
-            frames.add(Component.text("[" + digits + "] ", active));
+        ArrayList<Component> frames = new ArrayList<Component>();
+        for (int tick = 0; tick < colors.size(); tick++) {
+            frames.add(gradientText(text, colors, tick));
         }
         return List.copyOf(frames);
+    }
+
+    /**
+     * Same gradient {@link #build} paints the badge with, for an arbitrary {@code text} (the
+     * player's own name in chat/tab list/menu previews) instead of the "[N] " wrapping - so a
+     * multi-color theme's name reads as a real left-to-right gradient too, not a single flat
+     * color. Exposed (not cached per name, unlike {@link #frames}, since the set of possible
+     * names is unbounded) for {@code GlobalPresentationService}/{@code LevelColorMenuService}
+     * to call directly; cheap enough for an on-demand per-call build given names are only a
+     * few characters long.
+     */
+    public Component gradientName(String name, LevelColorTheme theme, long tick) {
+        List<TextColor> colors = this.colorFrames(theme);
+        return gradientText(name, colors, theme.animated() ? Math.floorMod(tick, colors.size()) : 0);
+    }
+
+    /**
+     * Spreads {@code colors} (one full gradient cycle) across {@code text}'s own characters,
+     * each one sampling a different point along the cycle offset by its own position - {@code
+     * tick} rotates the whole sampling window, so an animated theme's gradient also slides
+     * along the text over time instead of sitting still. Degenerates to a single flat color
+     * for a single-color theme (every position samples the same lone entry).
+     */
+    private static Component gradientText(String text, List<TextColor> colors, int tick) {
+        int n = colors.size();
+        int len = text.length();
+        TextComponent.Builder builder = Component.text();
+        for (int i = 0; i < len; i++) {
+            int offset = len <= 1 || n <= 1 ? 0 : (int) Math.round((double) i * n / len);
+            TextColor color = colors.get(Math.floorMod(tick + offset, n));
+            builder.append(Component.text(String.valueOf(text.charAt(i)), color));
+        }
+        return builder.build();
     }
 
     private List<TextColor> colorFrames(LevelColorTheme theme) {

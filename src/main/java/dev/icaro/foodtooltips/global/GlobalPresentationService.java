@@ -50,8 +50,10 @@ implements Listener {
 
     public void refresh(Player subject) {
         Component badge = this.badge(subject);
-        TextColor nameColor = this.cachedColor(subject.getUniqueId());
-        subject.playerListName(badge.append((Component)Component.text((String)subject.getName(), nameColor)));
+        UUID id = subject.getUniqueId();
+        Component nameComponent = this.cachedGradientName(id, subject.getName());
+        subject.playerListName(badge.append(nameComponent));
+        TextColor nameColor = this.cachedColor(id);
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             this.syncTeam(viewer, subject, badge, nameColor);
         }
@@ -63,11 +65,17 @@ implements Listener {
         return this.renderer.frame(state.level(), state.theme(), this.tick);
     }
 
-    /** Same color {@link #badge} would tint the "[N]" badge with, for {@code player}'s own currently effective theme - lets {@code LevelColorMenuService}'s own preview head show the player's name the same way it'll actually look in the tab list/chat/nametag instead of staying plain white. */
-    public TextColor nameColor(Player player) {
+    /**
+     * The player's own name, tinted the exact same way {@link #badge} tints the "[N]" badge
+     * for {@code player}'s own currently effective theme - a real left-to-right gradient for
+     * a multi-color theme (see {@code LevelBadgeRenderer#gradientName}), not a single flat
+     * color - lets {@code LevelColorMenuService}'s own preview head show the player's name
+     * the same way it'll actually look in the tab list/chat instead of staying plain white.
+     */
+    public Component nameComponent(Player player) {
         BadgeState state = new BadgeState(this.global.snapshot(player).level(), this.colors.effective(player));
         this.badgeCache.put(player.getUniqueId(), state);
-        return this.renderer.activeColor(state.theme(), this.tick);
+        return this.renderer.gradientName(player.getName(), state.theme(), this.tick);
     }
 
     private Component cachedBadge(UUID id) {
@@ -75,7 +83,20 @@ implements Listener {
         return this.renderer.frame(state.level(), state.theme(), this.tick);
     }
 
-    /** The exact same color {@link #cachedBadge}/{@link #badge} rendered the badge in, for the given player, right now - so the player's own name (tab list, chat, nametag) can match their level color instead of staying plain white. Reads {@link #badgeCache} rather than recomputing {@code global}/{@code colors} so this stays safe to call from {@link #chat}, which fires off the main thread. */
+    /** The exact same gradient {@link #cachedBadge}/{@link #badge} rendered the badge with, for the given player's own name, right now - so it can match their level color (tab list, chat) instead of staying plain white. Reads {@link #badgeCache} rather than recomputing {@code global}/{@code colors} so this stays safe to call from {@link #chat}, which fires off the main thread. */
+    private Component cachedGradientName(UUID id, String name) {
+        BadgeState state = this.badgeCache.getOrDefault(id, DEFAULT_STATE);
+        return this.renderer.gradientName(name, state.theme(), this.tick);
+    }
+
+    /**
+     * A single representative {@link TextColor} for {@code id}'s own currently effective
+     * theme, right now - NOT a gradient. {@link Team#color} only ever accepts one legacy
+     * {@link NamedTextColor}, so the floating nametag above a player's head (unlike their
+     * chat/tab-list name, which gets the real multi-color gradient) is stuck showing a single
+     * flat color for a multi-color theme - a vanilla API limitation, not something this
+     * plugin can work around.
+     */
     private TextColor cachedColor(UUID id) {
         BadgeState state = this.badgeCache.getOrDefault(id, DEFAULT_STATE);
         return this.renderer.activeColor(state.theme(), this.tick);
@@ -158,17 +179,17 @@ implements Listener {
      * renderer and have that respected instead of being overwritten here.
      *
      * <p>The sender's own NAME, unlike the message, DOES get tinted with their level
-     * color (same {@link #cachedColor} the tab list name and the nametag's own
-     * scoreboard team already use) - per the player's own explicit "as cores dos
-     * niveis tem que aplicar nos nicknames... também", this used to be hardcoded white
-     * here, the one place that still ignored the theme.
+     * color (same gradient the tab list name already uses - see {@link
+     * #cachedGradientName}) - per the player's own explicit "as cores dos niveis tem
+     * que aplicar nos nicknames... também", this used to be hardcoded white here, the
+     * one place that still ignored the theme.
      */
     @EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
     public void chat(AsyncChatEvent e) {
         UUID id = e.getPlayer().getUniqueId();
         Component badge = this.cachedBadge(id);
-        TextColor nameColor = this.cachedColor(id);
-        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append((Component)Component.text((String)source.getName(), nameColor)).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
+        Component nameComponent = this.cachedGradientName(id, e.getPlayer().getName());
+        e.renderer((source, sourceDisplayName, message, viewer) -> badge.append(nameComponent).append((Component)Component.text((String)": ", (TextColor)NamedTextColor.GRAY)).append(message.colorIfAbsent(NamedTextColor.WHITE)));
     }
 
     private record BadgeState(long level, LevelColorTheme theme) {

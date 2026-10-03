@@ -59,7 +59,7 @@ public final class LevelColorMenuService {
         GlobalLevelSnapshot snapshot = this.global.snapshot(p);
         LevelColorTheme selected = this.colors.selected(p);
         List<Component> headLore = new ArrayList<>();
-        headLore.add(this.presentation.badge(p).append(Component.text(p.getName(), this.presentation.nameColor(p))));
+        headLore.add(this.presentation.badge(p).append(this.presentation.nameComponent(p)));
         headLore.add(this.text("Global Level: " + snapshot.level(), NamedTextColor.GOLD));
         headLore.add(this.text("Selected: " + selected.name(), NamedTextColor.YELLOW));
         if (!this.colors.unlocked(p, selected)) {
