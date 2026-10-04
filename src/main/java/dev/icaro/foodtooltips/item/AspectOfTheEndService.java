@@ -21,10 +21,10 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -45,14 +45,22 @@ import org.bukkit.util.RayTraceResult;
  * item.LeapingSwordService} already use - unlike those two's own {@code _SWORD} materials,
  * {@code DIAMOND_SWORD} as a Material already has an entry in {@code
  * item.SwordDamageService#totalDamage}, so this item needed adding to that class's own skip-
- * guard too, same reason the other two needed it), and Ability: Instant Transmission (right
- * click) - teleports the wielder
- * {@value #TELEPORT_DISTANCE} blocks forward (stopped short by {@link #safeDistance} if a wall
- * is in the way) and grants +{@value #SPEED_BONUS} Speed for {@value #SPEED_SECONDS} seconds (a
- * real, temporary {@link Attribute#MOVEMENT_SPEED} modifier - same {@value
+ * guard too, same reason the other two needed it), and Ability: Instant Transmission - teleports
+ * the wielder {@value #TELEPORT_DISTANCE} blocks forward (stopped short by {@link #safeDistance}
+ * if a wall is in the way) and grants +{@value #SPEED_BONUS} Speed for {@value #SPEED_SECONDS}
+ * seconds (a real, temporary {@link Attribute#MOVEMENT_SPEED} modifier - same {@value
  * #SPEED_POINT_TO_ATTRIBUTE}-per-point conversion every other Speed source in this plugin uses,
  * removed by a delayed task rather than left permanent). {@value #MANA_COST} Mana, no cooldown
  * beyond Mana regen itself - the player's own spec shows none.
+ *
+ * <p>Triggered on Swap Hands (F), not right-click, per the player's own explicit "tem que ser
+ * possivel clicar no ar pra teleportar pro ar se o jogador quiser também" - {@code
+ * PlayerInteractEvent}'s {@code RIGHT_CLICK_AIR} is the same long-standing, Spigot-acknowledged
+ * client-side limitation {@code item.SpruceAxeListener#throwAxe}/{@code
+ * grapple.GrapplingHookService} already document: the client doesn't reliably send the interact
+ * packet for a right-click with nothing (no block, no entity) within normal reach, which is
+ * exactly what aiming straight up at open sky looks like. Same fix those two already use for
+ * their own ranged abilities, applied here for the same reason.
  *
  * <p>The image's own "Gemstones: []" line is the same leftover Hypixel-screenshot artifact the
  * player already asked to ignore once this session (Zombie Sword's own "Esquece isso de
@@ -102,7 +110,7 @@ public final class AspectOfTheEndService implements Listener {
                 Component.text("Strength: +" + STRENGTH, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.empty().decoration(TextDecoration.ITALIC, false),
                 Component.text("Ability: Instant Transmission ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("RIGHT CLICK", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
+                        .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
                 Component.text("Teleport " + TELEPORT_DISTANCE + " blocks ahead of you", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("and gain +" + SPEED_BONUS + " Speed for " + SPEED_SECONDS + " seconds.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Mana Cost: " + MANA_COST, NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false)));
@@ -119,21 +127,28 @@ public final class AspectOfTheEndService implements Listener {
         return meta != null && meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE);
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void transmit(PlayerInteractEvent e) {
-        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-        Player p = e.getPlayer();
-        if (!isAspectOfTheEnd(p.getInventory().getItemInMainHand())) {
-            return;
-        }
-        if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+    /**
+     * {@code priority = HIGH, ignoreCancelled = true} matches every other "must always fire"
+     * item-ability listener in this plugin ({@code SpruceAxeListener}, {@code
+     * grapple.GrapplingHookListener}, {@code BuilderWandListener}...) so a protection plugin's
+     * own cancellation (WorldGuard, a soft-depend of this plugin) can't silently swallow this
+     * ability either.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void swapHands(PlayerSwapHandItemsEvent e) {
+        if (this.attemptTeleport(e.getPlayer())) {
             e.setCancelled(true);
+        }
+    }
+
+    /** Returns whether {@code p} was even holding Aspect of the End (regardless of whether Mana was enough), so {@link #swapHands} knows whether to cancel its own triggering event. */
+    public boolean attemptTeleport(Player p) {
+        if (!isAspectOfTheEnd(p.getInventory().getItemInMainHand())) {
+            return false;
         }
         if (!this.stats.withdrawMana(p, MANA_COST)) {
             p.sendActionBar(Component.text("Not enough Mana for Instant Transmission.", NamedTextColor.RED));
-            return;
+            return true;
         }
         Location from = p.getLocation();
         double distance = this.safeDistance(p, from);
@@ -145,6 +160,7 @@ public final class AspectOfTheEndService implements Listener {
         p.getWorld().spawnParticle(Particle.REVERSE_PORTAL, to, 30, 0.3, 0.6, 0.3, 0.05);
         p.playSound(to, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
         this.applySpeedBuff(p);
+        return true;
     }
 
     /** How far {@code p} can actually move toward {@code from}'s own look direction before hitting a solid block - never more than {@value #TELEPORT_DISTANCE}. */
