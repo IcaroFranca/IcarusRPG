@@ -166,6 +166,9 @@ public final class PitcherWandService implements Listener {
     /** Fires on every right-click thanks to {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} trick - see this class's own doc. Cancelling the event here only stops the block-interaction half of the click (e.g. accidentally planting the Pitcher Pod on farmland, since it's a real vanilla seed item) - it does NOT stop the item from actually being eaten, which is a separate flow gated by {@link #preventConsume} instead. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void rightClick(PlayerInteractEvent e) {
+        // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
+        e.getPlayer().sendMessage(Component.text("[debug] PlayerInteractEvent action=" + e.getAction()
+                + " hand=" + e.getHand() + " item=" + e.getItem(), NamedTextColor.AQUA));
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
@@ -177,6 +180,9 @@ public final class PitcherWandService implements Listener {
     /** {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} tag makes the Pitcher Wand "edible" purely as a packet-sending trick - cancelling {@link #rightClick}'s own {@code PlayerInteractEvent} does NOT stop that separate eat-flow from completing (it governs block interaction, not item consumption), so without this the wand would actually get eaten and vanish from the inventory one click at a time. This is the one, correctly-scoped event Bukkit provides specifically to block a consumable from being consumed. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void preventConsume(PlayerItemConsumeEvent e) {
+        // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
+        e.getPlayer().sendMessage(Component.text("[debug] PlayerItemConsumeEvent item=" + e.getItem().getType()
+                + " isPitcherWand=" + isPitcherWand(e.getItem()), NamedTextColor.LIGHT_PURPLE));
         if (isPitcherWand(e.getItem())) {
             e.setCancelled(true);
         }
@@ -185,8 +191,13 @@ public final class PitcherWandService implements Listener {
     /** Returns whether {@code p} was even holding the Pitcher Wand (regardless of Mana/cooldown outcome), so {@link #rightClick} knows whether to cancel its own triggering event - same shape {@code item.SpruceAxeListener#attemptThrow} already uses. */
     public boolean attemptCast(Player p) {
         if (!isPitcherWand(p.getInventory().getItemInMainHand())) {
+            // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
+            p.sendMessage(Component.text("[debug] attemptCast: main hand is NOT the Pitcher Wand ("
+                    + p.getInventory().getItemInMainHand().getType() + ")", NamedTextColor.RED));
             return false;
         }
+        // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
+        p.sendMessage(Component.text("[debug] attemptCast: confirmed holding Pitcher Wand, checking cooldown/mana", NamedTextColor.GREEN));
         long now = System.currentTimeMillis();
         long ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L);
         if (now < ready) {
