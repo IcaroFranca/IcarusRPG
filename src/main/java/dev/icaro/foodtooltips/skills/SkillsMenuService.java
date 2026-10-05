@@ -67,9 +67,9 @@ public final class SkillsMenuService {
     /** The MAIN screen's Passive Abilities button - see {@link PassiveAbilityMenuService}. */
     private static final int PASSIVE_ABILITIES_SLOT = 30;
     /** The MAIN screen's Personal Storage button, per the player's own spec. */
-    private static final int PERSONAL_STORAGE_SLOT = 23;
-    /** The MAIN screen's Trade button, per the player's own explicit "No slot 24 do menu" spec - see {@code trade.TradeMenuService}. */
-    private static final int TRADE_SLOT = 24;
+    private static final int PERSONAL_STORAGE_SLOT = 24;
+    /** The MAIN screen's Trade button, per the player's own explicit slot swap with {@link #PERSONAL_STORAGE_SLOT} - see {@code trade.TradeMenuService}. */
+    private static final int TRADE_SLOT = 23;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
