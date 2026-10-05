@@ -68,6 +68,8 @@ public final class SkillsMenuService {
     private static final int PASSIVE_ABILITIES_SLOT = 30;
     /** The MAIN screen's Personal Storage button, per the player's own spec. */
     private static final int PERSONAL_STORAGE_SLOT = 23;
+    /** The MAIN screen's Trade button, per the player's own explicit "No slot 24 do menu" spec - see {@code trade.TradeMenuService}. */
+    private static final int TRADE_SLOT = 24;
     /** Where each general skill's summary button sits on the STATS screen (see {@link #openStats}) - same slots {@link #handleClick} reads back to know which skill was clicked. */
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
@@ -111,6 +113,7 @@ public final class SkillsMenuService {
     private RecipeBookMenuService recipeBook;
     private ReforgeService reforge;
     private CollectionsMenuService collections;
+    private dev.icaro.foodtooltips.trade.TradeMenuService trade;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -194,6 +197,11 @@ public final class SkillsMenuService {
         this.collections = collections;
     }
 
+    /** The MAIN screen's Trade button (slot {@value #TRADE_SLOT}, per the player's own explicit spec) - see {@link dev.icaro.foodtooltips.trade.TradeMenuService}. */
+    public void trade(dev.icaro.foodtooltips.trade.TradeMenuService trade) {
+        this.trade = trade;
+    }
+
     /**
      * Bestiário and Árvore de Combate are deliberately NOT buttons here — they live only
      * on the Combat skill screen ({@link #openCombat}), reachable from the Combat icon
@@ -260,6 +268,14 @@ public final class SkillsMenuService {
             wardrobeLore.add(this.text(this.wardrobe.columns(p) + "/" + WardrobeService.COLUMNS + " " + "columns", NamedTextColor.GOLD));
             wardrobeLore.add(this.click(l));
             v.setItem(WARDROBE_SLOT, this.wardrobeIcon(wardrobeLore));
+        }
+        if (this.trade != null) {
+            List<Component> tradeLore = new ArrayList<>();
+            for (String part : LoreWrap.wrapText("Trade Collection items for others you can't farm or mine directly.", LoreWrap.DEFAULT_WIDTH)) {
+                tradeLore.add(this.text(part, NamedTextColor.GRAY));
+            }
+            tradeLore.add(this.click(l));
+            v.setItem(TRADE_SLOT, this.item(Material.EMERALD, "Trade", tradeLore));
         }
         if (this.storage != null && this.storage.unlocked(p)) {
             List<Component> storageLore = new ArrayList<>();
@@ -525,6 +541,9 @@ public final class SkillsMenuService {
                 } else if (slot == PASSIVE_ABILITIES_SLOT && this.passiveAbilities != null) {
                     this.views.remove(p.getUniqueId());
                     this.passiveAbilities.open(p);
+                } else if (slot == TRADE_SLOT && this.trade != null) {
+                    this.views.remove(p.getUniqueId());
+                    this.trade.open(p);
                 }
             }
             case SKILLS_LIST -> {

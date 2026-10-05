@@ -85,6 +85,7 @@ public final class FarmingCollectionsItemsService {
     private static final UUID BEETROOT_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:beetroot_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID TORCHFLOWER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:torchflower_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID RADIANT_TORCHFLOWER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:radiant_torchflower_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID WHEAT_SEEDS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_seeds_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_ring".getBytes(StandardCharsets.UTF_8));
     private static final UUID BAKED_POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:baked_potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_artifact".getBytes(StandardCharsets.UTF_8));
@@ -445,6 +446,11 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"CCC", "CRC", "CCC"}, r -> {
                     r.setIngredient('C', new RecipeChoice.ExactChoice(this.torchflowerCore()));
                     r.setIngredient('R', new RecipeChoice.ExactChoice(this.torchflowerFortuneRing()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.WHEAT_SEEDS_CORE_RECIPE, this.wheatSeedsCore(),
+                new String[]{"SSS", "SDS", "SSS"}, r -> {
+                    r.setIngredient('S', Material.WHEAT_SEEDS);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
 
         // Sprout Armor: an upgrade recipe, not a from-scratch one - same "Core surrounds the
@@ -1026,6 +1032,16 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.RADIANT_TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE_PROFILE);
         meta.displayName(Component.text("Radiant Torchflower Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Wheat Seeds Collection M3 - a plain crafting ingredient, same shape as every other Core in this class. */
+    private org.bukkit.inventory.ItemStack wheatSeedsCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.WHEAT_SEEDS_CORE, WHEAT_SEEDS_CORE_PROFILE);
+        meta.displayName(Component.text("Wheat Seeds Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

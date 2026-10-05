@@ -158,6 +158,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey TORCHFLOWER_FORTUNE_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_talisman");
     public static final NamespacedKey TORCHFLOWER_FORTUNE_RING_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_ring");
     public static final NamespacedKey TORCHFLOWER_FORTUNE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_artifact");
+    public static final NamespacedKey WHEAT_SEEDS_CORE_RECIPE = new NamespacedKey("foodtooltips", "wheat_seeds_core");
     /** The real vanilla recipe key for Suspicious Stew (a {@link org.bukkit.inventory.ComplexRecipe}, not a normal shaped/shapeless one - see {@code CollectionsRecipeGateListener}'s own doc on why gating it needed that class to learn about this recipe kind too) - this plugin never registers a recipe of its own for it, same "real vanilla key, gated without owning it" trick {@link #RED_MUSHROOM_BLOCK_RECIPE}/{@link #BROWN_MUSHROOM_BLOCK_RECIPE} already use. */
     public static final NamespacedKey SUSPICIOUS_STEW_RECIPE = NamespacedKey.minecraft("suspicious_stew");
     public static final NamespacedKey BONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "bone_core");
@@ -670,7 +671,29 @@ public final class CollectionsCatalog {
                     at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
                             "Desbloqueia a receita da Rabbit Armor", "Unlocks the Rabbit Armor recipe",
                             RABBIT_HELMET_RECIPE, RABBIT_CHESTPLATE_RECIPE, RABBIT_LEGGINGS_RECIPE, RABBIT_BOOTS_RECIPE)))),
-            new CollectionsEntry(Material.WHEAT_SEEDS, Material.WHEAT_SEEDS, CollectionsCategory.FARMING, "Sementes", "Seeds", genericXp()),
+            // Each milestone's own trade actually lives in trade.TradeMenuService (Skills
+            // menu slot 24, per the player's own explicit spec) - this ladder only narrates
+            // the unlock and (M3 only) carries the one real crafting recipe among them
+            // (Wheat Seeds Core). M1/M2/M4-M7 are feature unlocks with no recipe behind
+            // them, same "Wardrobe column"/"Tilling Hoe area" shape used elsewhere in this
+            // catalog - TradeMenuService reads achieved() directly rather than any recipe
+            // key. M8/M9 stay the generic ladder's own plain Farming XP.
+            new CollectionsEntry(Material.WHEAT_SEEDS, Material.WHEAT_SEEDS, CollectionsCategory.FARMING, "Sementes", "Seeds", genericXpWithOverrides(
+                    at(1, new CollectionsMilestone(DEFAULT_THRESHOLDS[0], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a troca de Terra (Dirt Trade) na tela de Trocas", "Unlocks the Dirt Trade in the Trade screen")),
+                    at(2, new CollectionsMilestone(DEFAULT_THRESHOLDS[1], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a troca de Bolinha de Argila (Clay Ball Trade)", "Unlocks the Clay Ball Trade")),
+                    at(3, new CollectionsMilestone(DEFAULT_THRESHOLDS[2], RewardKind.RECIPE_UNLOCK, 0, List.of(WHEAT_SEEDS_CORE_RECIPE), null, 0.0,
+                            "Desbloqueia a troca de Grama Longa (Long Grass Trade) e a receita do Wheat Seeds Core",
+                            "Unlocks the Long Grass Trade and the Wheat Seeds Core recipe")),
+                    at(4, new CollectionsMilestone(DEFAULT_THRESHOLDS[3], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a troca de Samambaia (Fern Trade)", "Unlocks the Fern Trade")),
+                    at(5, new CollectionsMilestone(DEFAULT_THRESHOLDS[4], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a troca de Arbusto Seco (Dead Bush Trade)", "Unlocks the Dead Bush Trade")),
+                    at(6, new CollectionsMilestone(DEFAULT_THRESHOLDS[5], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a troca de Grama Alta Dupla (Double Tall Grass Trade)", "Unlocks the Double Tall Grass Trade")),
+                    at(7, new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia as trocas de mudas (Sapling Trades)", "Unlocks the Sapling Trades")))),
             new CollectionsEntry(Material.SUGAR_CANE, Material.SUGAR_CANE, CollectionsCategory.FARMING, "Cana-de-açúcar", "Sugar Cane", genericXpWithOverrides(
                     at(2, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
                             "Desbloqueia a receita do Sugar Cane Core", "Unlocks the Sugar Cane Core recipe",

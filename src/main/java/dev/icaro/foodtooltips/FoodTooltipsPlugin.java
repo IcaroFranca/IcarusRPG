@@ -28,6 +28,8 @@ import dev.icaro.foodtooltips.crafting.RecipeBookListener;
 import dev.icaro.foodtooltips.crafting.RecipeBookMenuService;
 import dev.icaro.foodtooltips.trash.TrashMenuListener;
 import dev.icaro.foodtooltips.trash.TrashMenuService;
+import dev.icaro.foodtooltips.trade.TradeListener;
+import dev.icaro.foodtooltips.trade.TradeMenuService;
 import dev.icaro.foodtooltips.destroyer.DestroyerHandListener;
 import dev.icaro.foodtooltips.grapple.GrapplingHookListener;
 import dev.icaro.foodtooltips.grapple.GrapplingHookService;
@@ -273,6 +275,9 @@ extends JavaPlugin {
         CollectionsService collectionsService = new CollectionsService(collectionsProgress, global);
         CollectionsMenuService collectionsMenu = new CollectionsMenuService(collectionsProgress, global, menus::openMain);
         menus.collections(collectionsMenu);
+        TradeMenuService tradeMenu = new TradeMenuService(collectionsProgress, menus::openMain);
+        menus.trade(tradeMenu);
+        this.getServer().getPluginManager().registerEvents((Listener)new TradeListener(tradeMenu), (Plugin)this);
         SkillsStarService skillsStar = new SkillsStarService((Plugin)this);
         this.quiver = new QuiverService((Plugin)this, combat, skillsStar, collectionsProgress, menus::openMain);
         menus.quiver(this.quiver);
