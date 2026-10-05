@@ -86,16 +86,21 @@ import org.bukkit.util.Vector;
  * org.bukkit.scheduler.BukkitScheduler#runTask}.
  *
  * <p>The homing projectile's own visual is an invisible, held-still {@link ArmorStand} wearing
- * a Pitcher Pod as its helmet, ray-marched one block per tick and spinning around its own
- * vertical axis as it flies - per the player's own explicit "quero o arremesso da pitcher wand
- * igual o arremesso do machado, mas teleguiado", the exact same visual {@code
- * item.SpruceAxeListener#launch} uses for its own thrown axe (an {@code ArmorStand}'s equipped
+ * a Pitcher Pod as its helmet, ray-marched one block per tick (an {@code ArmorStand}'s equipped
  * item avoids both a dropped {@link org.bukkit.entity.Item}'s own vanilla bob/spin animation and
- * {@code ItemDisplay}'s known Geyser/Bedrock rendering gaps - see that method's own doc), down to
- * the same {@link #SPIN_RADIANS_PER_TICK} "coin spinning on a table" vertical-axis spin rather
- * than {@code skills.SwordThrowListener}'s own forward-tumbling one, now trailing a rose-pink
- * {@link #ROSE_TRAIL_DUST} particle trail per the player's own later "igual o arremesso da Flower
- * of Truth" request (Hypixel Skyblock's own Heat-Seeking Rose) - cosmetic only, since the player
+ * {@code ItemDisplay}'s known Geyser/Bedrock rendering gaps - see {@code
+ * item.SpruceAxeListener#launch}'s own doc on that choice). The spin itself went through two
+ * styles: first {@code item.SpruceAxeListener}'s own vertical-axis "coin spinning on a table"
+ * spin (only the {@code EulerAngle} yaw component animated) per the player's own "quero o
+ * arremesso da pitcher wand igual o arremesso do machado" - then, once the player actually saw
+ * it in-game ("ele ta girando como se fosse a rotação da Terra... queria que ele girasse de cima
+ * pra baixo, não pros lados"), switched to {@code skills.SwordThrowListener}'s own
+ * forward-tumbling spin instead: only the pitch component animates ({@link
+ * #SPIN_RADIANS_PER_TICK} per tick), with a fixed, never-animated {@link #FORWARD_FACING_RADIANS}
+ * 90-degree yaw twist so the flat item texture tumbles edge-on (top-to-bottom, matching the
+ * player's own "cima pra baixo") instead of face-on. Now trailing a rose-pink {@link
+ * #ROSE_TRAIL_DUST} particle trail per the player's own separate "igual o arremesso da Flower of
+ * Truth" request (Hypixel Skyblock's own Heat-Seeking Rose) - cosmetic only, since the player
  * explicitly kept the single-target root rather than that ability's own multi-enemy ricochet.
  * Unlike the axe's own straight-line throw, {@link #launch} re-aims toward the nearest {@link
  * Enemy} within {@value #HOMING_RANGE} blocks every tick (same "redirect velocity/direction
@@ -130,8 +135,10 @@ public final class PitcherWandService implements Listener {
     /** Flight time cap, in ticks, same safety-valve purpose as {@code enchant.BowEnchantEffectListener#AIMING_MAX_TICKS} - a bolt that never finds a wall or a target stops existing instead of flying forever. */
     private static final int MAX_TRAVEL_TICKS = 60;
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
-    /** Same vertical-axis "coin spinning on a table" spin {@code item.SpruceAxeListener}'s own identical constant uses - see this class's own doc. */
+    /** Same forward-tumbling spin {@code skills.SwordThrowListener}'s own identical constant uses - see this class's own doc. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
+    /** Fixed 90-degree yaw twist applied once (not animated) so the flat Pitcher Pod texture tumbles edge-on - see this class's own doc. Same constant/value {@code skills.SwordThrowListener}'s own identical field uses. */
+    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
     /** Rose-pink trail left behind the flying Pitcher Pod - per the player's own "igual o arremesso da Flower of Truth" request (Hypixel Skyblock's own Heat-Seeking Rose projectile), limited to this one cosmetic touch since the player explicitly kept the single-target root (not Flower of Truth's own multi-enemy ricochet). Same {@link Particle#DUST} + {@link Particle.DustOptions} pattern {@code mining.BuriedTreasureService}'s own colored trail already uses. */
     private static final Particle.DustOptions ROSE_TRAIL_DUST = new Particle.DustOptions(Color.fromRGB(219, 61, 118), 1.0f);
 
@@ -244,7 +251,7 @@ public final class PitcherWandService implements Listener {
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
             d.getPersistentDataContainer().set(THROWN_VISUAL_KEY, PersistentDataType.BYTE, (byte) 1);
-            d.setHeadPose(new EulerAngle(0, 0, 0));
+            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
         });
         final Predicate<Entity> targetable = entity -> entity instanceof Enemy enemy && enemy.isValid() && !enemy.isDead()
                 && !entity.getPersistentDataContainer().has(THROWN_VISUAL_KEY, PersistentDataType.BYTE);
@@ -278,7 +285,7 @@ public final class PitcherWandService implements Listener {
                 }
                 this.at.add(direction[0]);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
-                display.setHeadPose(new EulerAngle(0, this.ticks * SPIN_RADIANS_PER_TICK, 0));
+                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
                 p.getWorld().spawnParticle(Particle.DUST, this.at, 3, 0.08, 0.08, 0.08, 0.0, ROSE_TRAIL_DUST);
             }
 
