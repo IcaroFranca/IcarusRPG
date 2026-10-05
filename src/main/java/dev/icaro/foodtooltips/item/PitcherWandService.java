@@ -76,6 +76,15 @@ import org.bukkit.util.Vector;
  * the same keypress, same reasoning {@code item.AspectOfTheEndService}'s own now-reverted
  * dual-trigger experiment used).
  *
+ * <p>The packet listener's own {@code onPacketReceiving} runs on ProtocolLib's Netty thread, not
+ * the main server thread - a classic ProtocolLib gotcha that first showed up as Mana/cooldown
+ * draining normally (plain in-memory map writes, thread-agnostic) while {@link #launch} itself
+ * silently never ran (spawning the visual {@link ArmorStand} off the main thread either throws
+ * or no-ops, swallowed inside ProtocolLib's own listener dispatch instead of reaching the normal
+ * console). Fixed by keeping only the {@link #isPitcherWand} cancellation check on the packet
+ * thread and hopping onto the main thread for {@link #attemptCast} itself via {@link
+ * org.bukkit.scheduler.BukkitScheduler#runTask}.
+ *
  * <p>The homing projectile's own visual is an invisible, held-still {@link ArmorStand} wearing
  * a Pitcher Pod as its helmet, ray-marched one block per tick and spinning around its own
  * vertical axis as it flies - per the player's own explicit "quero o arremesso da pitcher wand
@@ -148,9 +157,12 @@ public final class PitcherWandService implements Listener {
                 PacketType.Play.Client.USE_ITEM, PacketType.Play.Client.USE_ITEM_ON) {
             @Override
             public void onPacketReceiving(PacketEvent event) {
-                if (PitcherWandService.this.attemptCast(event.getPlayer())) {
-                    event.setCancelled(true);
+                Player p = event.getPlayer();
+                if (!isPitcherWand(p.getInventory().getItemInMainHand())) {
+                    return;
                 }
+                event.setCancelled(true);
+                Bukkit.getScheduler().runTask(PitcherWandService.this.plugin, () -> PitcherWandService.this.attemptCast(p));
             }
         });
     }
