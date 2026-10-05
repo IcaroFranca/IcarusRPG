@@ -162,20 +162,34 @@ public final class AspectOfTheEndService implements Listener {
             p.sendActionBar(Component.text("Not enough Mana for Instant Transmission.", NamedTextColor.RED));
             return true;
         }
-        Location from = p.getLocation();
-        double distance = this.safeDistance(p, from);
-        Location to = from.clone().add(from.getDirection().normalize().multiply(distance));
-        to.setPitch(from.getPitch());
-        to.setYaw(from.getYaw());
+        Location eye = p.getEyeLocation();
+        double distance = this.safeDistance(p, eye);
+        Location toEye = eye.clone().add(eye.getDirection().normalize().multiply(distance));
+        Location to = toEye.clone().subtract(0, p.getEyeHeight(), 0);
+        to.setPitch(eye.getPitch());
+        to.setYaw(eye.getYaw());
         p.teleport(to);
-        p.getWorld().spawnParticle(Particle.REVERSE_PORTAL, from, 30, 0.3, 0.6, 0.3, 0.05);
+        p.getWorld().spawnParticle(Particle.REVERSE_PORTAL, eye, 30, 0.3, 0.6, 0.3, 0.05);
         p.getWorld().spawnParticle(Particle.REVERSE_PORTAL, to, 30, 0.3, 0.6, 0.3, 0.05);
         p.playSound(to, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
         this.applySpeedBuff(p);
         return true;
     }
 
-    /** How far {@code p} can actually move toward {@code from}'s own look direction before hitting a solid block - never more than {@value #TELEPORT_DISTANCE}. */
+    /**
+     * How far {@code p} can actually move toward {@code from}'s own look direction before
+     * hitting a solid block - never more than {@value #TELEPORT_DISTANCE}. {@code from} must be
+     * the wielder's own eye location, not their feet ({@code attemptTeleport} converts back to a
+     * feet-based destination itself) - raytracing from the feet instead (this method's own
+     * original shape) made the ray re-intersect the very floor the player is already standing on
+     * almost immediately for any downward-angled look, since the feet already sit right at that
+     * floor's own surface height: the resulting near-zero distance made the whole ability a
+     * silent no-op whenever the player aimed at a ground block, exactly what the player reported
+     * ("a AOTE não ta me teleportando quando miro em um bloco do chão"). Raytracing from eye
+     * height instead gives a shallow downward look real room to travel over that same floor
+     * before intersecting it again, the same origin point every other look-direction raycast in
+     * this plugin already uses.
+     */
     private double safeDistance(Player p, Location from) {
         RayTraceResult hit = p.getWorld().rayTraceBlocks(from, from.getDirection(), TELEPORT_DISTANCE, FluidCollisionMode.NEVER, true);
         return hit == null ? TELEPORT_DISTANCE : Math.max(0.0, hit.getHitPosition().distance(from.toVector()) - 0.5);
