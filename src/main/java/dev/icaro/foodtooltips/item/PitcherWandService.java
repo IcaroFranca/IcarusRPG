@@ -1,9 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
-import io.papermc.paper.datacomponent.DataComponentTypes;
-import io.papermc.paper.datacomponent.item.Consumable;
-import io.papermc.paper.datacomponent.item.consumable.ItemUseAnimation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -29,10 +26,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -54,23 +49,17 @@ import org.bukkit.util.Vector;
  * no {@link ItemTier} forced, matching every other admin-utility wand in this plugin
  * (BuilderWand, DestroyerHand, Biome's Wand) that isn't itself a weapon.
  *
- * <p>Triggered on a real right-click ({@link #rightClick}), unlike every other ranged ability in
- * this plugin (which all trigger on Swap Hands/F instead, to dodge {@code PlayerInteractEvent}'s
- * {@code RIGHT_CLICK_AIR} not reliably firing with nothing in reach - see {@code
- * item.AspectOfTheEndService}'s own doc on that bug). This item works around the bug a different
- * way: {@link #createItem} tags it with a {@link DataComponentTypes#CONSUMABLE} data component
- * ({@link Consumable#consumeSeconds()} 0, {@link ItemUseAnimation#NONE}) purely to make the
- * client think the item has a "use" action, which makes it always send the interact packet on
- * right-click (even aimed at open sky) instead of only when something's in normal reach - the
- * same trick Paper's own 1.20.5+ food/potion components are built on, applied here to a non-food
- * item just for its packet side effect. Cancelling {@link #rightClick}'s own {@code
- * PlayerInteractEvent} is NOT enough on its own to stop the Pitcher Pod from actually being eaten
- * - that event only governs block interaction, while item consumption is a separate flow gated by
- * its own dedicated event, so {@link #preventConsume} cancels {@link PlayerItemConsumeEvent}
- * specifically (the correctly-scoped Bukkit event for "don't let this get consumed") to keep the
- * wand in hand despite being nominally "edible." Player's own explicit request to test this on
- * Pitcher Wand first, before (if it holds up) rolling the same trick out to this plugin's other
- * Swap-Hands-only abilities.
+ * <p>Triggered on Swap Hands (F), not right-click - this plugin's own now-established fix for
+ * {@code PlayerInteractEvent}'s {@code RIGHT_CLICK_AIR} not reliably firing with nothing in
+ * reach (see {@code item.AspectOfTheEndService}'s own doc on the exact same bug, applied here
+ * proactively since this ability's whole point is hitting something far away). A real
+ * right-click was tried here too (tagging the item with a {@code DataComponentTypes.CONSUMABLE}
+ * data component purely to force the client to always send the interact packet, a documented
+ * trick elsewhere) and abandoned: on this server, the {@code PlayerInteractEvent} handler never
+ * fired at all for the resulting click (confirmed with temporary debug logging - zero messages,
+ * not even a failed match), so whatever packet the client was actually sending wasn't reaching
+ * Bukkit's usual interact dispatch here. Don't re-attempt that exact approach without first
+ * confirming (e.g. via a packet logger) what the client sends on this specific server/version.
  *
  * <p>The homing projectile's own visual is an invisible, held-still {@link ArmorStand} wearing
  * a Pitcher Pod as its helmet, ray-marched one block per tick and spinning around its own
@@ -139,7 +128,7 @@ public final class PitcherWandService implements Listener {
         meta.setEnchantmentGlintOverride(true);
         meta.lore(List.of(
                 Component.text("Ability: Root ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("RIGHT CLICK", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
+                        .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
                 Component.text("Throws a homing Pitcher Pod that roots", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("the first enemy it hits in place for", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text(ROOT_SECONDS + " seconds.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
@@ -147,11 +136,6 @@ public final class PitcherWandService implements Listener {
                 Component.text("Cooldown: " + COOLDOWN_SECONDS + "s", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
-        item.setData(DataComponentTypes.CONSUMABLE, Consumable.consumable()
-                .consumeSeconds(0f)
-                .animation(ItemUseAnimation.NONE)
-                .hasConsumeParticles(false)
-                .build());
         return item;
     }
 
@@ -163,41 +147,18 @@ public final class PitcherWandService implements Listener {
         return meta != null && meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE);
     }
 
-    /** Fires on every right-click thanks to {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} trick - see this class's own doc. Cancelling the event here only stops the block-interaction half of the click (e.g. accidentally planting the Pitcher Pod on farmland, since it's a real vanilla seed item) - it does NOT stop the item from actually being eaten, which is a separate flow gated by {@link #preventConsume} instead. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void rightClick(PlayerInteractEvent e) {
-        // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
-        e.getPlayer().sendMessage(Component.text("[debug] PlayerInteractEvent action=" + e.getAction()
-                + " hand=" + e.getHand() + " item=" + e.getItem(), NamedTextColor.AQUA));
-        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
+    public void swapHands(PlayerSwapHandItemsEvent e) {
         if (this.attemptCast(e.getPlayer())) {
             e.setCancelled(true);
         }
     }
 
-    /** {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} tag makes the Pitcher Wand "edible" purely as a packet-sending trick - cancelling {@link #rightClick}'s own {@code PlayerInteractEvent} does NOT stop that separate eat-flow from completing (it governs block interaction, not item consumption), so without this the wand would actually get eaten and vanish from the inventory one click at a time. This is the one, correctly-scoped event Bukkit provides specifically to block a consumable from being consumed. */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void preventConsume(PlayerItemConsumeEvent e) {
-        // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
-        e.getPlayer().sendMessage(Component.text("[debug] PlayerItemConsumeEvent item=" + e.getItem().getType()
-                + " isPitcherWand=" + isPitcherWand(e.getItem()), NamedTextColor.LIGHT_PURPLE));
-        if (isPitcherWand(e.getItem())) {
-            e.setCancelled(true);
-        }
-    }
-
-    /** Returns whether {@code p} was even holding the Pitcher Wand (regardless of Mana/cooldown outcome), so {@link #rightClick} knows whether to cancel its own triggering event - same shape {@code item.SpruceAxeListener#attemptThrow} already uses. */
+    /** Returns whether {@code p} was even holding the Pitcher Wand (regardless of Mana/cooldown outcome), so {@link #swapHands} knows whether to cancel its own triggering event - same shape {@code item.SpruceAxeListener#attemptThrow} already uses. */
     public boolean attemptCast(Player p) {
         if (!isPitcherWand(p.getInventory().getItemInMainHand())) {
-            // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
-            p.sendMessage(Component.text("[debug] attemptCast: main hand is NOT the Pitcher Wand ("
-                    + p.getInventory().getItemInMainHand().getType() + ")", NamedTextColor.RED));
             return false;
         }
-        // TEMP DEBUG - remove once the right-click trigger is confirmed working end to end.
-        p.sendMessage(Component.text("[debug] attemptCast: confirmed holding Pitcher Wand, checking cooldown/mana", NamedTextColor.GREEN));
         long now = System.currentTimeMillis();
         long ready = this.cooldowns.getOrDefault(p.getUniqueId(), 0L);
         if (now < ready) {
