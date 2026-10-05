@@ -11,10 +11,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
@@ -60,9 +62,13 @@ import org.bukkit.util.Vector;
  * item avoids both a dropped {@link org.bukkit.entity.Item}'s own vanilla bob/spin animation and
  * {@code ItemDisplay}'s known Geyser/Bedrock rendering gaps - see that method's own doc), down to
  * the same {@link #SPIN_RADIANS_PER_TICK} "coin spinning on a table" vertical-axis spin rather
- * than {@code skills.SwordThrowListener}'s own forward-tumbling one. Unlike the axe's own
- * straight-line throw, {@link #launch} re-aims toward the nearest {@link Enemy} within {@value
- * #HOMING_RANGE} blocks every tick (same "redirect velocity/direction toward the nearest target,
+ * than {@code skills.SwordThrowListener}'s own forward-tumbling one, now trailing a rose-pink
+ * {@link #ROSE_TRAIL_DUST} particle trail per the player's own later "igual o arremesso da Flower
+ * of Truth" request (Hypixel Skyblock's own Heat-Seeking Rose) - cosmetic only, since the player
+ * explicitly kept the single-target root rather than that ability's own multi-enemy ricochet.
+ * Unlike the axe's own straight-line throw, {@link #launch} re-aims toward the nearest {@link
+ * Enemy} within {@value #HOMING_RANGE} blocks every tick (same "redirect velocity/direction
+ * toward the nearest target,
  * preserving whatever's already in flight" idea {@code
  * enchant.BowEnchantEffectListener#startHoming} uses for the Aiming enchant - not reused directly
  * since that method is typed to a real {@link org.bukkit.entity.AbstractArrow}, and this
@@ -95,6 +101,8 @@ public final class PitcherWandService implements Listener {
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
     /** Same vertical-axis "coin spinning on a table" spin {@code item.SpruceAxeListener}'s own identical constant uses - see this class's own doc. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
+    /** Rose-pink trail left behind the flying Pitcher Pod - per the player's own "igual o arremesso da Flower of Truth" request (Hypixel Skyblock's own Heat-Seeking Rose projectile), limited to this one cosmetic touch since the player explicitly kept the single-target root (not Flower of Truth's own multi-enemy ricochet). Same {@link Particle#DUST} + {@link Particle.DustOptions} pattern {@code mining.BuriedTreasureService}'s own colored trail already uses. */
+    private static final Particle.DustOptions ROSE_TRAIL_DUST = new Particle.DustOptions(Color.fromRGB(219, 61, 118), 1.0f);
 
     private final Plugin plugin;
     private final PlayerStatsService stats;
@@ -213,6 +221,7 @@ public final class PitcherWandService implements Listener {
                 this.at.add(direction[0]);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
                 display.setHeadPose(new EulerAngle(0, this.ticks * SPIN_RADIANS_PER_TICK, 0));
+                p.getWorld().spawnParticle(Particle.DUST, this.at, 3, 0.08, 0.08, 0.08, 0.0, ROSE_TRAIL_DUST);
             }
 
             private void finish() {
