@@ -31,6 +31,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -62,12 +63,14 @@ import org.bukkit.util.Vector;
  * client think the item has a "use" action, which makes it always send the interact packet on
  * right-click (even aimed at open sky) instead of only when something's in normal reach - the
  * same trick Paper's own 1.20.5+ food/potion components are built on, applied here to a non-food
- * item just for its packet side effect. {@link #rightClick} then cancels the {@code
- * PlayerInteractEvent} outright, which stops the server from ever starting the actual "eat"
- * flow, so the Pitcher Pod is never consumed and no chew animation/sound plays despite the item
- * being nominally "edible." Player's own explicit request to test this on Pitcher Wand first,
- * before (if it holds up) rolling the same trick out to this plugin's other Swap-Hands-only
- * abilities.
+ * item just for its packet side effect. Cancelling {@link #rightClick}'s own {@code
+ * PlayerInteractEvent} is NOT enough on its own to stop the Pitcher Pod from actually being eaten
+ * - that event only governs block interaction, while item consumption is a separate flow gated by
+ * its own dedicated event, so {@link #preventConsume} cancels {@link PlayerItemConsumeEvent}
+ * specifically (the correctly-scoped Bukkit event for "don't let this get consumed") to keep the
+ * wand in hand despite being nominally "edible." Player's own explicit request to test this on
+ * Pitcher Wand first, before (if it holds up) rolling the same trick out to this plugin's other
+ * Swap-Hands-only abilities.
  *
  * <p>The homing projectile's own visual is an invisible, held-still {@link ArmorStand} wearing
  * a Pitcher Pod as its helmet, ray-marched one block per tick and spinning around its own
@@ -160,13 +163,21 @@ public final class PitcherWandService implements Listener {
         return meta != null && meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE);
     }
 
-    /** Fires on every right-click thanks to {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} trick - see this class's own doc. Cancelling the event here (rather than only on a successful cast) is what stops the server from treating the Pitcher Pod as actually eaten. */
+    /** Fires on every right-click thanks to {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} trick - see this class's own doc. Cancelling the event here only stops the block-interaction half of the click (e.g. accidentally planting the Pitcher Pod on farmland, since it's a real vanilla seed item) - it does NOT stop the item from actually being eaten, which is a separate flow gated by {@link #preventConsume} instead. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void rightClick(PlayerInteractEvent e) {
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
         if (this.attemptCast(e.getPlayer())) {
+            e.setCancelled(true);
+        }
+    }
+
+    /** {@link #createItem}'s {@link DataComponentTypes#CONSUMABLE} tag makes the Pitcher Wand "edible" purely as a packet-sending trick - cancelling {@link #rightClick}'s own {@code PlayerInteractEvent} does NOT stop that separate eat-flow from completing (it governs block interaction, not item consumption), so without this the wand would actually get eaten and vanish from the inventory one click at a time. This is the one, correctly-scoped event Bukkit provides specifically to block a consumable from being consumed. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void preventConsume(PlayerItemConsumeEvent e) {
+        if (isPitcherWand(e.getItem())) {
             e.setCancelled(true);
         }
     }
