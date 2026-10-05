@@ -159,6 +159,8 @@ public final class CollectionsCatalog {
     public static final NamespacedKey TORCHFLOWER_FORTUNE_RING_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_ring");
     public static final NamespacedKey TORCHFLOWER_FORTUNE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_artifact");
     public static final NamespacedKey WHEAT_SEEDS_CORE_RECIPE = new NamespacedKey("foodtooltips", "wheat_seeds_core");
+    public static final NamespacedKey PITCHER_POD_CORE_RECIPE = new NamespacedKey("foodtooltips", "pitcher_pod_core");
+    public static final NamespacedKey PITCHER_WAND_RECIPE = new NamespacedKey("foodtooltips", "pitcher_wand");
     /** The real vanilla recipe key for Suspicious Stew (a {@link org.bukkit.inventory.ComplexRecipe}, not a normal shaped/shapeless one - see {@code CollectionsRecipeGateListener}'s own doc on why gating it needed that class to learn about this recipe kind too) - this plugin never registers a recipe of its own for it, same "real vanilla key, gated without owning it" trick {@link #RED_MUSHROOM_BLOCK_RECIPE}/{@link #BROWN_MUSHROOM_BLOCK_RECIPE} already use. */
     public static final NamespacedKey SUSPICIOUS_STEW_RECIPE = NamespacedKey.minecraft("suspicious_stew");
     public static final NamespacedKey BONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "bone_core");
@@ -785,9 +787,18 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Radiant Torchflower Core", "Unlocks the Radiant Torchflower Core recipe",
                             RADIANT_TORCHFLOWER_CORE_RECIPE)))),
             // Pitcher Pod already reseeds itself in vanilla (its own harvest returns 2-4 pods),
-            // so it needed no equivalent fix - still a plain XP ladder for now, no Core item
-            // yet (same "no real texture sent" reasoning Torchflower's own doc used to carry).
-            new CollectionsEntry(Material.PITCHER_CROP, Material.PITCHER_POD, CollectionsCategory.FARMING, "Vagem de Jarro", "Pitcher Pod", genericXp()),
+            // so it needed no equivalent fix. M4/M5 per the player's own explicit spec: the
+            // Pitcher Pod Core first, then the Pitcher Wand right after it (both now have
+            // real textures) - everything else stays the generic ladder's own plain Farming
+            // XP for now.
+            new CollectionsEntry(Material.PITCHER_CROP, Material.PITCHER_POD, CollectionsCategory.FARMING, "Vagem de Jarro", "Pitcher Pod", genericXpWithOverrides(
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Pitcher Pod Core", "Unlocks the Pitcher Pod Core recipe",
+                            PITCHER_POD_CORE_RECIPE)),
+                    at(5, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita da Pitcher Wand: arremessa um Pitcher Pod teleguiado que enraíza o inimigo",
+                            "Unlocks the Pitcher Wand recipe: throws a homing Pitcher Pod that roots the enemy",
+                            PITCHER_WAND_RECIPE)))),
             // Personal Storage unlock/expansion milestones carry no recipes, same reasoning
             // as the Wardrobe (Leather)/Potion Bag (Nether Wart) entries above - see
             // skills.PersonalStorageService. Custom thresholds (not DEFAULT_THRESHOLDS), per

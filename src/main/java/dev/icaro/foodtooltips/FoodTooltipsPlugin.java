@@ -227,7 +227,9 @@ extends JavaPlugin {
         lapisArmor.registerRecipes();
         LapisExperienceService lapisExperience = new LapisExperienceService((Plugin)this, tiers);
         lapisExperience.registerRecipes();
-        FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers, general);
+        PitcherWandService pitcherWand = new PitcherWandService((Plugin)this, stats);
+        this.getServer().getPluginManager().registerEvents((Listener)pitcherWand, (Plugin)this);
+        FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers, general, pitcherWand);
         farmingCollectionsItems.registerRecipes();
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
@@ -255,8 +257,6 @@ extends JavaPlugin {
         ToolDamageService toolDamage = new ToolDamageService((Plugin)this, combat);
         PolearmDamageService polearmDamage = new PolearmDamageService((Plugin)this, combat);
         PrismaPumpService prismaPump = new PrismaPumpService((Plugin)this);
-        PitcherWandService pitcherWand = new PitcherWandService((Plugin)this, stats);
-        this.getServer().getPluginManager().registerEvents((Listener)pitcherWand, (Plugin)this);
         MegaSpongeService megaSponge = new MegaSpongeService((Plugin)this);
         GrapplingHookService grapplingHook = new GrapplingHookService((Plugin)this);
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers, prismaPump);
@@ -655,24 +655,6 @@ extends JavaPlugin {
             }
             target.getInventory().addItem(prismaPump.create(Language.of(target)));
             s.sendMessage((Component)Component.text((String)(this.text(s, "Prismapump entregue a ", "Prismapump given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
-            return true;
-        });
-        this.getCommand("pitcherwand").setExecutor((s, c, l, a) -> {
-            Player target;
-            if (a.length >= 1) {
-                target = Bukkit.getPlayerExact((String)a[0]);
-                if (target == null) {
-                    s.sendMessage((Component)Component.text((String)this.text(s, "Jogador não encontrado ou offline.", "Player not found or offline."), (TextColor)NamedTextColor.RED));
-                    return true;
-                }
-            } else if (s instanceof Player) {
-                target = (Player)s;
-            } else {
-                s.sendMessage((Component)Component.text((String)"Usage: /pitcherwand [player]"));
-                return true;
-            }
-            target.getInventory().addItem(pitcherWand.createItem());
-            s.sendMessage((Component)Component.text((String)(this.text(s, "Pitcher Wand entregue a ", "Pitcher Wand given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
             return true;
         });
         this.getCommand("megasponge").setExecutor((s, c, l, a) -> {

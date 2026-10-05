@@ -1,5 +1,5 @@
 name: IcarusRPG
-version: '0.76.193'
+version: '0.76.194'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
@@ -45,10 +45,6 @@ commands:
   prismapump:
     description: Gives the Prismapump (admin-only for now).
     usage: /prismapump [player]
-    permission: foodtooltips.admin
-  pitcherwand:
-    description: Gives the Pitcher Wand (admin-only for now, no Collection recipe yet).
-    usage: /pitcherwand [player]
     permission: foodtooltips.admin
   megasponge:
     description: Gives the Mega Sponge (admin-only for now).

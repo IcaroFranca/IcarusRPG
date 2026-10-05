@@ -153,6 +153,8 @@ public final class HeadTexture {
     public static final String RADIANT_TORCHFLOWER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTQ2M2YxMjdiMmI5OTkxMDdmNWIzNmEzOGU0NGI3N2RjZGYyZjhhNzQ4ODg1MGYzM2QyM2M0NTc2YjA5OTAwMCJ9fX0=";
     /** "Seeds" (minecraft-heads.com Custom Head ID 13596) - the Wheat Seeds Core crafting item, see {@code FarmingCollectionsItemsService}. */
     public static final String WHEAT_SEEDS_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTY3NjEzNzhmN2Y5M2JjMmI4YmU4OTM1YWNlMmM5MmQ0ZmMyYzFjNzVjNDMyOGNhYjVjYzA5NzU4N2NiOWVlIn19fQ==";
+    /** "Pitcher Pod" (minecraft-heads.com Custom Head ID 76885) - the Pitcher Pod Core crafting item, see {@code FarmingCollectionsItemsService}. */
+    public static final String PITCHER_POD_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjliNTcxMmY1NGVjZDQzZTY4NzliMWJkMjFiODQyYWU1ZDQxMzk5MDJkNDQ3ZjA1MGM3YWYwZGY2MDM2YTZiYyJ9fX0=";
     /** "Bone Block" (minecraft-heads.com Custom Head ID 104632) - the Bone Core crafting item, see {@code CombatCollectionsItemsService}. */
     public static final String BONE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzMwMTM5MmJmMDUyZjkxZDNhYTU2YjVhNWMxN2Q1ZWEyNjFlMTJjNWRiZmViOGYwNGZlMmEwMjhkMzBmYTU5NCJ9fX0=";
     /** "Pile of Bones" (minecraft-heads.com Custom Head ID 71780) - the Pile of Bone Core crafting item, {@link #BONE_CORE}'s own upgrade - see {@code CombatCollectionsItemsService}. */
@@ -186,7 +188,7 @@ public final class HeadTexture {
             CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
-            BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, WHEAT_SEEDS_CORE, BONE_CORE, PILE_OF_BONE_CORE,
+            BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, WHEAT_SEEDS_CORE, PITCHER_POD_CORE, BONE_CORE, PILE_OF_BONE_CORE,
             ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE, STRING_CORE, GUNPOWDER_CORE, FIREWORK_CORE,
             ENDER_PEARL_CORE, EYE_OF_ENDER_CORE);
 

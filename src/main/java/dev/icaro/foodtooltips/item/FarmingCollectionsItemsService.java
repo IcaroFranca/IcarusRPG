@@ -86,6 +86,7 @@ public final class FarmingCollectionsItemsService {
     private static final UUID TORCHFLOWER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:torchflower_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID RADIANT_TORCHFLOWER_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:radiant_torchflower_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID WHEAT_SEEDS_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:wheat_seeds_core".getBytes(StandardCharsets.UTF_8));
+    private static final UUID PITCHER_POD_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pitcher_pod_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_ring".getBytes(StandardCharsets.UTF_8));
     private static final UUID BAKED_POTATO_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:baked_potato_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID VACCINE_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:vaccine_artifact".getBytes(StandardCharsets.UTF_8));
@@ -193,11 +194,13 @@ public final class FarmingCollectionsItemsService {
     private final Plugin plugin;
     private final ItemTierService tiers;
     private final GeneralSkillService general;
+    private final PitcherWandService pitcherWand;
 
-    public FarmingCollectionsItemsService(Plugin plugin, ItemTierService tiers, GeneralSkillService general) {
+    public FarmingCollectionsItemsService(Plugin plugin, ItemTierService tiers, GeneralSkillService general, PitcherWandService pitcherWand) {
         this.plugin = plugin;
         this.tiers = tiers;
         this.general = general;
+        this.pitcherWand = pitcherWand;
     }
 
     /** Registers every recipe this class owns that's actually ready today (Cactus/Carrot Core, Cactus Armor, the Resistance Potion mix) - Sprout Armor is deliberately not included, see this class's own doc. */
@@ -451,6 +454,16 @@ public final class FarmingCollectionsItemsService {
                 new String[]{"SSS", "SDS", "SSS"}, r -> {
                     r.setIngredient('S', Material.WHEAT_SEEDS);
                     r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.PITCHER_POD_CORE_RECIPE, this.pitcherPodCore(),
+                new String[]{"PPP", "PDP", "PPP"}, r -> {
+                    r.setIngredient('P', Material.PITCHER_POD);
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.PITCHER_WAND_RECIPE, this.pitcherWand.createItem(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.pitcherPodCore()));
+                    r.setIngredient('T', Material.STICK);
                 });
 
         // Sprout Armor: an upgrade recipe, not a from-scratch one - same "Core surrounds the
@@ -1042,6 +1055,16 @@ public final class FarmingCollectionsItemsService {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         applyProfile(meta, HeadTexture.WHEAT_SEEDS_CORE, WHEAT_SEEDS_CORE_PROFILE);
         meta.displayName(Component.text("Wheat Seeds Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Pitcher Pod Collection M4 - a plain crafting ingredient, same shape as every other Core in this class. Feeds into the Pitcher Wand (M5) as its own crafting ingredient, not just a milestone narration. */
+    private org.bukkit.inventory.ItemStack pitcherPodCore() {
+        var item = new org.bukkit.inventory.ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        applyProfile(meta, HeadTexture.PITCHER_POD_CORE, PITCHER_POD_CORE_PROFILE);
+        meta.displayName(Component.text("Pitcher Pod Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

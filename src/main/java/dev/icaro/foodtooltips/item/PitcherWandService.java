@@ -68,13 +68,10 @@ import org.bukkit.util.Vector;
  * the duration (vertical velocity left alone so a mid-air target still falls normally) rather
  * than freezing its AI outright ({@link org.bukkit.entity.Mob#setAware}) or teleporting it back
  * in place - a rooted mob can still turn and swing at whoever's attacking it, just can't walk
- * or be knocked away, matching "enraizado" (rooted) rather than a full stun. No crafting recipe
- * yet - the player's own spec places this after the Pitcher Pod Core in the Collection's own
- * ladder, and that Core doesn't have its own custom head texture yet (see this class's own
- * wiring in {@code FoodTooltipsPlugin}) - reachable only via the admin-only {@code
- * /pitcherwand} command for now, same "implemented, not yet wired into Collections" state
- * {@code item.CombatCollectionsItemsService#teleportPad} was already left in earlier this
- * session.
+ * or be knocked away, matching "enraizado" (rooted) rather than a full stun. Crafted from 8
+ * Pitcher Pod Core and a Stick ({@code item.FarmingCollectionsItemsService}'s own recipe),
+ * unlocked at Pitcher Pod Collection M5 - right after the Core itself (M4), per the player's
+ * own explicit spec.
  */
 public final class PitcherWandService implements Listener {
     private static final NamespacedKey KEY = new NamespacedKey("foodtooltips", "pitcher_wand");
