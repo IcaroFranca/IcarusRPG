@@ -1,5 +1,10 @@
 package dev.icaro.foodtooltips.item;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.events.ListenerPriority;
+import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.PacketEvent;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +16,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -49,17 +55,26 @@ import org.bukkit.util.Vector;
  * no {@link ItemTier} forced, matching every other admin-utility wand in this plugin
  * (BuilderWand, DestroyerHand, Biome's Wand) that isn't itself a weapon.
  *
- * <p>Triggered on Swap Hands (F), not right-click - this plugin's own now-established fix for
- * {@code PlayerInteractEvent}'s {@code RIGHT_CLICK_AIR} not reliably firing with nothing in
- * reach (see {@code item.AspectOfTheEndService}'s own doc on the exact same bug, applied here
- * proactively since this ability's whole point is hitting something far away). A real
- * right-click was tried here too (tagging the item with a {@code DataComponentTypes.CONSUMABLE}
- * data component purely to force the client to always send the interact packet, a documented
- * trick elsewhere) and abandoned: on this server, the {@code PlayerInteractEvent} handler never
- * fired at all for the resulting click (confirmed with temporary debug logging - zero messages,
- * not even a failed match), so whatever packet the client was actually sending wasn't reaching
- * Bukkit's usual interact dispatch here. Don't re-attempt that exact approach without first
- * confirming (e.g. via a packet logger) what the client sends on this specific server/version.
+ * <p>Triggered on Swap Hands (F) ({@link #swapHands}) always, and additionally on a real
+ * right-click ({@link #start}'s {@link PacketAdapter}) when the {@code ProtocolLib} plugin is
+ * installed. A first attempt at right-click used only Bukkit's own {@code PlayerInteractEvent}
+ * (tagging the item with a {@code DataComponentTypes.CONSUMABLE} data component purely to force
+ * the client to always send the interact packet, a documented trick elsewhere) and was
+ * abandoned: on the player's own server, that event handler never fired at all for the
+ * resulting click (confirmed with temporary debug logging - zero messages, not even a failed
+ * match), meaning whatever packet the client was sending wasn't reaching Bukkit's own interact
+ * dispatch there. {@link #start} instead listens for the raw {@code PacketType.Play.Client.USE_ITEM}/
+ * {@code USE_ITEM_ON} packets directly via ProtocolLib - one layer below
+ * Bukkit's own event translation, the same vantage point Hypixel's own custom server software
+ * has by default (see this class's own git history for the fuller explanation given to the
+ * player) - so it doesn't depend on Bukkit's interact-event machinery recognizing the click at
+ * all, sidestepping whatever swallowed it before. ProtocolLib is a soft-depend (same runtime
+ * presence check {@code creaking.CreakingSightService} already uses for PacketEvents): without
+ * it, {@link #start} logs once and the wand simply stays Swap-Hands-only, same as before this was
+ * added - plain Swap Hands always stays registered regardless, so there's no regression either
+ * way, and no risk of a double-cast when both fire (different physical inputs, never triggered by
+ * the same keypress, same reasoning {@code item.AspectOfTheEndService}'s own now-reverted
+ * dual-trigger experiment used).
  *
  * <p>The homing projectile's own visual is an invisible, held-still {@link ArmorStand} wearing
  * a Pitcher Pod as its helmet, ray-marched one block per tick and spinning around its own
@@ -114,10 +129,30 @@ public final class PitcherWandService implements Listener {
     private final Plugin plugin;
     private final PlayerStatsService stats;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
+    /** Whether the {@code ProtocolLib} plugin is actually installed and enabled - resolved once in {@link #start}, same "soft-depend, checked once at a live Bukkit call" pattern {@code creaking.CreakingSightService} already uses for PacketEvents. Only affects whether {@link #start} also registers the packet-level right-click listener; Swap Hands ({@link #swapHands}) stays registered either way. */
+    private boolean protocolLibAvailable;
 
     public PitcherWandService(Plugin plugin, PlayerStatsService stats) {
         this.plugin = plugin;
         this.stats = stats;
+    }
+
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - resolves {@link #protocolLibAvailable} and, if ProtocolLib is present, registers the raw-packet right-click listener. A no-op (logged once) otherwise, leaving the wand Swap-Hands-only. */
+    public void start() {
+        this.protocolLibAvailable = Bukkit.getPluginManager().getPlugin("ProtocolLib") != null;
+        if (!this.protocolLibAvailable) {
+            this.plugin.getLogger().info("ProtocolLib não encontrado - a Pitcher Wand fica só no Swap Hands (sem clique direito).");
+            return;
+        }
+        ProtocolLibrary.getProtocolManager().addPacketListener(new PacketAdapter(this.plugin, ListenerPriority.NORMAL,
+                PacketType.Play.Client.USE_ITEM, PacketType.Play.Client.USE_ITEM_ON) {
+            @Override
+            public void onPacketReceiving(PacketEvent event) {
+                if (PitcherWandService.this.attemptCast(event.getPlayer())) {
+                    event.setCancelled(true);
+                }
+            }
+        });
     }
 
     public ItemStack createItem() {
@@ -126,9 +161,13 @@ public final class PitcherWandService implements Listener {
         meta.getPersistentDataContainer().set(KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Pitcher Wand", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         meta.setEnchantmentGlintOverride(true);
+        Component trigger = this.protocolLibAvailable
+                ? Component.text("RIGHT CLICK", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)
+                        .append(Component.text(" or ", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false).decoration(TextDecoration.ITALIC, false))
+                        .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false))
+                : Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false);
         meta.lore(List.of(
-                Component.text("Ability: Root ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
+                Component.text("Ability: Root ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).append(trigger),
                 Component.text("Throws a homing Pitcher Pod that roots", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("the first enemy it hits in place for", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text(ROOT_SECONDS + " seconds.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),

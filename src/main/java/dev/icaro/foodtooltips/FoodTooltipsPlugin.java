@@ -229,6 +229,7 @@ extends JavaPlugin {
         lapisExperience.registerRecipes();
         PitcherWandService pitcherWand = new PitcherWandService((Plugin)this, stats);
         this.getServer().getPluginManager().registerEvents((Listener)pitcherWand, (Plugin)this);
+        pitcherWand.start();
         FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers, general, pitcherWand);
         farmingCollectionsItems.registerRecipes();
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);

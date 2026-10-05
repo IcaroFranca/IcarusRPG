@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.76.205</version>
+  <version>0.76.206</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>
@@ -43,6 +43,10 @@
     <repository>
       <id>codemc-repo</id>
       <url>https://repo.codemc.io/repository/maven-public/</url>
+    </repository>
+    <repository>
+      <id>dmulloy2-repo</id>
+      <url>https://repo.dmulloy2.net/repository/releases/</url>
     </repository>
   </repositories>
 
@@ -144,6 +148,22 @@
       <groupId>com.github.retrooper</groupId>
       <artifactId>packetevents-spigot</artifactId>
       <version>2.14.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Optional soft-depend, same story as WorldGuard/Citizens/PlaceholderAPI/PacketEvents
+         above: item.PitcherWandService talks to ProtocolLib's own packet-listener API
+         directly at compile time, so it needs this even though the plugin only registers
+         that listener when ProtocolLib is actually installed and enabled on the server
+         (checked at runtime via Bukkit.getPluginManager().getPlugin, same pattern
+         creaking.CreakingSightService already uses for PacketEvents) - without it the
+         Pitcher Wand simply falls back to Swap Hands only, same as before this was added.
+         Free/open-source (github.com/dmulloy2/ProtocolLib). Bump the version below to the
+         latest stable at
+         https://repo.dmulloy2.net/repository/releases/com/comphenix/protocol/ProtocolLib/maven-metadata.xml -->
+    <dependency>
+      <groupId>com.comphenix.protocol</groupId>
+      <artifactId>ProtocolLib</artifactId>
+      <version>5.3.0</version>
       <scope>provided</scope>
     </dependency>
     <!-- Test-only: plain interface/class mocks (Player, ItemMeta, PersistentDataContainer...)
