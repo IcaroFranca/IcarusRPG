@@ -375,7 +375,7 @@ extends JavaPlugin {
         legendaryItemsMenu.titanicBottle(lapisExperience::titanicBottleGift);
         legendaryItemsMenu.grapplingHook(p -> java.util.List.of(grapplingHook.create(Language.of((Player)p))));
         CollectionsItemsMenuService collectionsItemsMenu = new CollectionsItemsMenuService(legendaryItemsMenu::open);
-        legendaryItemsMenu.collectionsItems(p -> collectionsItemsMenu.open(p, 0));
+        legendaryItemsMenu.collectionsItems(collectionsItemsMenu::open);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();
         EnchantMenuService enchantMenu = new EnchantMenuService((Plugin)this, enchants, general, this.progressBar, global, enchantMilestones,
                 (p) -> menus.openGeneral((Player)p, SkillType.ENCHANTING, 0));
