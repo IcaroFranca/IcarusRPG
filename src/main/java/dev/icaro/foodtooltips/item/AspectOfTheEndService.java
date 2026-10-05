@@ -23,8 +23,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlotGroup;
@@ -55,20 +53,14 @@ import org.bukkit.util.RayTraceResult;
  * removed by a delayed task rather than left permanent). {@value #MANA_COST} Mana, no cooldown
  * beyond Mana regen itself - the player's own spec shows none.
  *
- * <p>Triggered on EITHER right-click ({@link #rightClick}) or Swap Hands/F ({@link
- * #swapHands}), both calling the same {@link #attemptTeleport} - per the player's own explicit
- * "eu lembro que nas versões antigas dava pra usar o botão direito". Right-click alone isn't
- * reliable here: {@code PlayerInteractEvent}'s {@code RIGHT_CLICK_AIR} is the same long-standing,
- * Spigot-acknowledged client-side limitation {@code item.SpruceAxeListener#throwAxe}/{@code
- * grapple.GrapplingHookService} already document - the client doesn't reliably send the interact
- * packet for a right-click with nothing (no block, no entity) within normal reach, which is
- * exactly what aiming straight up at open sky looks like, and this ability's whole point is
- * teleporting into exactly that kind of open space. Right-click still works the rest of the
- * time (whenever something - ground, a wall, a mob - happens to be in reach), which is why the
- * player remembered it working fine in older versions; Swap Hands is kept alongside it as the
- * one trigger that's never subject to that limitation, for the specific case right-click can't
- * cover. No risk of a double-cast from having both: they're different physical inputs, never
- * fired by the same keypress.
+ * <p>Triggered on Swap Hands (F) only, per the player's own explicit final call (tried adding
+ * right-click back alongside it, per an earlier "lembro que dava pra usar o botão direito", but
+ * the player preferred keeping just Swap Hands) - {@code PlayerInteractEvent}'s {@code
+ * RIGHT_CLICK_AIR} is the same long-standing, Spigot-acknowledged client-side limitation {@code
+ * item.SpruceAxeListener#throwAxe}/{@code grapple.GrapplingHookService} already document: the
+ * client doesn't reliably send the interact packet for a right-click with nothing (no block, no
+ * entity) within normal reach, which is exactly what aiming straight up at open sky looks like -
+ * and this ability's whole point is teleporting into exactly that kind of open space.
  *
  * <p>The image's own "Gemstones: []" line is the same leftover Hypixel-screenshot artifact the
  * player already asked to ignore once this session (Zombie Sword's own "Esquece isso de
@@ -117,9 +109,7 @@ public final class AspectOfTheEndService implements Listener {
                 Component.text("Damage: +" + DAMAGE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.text("Strength: +" + STRENGTH, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.empty().decoration(TextDecoration.ITALIC, false),
-                Component.text("Ability: Instant Transmission", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false),
-                Component.text("RIGHT CLICK", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text(" or ", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false).decoration(TextDecoration.ITALIC, false))
+                Component.text("Ability: Instant Transmission ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false)
                         .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
                 Component.text("Teleport " + TELEPORT_DISTANCE + " blocks ahead of you", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("and gain +" + SPEED_BONUS + " Speed for " + SPEED_SECONDS + " seconds.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
@@ -159,20 +149,6 @@ public final class AspectOfTheEndService implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void swapHands(PlayerSwapHandItemsEvent e) {
         if (this.attemptTeleport(e.getPlayer())) {
-            e.setCancelled(true);
-        }
-    }
-
-    /** The right-click path - works whenever something (ground, a wall, a mob) happens to be within normal interact reach, same limitation every other right-click-triggered ability in this plugin has. {@link #swapHands} covers the case this can't (open air, nothing nearby) - see this class's own doc. */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void rightClick(PlayerInteractEvent e) {
-        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-        if (!this.attemptTeleport(e.getPlayer())) {
-            return;
-        }
-        if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
             e.setCancelled(true);
         }
     }
