@@ -128,6 +128,18 @@ public final class AspectOfTheEndService implements Listener {
     }
 
     /**
+     * +{@value #STRENGTH} while {@code p} holds this exact sword in their main hand, else 0 -
+     * wired into {@code stats.PlayerStatsService#heldWeaponStrengthBonus}, same shape {@code
+     * item.ZombieSwordService#heldStrengthBonus}/{@code item.LeapingSwordService
+     * #heldStrengthBonus} already use. Missing until now - the item's own lore always showed
+     * "Strength: +100" but nothing ever read it back into the real Strength stat, so every hit
+     * landed for less than the tooltip promised (confirmed by the player's own screenshot).
+     */
+    public int heldStrengthBonus(Player p) {
+        return isAspectOfTheEnd(p.getInventory().getItemInMainHand()) ? STRENGTH : 0;
+    }
+
+    /**
      * {@code priority = HIGH, ignoreCancelled = true} matches every other "must always fire"
      * item-ability listener in this plugin ({@code SpruceAxeListener}, {@code
      * grapple.GrapplingHookListener}, {@code BuilderWandListener}...) so a protection plugin's

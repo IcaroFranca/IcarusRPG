@@ -470,7 +470,7 @@ extends JavaPlugin {
         // bonuses are summed here rather than overwriting each other.
         stats.skeletonHatIntelligenceBonus(p -> skeletonHat.intelligenceBonus(p) + spidersBoots.intelligenceBonus(p) + creeperHat.intelligenceBonus(p));
         stats.skeletonHatSpeedBonus(p -> skeletonHat.speedBonus(p) + spidersBoots.speedBonus(p));
-        stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p) + creeperHat.strengthBonus(p));
+        stats.heldWeaponStrengthBonus(p -> zombieSword.heldStrengthBonus(p) + leapingSword.heldStrengthBonus(p) + creeperHat.strengthBonus(p) + aspectOfTheEnd.heldStrengthBonus(p));
         new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor,
                 spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots, creeperHat, creeperPants, explosiveBow,
                 enderBow, aspectOfTheEnd, savingGrace).registerRecipes();
