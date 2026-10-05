@@ -2,10 +2,9 @@ package dev.icaro.foodtooltips.item.legendary;
 
 import dev.icaro.foodtooltips.i18n.Language;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import net.kyori.adventure.text.Component;
@@ -18,58 +17,47 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 /**
- * The {@code /rpgitems} admin-only menu: one tile per {@link LegendaryWeapon} plus one
- * each for the Miner's Armor ({@link #MINER_ARMOR_SLOT}) and Lapis Lazuli Armor ({@link
- * #LAPIS_ARMOR_SLOT}) sets and the Grand/Titanic Experience Bottles ({@link
- * #GRAND_BOTTLE_SLOT}/{@link #TITANIC_BOTTLE_SLOT}), click to receive a copy in your own
- * inventory (per-player decision - no target-player picker for now). Every {@link
- * LegendaryWeapon} is not craftable, dropped, or sold anywhere else - this menu is the
- * only way one enters the game. Everything else here has its own way in too (a
- * Zombie/Skeleton Miner drop, Lapis Lazuli Armor/the Experience Bottles' own crafting
- * recipes, the bottles' own fishing chance - see {@code LapisExperienceService#fish}) -
- * this menu is just a second, guaranteed way to get one instead of relying on a drop/
- * fishing chance or gathering the crafting materials. The Grappling Hook ({@link
- * #GRAPPLING_HOOK_SLOT}) is the odd one out - it has no other way in at all, per the
- * player's own explicit "não vao entrar em collections, serão pegos só pelo /rpgitems"
- * for this still-in-testing item (see {@code grapple.GrapplingHookService}'s own doc).
+ * The {@code /rpgitems} admin-only menu - a category hub ({@link #open}, same "pick a category,
+ * then browse it" shape {@code collections.CollectionsMenuService#openCategories} already uses,
+ * {@link #centeredSlots} copied from that same class for the identical reason its own doc gives:
+ * the two menus' data shapes differ enough that sharing a base would need more indirection than
+ * it saves) rather than one single screen mixing every kind of give-away together - per the
+ * player's own explicit "quero uma forma melhor de filtrar os itens aqui, ta tudo muito
+ * bagunçado", reacting to a {@link #SLOTS}-style flat grid (the menu's own previous shape) that
+ * crammed 7 {@link LegendaryWeapon}s, 2 armor sets, 2 Experience Bottles, the Grappling Hook and
+ * a link into one visually undifferentiated 54-slot inventory.
+ *
+ * <p>Three categories: {@link #openWeapons} (every {@link LegendaryWeapon}, click for a copy -
+ * these are never craftable, dropped, or sold anywhere else, so this menu is their only way into
+ * the game), {@link #openSets} (the Miner's/Lapis Lazuli Armor sets, the Grand/Titanic Experience
+ * Bottles, and the Grappling Hook - everything else here has its own real way in too, a mob drop
+ * or a crafting recipe; this menu is just a second, guaranteed way to get one instead of relying
+ * on a drop/fishing chance or gathering materials - the Grappling Hook is the one exception, per
+ * the player's own explicit "não vao entrar em collections, serão pegos só pelo /rpgitems" for
+ * this still-in-testing item, see {@code grapple.GrapplingHookService}'s own doc), and {@link
+ * #collectionsItems} (unchanged - opens {@code collections.CollectionsItemsMenuService} instead
+ * of handing over an item directly, since the number of Collections-unlockable items keeps
+ * growing).
  */
 public final class LegendaryItemsMenuService {
-    private static final Map<Integer, LegendaryWeapon> SLOTS = Map.of(
-            10, LegendaryWeapon.KASAKA_VENOM_FANG,
-            12, LegendaryWeapon.KNIGHT_KILLER,
-            14, LegendaryWeapon.BARUKA_DAGGER,
-            16, LegendaryWeapon.DEMON_KING_DAGGERS,
-            29, LegendaryWeapon.DEMON_KING_LONGSWORD,
-            31, LegendaryWeapon.KAMISH_WRATH,
-            33, LegendaryWeapon.UNDEAD_SWORD);
-    /** Top-center, apart from the weapon rows below - Miner's Armor is a full 4-piece set, not a single {@link LegendaryWeapon}, so it isn't part of {@link #SLOTS} at all (see {@link #minerArmor}, wired in from {@code FoodTooltipsPlugin} as a plain function to avoid this package depending on {@code combat} - {@code combat} already depends on this one). */
-    private static final int MINER_ARMOR_SLOT = 4;
-    /** Center of the grid, between the two weapon rows - see {@link #lapisArmor}, wired in from {@code FoodTooltipsPlugin} the same function-reference way as {@link #minerArmor} to avoid this package depending on {@code item} directly for it. */
-    private static final int LAPIS_ARMOR_SLOT = 22;
-    /** Flanking {@link #LAPIS_ARMOR_SLOT} on the same row - see {@link #grandBottle}. */
-    private static final int GRAND_BOTTLE_SLOT = 20;
-    /** Flanking {@link #LAPIS_ARMOR_SLOT} on the same row - see {@link #titanicBottle}. */
-    private static final int TITANIC_BOTTLE_SLOT = 24;
-    /** Opens {@code collections.CollectionsItemsMenuService} instead of handing over an item directly, per the player's own "TODOS os itens pegáveis pelo /rpgitems" spec - a separate paginated screen since the number of Collections-unlockable items keeps growing (see that class's own doc). */
-    private static final int COLLECTIONS_ITEMS_SLOT = 40;
-    /** Same row as {@link #COLLECTIONS_ITEMS_SLOT} - see {@link #grapplingHook}. */
-    private static final int GRAPPLING_HOOK_SLOT = 38;
+    private static final int BACK_SLOT = 49;
 
     private final LegendaryWeaponService weapons;
-    private final Set<UUID> viewing = new HashSet<>();
-    /** {@code MinerVariantService::createArmorSet} - takes the viewer so the helmet can use the Java or Bedrock representation appropriate to that player. See {@link #MINER_ARMOR_SLOT}'s own doc for why this is a function reference rather than a direct dependency. Defaults to an empty set so the tile never NPEs if this is somehow never wired. */
+    private final Map<UUID, View> viewing = new HashMap<>();
+    /** {@code MinerVariantService::createArmorSet} - takes the viewer so the helmet can use the Java or Bedrock representation appropriate to that player. Defaults to an empty set so a tile never NPEs if this is somehow never wired. */
     private Function<Player, List<ItemStack>> minerArmor = p -> List.of();
-    /** {@code LapisArmorService::createArmorSet} - same idea as {@link #minerArmor}, see {@link #LAPIS_ARMOR_SLOT}. */
+    /** {@code LapisArmorService::createArmorSet} - same idea as {@link #minerArmor}. */
     private Function<Player, List<ItemStack>> lapisArmor = p -> List.of();
-    /** {@code LapisExperienceService::grandBottleGift} - same idea as {@link #minerArmor}, see {@link #GRAND_BOTTLE_SLOT}. A single-item "set" (see {@link #armorSetPreview}), not an actual armor set. */
+    /** {@code LapisExperienceService::grandBottleGift} - same idea as {@link #minerArmor}. A single-item "set" (see {@link #armorSetPreview}), not an actual armor set. */
     private Function<Player, List<ItemStack>> grandBottle = p -> List.of();
-    /** {@code LapisExperienceService::titanicBottleGift} - see {@link #TITANIC_BOTTLE_SLOT}. */
+    /** {@code LapisExperienceService::titanicBottleGift} - see {@link #grandBottle}. */
     private Function<Player, List<ItemStack>> titanicBottle = p -> List.of();
-    /** {@code CollectionsItemsMenuService::open} - see {@link #COLLECTIONS_ITEMS_SLOT}. Defaults to a no-op so the tile never fails if this is somehow never wired. */
+    /** {@code CollectionsItemsMenuService::open} - opens that separate catalog screen. Defaults to a no-op so the tile never fails if this is somehow never wired. */
     private java.util.function.Consumer<Player> collectionsItems = p -> {};
-    /** {@code grapple.GrapplingHookService::create} - same idea as {@link #minerArmor}, see {@link #GRAPPLING_HOOK_SLOT}. A single-item "set", same shape as {@link #grandBottle}/{@link #titanicBottle}. */
+    /** {@code grapple.GrapplingHookService::create} - same idea as {@link #minerArmor}, a single-item "set" like {@link #grandBottle}/{@link #titanicBottle}. */
     private Function<Player, List<ItemStack>> grapplingHook = p -> List.of();
 
     public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
@@ -106,29 +94,66 @@ public final class LegendaryItemsMenuService {
         this.grapplingHook = grapplingHook;
     }
 
+    /** The category hub - {@code /rpgitems}'s own entry point, and where {@link #openWeapons}/{@link #openSets}'s own Back button returns to. */
     public void open(Player p) {
-        Language l = Language.of(p);
-        Inventory v = Bukkit.createInventory(null, 54, "Legendary Items");
-        ItemStack filler = this.filler();
-        for (int i = 0; i < 54; i++) {
-            v.setItem(i, filler);
-        }
-        for (Map.Entry<Integer, LegendaryWeapon> e : SLOTS.entrySet()) {
-            v.setItem(e.getKey(), this.preview(e.getValue(), l));
-        }
-        v.setItem(MINER_ARMOR_SLOT, this.armorSetPreview(this.minerArmor.apply(p), l));
-        v.setItem(LAPIS_ARMOR_SLOT, this.armorSetPreview(this.lapisArmor.apply(p), l));
-        v.setItem(GRAND_BOTTLE_SLOT, this.armorSetPreview(this.grandBottle.apply(p), l));
-        v.setItem(TITANIC_BOTTLE_SLOT, this.armorSetPreview(this.titanicBottle.apply(p), l));
-        v.setItem(COLLECTIONS_ITEMS_SLOT, this.collectionsItemsTile(l));
-        v.setItem(GRAPPLING_HOOK_SLOT, this.armorSetPreview(this.grapplingHook.apply(p), l));
-        p.openInventory(v);
+        Inventory inv = Bukkit.createInventory(null, 54, "Legendary Items");
+        this.fill(inv);
+        List<Integer> slots = this.centeredSlots(3);
+        Map<Integer, Category> buttons = new HashMap<>();
+        inv.setItem(slots.get(0), this.item(Material.NETHERITE_SWORD, "Legendary Weapons", List.of(
+                this.text(LegendaryWeapon.values().length + " weapons", NamedTextColor.GRAY),
+                this.text("Click to open!", NamedTextColor.YELLOW))));
+        buttons.put(slots.get(0), Category.WEAPONS);
+        inv.setItem(slots.get(1), this.item(Material.DIAMOND_CHESTPLATE, "Armor & Potions", List.of(
+                this.text("Armor sets, Experience Bottles,", NamedTextColor.GRAY),
+                this.text("and the Grappling Hook.", NamedTextColor.GRAY),
+                this.text("Click to open!", NamedTextColor.YELLOW))));
+        buttons.put(slots.get(1), Category.SETS);
+        inv.setItem(slots.get(2), this.collectionsItemsTile());
+        buttons.put(slots.get(2), Category.COLLECTIONS_ITEMS);
+        p.openInventory(inv);
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
-        this.viewing.add(p.getUniqueId());
+        this.viewing.put(p.getUniqueId(), View.categories(buttons));
+    }
+
+    private void openWeapons(Player p) {
+        Language l = Language.of(p);
+        Inventory inv = Bukkit.createInventory(null, 54, "Legendary Weapons");
+        this.fill(inv);
+        LegendaryWeapon[] all = LegendaryWeapon.values();
+        List<Integer> slots = this.centeredSlots(all.length);
+        Map<Integer, LegendaryWeapon> buttons = new HashMap<>();
+        for (int i = 0; i < all.length; i++) {
+            int slot = slots.get(i);
+            inv.setItem(slot, this.preview(all[i], l));
+            buttons.put(slot, all[i]);
+        }
+        inv.setItem(BACK_SLOT, this.customHead(dev.icaro.foodtooltips.item.HeadTexture.BACK, "Back", List.of()));
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        this.viewing.put(p.getUniqueId(), View.weapons(buttons));
+    }
+
+    private void openSets(Player p) {
+        Language l = Language.of(p);
+        Inventory inv = Bukkit.createInventory(null, 54, "Armor & Potions");
+        this.fill(inv);
+        SetItem[] all = SetItem.values();
+        List<Integer> slots = this.centeredSlots(all.length);
+        Map<Integer, SetItem> buttons = new HashMap<>();
+        for (int i = 0; i < all.length; i++) {
+            int slot = slots.get(i);
+            inv.setItem(slot, this.armorSetPreview(this.setSupplier(all[i]).apply(p), l));
+            buttons.put(slot, all[i]);
+        }
+        inv.setItem(BACK_SLOT, this.customHead(dev.icaro.foodtooltips.item.HeadTexture.BACK, "Back", List.of()));
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        this.viewing.put(p.getUniqueId(), View.sets(buttons));
     }
 
     public boolean viewing(Player p) {
-        return this.viewing.contains(p.getUniqueId());
+        return this.viewing.containsKey(p.getUniqueId());
     }
 
     public void close(Player p) {
@@ -136,45 +161,77 @@ public final class LegendaryItemsMenuService {
     }
 
     public void handleClick(Player p, int slot) {
-        Language l = Language.of(p);
-        if (slot == MINER_ARMOR_SLOT) {
-            this.giveSet(p, this.minerArmor.apply(p), l, "Miner's Armor");
+        View v = this.viewing.get(p.getUniqueId());
+        if (v == null) {
             return;
         }
-        if (slot == LAPIS_ARMOR_SLOT) {
-            this.giveSet(p, this.lapisArmor.apply(p), l, "Lapis Lazuli Armor");
-            return;
+        switch (v.type()) {
+            case CATEGORIES -> {
+                Category c = v.categoryButtons().get(slot);
+                if (c == null) {
+                    return;
+                }
+                switch (c) {
+                    case WEAPONS -> this.openWeapons(p);
+                    case SETS -> this.openSets(p);
+                    case COLLECTIONS_ITEMS -> {
+                        this.viewing.remove(p.getUniqueId());
+                        this.collectionsItems.accept(p);
+                    }
+                }
+            }
+            case WEAPONS -> {
+                if (slot == BACK_SLOT) {
+                    this.open(p);
+                    return;
+                }
+                LegendaryWeapon w = v.weaponButtons().get(slot);
+                if (w == null) {
+                    return;
+                }
+                Language l = Language.of(p);
+                ItemStack item = this.weapons.create(w, l);
+                for (ItemStack overflow : p.getInventory().addItem(item).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+                }
+                p.sendMessage(Component.text("Received: " + w.name(l == Language.PT), NamedTextColor.GREEN));
+            }
+            case SETS -> {
+                if (slot == BACK_SLOT) {
+                    this.open(p);
+                    return;
+                }
+                SetItem item = v.setButtons().get(slot);
+                if (item == null) {
+                    return;
+                }
+                this.giveSet(p, this.setSupplier(item).apply(p), this.setLabel(item));
+            }
         }
-        if (slot == GRAND_BOTTLE_SLOT) {
-            this.giveSet(p, this.grandBottle.apply(p), l, "Grand Experience Bottle");
-            return;
-        }
-        if (slot == TITANIC_BOTTLE_SLOT) {
-            this.giveSet(p, this.titanicBottle.apply(p), l, "Titanic Experience Bottle");
-            return;
-        }
-        if (slot == COLLECTIONS_ITEMS_SLOT) {
-            this.viewing.remove(p.getUniqueId());
-            this.collectionsItems.accept(p);
-            return;
-        }
-        if (slot == GRAPPLING_HOOK_SLOT) {
-            this.giveSet(p, this.grapplingHook.apply(p), l, "Grappling Hook");
-            return;
-        }
-        LegendaryWeapon w = SLOTS.get(slot);
-        if (w == null) {
-            return;
-        }
-        ItemStack item = this.weapons.create(w, l);
-        for (ItemStack overflow : p.getInventory().addItem(item).values()) {
-            p.getWorld().dropItemNaturally(p.getLocation(), overflow);
-        }
-        p.sendMessage(Component.text("Received: " + w.name(l == Language.PT), NamedTextColor.GREEN));
     }
 
-    /** Hands every piece of {@code set} to {@code p} (overflow drops on the ground), then announces {@code label} - shared by both {@link #MINER_ARMOR_SLOT} and {@link #LAPIS_ARMOR_SLOT}. */
-    private void giveSet(Player p, List<ItemStack> set, Language l, String label) {
+    private Function<Player, List<ItemStack>> setSupplier(SetItem item) {
+        return switch (item) {
+            case MINER_ARMOR -> this.minerArmor;
+            case LAPIS_ARMOR -> this.lapisArmor;
+            case GRAND_BOTTLE -> this.grandBottle;
+            case TITANIC_BOTTLE -> this.titanicBottle;
+            case GRAPPLING_HOOK -> this.grapplingHook;
+        };
+    }
+
+    private String setLabel(SetItem item) {
+        return switch (item) {
+            case MINER_ARMOR -> "Miner's Armor";
+            case LAPIS_ARMOR -> "Lapis Lazuli Armor";
+            case GRAND_BOTTLE -> "Grand Experience Bottle";
+            case TITANIC_BOTTLE -> "Titanic Experience Bottle";
+            case GRAPPLING_HOOK -> "Grappling Hook";
+        };
+    }
+
+    /** Hands every piece of {@code set} to {@code p} (overflow drops on the ground), then announces {@code label}. */
+    private void giveSet(Player p, List<ItemStack> set, String label) {
         for (ItemStack piece : set) {
             for (ItemStack overflow : p.getInventory().addItem(piece).values()) {
                 p.getWorld().dropItemNaturally(p.getLocation(), overflow);
@@ -195,7 +252,7 @@ public final class LegendaryItemsMenuService {
         return item;
     }
 
-    /** A "click to receive" tile for either a multi-piece armor set or a single item ({@link #grandBottle}/{@link #titanicBottle} only ever hand over one) - the set's own first piece (its most recognizable one, or the only one) plus the usual "click to receive" line, and (only when there's more than one piece) a line noting it's a full set. Falls back to a plain filler pane if {@code set} is empty (its own supplier was never wired). */
+    /** A "click to receive" tile for either a multi-piece armor set or a single item ({@link #grandBottle}/{@link #titanicBottle}/{@link #grapplingHook} only ever hand over one) - the set's own first piece (its most recognizable one, or the only one) plus the usual "click to receive" line, and (only when there's more than one piece) a line noting it's a full set. Falls back to a plain filler pane if {@code set} is empty (its own supplier was never wired). */
     private ItemStack armorSetPreview(List<ItemStack> set, Language l) {
         if (set.isEmpty()) {
             return this.filler();
@@ -213,25 +270,63 @@ public final class LegendaryItemsMenuService {
         return item;
     }
 
-    /** {@link #COLLECTIONS_ITEMS_SLOT}'s own tile - a Bundle, same icon {@code SkillsMenuService}'s own Collections button already uses, since this opens the same catalog's items rather than giving anything directly on click. */
-    private ItemStack collectionsItemsTile(dev.icaro.foodtooltips.i18n.Language l) {
-        ItemStack item = ItemStack.of(Material.PLAYER_HEAD);
-        var meta = (org.bukkit.inventory.meta.SkullMeta) item.getItemMeta();
+    /** The hub's own "Collections Items" tile - a custom head, same icon {@code skills.SkillsMenuService}'s own Collections button already uses, since this opens the same catalog's items rather than giving anything directly on click. */
+    private ItemStack collectionsItemsTile() {
+        List<Component> lore = List.of(
+                this.text("Every craftable item unlocked by Collections.", NamedTextColor.GRAY),
+                this.text("Click to open!", NamedTextColor.YELLOW));
+        return this.customHead(dev.icaro.foodtooltips.item.HeadTexture.BUNDLE, "Collections Items", lore);
+    }
+
+    /**
+     * Evenly centers {@code count} tiles across up to 5 rows of a 54-slot inventory - copied
+     * verbatim from {@code collections.CollectionsMenuService#centeredSlots} (same "copied
+     * rather than shared" reasoning this class's own doc gives).
+     */
+    private List<Integer> centeredSlots(int count) {
+        List<Integer> out = new ArrayList<>();
+        if (count <= 0) {
+            return out;
+        }
+        int rows = Math.min(5, (int) Math.ceil(count / 7.0));
+        int firstRow = (5 - rows) / 2;
+        int base = count / rows;
+        int extra = count % rows;
+        for (int row = 0; row < rows; row++) {
+            int amount = base + (row < extra ? 1 : 0);
+            int firstColumn = (9 - amount) / 2;
+            for (int col = 0; col < amount; col++) {
+                out.add((firstRow + row) * 9 + firstColumn + col);
+            }
+        }
+        return out;
+    }
+
+    private ItemStack customHead(String texture, String name, List<Component> lore) {
+        ItemStack i = ItemStack.of(Material.PLAYER_HEAD);
+        SkullMeta m = (SkullMeta) i.getItemMeta();
         try {
             var profile = Bukkit.createProfile(UUID.randomUUID());
-            profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", dev.icaro.foodtooltips.item.HeadTexture.BUNDLE));
-            meta.setPlayerProfile(profile);
+            profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", texture));
+            m.setPlayerProfile(profile);
         } catch (Exception ignored) {
             // Bad texture value: fall back to a plain player head rather than failing the menu.
         }
-        meta.displayName(Component.text("Collections Items", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("Every craftable item unlocked by Collections.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("Click to open!", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
-        meta.lore(lore);
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
-        item.setItemMeta(meta);
-        return item;
+        m.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(m);
+        return i;
+    }
+
+    private ItemStack item(Material mat, String name, List<Component> lore) {
+        ItemStack i = ItemStack.of(mat);
+        ItemMeta m = i.getItemMeta();
+        m.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        m.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(m);
+        return i;
     }
 
     private ItemStack filler() {
@@ -241,5 +336,43 @@ public final class LegendaryItemsMenuService {
         m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         f.setItemMeta(m);
         return f;
+    }
+
+    private void fill(Inventory inv) {
+        ItemStack f = this.filler();
+        for (int s = 0; s < inv.getSize(); s++) {
+            inv.setItem(s, f);
+        }
+    }
+
+    private Component text(String value, NamedTextColor color) {
+        return Component.text(value, color).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private enum Category {
+        WEAPONS, SETS, COLLECTIONS_ITEMS
+    }
+
+    private enum SetItem {
+        MINER_ARMOR, LAPIS_ARMOR, GRAND_BOTTLE, TITANIC_BOTTLE, GRAPPLING_HOOK
+    }
+
+    private record View(ViewType type, Map<Integer, Category> categoryButtons, Map<Integer, LegendaryWeapon> weaponButtons,
+                         Map<Integer, SetItem> setButtons) {
+        static View categories(Map<Integer, Category> b) {
+            return new View(ViewType.CATEGORIES, b, Map.of(), Map.of());
+        }
+
+        static View weapons(Map<Integer, LegendaryWeapon> b) {
+            return new View(ViewType.WEAPONS, Map.of(), b, Map.of());
+        }
+
+        static View sets(Map<Integer, SetItem> b) {
+            return new View(ViewType.SETS, Map.of(), Map.of(), b);
+        }
+    }
+
+    private enum ViewType {
+        CATEGORIES, WEAPONS, SETS
     }
 }
