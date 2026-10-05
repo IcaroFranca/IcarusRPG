@@ -2,6 +2,9 @@ package dev.icaro.foodtooltips.enchant;
 
 import dev.icaro.foodtooltips.combat.MobVisualService;
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.item.EnderBowService;
+import dev.icaro.foodtooltips.item.ExplosiveBowService;
+import dev.icaro.foodtooltips.item.HurricaneBowService;
 import dev.icaro.foodtooltips.item.SavannaBowService;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import java.util.ArrayList;
@@ -60,7 +63,10 @@ import org.bukkit.plugin.Plugin;
  * own "Damage" line (a different, higher number - its own {@code BASE_DAMAGE}) straight
  * into {@link SavannaBowService#create}'s own lore; without that check this class used to
  * also stack its own flat {@value #BASE_BOW_DAMAGE} line on top of it, showing both at
- * once on the same bow.
+ * once on the same bow. Same reasoning extends to Hurricane Bow, Runaan's Bow, Explosive
+ * Bow and Ender Bow (each builds its own "Damage: +N"/"Strength: +N" lines) - confirmed
+ * missing by the player's own screenshot of a Runaan's Bow still showing a bare
+ * "Damage: 30" line above its real stats.
  *
  * <p>The bow-shoot hook (damage + Infinite Quiver's arrow-save roll) mirrors
  * vanilla's own Infinity implementation, which uses this exact same {@code
@@ -169,6 +175,16 @@ public final class CustomEnchantEffectListener implements Listener {
             // class learned to skip it entirely - see this class's own doc.
             return this.removeStrayArrowDamageLine(item, meta);
         }
+        if (HurricaneBowService.isHurricaneBow(item) || HurricaneBowService.isRunaansBow(item)
+                || ExplosiveBowService.isExplosiveBow(item) || EnderBowService.isEnderBow(item)) {
+            // Same stray-line bug the Savanna Bow already had fixed (see
+            // removeStrayArrowDamageLine's own doc) - these four bows also build their own
+            // "Damage: +N"/"Strength: +N" lines straight into their own lore (see each
+            // class's own createItem), so this generic flat-30 tooltip must skip them too.
+            // Confirmed by the player's own screenshot: Runaan's Bow showing a bare
+            // "Damage: 30" line stacked above its real "Damage: +160"/"Strength: +50".
+            return this.removeStrayFlatDamageLine(item, meta);
+        }
         if (meta.getPersistentDataContainer().has(this.bowDamageTooltipKey, PersistentDataType.BYTE)) {
             return this.migrateArrowDamageWording(item, meta);
         }
@@ -224,6 +240,33 @@ public final class CustomEnchantEffectListener implements Listener {
             return null;
         }
         meta.lore(lore);
+        meta.getPersistentDataContainer().remove(this.bowDamageTooltipKey);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Cleans up a Hurricane Bow/Runaan's Bow/Explosive Bow/Ender Bow that got this class's
+     * own generic "Damage: 30" line stacked on top of its real "Damage"/"Strength" lines
+     * before {@link #bowTooltip} learned to skip these four bows entirely - same idea as
+     * {@link #removeStrayArrowDamageLine}, just matching the current "Damage: N" wording
+     * (post-migration) rather than the old "Arrow Damage:" one, since these four bows were
+     * never affected back when that older wording was still in use. Also clears {@link
+     * #bowDamageTooltipKey} so there's nothing left to check again on this exact item. Null
+     * if there's nothing tagged at all (the normal case once {@link #bowTooltip}'s own skip
+     * is in place).
+     */
+    private ItemStack removeStrayFlatDamageLine(ItemStack item, ItemMeta meta) {
+        if (!meta.getPersistentDataContainer().has(this.bowDamageTooltipKey, PersistentDataType.BYTE)) {
+            return null;
+        }
+        String stray = "Damage: " + Math.round(BASE_BOW_DAMAGE);
+        if (meta.hasLore()) {
+            List<Component> lore = new ArrayList<>(meta.lore());
+            if (lore.removeIf(c -> PLAIN.serialize(c).equals(stray))) {
+                meta.lore(lore);
+            }
+        }
         meta.getPersistentDataContainer().remove(this.bowDamageTooltipKey);
         item.setItemMeta(meta);
         return item;
