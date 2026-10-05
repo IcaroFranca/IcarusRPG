@@ -80,6 +80,8 @@ public final class GeneralSkillService {
     private java.util.function.ToIntFunction<Player> accessoryForagingSweepBonus = p -> 0;
     /** The Cherry Log Collection's own Foraging Fortune Talisman/Ring/Artifact line's bonus (see {@code item.AccessoryItems#foragingFortuneBonus}, summed by {@code skills.AccessoryBagService#totalForagingFortuneBonus}) - same late-bound idea as {@link #accessoryForagingSweepBonus}, added into {@link #armorFortuneBonus}'s own Foraging case alongside {@link #armorForagingFortuneBonus} (Leaflet Armor). */
     private java.util.function.ToIntFunction<Player> accessoryForagingFortuneBonus = p -> 0;
+    /** The Torchflower Collection's own Fortune Talisman/Ring/Artifact line's bonus (see {@code item.AccessoryItems#farmingFortuneBonus}, summed by {@code skills.AccessoryBagService#totalFarmingFortuneBonus}) - same late-bound idea as {@link #accessoryForagingFortuneBonus}, read by {@link #accessoryFortuneBonus}'s own Farming case. */
+    private java.util.function.ToIntFunction<Player> accessoryFarmingFortuneBonus = p -> 0;
     /** The Nether's own Heat mechanic's live Mining Speed bonus (+4 per current Heat point - see {@code heat.HeatService}) - same late-bound idea as {@link #armorMiningSpeedBonus}, folded into {@link #applyMiningSpeedAttribute} alongside it. Unlike every other late-bound field here, this one isn't a static per-item stat: it changes every second as the player's own Heat rises and falls, which is why {@link #applyMiningSpeedAttribute}'s own periodic re-application (same one every other live stat here already relies on) is what keeps it current. */
     private java.util.function.ToIntFunction<Player> heatMiningSpeedBonus = p -> 0;
     /** The Nether's own Heat mechanic's live Mining Fortune bonus (+1 per current Heat point) - same late-bound idea as {@link #heatMiningSpeedBonus}, read by {@link #heatFortuneBonus}'s own MINING case. */
@@ -120,6 +122,11 @@ public final class GeneralSkillService {
     /** Wired in after construction - see {@link #accessoryForagingFortuneBonus}. */
     public void accessoryForagingFortuneBonus(java.util.function.ToIntFunction<Player> accessoryForagingFortuneBonus) {
         this.accessoryForagingFortuneBonus = accessoryForagingFortuneBonus;
+    }
+
+    /** Wired in after construction - see {@link #accessoryFarmingFortuneBonus}. */
+    public void accessoryFarmingFortuneBonus(java.util.function.ToIntFunction<Player> accessoryFarmingFortuneBonus) {
+        this.accessoryFarmingFortuneBonus = accessoryFarmingFortuneBonus;
     }
 
     /** Wired in after construction - see {@link #heatMiningSpeedBonus}. */
@@ -227,9 +234,10 @@ public final class GeneralSkillService {
         };
     }
 
-    /** Just the Accessory Bag portion of {@link #fortune} (the Cherry Log Collection's own Foraging Fortune Talisman/Ring/Artifact line - Foraging only today) - broken out the same reason {@link #armorFortuneBonus} is, so the Stats screen can show it as its own line separate from armor. */
+    /** Just the Accessory Bag portion of {@link #fortune} (the Cherry Log Collection's own Foraging Fortune line for Foraging, the Torchflower Collection's own Fortune line for Farming) - broken out the same reason {@link #armorFortuneBonus} is, so the Stats screen can show it as its own line separate from armor. */
     public int accessoryFortuneBonus(Player player, SkillType type) {
         return switch (type) {
+            case FARMING -> this.accessoryFarmingFortuneBonus.applyAsInt(player);
             case FORAGING -> this.accessoryForagingFortuneBonus.applyAsInt(player);
             default -> 0;
         };

@@ -323,6 +323,15 @@ public final class AccessoryBagService {
         return total;
     }
 
+    /** Sum of {@link AccessoryItems#farmingFortuneBonus} across every accessory {@code p} currently has stored (the Torchflower line) - read by {@code skills.GeneralSkillService#accessoryFortuneBonus}'s own Farming case (wired in as its own {@code accessoryFarmingFortuneBonus} function), same shape as {@link #totalForagingFortuneBonus}. */
+    public int totalFarmingFortuneBonus(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += AccessoryItems.farmingFortuneBonus(item);
+        }
+        return total;
+    }
+
     /**
      * The Creaking Sight glow range (the Pale Oak line) {@code p} currently gets, or 0 if
      * they have none stored - unlike {@link #totalSweepBonus}/{@link

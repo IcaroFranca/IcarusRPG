@@ -155,6 +155,9 @@ public final class CollectionsCatalog {
     public static final NamespacedKey MANGROVE_SWEEP_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_artifact");
     public static final NamespacedKey TORCHFLOWER_CORE_RECIPE = new NamespacedKey("foodtooltips", "torchflower_core");
     public static final NamespacedKey RADIANT_TORCHFLOWER_CORE_RECIPE = new NamespacedKey("foodtooltips", "radiant_torchflower_core");
+    public static final NamespacedKey TORCHFLOWER_FORTUNE_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_talisman");
+    public static final NamespacedKey TORCHFLOWER_FORTUNE_RING_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_ring");
+    public static final NamespacedKey TORCHFLOWER_FORTUNE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "torchflower_fortune_artifact");
     /** The real vanilla recipe key for Suspicious Stew (a {@link org.bukkit.inventory.ComplexRecipe}, not a normal shaped/shapeless one - see {@code CollectionsRecipeGateListener}'s own doc on why gating it needed that class to learn about this recipe kind too) - this plugin never registers a recipe of its own for it, same "real vanilla key, gated without owning it" trick {@link #RED_MUSHROOM_BLOCK_RECIPE}/{@link #BROWN_MUSHROOM_BLOCK_RECIPE} already use. */
     public static final NamespacedKey SUSPICIOUS_STEW_RECIPE = NamespacedKey.minecraft("suspicious_stew");
     public static final NamespacedKey BONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "bone_core");
@@ -733,6 +736,18 @@ public final class CollectionsCatalog {
                     at(3, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
                             "Desbloqueia a receita do Torchflower Core", "Unlocks the Torchflower Core recipe",
                             TORCHFLOWER_CORE_RECIPE)),
+                    // Farming Fortune Talisman -> Ring -> Artifact line (M4/M5/M7), same
+                    // "one accessory family, three tiers, each upgrade consumes the one
+                    // before" shape as the Cherry Log Collection's own Foraging Fortune line
+                    // - per the player's own explicit "um acessório de farming fortune seria
+                    // bacana, assim como tem para foraging fortune". Takes over three rungs
+                    // that used to be plain filler XP (the generic ladder's own default).
+                    at(4, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Torchflower Fortune Talisman", "Unlocks the Torchflower Fortune Talisman recipe",
+                            TORCHFLOWER_FORTUNE_TALISMAN_RECIPE)),
+                    at(5, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Torchflower Fortune Ring", "Unlocks the Torchflower Fortune Ring recipe",
+                            TORCHFLOWER_FORTUNE_RING_RECIPE)),
                     // A vanilla recipe this plugin never registers its own copy of - gated by
                     // its real key, same trick RED_MUSHROOM_BLOCK_RECIPE/BROWN_MUSHROOM_BLOCK_RECIPE
                     // already use. Thematically exact, not just a filler unlock: Suspicious Stew
@@ -740,6 +755,9 @@ public final class CollectionsCatalog {
                     at(6, new CollectionsMilestone(DEFAULT_THRESHOLDS[5], RewardKind.RECIPE_UNLOCK, 0,
                             List.of(SUSPICIOUS_STEW_RECIPE), null, 0.0,
                             "Desbloqueia a receita da Suspicious Stew", "Unlocks the Suspicious Stew recipe")),
+                    at(7, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Torchflower Fortune Artifact", "Unlocks the Torchflower Fortune Artifact recipe",
+                            TORCHFLOWER_FORTUNE_ARTIFACT_RECIPE)),
                     at(8, CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
                             "Desbloqueia a receita do Radiant Torchflower Core", "Unlocks the Radiant Torchflower Core recipe",
                             RADIANT_TORCHFLOWER_CORE_RECIPE)))),

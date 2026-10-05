@@ -48,6 +48,7 @@ public final class AccessoryItems {
     private static final NamespacedKey HEALTH_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_health_bonus");
     private static final NamespacedKey VITALITY_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_vitality_bonus");
     private static final NamespacedKey MENDING_BONUS_KEY = new NamespacedKey("foodtooltips", "accessory_mending_bonus");
+    private static final NamespacedKey FARMING_FORTUNE_KEY = new NamespacedKey("foodtooltips", "accessory_farming_fortune_bonus");
 
     private AccessoryItems() {
     }
@@ -66,6 +67,20 @@ public final class AccessoryItems {
         meta.getPersistentDataContainer().set(HEALTH_BONUS_KEY, PersistentDataType.INTEGER, healthBonus);
         meta.getPersistentDataContainer().set(VITALITY_BONUS_KEY, PersistentDataType.INTEGER, vitalityBonus);
         meta.getPersistentDataContainer().set(MENDING_BONUS_KEY, PersistentDataType.INTEGER, mendingBonus);
+    }
+
+    /**
+     * Same reasoning as {@link #markHealthVitalityMending} - a separate call rather than yet
+     * another positional int on {@link #mark} - for the Torchflower Collection's own Fortune
+     * Talisman → Ring → Artifact line, the first Accessory Bag line to grant Farming Fortune
+     * (every other Farming Fortune source in this plugin - Sprout/Farmhand/Haymaker Armor,
+     * Farmer Boots - is worn armor, read by {@code skills.GeneralSkillService
+     * #armorFarmingFortuneBonus} instead). Called in addition to {@link #mark}, not instead of
+     * it. Summed across every stored accessory the same way {@link #foragingFortuneBonus} is -
+     * see {@code skills.AccessoryBagService#totalFarmingFortuneBonus}.
+     */
+    public static void markFarmingFortune(ItemMeta meta, int farmingFortuneBonus) {
+        meta.getPersistentDataContainer().set(FARMING_FORTUNE_KEY, PersistentDataType.INTEGER, farmingFortuneBonus);
     }
 
     /**
@@ -232,5 +247,14 @@ public final class AccessoryItems {
         }
         ItemMeta meta = item.getItemMeta();
         return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(MENDING_BONUS_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Extra Farming Fortune {@code item} grants (the Torchflower line) - see {@link #markFarmingFortune}. */
+    public static int farmingFortuneBonus(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(FARMING_FORTUNE_KEY, PersistentDataType.INTEGER, 0);
     }
 }

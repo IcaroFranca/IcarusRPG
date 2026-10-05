@@ -431,6 +431,21 @@ public final class FarmingCollectionsItemsService {
                     r.setIngredient('X', new RecipeChoice.ExactChoice(this.torchflowerCore()));
                     r.setIngredient('D', Material.NETHERITE_INGOT);
                 });
+        this.newShapedRecipe(CollectionsCatalog.TORCHFLOWER_FORTUNE_TALISMAN_RECIPE, this.torchflowerFortuneTalisman(),
+                new String[]{"XXX", "XIX", "XXX"}, r -> {
+                    r.setIngredient('X', Material.TORCHFLOWER);
+                    r.setIngredient('I', Material.IRON_BLOCK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.TORCHFLOWER_FORTUNE_RING_RECIPE, this.torchflowerFortuneRing(),
+                new String[]{"CCC", "CTC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.torchflowerCore()));
+                    r.setIngredient('T', new RecipeChoice.ExactChoice(this.torchflowerFortuneTalisman()));
+                });
+        this.newShapedRecipe(CollectionsCatalog.TORCHFLOWER_FORTUNE_ARTIFACT_RECIPE, this.torchflowerFortuneArtifact(),
+                new String[]{"CCC", "CRC", "CCC"}, r -> {
+                    r.setIngredient('C', new RecipeChoice.ExactChoice(this.torchflowerCore()));
+                    r.setIngredient('R', new RecipeChoice.ExactChoice(this.torchflowerFortuneRing()));
+                });
 
         // Sprout Armor: an upgrade recipe, not a from-scratch one - same "Core surrounds the
         // matching upgrade-source piece" shape as newHaymakerRecipe, but 8 Carrot Cores
@@ -1013,6 +1028,66 @@ public final class FarmingCollectionsItemsService {
         meta.displayName(Component.text("Radiant Torchflower Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Torchflower Collection M4's own accessory, the first of the Fortune Talisman → Ring →
+     * Artifact line ({@link #torchflowerFortuneRing}/{@link #torchflowerFortuneArtifact} each
+     * upgrade the one before, consuming it as an ingredient) - stored in the Accessory Bag,
+     * Tier D, +10 Farming Fortune (see {@link AccessoryItems#farmingFortuneBonus}/{@code
+     * skills.GeneralSkillService#accessoryFortuneBonus}). Same recipe/tier/family-tag/stat
+     * shape as the Cherry Log Collection's own Foraging Fortune line, per the player's own
+     * explicit "um acessório de farming fortune seria bacana, assim como tem para foraging
+     * fortune".
+     */
+    private org.bukkit.inventory.ItemStack torchflowerFortuneTalisman() {
+        var item = new org.bukkit.inventory.ItemStack(Material.TORCHFLOWER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Torchflower Fortune Talisman", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.TALISMAN, "torchflower_fortune", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
+        AccessoryItems.markFarmingFortune(meta, 10);
+        this.tiers.forceTier(meta, ItemTier.D);
+        addStatLore(meta,
+                Component.text("Farming Fortune: +10", NamedTextColor.GOLD),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Torchflower Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Torchflower Collection M5's own upgrade to {@link #torchflowerFortuneTalisman}, Tier C, +25 Farming Fortune - same {@code "torchflower_fortune"} family tag as the rest of this line. */
+    private org.bukkit.inventory.ItemStack torchflowerFortuneRing() {
+        var item = new org.bukkit.inventory.ItemStack(Material.TORCHFLOWER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Torchflower Fortune Ring", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.RING, "torchflower_fortune", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
+        AccessoryItems.markFarmingFortune(meta, 25);
+        this.tiers.forceTier(meta, ItemTier.C);
+        addStatLore(meta,
+                Component.text("Farming Fortune: +25", NamedTextColor.GOLD),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Torchflower Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
+    }
+
+    /** Torchflower Collection M7's own upgrade to {@link #torchflowerFortuneRing}, Tier B, +50 Farming Fortune - the top of this Collection's accessory line. */
+    private org.bukkit.inventory.ItemStack torchflowerFortuneArtifact() {
+        var item = new org.bukkit.inventory.ItemStack(Material.TORCHFLOWER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("Torchflower Fortune Artifact", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        AccessoryItems.mark(meta, AccessoryType.ARTIFACT, "torchflower_fortune", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
+        AccessoryItems.markFarmingFortune(meta, 50);
+        this.tiers.forceTier(meta, ItemTier.B);
+        addStatLore(meta,
+                Component.text("Farming Fortune: +50", NamedTextColor.GOLD),
+                Component.empty(),
+                Component.text("Store in the Accessory Bag.", NamedTextColor.GRAY),
+                Component.text("Only one Torchflower Fortune accessory at a time.", NamedTextColor.DARK_GRAY));
+        item.setItemMeta(meta);
+        return this.tagged(item);
     }
 
     /**

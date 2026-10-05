@@ -296,6 +296,7 @@ extends JavaPlugin {
         general.armorForagingFortuneBonus(leafletArmor::equippedForagingFortuneBonus);
         general.accessoryForagingSweepBonus(this.accessoryBag::totalSweepBonus);
         general.accessoryForagingFortuneBonus(this.accessoryBag::totalForagingFortuneBonus);
+        general.accessoryFarmingFortuneBonus(this.accessoryBag::totalFarmingFortuneBonus);
         SculptorsAxeService sculptorsAxe = new SculptorsAxeService();
         SpruceAxeService spruceAxe = new SpruceAxeService();
         WoodcuttingCrystalService woodcuttingCrystal = new WoodcuttingCrystalService((Plugin)this);
