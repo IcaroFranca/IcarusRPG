@@ -33,9 +33,9 @@ import com.destroystokyo.paper.profile.ProfileProperty;
  * jogador escolher e também a quantidade de pontos de magical power e de onde eles estão vindo"
  * the player asked for. Opened from a button inside {@link AccessoryBagService}'s own menu.
  * Mirrors {@code global.LevelColorMenuService}'s own {@code ChestGui}/{@code StaticPane}/{@code
- * GuiItem} shape - unlike that menu, no Power here is locked: the player's own confirmed scope
- * for this feature was just "the 10 powers from the table", with no unlock condition between
- * Starter and Intermediate.
+ * GuiItem} shape, locked-icon treatment included: the 5 Intermediate Powers require {@value
+ * MagicalPowerService#REQUIRED_COMBAT_LEVEL} Combat (see {@link MagicalPowerService#unlocked}),
+ * same "Combat XV (15)" requirement the reference table's own Requirement column shows.
  */
 public final class PowersMenuService {
     private final Plugin plugin;
@@ -90,8 +90,9 @@ public final class PowersMenuService {
         int starterX = 2;
         int intermediateX = 2;
         for (Power power : powers) {
+            boolean unlocked = this.magicalPower.unlocked(p, power);
             boolean active = selected.id().equals(power.id());
-            ItemStack icon = this.item(power.icon(), power.name(), this.lore(power, multiplier, active), active);
+            ItemStack icon = this.item(unlocked ? power.icon() : Material.GRAY_DYE, power.name(), this.lore(power, multiplier, unlocked, active), active);
             int x = power.type() == PowerType.STARTER ? starterX++ : intermediateX++;
             int y = power.type() == PowerType.STARTER ? 2 : 3;
             pane.addItem(new GuiItem(icon, event -> this.select(p, power)), x, y);
@@ -105,14 +106,19 @@ public final class PowersMenuService {
     }
 
     private void select(Player p, Power power) {
-        this.magicalPower.select(p, power);
+        if (!this.magicalPower.select(p, power)) {
+            p.sendMessage(Component.text("You need Combat " + MagicalPowerService.REQUIRED_COMBAT_LEVEL + " to use " + power.name() + ".", NamedTextColor.RED));
+            return;
+        }
         p.sendMessage(Component.text("Power selected: " + power.name(), NamedTextColor.GREEN));
         this.open(p);
     }
 
-    private List<Component> lore(Power power, double multiplier, boolean active) {
+    private List<Component> lore(Power power, double multiplier, boolean unlocked, boolean active) {
         List<Component> lore = new ArrayList<>();
         lore.add(this.text(power.type().label(), NamedTextColor.GRAY));
+        lore.add(this.text("Requires Combat " + (power.type() == PowerType.STARTER ? "0" : String.valueOf(MagicalPowerService.REQUIRED_COMBAT_LEVEL)),
+                unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
         lore.add(Component.empty());
         this.statLine(lore, "Health", power.health(), multiplier);
         this.statLine(lore, "Defense", power.defense(), multiplier);
@@ -123,7 +129,7 @@ public final class PowersMenuService {
         this.statLine(lore, "Crit Damage", power.critDamage(), multiplier);
         this.statLine(lore, "Mining Speed", power.miningSpeed(), multiplier);
         lore.add(Component.empty());
-        lore.add(this.text(active ? "SELECTED" : "Click to select", active ? NamedTextColor.GOLD : NamedTextColor.YELLOW));
+        lore.add(this.text(active ? "SELECTED" : (unlocked ? "Click to select" : "LOCKED"), active ? NamedTextColor.GOLD : (unlocked ? NamedTextColor.YELLOW : NamedTextColor.RED)));
         return lore;
     }
 

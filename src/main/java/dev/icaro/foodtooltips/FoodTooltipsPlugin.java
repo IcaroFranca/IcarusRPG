@@ -294,7 +294,7 @@ extends JavaPlugin {
         menus.accessoryBag(this.accessoryBag);
         this.accessoryBag.start();
         stats.accessoryBag(this.accessoryBag);
-        dev.icaro.foodtooltips.power.MagicalPowerService magicalPower = new dev.icaro.foodtooltips.power.MagicalPowerService(this.accessoryBag);
+        dev.icaro.foodtooltips.power.MagicalPowerService magicalPower = new dev.icaro.foodtooltips.power.MagicalPowerService(this.accessoryBag, combat);
         dev.icaro.foodtooltips.power.PowersMenuService powersMenu = new dev.icaro.foodtooltips.power.PowersMenuService((Plugin)this, this.accessoryBag, magicalPower, this.accessoryBag::open);
         this.accessoryBag.powersMenu(powersMenu::open);
         armor.accessoryDefenseBonus(e -> e instanceof Player power ? (int) Math.round(magicalPower.defenseBonus(power)) : 0);
