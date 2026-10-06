@@ -88,6 +88,8 @@ public final class GeneralSkillService {
     private java.util.function.ToIntFunction<Player> heatMiningFortuneBonus = p -> 0;
     /** The Rotten Flesh Collection's own Zombie Pickaxe "Rotten" ability - +5 Mining Fortune per Undead mob within 30 blocks while it's the held tool, capped at +25 (see {@code item.ZombiePickaxeService#miningFortuneBonus}) - same late-bound idea as {@link #heatMiningFortuneBonus}, folded into {@link #fortune}'s own MINING case alongside it. */
     private java.util.function.ToIntFunction<Player> pickaxeMiningFortuneBonus = p -> 0;
+    /** The new Magical Power/Powers system's own Mining Speed bonus (see {@code power.MagicalPowerService#miningSpeedBonus}) - same late-bound idea as {@link #armorMiningSpeedBonus}, folded into {@link #applyMiningSpeedAttribute} alongside it (still gated on holding a pickaxe, same as every other source there). */
+    private java.util.function.ToIntFunction<Player> accessoryMiningSpeedBonus = p -> 0;
 
     /** Wired in after construction, same pattern as {@code ArmorDefenseService#protectionBonus} - see {@link #armorMiningSpeedBonus}. */
     public void armorMiningSpeedBonus(java.util.function.ToIntFunction<Player> armorMiningSpeedBonus) {
@@ -132,6 +134,11 @@ public final class GeneralSkillService {
     /** Wired in after construction - see {@link #heatMiningSpeedBonus}. */
     public void heatMiningSpeedBonus(java.util.function.ToIntFunction<Player> heatMiningSpeedBonus) {
         this.heatMiningSpeedBonus = heatMiningSpeedBonus;
+    }
+
+    /** Wired in after construction - see {@link #accessoryMiningSpeedBonus}. */
+    public void accessoryMiningSpeedBonus(java.util.function.ToIntFunction<Player> accessoryMiningSpeedBonus) {
+        this.accessoryMiningSpeedBonus = accessoryMiningSpeedBonus;
     }
 
     /** Wired in after construction - see {@link #heatMiningFortuneBonus}. */
@@ -406,7 +413,7 @@ public final class GeneralSkillService {
             attribute.removeModifier(old);
         }
         ItemStack tool = player.getInventory().getItemInMainHand();
-        if (tool.getType().name().endsWith("_PICKAXE") && (amount = (this.miningSpeed(tool) + this.armorMiningSpeedBonus.applyAsInt(player) + this.heatMiningSpeedBonus.applyAsInt(player)) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
+        if (tool.getType().name().endsWith("_PICKAXE") && (amount = (this.miningSpeed(tool) + this.armorMiningSpeedBonus.applyAsInt(player) + this.heatMiningSpeedBonus.applyAsInt(player) + this.accessoryMiningSpeedBonus.applyAsInt(player)) / MINING_SPEED_ATTRIBUTE_DIVISOR) > 0.0) {
             attribute.addTransientModifier(new AttributeModifier(this.miningSpeedKey, amount, AttributeModifier.Operation.ADD_NUMBER));
         }
     }

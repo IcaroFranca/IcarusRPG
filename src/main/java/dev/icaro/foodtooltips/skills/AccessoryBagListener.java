@@ -47,6 +47,11 @@ public final class AccessoryBagListener implements Listener {
             this.bag.backButtonClicked(p);
             return;
         }
+        if (topInventory && this.bag.isPowersSlot(raw)) {
+            e.setCancelled(true);
+            this.bag.powersButtonClicked(p);
+            return;
+        }
         if (topInventory && !this.bag.isStorageSlot(raw)) {
             e.setCancelled(true);
             return;

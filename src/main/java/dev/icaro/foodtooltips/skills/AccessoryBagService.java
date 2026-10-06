@@ -5,6 +5,8 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.AccessoryItems;
 import dev.icaro.foodtooltips.item.HeadTexture;
+import dev.icaro.foodtooltips.item.ItemTier;
+import dev.icaro.foodtooltips.item.ItemTierService;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,6 +15,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -74,6 +77,8 @@ public final class AccessoryBagService {
     public static final int STORAGE_SIZE = 9;
     private static final int SIZE = STORAGE_SIZE + 9;
     private static final int CLOSE_SLOT = 13;
+    /** Opens {@code power.PowersMenuService} - see {@link #powersButtonClicked}. */
+    private static final int POWERS_SLOT = 15;
     /**
      * {@code 0..STORAGE_SIZE-1} - passed as {@code MenuBackground#apply}'s own "persistent
      * slots" so an empty (but real, usable) storage cell stays visible instead of vanishing
@@ -92,17 +97,30 @@ public final class AccessoryBagService {
     private static final double FARMER_ORB_BEAM_PARTICLE_SPACING = 0.3;
     private static final int NIGHT_VISION_DURATION_TICKS = 220;
 
+    /** Points per {@link ItemTier} toward an accessory's own Magical Power contribution - see {@link #magicalPower}. {@code E} and {@code MYTHIC} aren't in the player's own spec; both default to the {@code S}-tier value since no accessory in this plugin ever reaches either tier in practice (see {@code item.ItemTier}'s own doc). */
+    private static final Map<ItemTier, Integer> MAGICAL_POWER_PER_TIER = Map.of(
+            ItemTier.E, 0, ItemTier.D, 3, ItemTier.C, 5, ItemTier.B, 8, ItemTier.A, 12, ItemTier.S, 16, ItemTier.MYTHIC, 16);
+
     private final Plugin plugin;
+    private final ItemTierService tiers;
     private final Consumer<Player> back;
+    /** Wired in after construction (the Powers menu is built on top of this class) - see {@code power.PowersMenuService#open}. */
+    private Consumer<Player> openPowers = p -> {};
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "accessory_bag_contents");
     /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
     private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "accessory_bag_filler");
     private final Map<UUID, Inventory> cache = new HashMap<>();
     private final Set<UUID> viewing = new HashSet<>();
 
-    public AccessoryBagService(Plugin plugin, Consumer<Player> back) {
+    public AccessoryBagService(Plugin plugin, ItemTierService tiers, Consumer<Player> back) {
         this.plugin = plugin;
+        this.tiers = tiers;
         this.back = back;
+    }
+
+    /** Wired in after construction - see {@link #openPowers}. */
+    public void powersMenu(Consumer<Player> openPowers) {
+        this.openPowers = openPowers == null ? p -> {} : openPowers;
     }
 
     /** Always true for now - see this class's own doc. */
@@ -116,6 +134,14 @@ public final class AccessoryBagService {
 
     public boolean isCloseSlot(int slot) {
         return slot == CLOSE_SLOT;
+    }
+
+    public boolean isPowersSlot(int slot) {
+        return slot == POWERS_SLOT;
+    }
+
+    public void powersButtonClicked(Player p) {
+        this.openPowers.accept(p);
     }
 
     public void open(Player p) {
@@ -386,6 +412,34 @@ public final class AccessoryBagService {
         return total;
     }
 
+    /** {@link #MAGICAL_POWER_PER_TIER} points for {@code item}'s own {@link ItemTier}, or {@code 0} for a {@code null}/empty slot - {@link ItemTierService#tierOf} itself isn't null-safe to "no tier" (it returns {@link ItemTier#D} for a {@code null}/empty item), so this guards that explicitly before ever calling it. */
+    private int magicalPower(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return 0;
+        }
+        return MAGICAL_POWER_PER_TIER.get(this.tiers.tierOf(item));
+    }
+
+    /** Sum of {@link #magicalPower} across every accessory {@code p} currently has stored - the new "Magical Power" status, read by {@code power.MagicalPowerService#multiplier} to size the live Stats Multiplier every selected {@code power.Power}'s bonuses are scaled by. */
+    public int totalMagicalPower(Player p) {
+        int total = 0;
+        for (ItemStack item : this.stored(p)) {
+            total += this.magicalPower(item);
+        }
+        return total;
+    }
+
+    /** {@code p}'s own currently-stored accessories, real items only (no {@code null}/empty slots) - exposed so {@code power.PowersMenuService} can show a per-item Magical Power breakdown without reaching into {@link #stored} itself (private, and keyed off the live cached screen the same way). */
+    public List<ItemStack> equippedAccessories(Player p) {
+        List<ItemStack> items = new ArrayList<>();
+        for (ItemStack item : this.stored(p)) {
+            if (item != null && !item.isEmpty()) {
+                items.add(item);
+            }
+        }
+        return items;
+    }
+
     private static final NamespacedKey ACCESSORY_HEALTH_KEY = new NamespacedKey("foodtooltips", "accessory_health_bonus_attribute");
 
     /** Converts {@link #totalHealthBonus} into the real vanilla Max Health attribute - same remove-then-reapply-if-still-earned idempotent pattern {@code item.SkeletonHatService#applySpeedAttribute} uses, called from the same periodic per-player sweep in {@code FoodTooltipsPlugin}. A distinct {@link NamespacedKey} from every other Max Health source ({@code GeneralSkillService#applyBonusHealth}, {@code BestiaryProgressService}, {@code GlobalLevelService}) so they all stack independently. */
@@ -460,8 +514,22 @@ public final class AccessoryBagService {
             inv.setItem(i, filler);
         }
         inv.setItem(CLOSE_SLOT, this.closeButton(l));
+        inv.setItem(POWERS_SLOT, this.powersButton(p));
         this.cache.put(p.getUniqueId(), inv);
         return inv;
+    }
+
+    private ItemStack powersButton(Player p) {
+        ItemStack i = ItemStack.of(Material.NETHER_STAR);
+        ItemMeta m = i.getItemMeta();
+        m.displayName(Component.text("Powers & Magical Power", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        m.lore(List.of(
+                Component.text("Magical Power: ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
+                        .append(Component.text(this.totalMagicalPower(p), NamedTextColor.LIGHT_PURPLE)),
+                Component.text("Click to pick your Power", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)));
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(m);
+        return i;
     }
 
     private void persist(Player p) {

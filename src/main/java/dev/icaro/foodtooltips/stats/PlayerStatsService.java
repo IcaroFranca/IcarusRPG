@@ -69,6 +69,10 @@ public final class PlayerStatsService {
     private java.util.function.ToIntFunction<Player> skeletonHatIntelligenceBonus = p -> 0;
     /** The Bone Collection's own Skeleton Hat - +2 Speed while worn as a helmet (see {@code item.SkeletonHatService#speedBonus}), folded into {@link #effectiveAgility}. */
     private java.util.function.ToIntFunction<Player> skeletonHatSpeedBonus = p -> 0;
+    /** The new Magical Power/Powers system's own Strength bonus (see {@code power.MagicalPowerService#strengthBonus}), folded into {@link #stats}'s own {@code globalStrength} line alongside {@link #heldWeaponStrengthBonus}. A {@code ToDoubleFunction}, not {@code ToIntFunction} like every sibling hook here, since a Power's bonus is a live fraction (base stat x the formula's Stats Multiplier) rather than a flat per-item amount - rounded only where it's actually added to a whole-number stat. */
+    private java.util.function.ToDoubleFunction<Player> accessoryStrengthBonus = p -> 0.0;
+    /** The new Magical Power/Powers system's own Intelligence bonus (see {@code power.MagicalPowerService#intelligenceBonus}), folded into {@link #effectiveIntelligence} alongside {@link #heldWeaponIntelligenceBonus}/{@link #skeletonHatIntelligenceBonus} - same fractional reasoning as {@link #accessoryStrengthBonus}. */
+    private java.util.function.ToDoubleFunction<Player> accessoryIntelligenceBonus = p -> 0.0;
 
     private static boolean attributeResolved;
     private static Attribute entityInteractionRangeAttribute;
@@ -133,6 +137,16 @@ public final class PlayerStatsService {
         this.skeletonHatIntelligenceBonus = skeletonHatIntelligenceBonus;
     }
 
+    /** Wired in after construction - see {@link #accessoryStrengthBonus}. */
+    public void accessoryStrengthBonus(java.util.function.ToDoubleFunction<Player> accessoryStrengthBonus) {
+        this.accessoryStrengthBonus = accessoryStrengthBonus;
+    }
+
+    /** Wired in after construction - see {@link #accessoryIntelligenceBonus}. */
+    public void accessoryIntelligenceBonus(java.util.function.ToDoubleFunction<Player> accessoryIntelligenceBonus) {
+        this.accessoryIntelligenceBonus = accessoryIntelligenceBonus;
+    }
+
     /** Wired in after construction - see {@link #skeletonHatSpeedBonus}. */
     public void skeletonHatSpeedBonus(java.util.function.ToIntFunction<Player> skeletonHatSpeedBonus) {
         this.skeletonHatSpeedBonus = skeletonHatSpeedBonus;
@@ -193,7 +207,8 @@ public final class PlayerStatsService {
                         + this.reforge.totalArmorStats(p).intelligence();
         double skeletonHatBonus = this.skeletonHatIntelligenceBonus.applyAsInt(p);
         double weaponBonus = this.heldWeaponIntelligenceBonus.applyAsInt(p);
-        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + skeletonHatBonus + weaponBonus;
+        double accessoryBonus = this.accessoryIntelligenceBonus.applyAsDouble(p);
+        return this.intelligence + (this.general == null ? 0 : this.general.bonusIntelligence(p)) + reforgeBonus + skeletonHatBonus + weaponBonus + accessoryBonus;
     }
 
     /** Base Agility plus whatever the player's currently-held weapon (e.g. Baruka's Dagger, +10 while wielded) and equipped armor reforges (see {@link ReforgeService}) grant, plus the Bone Collection's own Skeleton Hat bonus while worn ({@link #skeletonHatSpeedBonus} - {@code item.SkeletonHatService#applySpeedAttribute} separately turns this same number into the real Movement Speed attribute) - the number shown on the stats screen, paired with movement Speed the same way Intelligence is paired with Max Mana. */
@@ -231,7 +246,8 @@ public final class PlayerStatsService {
         double effectiveMaxVitality = this.get(p, this.maxVitality, this.baseVitality) + accessoryVitalityBonus;
         double storedVitality = this.get(p, this.vitality, effectiveMaxVitality);
         AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
-        long globalStrength = (this.global == null ? 0L : this.global.snapshot(p).strength()) + this.heldWeaponStrengthBonus.applyAsInt(p);
+        long globalStrength = (this.global == null ? 0L : this.global.snapshot(p).strength()) + this.heldWeaponStrengthBonus.applyAsInt(p)
+                + Math.round(this.accessoryStrengthBonus.applyAsDouble(p));
 
         double swingRangeBonus = this.abilities == null ? 0.0 : this.abilities.swingRangeBonus(p);
         double healthRegenBonus = this.abilities == null ? 0.0 : this.abilities.healthRegenBonus(p);

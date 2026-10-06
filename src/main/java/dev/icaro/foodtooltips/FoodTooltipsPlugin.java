@@ -290,10 +290,17 @@ extends JavaPlugin {
         menus.wardrobe(this.wardrobe);
         this.potionBag = new PotionBagService((Plugin)this, collectionsProgress, menus::openMain);
         menus.potionBag(this.potionBag);
-        this.accessoryBag = new AccessoryBagService((Plugin)this, menus::openMain);
+        this.accessoryBag = new AccessoryBagService((Plugin)this, tiers, menus::openMain);
         menus.accessoryBag(this.accessoryBag);
         this.accessoryBag.start();
         stats.accessoryBag(this.accessoryBag);
+        dev.icaro.foodtooltips.power.MagicalPowerService magicalPower = new dev.icaro.foodtooltips.power.MagicalPowerService(this.accessoryBag);
+        dev.icaro.foodtooltips.power.PowersMenuService powersMenu = new dev.icaro.foodtooltips.power.PowersMenuService((Plugin)this, this.accessoryBag, magicalPower, this.accessoryBag::open);
+        this.accessoryBag.powersMenu(powersMenu::open);
+        armor.accessoryDefenseBonus(e -> e instanceof Player power ? (int) Math.round(magicalPower.defenseBonus(power)) : 0);
+        stats.accessoryStrengthBonus(magicalPower::strengthBonus);
+        stats.accessoryIntelligenceBonus(magicalPower::intelligenceBonus);
+        general.accessoryMiningSpeedBonus(p -> (int) Math.round(magicalPower.miningSpeedBonus(p)));
         this.creakingSight = new dev.icaro.foodtooltips.creaking.CreakingSightService((Plugin)this, this.accessoryBag);
         this.getServer().getPluginManager().registerEvents((Listener)this.creakingSight, (Plugin)this);
         this.creakingSight.start();
@@ -521,6 +528,8 @@ extends JavaPlugin {
         combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);
         combatListener.creeperHatCritDamageBonus(creeperHat::critDamageBonus);
+        combatListener.accessoryCritChanceBonus(magicalPower::critChanceBonus);
+        combatListener.accessoryCritDamageBonus(magicalPower::critDamageBonus);
         combatListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
                 .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         // Registration order among these EventPriority.HIGHEST EntityDamageEvent handlers
@@ -767,6 +776,8 @@ extends JavaPlugin {
             this.accessoryBag.refreshStandingEffects((Player)p);
             skeletonHat.applySpeedAttribute((Player)p);
             this.accessoryBag.applyAccessoryHealth((Player)p);
+            magicalPower.applyHealthAttribute((Player)p);
+            magicalPower.applySpeedAttribute((Player)p);
             this.quiver.topUp((Player)p);
             hud.show((Player)p, stats.stats((Player)p), armor.defense((Player)p));
         }), 1L, ticks);

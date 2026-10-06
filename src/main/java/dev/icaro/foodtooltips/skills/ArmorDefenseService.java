@@ -63,6 +63,8 @@ public final class ArmorDefenseService {
     private java.util.function.ToIntFunction<LivingEntity> farmerBootsBonus = e -> 0;
     /** The Rotten Flesh Collection's own Zombie Hat - +10 Defense per real Zombie within 8 blocks of the wearer (see {@code item.ZombieHatService#defenseBonus}), same late-bound idea as {@link #farmerBootsBonus}. */
     private java.util.function.ToIntFunction<LivingEntity> zombieHatBonus = e -> 0;
+    /** The new Magical Power/Powers system's own Defense bonus (see {@code power.MagicalPowerService#defenseBonus}) - same late-bound idea as {@link #farmerBootsBonus}/{@link #zombieHatBonus}, player-only (0 for a mob) since Powers only apply to a player's own equipped accessories. Defaults to always-0. */
+    private java.util.function.ToIntFunction<LivingEntity> accessoryDefenseBonus = e -> 0;
     /** The Spider Eye Collection's own Spider Hat - {@code item.SpiderHatService#arthropodDamageMultiplier} (-30% damage taken from Arthropod attackers while worn), applied by {@code ArmorDefenseListener#defense} on top of {@link #damageReduction} whenever the damage source is a {@link LivingEntity}. Takes both target and attacker (unlike every other hook here), since it depends on who's hitting, not just who's wearing what. Defaults to always-1.0 (no change). */
     private java.util.function.ToDoubleBiFunction<LivingEntity, LivingEntity> incomingMobTypeMultiplier = (target, attacker) -> 1.0;
 
@@ -101,6 +103,11 @@ public final class ArmorDefenseService {
         this.zombieHatBonus = zombieHatBonus;
     }
 
+    /** Wired in after construction - see {@link #accessoryDefenseBonus}. */
+    public void accessoryDefenseBonus(java.util.function.ToIntFunction<LivingEntity> accessoryDefenseBonus) {
+        this.accessoryDefenseBonus = accessoryDefenseBonus;
+    }
+
     /** Wired in after construction - see {@link #incomingMobTypeMultiplier}. */
     public void incomingMobTypeMultiplier(java.util.function.ToDoubleBiFunction<LivingEntity, LivingEntity> incomingMobTypeMultiplier) {
         this.incomingMobTypeMultiplier = incomingMobTypeMultiplier;
@@ -132,7 +139,8 @@ public final class ArmorDefenseService {
         int protection = this.protectionBonus.applyAsInt(e);
         double multiplier = this.defenseMultiplier.applyAsDouble(e);
         int total = (int) Math.round((armorDefense + protection) * multiplier) + skillBonus
-                + this.farmerBootsBonus.applyAsInt(e) + this.zombieHatBonus.applyAsInt(e) - this.lethalityPenalty.applyAsInt(e);
+                + this.farmerBootsBonus.applyAsInt(e) + this.zombieHatBonus.applyAsInt(e) + this.accessoryDefenseBonus.applyAsInt(e)
+                - this.lethalityPenalty.applyAsInt(e);
         return Math.max(0, total);
     }
 

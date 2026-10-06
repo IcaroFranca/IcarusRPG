@@ -176,6 +176,10 @@ public final class CombatListener implements Listener {
     private java.util.function.ToDoubleFunction<ItemStack> heldWeaponCritDamageBonus = w -> 0.0;
     /** The Gunpowder Collection's own Creeper Hat - +5 Crit Damage while worn (see {@code item.CreeperHatService#critDamageBonus}), folded into {@link #attack}'s own crit multiplier. A separate field from {@link #heldWeaponCritDamageBonus} since this one is keyed by the wearer, not the held weapon. Defaults to always-0. */
     private java.util.function.ToDoubleFunction<Player> creeperHatCritDamageBonus = p -> 0.0;
+    /** The new Magical Power/Powers system's own Crit Chance bonus (see {@code power.MagicalPowerService#critChanceBonus}), folded into {@link #attack}'s own crit-chance roll alongside {@link #spiderHatCritChanceBonus}. Defaults to always-0. */
+    private java.util.function.ToDoubleFunction<Player> accessoryCritChanceBonus = p -> 0.0;
+    /** The new Magical Power/Powers system's own Crit Damage bonus (see {@code power.MagicalPowerService#critDamageBonus}), folded into {@link #attack}'s own crit multiplier alongside {@link #creeperHatCritDamageBonus} - same /100.0 scaling. Defaults to always-0. */
+    private java.util.function.ToDoubleFunction<Player> accessoryCritDamageBonus = p -> 0.0;
     private final CollectionsService collections;
     /** See {@code skills.GeneralSkillListener#openCollectionsEntry}'s own doc - same callback, wired from {@code FoodTooltipsPlugin}, so {@link CollectionsService#announce}'s own clickable recipe-reward line works for a Combat Collection too. */
     private BiConsumer<Player, Material> openCollectionsEntry = (p, m) -> {};
@@ -203,6 +207,16 @@ public final class CombatListener implements Listener {
     /** Wired after construction - see {@link #creeperHatCritDamageBonus}'s own doc. */
     public void creeperHatCritDamageBonus(java.util.function.ToDoubleFunction<Player> creeperHatCritDamageBonus) {
         this.creeperHatCritDamageBonus = creeperHatCritDamageBonus;
+    }
+
+    /** Wired after construction - see {@link #accessoryCritChanceBonus}'s own doc. */
+    public void accessoryCritChanceBonus(java.util.function.ToDoubleFunction<Player> accessoryCritChanceBonus) {
+        this.accessoryCritChanceBonus = accessoryCritChanceBonus;
+    }
+
+    /** Wired after construction - see {@link #accessoryCritDamageBonus}'s own doc. */
+    public void accessoryCritDamageBonus(java.util.function.ToDoubleFunction<Player> accessoryCritDamageBonus) {
+        this.accessoryCritDamageBonus = accessoryCritDamageBonus;
     }
 
     /** See {@link #openCollectionsEntry}'s own doc. */
@@ -443,7 +457,7 @@ public final class CombatListener implements Listener {
         // hit past a guaranteed crit.
         double critChance = Math.min(100.0, this.combat.critChance(level) + this.abilities.critChanceBonus(p)
                 + this.reforge.statsOf(weapon).critChance() + armorReforge.critChance() + bowReforge.critChance()
-                + this.spiderHatCritChanceBonus.applyAsDouble(p));
+                + this.spiderHatCritChanceBonus.applyAsDouble(p) + this.accessoryCritChanceBonus.applyAsDouble(p));
         boolean critical = ThreadLocalRandom.current().nextDouble(100.0) < critChance;
         // Bestiary's per-mob-type bonus doesn't apply to a player target — everything
         // else (level, crit, ability outgoing multiplier, Global Strength) does, same
@@ -458,6 +472,7 @@ public final class CombatListener implements Listener {
                         + (this.reforge.statsOf(weapon).critDamage() + armorReforge.critDamage() + bowReforge.critDamage()) / 100.0
                         + this.heldWeaponCritDamageBonus.applyAsDouble(weapon) / 100.0
                         + this.creeperHatCritDamageBonus.applyAsDouble(p) / 100.0
+                        + this.accessoryCritDamageBonus.applyAsDouble(p) / 100.0
                 : 1.0;
         double damage;
         if (melee) {
