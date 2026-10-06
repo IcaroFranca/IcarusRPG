@@ -25,6 +25,7 @@ import dev.icaro.foodtooltips.reforge.ArmorReforgeStats;
 import dev.icaro.foodtooltips.reforge.ReforgeService;
 import dev.icaro.foodtooltips.reforge.ReforgeStats;
 import dev.icaro.foodtooltips.skills.ArmorDefenseService;
+import dev.icaro.foodtooltips.skills.BedrockPlayers;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.skills.CombatSkillService;
@@ -484,6 +485,23 @@ public final class CombatListener implements Listener {
             // straight onto it gives the full sum without re-adding the leading 1.
             double damageMultiplier = this.combat.damageMultiplier(level) + enchantPercent / 100.0 + (this.abilities.outgoingMultiplier(p) - 1.0);
             damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead * arthropod;
+            // TEMPORARY - diagnosing "no Bedrock as armas não estão dando o dano real"
+            // (player report: Aspect of the End reading 85 against an unarmored, 0-Defense
+            // zombie instead of the expected ~210 from base 100 + 100 Strength). Nothing in
+            // this formula reads e.getDamage() or any other platform-sensitive vanilla value
+            // (every term here is this plugin's own PDC/service state), so there's no code
+            // path in this method that should behave differently for a Bedrock attacker -
+            // logging the full breakdown to find out where the real number actually diverges
+            // once reproduced live. Remove once the cause is found.
+            if (BedrockPlayers.isBedrock(p)) {
+                this.plugin.getLogger().info(String.format(java.util.Locale.ROOT,
+                        "[BedrockDamageDebug] %s hit %s with %s: weaponDamage=%.2f strength=%.2f initialDamage=%.2f "
+                                + "damageMultiplier=%.3f (combatLevel=%d combatLevelMult=%.3f enchantPercent=%.2f abilityOutgoing=%.3f) "
+                                + "critical=%b critMultiplier=%.3f mobBonus=%.3f backstab=%.3f armored=%.3f undead=%.3f arthropod=%.3f -> final=%.2f",
+                        p.getName(), target.getType(), weapon.getType(), weaponDamage, strength, initialDamage,
+                        damageMultiplier, level, this.combat.damageMultiplier(level), enchantPercent, this.abilities.outgoingMultiplier(p),
+                        critical, critMultiplier, mobBonus, backstab, armored, undead, arthropod, damage));
+            }
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
             double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
