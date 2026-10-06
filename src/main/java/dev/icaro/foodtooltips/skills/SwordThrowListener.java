@@ -4,6 +4,7 @@ import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.legendary.LegendaryWeaponService;
 import dev.icaro.foodtooltips.skills.CombatAbility;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
+import dev.icaro.foodtooltips.util.RightClickTrigger;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -49,6 +50,13 @@ implements Listener {
     public SwordThrowListener(Plugin p, CombatAbilityService a) {
         this.plugin = p;
         this.abilities = a;
+    }
+
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - registers the raw-packet right-click trigger via {@code util.RightClickTrigger} if {@code ProtocolLib} is installed, a no-op otherwise (the throw stays Swap-Hands-only, same as before this was added). {@code shouldHandle} is a cheap sword-material + not-sneaking pre-check only (mirroring {@link #throwSword}'s own sneak guard) - {@link #attemptThrow} itself still re-validates everything else (ability enabled, not a Legendary weapon) on the main thread, same as a Swap Hands cast would. */
+    public void start() {
+        RightClickTrigger.registerIfAvailable(this.plugin,
+                p -> !p.isSneaking() && p.getInventory().getItemInMainHand().getType().name().endsWith("_SWORD"),
+                this::attemptThrow);
     }
 
     /** Same as every other per-player cooldown map in the plugin - not cleared, this grows by one stale entry per player who's ever thrown a sword for as long as the server runs. */

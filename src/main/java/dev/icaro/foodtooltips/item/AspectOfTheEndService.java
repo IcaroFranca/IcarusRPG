@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import dev.icaro.foodtooltips.util.RightClickTrigger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 /**
  * Ender Pearl Collection M8 - a plain {@link Material#DIAMOND_SWORD}, {@link ItemTier#B} (per
@@ -53,14 +55,17 @@ import org.bukkit.util.RayTraceResult;
  * removed by a delayed task rather than left permanent). {@value #MANA_COST} Mana, no cooldown
  * beyond Mana regen itself - the player's own spec shows none.
  *
- * <p>Triggered on Swap Hands (F) only, per the player's own explicit final call (tried adding
- * right-click back alongside it, per an earlier "lembro que dava pra usar o botão direito", but
- * the player preferred keeping just Swap Hands) - {@code PlayerInteractEvent}'s {@code
- * RIGHT_CLICK_AIR} is the same long-standing, Spigot-acknowledged client-side limitation {@code
- * item.SpruceAxeListener#throwAxe}/{@code grapple.GrapplingHookService} already document: the
- * client doesn't reliably send the interact packet for a right-click with nothing (no block, no
- * entity) within normal reach, which is exactly what aiming straight up at open sky looks like -
- * and this ability's whole point is teleporting into exactly that kind of open space.
+ * <p>Triggered on Swap Hands (F) ({@link #swapHands}) always, and additionally on a real
+ * right-click ({@link #start}) when {@code ProtocolLib} is installed, via {@code
+ * util.RightClickTrigger} - the same raw-packet technique {@code item.PitcherWandService} uses,
+ * which sidesteps {@code PlayerInteractEvent}'s own {@code RIGHT_CLICK_AIR} limitation entirely
+ * (the client doesn't reliably send the interact packet for a right-click with nothing in reach,
+ * exactly what aiming at open sky looks like) rather than depending on Bukkit's own event
+ * translation recognizing the click at all. An earlier attempt at right-click used only that
+ * Bukkit event and was reverted per the player's own "melhor deixar só o swap hands" once it
+ * proved unreliable; this one doesn't have that problem, so right-click is back, with Swap Hands
+ * still registered regardless (no regression on a server without ProtocolLib, and no risk of a
+ * double-cast when both fire - different physical inputs, never triggered by the same keypress).
  *
  * <p>The image's own "Gemstones: []" line is the same leftover Hypixel-screenshot artifact the
  * player already asked to ignore once this session (Zombie Sword's own "Esquece isso de
@@ -79,6 +84,8 @@ public final class AspectOfTheEndService implements Listener {
     public static final int SPEED_SECONDS = 3;
     public static final int TELEPORT_DISTANCE = 8;
     public static final int MANA_COST = 50;
+    /** Step size {@link #safeDestination} backs off by when a raw-eye-height-clear candidate point still turns out to be inside a block once converted to feet - small enough that a player who IS right at a wall still lands acceptably close to it. */
+    private static final double SAFE_STEP = 0.25;
     /** Same "Speed point -> real Movement Speed" conversion every other Speed source in this plugin uses - see {@code item.SpiderHatService#SPEED_POINT_TO_ATTRIBUTE}'s own doc. */
     private static final double SPEED_POINT_TO_ATTRIBUTE = 0.001;
 
@@ -86,11 +93,19 @@ public final class AspectOfTheEndService implements Listener {
     private final ItemTierService tiers;
     private final PlayerStatsService stats;
     private final Map<UUID, Long> speedBuffUntil = new HashMap<>();
+    /** Whether {@code ProtocolLib} is installed and enabled - resolved once in {@link #start}, same pattern {@code item.PitcherWandService}'s own identical field uses. Only affects {@link #createItem}'s own lore text and whether {@link #start} also registers the packet-level right-click trigger; Swap Hands ({@link #swapHands}) stays registered either way. */
+    private boolean protocolLibAvailable;
 
     public AspectOfTheEndService(Plugin plugin, ItemTierService tiers, PlayerStatsService stats) {
         this.plugin = plugin;
         this.tiers = tiers;
         this.stats = stats;
+    }
+
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - resolves {@link #protocolLibAvailable} and, if ProtocolLib is present, registers the raw-packet right-click trigger via {@code util.RightClickTrigger}, reusing {@link #attemptTeleport} as-is. A no-op otherwise, leaving the sword Swap-Hands-only, same as the player's own earlier final call before a working right-click technique existed. */
+    public void start() {
+        this.protocolLibAvailable = RightClickTrigger.registerIfAvailable(this.plugin,
+                p -> isAspectOfTheEnd(p.getInventory().getItemInMainHand()), this::attemptTeleport);
     }
 
     public ItemStack createItem() {
@@ -105,12 +120,16 @@ public final class AspectOfTheEndService implements Listener {
                 new AttributeModifier(BASE_ZERO_KEY, -SwordDamageService.BASE_ATTACK_DAMAGE, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         meta.addAttributeModifier(Attribute.ATTACK_SPEED,
                 new AttributeModifier(SPEED_ATTACK_KEY, SwordDamageService.ATTACK_SPEED_DELTA, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        Component trigger = this.protocolLibAvailable
+                ? Component.text("RIGHT CLICK", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)
+                        .append(Component.text(" or ", NamedTextColor.GRAY).decoration(TextDecoration.BOLD, false).decoration(TextDecoration.ITALIC, false))
+                        .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false))
+                : Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false);
         meta.lore(List.of(
                 Component.text("Damage: +" + DAMAGE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.text("Strength: +" + STRENGTH, NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
                 Component.empty().decoration(TextDecoration.ITALIC, false),
-                Component.text("Ability: Instant Transmission ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("SWAP HANDS", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)),
+                Component.text("Ability: Instant Transmission ", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).append(trigger),
                 Component.text("Teleport " + TELEPORT_DISTANCE + " blocks ahead of you", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("and gain +" + SPEED_BONUS + " Speed for " + SPEED_SECONDS + " seconds.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
                 Component.text("Mana Cost: " + MANA_COST, NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false)));
@@ -153,21 +172,21 @@ public final class AspectOfTheEndService implements Listener {
         }
     }
 
-    /** Returns whether {@code p} was even holding Aspect of the End (regardless of whether Mana was enough), so {@link #swapHands} knows whether to cancel its own triggering event. */
+    /** Returns whether {@code p} was even holding Aspect of the End (regardless of whether a safe destination/Mana were found), so {@link #swapHands} knows whether to cancel its own triggering event. */
     public boolean attemptTeleport(Player p) {
         if (!isAspectOfTheEnd(p.getInventory().getItemInMainHand())) {
             return false;
+        }
+        Location eye = p.getEyeLocation();
+        Location to = this.safeDestination(p, eye);
+        if (to == null) {
+            p.sendActionBar(Component.text("No safe landing spot for Instant Transmission.", NamedTextColor.RED));
+            return true;
         }
         if (!this.stats.withdrawMana(p, MANA_COST)) {
             p.sendActionBar(Component.text("Not enough Mana for Instant Transmission.", NamedTextColor.RED));
             return true;
         }
-        Location eye = p.getEyeLocation();
-        double distance = this.safeDistance(p, eye);
-        Location toEye = eye.clone().add(eye.getDirection().normalize().multiply(distance));
-        Location to = toEye.clone().subtract(0, p.getEyeHeight(), 0);
-        to.setPitch(eye.getPitch());
-        to.setYaw(eye.getYaw());
         p.teleport(to);
         p.getWorld().spawnParticle(Particle.REVERSE_PORTAL, eye, 30, 0.3, 0.6, 0.3, 0.05);
         p.getWorld().spawnParticle(Particle.REVERSE_PORTAL, to, 30, 0.3, 0.6, 0.3, 0.05);
@@ -177,22 +196,43 @@ public final class AspectOfTheEndService implements Listener {
     }
 
     /**
-     * How far {@code p} can actually move toward {@code from}'s own look direction before
-     * hitting a solid block - never more than {@value #TELEPORT_DISTANCE}. {@code from} must be
-     * the wielder's own eye location, not their feet ({@code attemptTeleport} converts back to a
-     * feet-based destination itself) - raytracing from the feet instead (this method's own
-     * original shape) made the ray re-intersect the very floor the player is already standing on
-     * almost immediately for any downward-angled look, since the feet already sit right at that
-     * floor's own surface height: the resulting near-zero distance made the whole ability a
-     * silent no-op whenever the player aimed at a ground block, exactly what the player reported
-     * ("a AOTE não ta me teleportando quando miro em um bloco do chão"). Raytracing from eye
-     * height instead gives a shallow downward look real room to travel over that same floor
-     * before intersecting it again, the same origin point every other look-direction raycast in
-     * this plugin already uses.
+     * The farthest safe landing spot toward {@code eye}'s own look direction, or {@code null} in
+     * the pathological case none exists within {@value #TELEPORT_DISTANCE} blocks at all. Two
+     * passes: first a raycast finds how far {@code p} could travel before hitting a solid block
+     * (eye height, not feet - see this method's own earlier doc on why: raytracing from the feet
+     * made the ray re-intersect the very floor the player is already standing on almost
+     * instantly for any downward-angled look, making the whole ability a silent no-op whenever
+     * the player aimed at a ground block, "a AOTE não ta me teleportando quando miro em um bloco
+     * do chão"). That raycast only proves the EYE-level point is clear, though - converting it
+     * straight to a feet-based {@code Location} (subtracting {@link Player#getEyeHeight()}) never
+     * re-checked whether the ground at THAT shifted-down position was itself open, so a player
+     * aiming at a wall could land with their feet or head clipped straight into it, "fazendo o
+     * jogador teleportar para dentro do bloco ao mirar neles". This method instead walks
+     * backward from that max distance in {@link #SAFE_STEP}-sized steps, converting each
+     * candidate point to feet and checking with {@link #isClear} that BOTH the feet and head
+     * block are actually passable, returning the first (farthest) one that is - same "step back
+     * until it's actually safe" shape a warp/home command's own landing-spot search already
+     * uses, just bounded to a straight line instead of a full 3D search.
      */
-    private double safeDistance(Player p, Location from) {
-        RayTraceResult hit = p.getWorld().rayTraceBlocks(from, from.getDirection(), TELEPORT_DISTANCE, FluidCollisionMode.NEVER, true);
-        return hit == null ? TELEPORT_DISTANCE : Math.max(0.0, hit.getHitPosition().distance(from.toVector()) - 0.5);
+    private Location safeDestination(Player p, Location eye) {
+        Vector direction = eye.getDirection().normalize();
+        RayTraceResult hit = p.getWorld().rayTraceBlocks(eye, direction, TELEPORT_DISTANCE, FluidCollisionMode.NEVER, true);
+        double maxDistance = hit == null ? TELEPORT_DISTANCE : Math.max(0.0, hit.getHitPosition().distance(eye.toVector()) - 0.5);
+        for (double distance = maxDistance; distance >= 0.0; distance -= SAFE_STEP) {
+            Location toEye = eye.clone().add(direction.clone().multiply(distance));
+            Location candidate = toEye.subtract(0, p.getEyeHeight(), 0);
+            candidate.setPitch(eye.getPitch());
+            candidate.setYaw(eye.getYaw());
+            if (isClear(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /** Whether a player could actually stand at {@code feet} - both it and the block above (full ~1.8-tall player height) must be passable (air, grass, a torch...), not just non-solid - see {@link #safeDestination}'s own doc on why this re-check exists at all. */
+    private static boolean isClear(Location feet) {
+        return feet.getBlock().isPassable() && feet.clone().add(0, 1, 0).getBlock().isPassable();
     }
 
     private void applySpeedBuff(Player p) {

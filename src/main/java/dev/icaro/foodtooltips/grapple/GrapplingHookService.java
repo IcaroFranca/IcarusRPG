@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.grapple;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.util.RightClickTrigger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -100,10 +101,18 @@ public final class GrapplingHookService {
     private final NamespacedKey hookKey;
     private final Map<UUID, HookState> active = new HashMap<>();
     private final Map<UUID, Long> cooldowns = new HashMap<>();
+    /** Whether {@code ProtocolLib} is installed and enabled - resolved once in {@link #start}, same pattern {@code item.PitcherWandService}'s own identical field uses. Only affects {@link #create}'s own lore text and whether {@link #start} also registers the packet-level right-click trigger; Swap Hands ({@code GrapplingHookListener#interact}) stays registered either way. */
+    private boolean protocolLibAvailable;
 
     public GrapplingHookService(Plugin plugin) {
         this.plugin = plugin;
         this.hookKey = new NamespacedKey(plugin, "grappling_hook");
+    }
+
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - resolves {@link #protocolLibAvailable} and, if ProtocolLib is present, registers the raw-packet right-click trigger via {@code util.RightClickTrigger}, reusing {@link #interact} as-is (its own fire/pull two-stage logic doesn't care which input triggered it). A no-op otherwise, leaving the hook Swap-Hands-only. */
+    public void start() {
+        this.protocolLibAvailable = RightClickTrigger.registerIfAvailable(this.plugin,
+                p -> this.isGrapplingHook(p.getInventory().getItemInMainHand()), this::interact);
     }
 
     public ItemStack create(Language l) {
@@ -111,9 +120,10 @@ public final class GrapplingHookService {
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(this.hookKey, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(this.line("Grappling Hook", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true));
+        String trigger = this.protocolLibAvailable ? "Right-click or Swap Hands (F)" : "Swap Hands (F)";
         List<Component> lore = List.of(
-                this.line("Swap Hands (F): fires the hook.", NamedTextColor.GRAY),
-                this.line("Swap Hands again: pulls you to it.", NamedTextColor.GRAY),
+                this.line(trigger + ": fires the hook.", NamedTextColor.GRAY),
+                this.line(trigger + " again: pulls you to it.", NamedTextColor.GRAY),
                 this.line("Sneak to cancel the hook.", NamedTextColor.GRAY),
                 Component.empty(),
                 this.line("Range: 24 blocks", NamedTextColor.AQUA),

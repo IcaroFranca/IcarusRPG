@@ -260,6 +260,7 @@ extends JavaPlugin {
         PrismaPumpService prismaPump = new PrismaPumpService((Plugin)this);
         MegaSpongeService megaSponge = new MegaSpongeService((Plugin)this);
         GrapplingHookService grapplingHook = new GrapplingHookService((Plugin)this);
+        grapplingHook.start();
         BuilderWandService builderWand = new BuilderWandService((Plugin)this, tiers, prismaPump);
         DestroyerHandService destroyerHand = new DestroyerHandService((Plugin)this, tiers);
         BiomeWandService biomeWand = new BiomeWandService((Plugin)this, tiers);
@@ -463,6 +464,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)enderBow, (Plugin)this);
         AspectOfTheEndService aspectOfTheEnd = new AspectOfTheEndService((Plugin)this, tiers, stats);
         pm.registerEvents((Listener)aspectOfTheEnd, (Plugin)this);
+        aspectOfTheEnd.start();
         // Registered later (after combatListener exists below) - see this class's own doc on why.
         SavingGraceService savingGrace = new SavingGraceService();
         // Skeleton Hat (helmet), Spider's Boots (boots) and Creeper Hat (helmet, but Creeper
@@ -547,7 +549,9 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new EnderPearlAggroListener((Plugin)this), (Plugin)this);
         pm.registerEvents((Listener)new LegendaryItemsListener(legendaryItemsMenu), (Plugin)this);
         pm.registerEvents((Listener)new CollectionsItemsMenuListener(collectionsItemsMenu), (Plugin)this);
-        pm.registerEvents((Listener)new DemonKingStormListener((Plugin)this, stats, abilities), (Plugin)this);
+        DemonKingStormListener demonKingStorm = new DemonKingStormListener((Plugin)this, stats, abilities);
+        pm.registerEvents((Listener)demonKingStorm, (Plugin)this);
+        demonKingStorm.start();
         pm.registerEvents((Listener)new ItemTierListener(tiers), (Plugin)this);
         pm.registerEvents((Listener)new DurabilityListener(durability), (Plugin)this);
         pm.registerEvents((Listener)new SwordDamageListener(swordDamage), (Plugin)this);
@@ -562,14 +566,17 @@ extends JavaPlugin {
         SpruceAxeListener spruceAxeThrow = new SpruceAxeListener((Plugin)this, spruceAxe);
         pm.registerEvents((Listener)spruceAxeThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSpruceAxeThrowListener(spruceAxeThrow), (Plugin)this);
+        spruceAxeThrow.start();
         TreecapitatorListener treecapitatorThrow = new TreecapitatorListener((Plugin)this, treecapitator);
         pm.registerEvents((Listener)treecapitatorThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockTreecapitatorThrowListener(treecapitatorThrow), (Plugin)this);
+        treecapitatorThrow.start();
         pm.registerEvents((Listener)woodcuttingCrystal, (Plugin)this);
         GeyserSkullExport.export((Plugin)this, gems, global);
         SwordThrowListener swordThrow = new SwordThrowListener((Plugin)this, abilities);
         pm.registerEvents((Listener)swordThrow, (Plugin)this);
         pm.registerEvents((Listener)new BedrockSwordThrowListener(swordThrow), (Plugin)this);
+        swordThrow.start();
         FoodTooltipListener foodListener = new FoodTooltipListener((Plugin)this, new FoodTooltipService(), tiers, enchants);
         pm.registerEvents((Listener)foodListener, (Plugin)this);
         SetSkillLevelCommand setSkill = new SetSkillLevelCommand(combat, general, global);

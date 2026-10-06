@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.item.legendary;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.skills.CombatAbilityService;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import dev.icaro.foodtooltips.util.RightClickTrigger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +58,13 @@ public final class DemonKingStormListener implements Listener {
         this.plugin = plugin;
         this.stats = stats;
         this.abilities = abilities;
+    }
+
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - registers the raw-packet right-click trigger via {@code util.RightClickTrigger} if {@code ProtocolLib} is installed, a no-op otherwise (the ability stays Swap-Hands-only, same as before this was added). {@code shouldHandle} mirrors {@link #activate}'s own sneak guard plus the Longsword check (a pure PDC read, safe off the main thread) - {@link #attempt} itself still re-validates everything else (cooldown, Mana) on the main thread. */
+    public void start() {
+        RightClickTrigger.registerIfAvailable(this.plugin,
+                p -> !p.isSneaking() && LegendaryWeaponService.of(p.getInventory().getItemInMainHand()) == LegendaryWeapon.DEMON_KING_LONGSWORD,
+                this::attempt);
     }
 
     /** Same as every other per-player cooldown map in the plugin - not cleared, this grows by one stale entry per player who's ever cast Storm of White Flames for as long as the server runs. */

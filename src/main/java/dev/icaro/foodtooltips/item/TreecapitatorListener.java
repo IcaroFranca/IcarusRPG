@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
 import dev.icaro.foodtooltips.i18n.Language;
+import dev.icaro.foodtooltips.util.RightClickTrigger;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -11,6 +12,7 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -27,7 +29,7 @@ import org.bukkit.util.EulerAngle;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-/** Wires the Treecapitator's two effects: normal felling ({@link TreecapitatorService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}) on Swap Hands (F) - same shape as {@code SpruceAxeListener}, see that class's own doc for why F, not right-click, and for why {@link #launch} uses an {@code ArmorStand} wearing the axe as its helmet, not a dropped {@code Item} entity or an {@code ItemDisplay}. {@link BedrockTreecapitatorThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
+/** Wires the Treecapitator's two effects: normal felling ({@link TreecapitatorService#chop}) on any log/stem break while holding it, and the throw ability ({@link #launch}) on Swap Hands (F) - same shape as {@code SpruceAxeListener}, see that class's own doc for why F, not right-click, and for why {@link #launch} uses an {@code ArmorStand} wearing the axe as its helmet, not a dropped {@code Item} entity or an {@code ItemDisplay}. Also triggers on a real right-click ({@link #start}) when {@code ProtocolLib} is installed, via the same {@code util.RightClickTrigger} every other Swap-Hands ability in this plugin now uses. {@link #launch}'s own thrown axe trails {@link Particle#CRIT} particles (the same critical-hit "star" sparkles, per the player's own request) the whole way. {@link BedrockTreecapitatorThrowListener} triggers the same throw ({@link #attemptThrow}) via a double-crouch instead, for a Bedrock/Geyser player who can't reliably send - or, on a console controller, send at all - the F-key gesture. */
 public final class TreecapitatorListener implements Listener {
     private static final long THROW_COOLDOWN_MILLIS = 1000L;
     /** Ray-march moves exactly 1 block/tick (see {@link #launch}), so this doubles as the thrown axe's max travel distance in blocks. */
@@ -44,6 +46,12 @@ public final class TreecapitatorListener implements Listener {
     public TreecapitatorListener(Plugin plugin, TreecapitatorService axe) {
         this.plugin = plugin;
         this.axe = axe;
+    }
+
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - registers the raw-packet right-click trigger via {@code util.RightClickTrigger} if {@code ProtocolLib} is installed, a no-op otherwise (the throw stays Swap-Hands-only, same as before this was added). */
+    public void start() {
+        RightClickTrigger.registerIfAvailable(this.plugin,
+                p -> this.axe.isTreecapitator(p.getInventory().getItemInMainHand()), this::attemptThrow);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -133,6 +141,7 @@ public final class TreecapitatorListener implements Listener {
                 this.at.add(direction);
                 display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
                 display.setHeadPose(new EulerAngle(0, this.ticks * SPIN_RADIANS_PER_TICK, 0));
+                p.getWorld().spawnParticle(Particle.CRIT, this.at, 4, 0.08, 0.08, 0.08, 0.02);
             }
 
             private void finish() {

@@ -1,11 +1,7 @@
 package dev.icaro.foodtooltips.item;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketEvent;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
+import dev.icaro.foodtooltips.util.RightClickTrigger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -56,19 +52,10 @@ import org.bukkit.util.Vector;
  * (BuilderWand, DestroyerHand, Biome's Wand) that isn't itself a weapon.
  *
  * <p>Triggered on Swap Hands (F) ({@link #swapHands}) always, and additionally on a real
- * right-click ({@link #start}'s {@link PacketAdapter}) when the {@code ProtocolLib} plugin is
- * installed. A first attempt at right-click used only Bukkit's own {@code PlayerInteractEvent}
- * (tagging the item with a {@code DataComponentTypes.CONSUMABLE} data component purely to force
- * the client to always send the interact packet, a documented trick elsewhere) and was
- * abandoned: on the player's own server, that event handler never fired at all for the
- * resulting click (confirmed with temporary debug logging - zero messages, not even a failed
- * match), meaning whatever packet the client was sending wasn't reaching Bukkit's own interact
- * dispatch there. {@link #start} instead listens for the raw {@code PacketType.Play.Client.USE_ITEM}/
- * {@code USE_ITEM_ON} packets directly via ProtocolLib - one layer below
- * Bukkit's own event translation, the same vantage point Hypixel's own custom server software
- * has by default (see this class's own git history for the fuller explanation given to the
- * player) - so it doesn't depend on Bukkit's interact-event machinery recognizing the click at
- * all, sidestepping whatever swallowed it before. ProtocolLib is a soft-depend (same runtime
+ * right-click ({@link #start}, via {@code util.RightClickTrigger}) when the {@code ProtocolLib}
+ * plugin is installed - see that class's own doc for the full story (a first attempt using only
+ * Bukkit's own {@code PlayerInteractEvent} never fired at all on the player's own server, and
+ * why reading the raw packet instead sidesteps that). ProtocolLib is a soft-depend (same runtime
  * presence check {@code creaking.CreakingSightService} already uses for PacketEvents): without
  * it, {@link #start} logs once and the wand simply stays Swap-Hands-only, same as before this was
  * added - plain Swap Hands always stays registered regardless, so there's no regression either
@@ -76,8 +63,8 @@ import org.bukkit.util.Vector;
  * the same keypress, same reasoning {@code item.AspectOfTheEndService}'s own now-reverted
  * dual-trigger experiment used).
  *
- * <p>The packet listener's own {@code onPacketReceiving} runs on ProtocolLib's Netty thread, not
- * the main server thread - a classic ProtocolLib gotcha that first showed up as Mana/cooldown
+ * <p>{@code util.RightClickTrigger}'s own packet listener runs on ProtocolLib's Netty thread, not
+ * the main server thread - a classic ProtocolLib gotcha that first showed up here as Mana/cooldown
  * draining normally (plain in-memory map writes, thread-agnostic) while {@link #launch} itself
  * silently never ran (spawning the visual {@link ArmorStand} off the main thread either throws
  * or no-ops, swallowed inside ProtocolLib's own listener dispatch instead of reaching the normal
@@ -109,7 +96,15 @@ import org.bukkit.util.Vector;
  * enchant.BowEnchantEffectListener#startHoming} uses for the Aiming enchant - not reused directly
  * since that method is typed to a real {@link org.bukkit.entity.AbstractArrow}, and this
  * projectile is the {@code ArmorStand} visual above, not a real arrow) - that's the "teleguiado"
- * half of the player's own spec.
+ * half of the player's own spec. {@link #launch} also re-points the {@code ArmorStand}'s own
+ * body (via {@code Location#setDirection} before each tick's {@code teleport}) to match {@code
+ * direction[0]} every tick, not just at launch - without this, the body's facing stayed locked
+ * to whatever direction the player was aiming at the moment of the cast, so the head's own pitch
+ * tumble (relative to that stale facing) visibly spiraled away from the pod's actual, possibly-
+ * now-curving flight path the instant a homing redirect changed {@code direction[0]} - exactly
+ * what the player reported ("o giro dela não deve sair da linha que estou mirando"). Keeping the
+ * body's facing locked to the current direction every tick keeps the tumble's own rotation plane
+ * pinned to the actual line of flight no matter how sharply it curves toward a target.
  *
  * <p>Rooting ({@link #root}) only zeroes the target's own horizontal velocity every tick for
  * the duration (vertical velocity left alone so a mid-air target still falls normally) rather
@@ -153,25 +148,13 @@ public final class PitcherWandService implements Listener {
         this.stats = stats;
     }
 
-    /** Call once from {@code FoodTooltipsPlugin#onEnable} - resolves {@link #protocolLibAvailable} and, if ProtocolLib is present, registers the raw-packet right-click listener. A no-op (logged once) otherwise, leaving the wand Swap-Hands-only. */
+    /** Call once from {@code FoodTooltipsPlugin#onEnable} - resolves {@link #protocolLibAvailable} and, if ProtocolLib is present, registers the raw-packet right-click listener via {@code util.RightClickTrigger}. A no-op (logged once) otherwise, leaving the wand Swap-Hands-only. */
     public void start() {
-        this.protocolLibAvailable = Bukkit.getPluginManager().getPlugin("ProtocolLib") != null;
+        this.protocolLibAvailable = RightClickTrigger.registerIfAvailable(this.plugin,
+                p -> isPitcherWand(p.getInventory().getItemInMainHand()), this::attemptCast);
         if (!this.protocolLibAvailable) {
             this.plugin.getLogger().info("ProtocolLib não encontrado - a Pitcher Wand fica só no Swap Hands (sem clique direito).");
-            return;
         }
-        ProtocolLibrary.getProtocolManager().addPacketListener(new PacketAdapter(this.plugin, ListenerPriority.NORMAL,
-                PacketType.Play.Client.USE_ITEM, PacketType.Play.Client.USE_ITEM_ON) {
-            @Override
-            public void onPacketReceiving(PacketEvent event) {
-                Player p = event.getPlayer();
-                if (!isPitcherWand(p.getInventory().getItemInMainHand())) {
-                    return;
-                }
-                event.setCancelled(true);
-                Bukkit.getScheduler().runTask(PitcherWandService.this.plugin, () -> PitcherWandService.this.attemptCast(p));
-            }
-        });
     }
 
     public ItemStack createItem() {
@@ -284,7 +267,9 @@ public final class PitcherWandService implements Listener {
                     return;
                 }
                 this.at.add(direction[0]);
-                display.teleport(this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0));
+                Location next = this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0);
+                next.setDirection(direction[0]);
+                display.teleport(next);
                 display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
                 p.getWorld().spawnParticle(Particle.DUST, this.at, 3, 0.08, 0.08, 0.08, 0.0, ROSE_TRAIL_DUST);
             }

@@ -158,7 +158,7 @@ public final class CombatCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.ZOMBIES_HEART_RECIPE, this.zombiesHeart.createItem(),
                 new String[]{"CCC", "C C", "CCC"}, r -> r.setIngredient('C', new RecipeChoice.ExactChoice(this.rottenFleshCore())));
         this.newShapedRecipe(CollectionsCatalog.ZOMBIE_SWORD_RECIPE, this.zombieSword.createItem(),
-                new String[]{" Z", " Z", " S"}, r -> {
+                new String[]{"Z", "Z", "S"}, r -> {
                     r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem()));
                     r.setIngredient('S', Material.STICK);
                 });
@@ -169,7 +169,7 @@ public final class CombatCollectionsItemsService {
         this.newShapedRecipe(CollectionsCatalog.ZOMBIE_BOOTS_RECIPE, this.zombieArmor.createBoots(),
                 new String[]{"Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
         this.newShapedRecipe(CollectionsCatalog.SPIDER_SWORD_RECIPE, this.spiderSword.createItem(),
-                new String[]{" S", " S", " T"}, r -> {
+                new String[]{"S", "S", "T"}, r -> {
                     r.setIngredient('S', Material.SPIDER_EYE);
                     r.setIngredient('T', Material.STICK);
                 });
@@ -186,7 +186,7 @@ public final class CombatCollectionsItemsService {
                     r.setIngredient('N', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.LEAPING_SWORD_RECIPE, this.leapingSword.createItem(),
-                new String[]{" F", " F", " T"}, r -> {
+                new String[]{"F", "F", "T"}, r -> {
                     r.setIngredient('F', new RecipeChoice.ExactChoice(this.fermentedSpiderEyeCore()));
                     r.setIngredient('T', Material.STICK);
                 });
