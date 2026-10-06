@@ -76,35 +76,37 @@ import org.bukkit.util.Vector;
  * a Pitcher Pod as its helmet, ray-marched one block per tick (an {@code ArmorStand}'s equipped
  * item avoids both a dropped {@link org.bukkit.entity.Item}'s own vanilla bob/spin animation and
  * {@code ItemDisplay}'s known Geyser/Bedrock rendering gaps - see {@code
- * item.SpruceAxeListener#launch}'s own doc on that choice). The spin itself went through two
- * styles: first {@code item.SpruceAxeListener}'s own vertical-axis "coin spinning on a table"
- * spin (only the {@code EulerAngle} yaw component animated) per the player's own "quero o
- * arremesso da pitcher wand igual o arremesso do machado" - then, once the player actually saw
- * it in-game ("ele ta girando como se fosse a rotação da Terra... queria que ele girasse de cima
- * pra baixo, não pros lados"), switched to {@code skills.SwordThrowListener}'s own
- * forward-tumbling spin instead: only the pitch component animates ({@link
- * #SPIN_RADIANS_PER_TICK} per tick), with a fixed, never-animated {@link #FORWARD_FACING_RADIANS}
- * 90-degree yaw twist so the flat item texture tumbles edge-on (top-to-bottom, matching the
- * player's own "cima pra baixo") instead of face-on. Now trailing a rose-pink {@link
- * #ROSE_TRAIL_DUST} particle trail per the player's own separate "igual o arremesso da Flower of
- * Truth" request (Hypixel Skyblock's own Heat-Seeking Rose) - cosmetic only, since the player
- * explicitly kept the single-target root rather than that ability's own multi-enemy ricochet.
- * Unlike the axe's own straight-line throw, {@link #launch} re-aims toward the nearest {@link
- * Enemy} within {@value #HOMING_RANGE} blocks every tick (same "redirect velocity/direction
- * toward the nearest target,
- * preserving whatever's already in flight" idea {@code
- * enchant.BowEnchantEffectListener#startHoming} uses for the Aiming enchant - not reused directly
- * since that method is typed to a real {@link org.bukkit.entity.AbstractArrow}, and this
- * projectile is the {@code ArmorStand} visual above, not a real arrow) - that's the "teleguiado"
- * half of the player's own spec. {@link #launch} also re-points the {@code ArmorStand}'s own
- * body (via {@code Location#setDirection} before each tick's {@code teleport}) to match {@code
- * direction[0]} every tick, not just at launch - without this, the body's facing stayed locked
- * to whatever direction the player was aiming at the moment of the cast, so the head's own pitch
- * tumble (relative to that stale facing) visibly spiraled away from the pod's actual, possibly-
- * now-curving flight path the instant a homing redirect changed {@code direction[0]} - exactly
- * what the player reported ("o giro dela não deve sair da linha que estou mirando"). Keeping the
- * body's facing locked to the current direction every tick keeps the tumble's own rotation plane
- * pinned to the actual line of flight no matter how sharply it curves toward a target.
+ * item.SpruceAxeListener#launch}'s own doc on that choice). The spin itself went through three
+ * rounds: {@code item.SpruceAxeListener}/{@code item.TreecapitatorListener}'s own vertical-axis
+ * "coin spinning on a table" spin (only the {@code EulerAngle} yaw component animated) per the
+ * player's own original "quero o arremesso da pitcher wand igual o arremesso do machado" - then,
+ * once the player actually saw it in-game ("ele ta girando como se fosse a rotação da Terra...
+ * queria que ele girasse de cima pra baixo, não pros lados"), briefly switched to {@code
+ * skills.SwordThrowListener}'s own forward-tumbling spin instead (pitch animated, a fixed 90-
+ * degree yaw twist so the flat texture tumbles edge-on) - then, once THAT visibly spiraled away
+ * from the actual flight path on a homing redirect, switched back to the original coin-spin style
+ * per the player's own final "faz o tiro da pitcher wand girar igual os machados", now paired
+ * with the {@link #launch} body-direction fix below so it no longer has that spiraling problem
+ * either. Now trailing a rose-pink {@link #ROSE_TRAIL_DUST} particle trail per the player's own
+ * separate "igual o arremesso da Flower of Truth" request (Hypixel Skyblock's own Heat-Seeking
+ * Rose) - cosmetic only, since the player explicitly kept the single-target root rather than that
+ * ability's own multi-enemy ricochet. Unlike the axe's own straight-line throw, {@link #launch}
+ * re-aims toward the nearest {@link Enemy} within {@value #HOMING_RANGE} blocks every tick (same
+ * "redirect velocity/direction toward the nearest target, preserving whatever's already in
+ * flight" idea {@code enchant.BowEnchantEffectListener#startHoming} uses for the Aiming enchant -
+ * not reused directly since that method is typed to a real {@link org.bukkit.entity.AbstractArrow},
+ * and this projectile is the {@code ArmorStand} visual above, not a real arrow) - that's the
+ * "teleguiado" half of the player's own spec. {@link #launch} also re-points the {@code
+ * ArmorStand}'s own body (via {@code Location#setDirection} before each tick's {@code teleport})
+ * to match {@code direction[0]} every tick, not just at launch - without this, the body's facing
+ * stayed locked to whatever direction the player was aiming at the moment of the cast, so the
+ * spin (relative to that stale facing) visibly spiraled away from the pod's actual, possibly-now-
+ * curving flight path the instant a homing redirect changed {@code direction[0]} - exactly what
+ * the player reported ("o giro dela não deve sair da linha que estou mirando"). Keeping the
+ * body's facing locked to the current direction every tick keeps the spin's own rotation plane
+ * pinned to the actual line of flight no matter how sharply it curves toward a target - true for
+ * either spin style, which is why it was kept once the style itself reverted back to the coin
+ * spin.
  *
  * <p>Rooting ({@link #root}) only zeroes the target's own horizontal velocity every tick for
  * the duration (vertical velocity left alone so a mid-air target still falls normally) rather
@@ -130,10 +132,8 @@ public final class PitcherWandService implements Listener {
     /** Flight time cap, in ticks, same safety-valve purpose as {@code enchant.BowEnchantEffectListener#AIMING_MAX_TICKS} - a bolt that never finds a wall or a target stops existing instead of flying forever. */
     private static final int MAX_TRAVEL_TICKS = 60;
     private static final double HEAD_HEIGHT_OFFSET = 0.889;
-    /** Same forward-tumbling spin {@code skills.SwordThrowListener}'s own identical constant uses - see this class's own doc. */
+    /** Same vertical-axis "coin spinning on a table" spin {@code item.SpruceAxeListener}/{@code item.TreecapitatorListener} both use - see this class's own doc. */
     private static final double SPIN_RADIANS_PER_TICK = Math.PI / 3.0;
-    /** Fixed 90-degree yaw twist applied once (not animated) so the flat Pitcher Pod texture tumbles edge-on - see this class's own doc. Same constant/value {@code skills.SwordThrowListener}'s own identical field uses. */
-    private static final double FORWARD_FACING_RADIANS = Math.PI / 2.0;
     /** Rose-pink trail left behind the flying Pitcher Pod - per the player's own "igual o arremesso da Flower of Truth" request (Hypixel Skyblock's own Heat-Seeking Rose projectile), limited to this one cosmetic touch since the player explicitly kept the single-target root (not Flower of Truth's own multi-enemy ricochet). Same {@link Particle#DUST} + {@link Particle.DustOptions} pattern {@code mining.BuriedTreasureService}'s own colored trail already uses. */
     private static final Particle.DustOptions ROSE_TRAIL_DUST = new Particle.DustOptions(Color.fromRGB(219, 61, 118), 1.0f);
 
@@ -234,7 +234,7 @@ public final class PitcherWandService implements Listener {
             d.setCustomNameVisible(false);
             d.getEquipment().setHelmet(visual);
             d.getPersistentDataContainer().set(THROWN_VISUAL_KEY, PersistentDataType.BYTE, (byte) 1);
-            d.setHeadPose(new EulerAngle(0, FORWARD_FACING_RADIANS, 0));
+            d.setHeadPose(new EulerAngle(0, 0, 0));
         });
         final Predicate<Entity> targetable = entity -> entity instanceof Enemy enemy && enemy.isValid() && !enemy.isDead()
                 && !entity.getPersistentDataContainer().has(THROWN_VISUAL_KEY, PersistentDataType.BYTE);
@@ -270,7 +270,7 @@ public final class PitcherWandService implements Listener {
                 Location next = this.at.clone().subtract(0, HEAD_HEIGHT_OFFSET, 0);
                 next.setDirection(direction[0]);
                 display.teleport(next);
-                display.setHeadPose(new EulerAngle(this.ticks * SPIN_RADIANS_PER_TICK, FORWARD_FACING_RADIANS, 0));
+                display.setHeadPose(new EulerAngle(0, this.ticks * SPIN_RADIANS_PER_TICK, 0));
                 p.getWorld().spawnParticle(Particle.DUST, this.at, 3, 0.08, 0.08, 0.08, 0.0, ROSE_TRAIL_DUST);
             }
 
