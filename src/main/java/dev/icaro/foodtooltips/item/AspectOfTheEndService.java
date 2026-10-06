@@ -18,6 +18,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
@@ -196,35 +197,56 @@ public final class AspectOfTheEndService implements Listener {
     }
 
     /**
-     * The farthest safe landing spot toward {@code eye}'s own look direction, or {@code null} in
-     * the pathological case none exists within {@value #TELEPORT_DISTANCE} blocks at all. Two
-     * passes: first a raycast finds how far {@code p} could travel before hitting a solid block
-     * (eye height, not feet - see this method's own earlier doc on why: raytracing from the feet
-     * made the ray re-intersect the very floor the player is already standing on almost
-     * instantly for any downward-angled look, making the whole ability a silent no-op whenever
-     * the player aimed at a ground block, "a AOTE não ta me teleportando quando miro em um bloco
-     * do chão"). That raycast only proves the EYE-level point is clear, though - converting it
-     * straight to a feet-based {@code Location} (subtracting {@link Player#getEyeHeight()}) never
-     * re-checked whether the ground at THAT shifted-down position was itself open, so a player
-     * aiming at a wall could land with their feet or head clipped straight into it, "fazendo o
-     * jogador teleportar para dentro do bloco ao mirar neles". This method instead walks
-     * backward from that max distance in {@link #SAFE_STEP}-sized steps, converting each
-     * candidate point to feet and checking with {@link #isClear} that BOTH the feet and head
-     * block are actually passable, returning the first (farthest) one that is - same "step back
-     * until it's actually safe" shape a warp/home command's own landing-spot search already
-     * uses, just bounded to a straight line instead of a full 3D search.
+     * The safe landing spot toward {@code eye}'s own look direction, or {@code null} in the
+     * pathological case none exists at all. History: originally a flat "ray-hit-distance minus
+     * 0.5" offset, converted straight to a feet-based {@code Location} by subtracting {@link
+     * Player#getEyeHeight()} - that conversion never re-checked the shifted-down point against
+     * the actual terrain, so a player aiming at a wall could land with their feet or head clipped
+     * straight into it ("fazendo o jogador teleportar para dentro do bloco ao mirar neles"). The
+     * fix after that walked backward from the ray-hit distance in {@link #SAFE_STEP}-sized steps
+     * re-validating each feet-converted candidate with {@link #isClear} - correct for a flat/
+     * upward look, but for a downward one (aiming AT a surface to land ON it, the ability's own
+     * main use) each step's vertical "give" is only a small fraction of the ray distance backed
+     * off (most of a steep-down ray's length is vertical drop, not horizontal), so it very easily
+     * never found clearance within a reasonable number of steps at all - "eu não consigo mais
+     * teleportar em superficies".
+     *
+     * <p>This version instead reads the hit block's own face ({@link RayTraceResult
+     * #getHitBlockFace()}) and lands in the block immediately adjacent to THAT face - looking
+     * down at a platform hits its top face, landing one block above it (standing on top, exactly
+     * the ability's whole point); looking at a wall hits a side face, landing one block in front
+     * of it (not inside it). That adjacent block is, by construction, space the ray itself just
+     * passed through to reach the hit face at all, so it's clear in all but the rarest overhang
+     * cases - {@link #isClear} still gets the final say, with {@link #SAFE_STEP}-backing-off from
+     * there as a fallback for those rare cases rather than the primary strategy.
      */
     private Location safeDestination(Player p, Location eye) {
         Vector direction = eye.getDirection().normalize();
         RayTraceResult hit = p.getWorld().rayTraceBlocks(eye, direction, TELEPORT_DISTANCE, FluidCollisionMode.NEVER, true);
-        double maxDistance = hit == null ? TELEPORT_DISTANCE : Math.max(0.0, hit.getHitPosition().distance(eye.toVector()) - 0.5);
-        for (double distance = maxDistance; distance >= 0.0; distance -= SAFE_STEP) {
+        Location candidate;
+        double searchFrom;
+        if (hit != null && hit.getHitBlock() != null && hit.getHitBlockFace() != null) {
+            Block landing = hit.getHitBlock().getRelative(hit.getHitBlockFace());
+            candidate = landing.getLocation().add(0.5, 0.0, 0.5);
+            candidate.setWorld(eye.getWorld());
+            searchFrom = candidate.distance(eye);
+        } else {
+            Location toEye = eye.clone().add(direction.clone().multiply(TELEPORT_DISTANCE));
+            candidate = toEye.subtract(0, p.getEyeHeight(), 0);
+            searchFrom = TELEPORT_DISTANCE;
+        }
+        candidate.setPitch(eye.getPitch());
+        candidate.setYaw(eye.getYaw());
+        if (isClear(candidate)) {
+            return candidate;
+        }
+        for (double distance = searchFrom - SAFE_STEP; distance >= 0.0; distance -= SAFE_STEP) {
             Location toEye = eye.clone().add(direction.clone().multiply(distance));
-            Location candidate = toEye.subtract(0, p.getEyeHeight(), 0);
-            candidate.setPitch(eye.getPitch());
-            candidate.setYaw(eye.getYaw());
-            if (isClear(candidate)) {
-                return candidate;
+            Location step = toEye.subtract(0, p.getEyeHeight(), 0);
+            step.setPitch(eye.getPitch());
+            step.setYaw(eye.getYaw());
+            if (isClear(step)) {
+                return step;
             }
         }
         return null;
