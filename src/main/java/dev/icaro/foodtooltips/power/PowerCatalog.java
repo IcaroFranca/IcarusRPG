@@ -17,25 +17,25 @@ import org.bukkit.Material;
 public final class PowerCatalog {
     private static final List<Power> POWERS = List.of(
             new Power("fortuitous", "Fortuitous", PowerType.STARTER, Material.EMERALD,
-                    3.35, 1.2, 4.35, 0.0, 0.0, 4.8, 0.0, 0.0),
+                    3.35, 1.2, 4.8, 0.0, 4.35, 4.8, 0.0, 0.0),
             new Power("pretty", "Pretty", PowerType.STARTER, Material.PINK_DYE,
-                    1.65, 1.2, 4.8, 8.65, 0.475, 1.2, 18.8, 0.0),
+                    1.65, 1.2, 4.8, 0.65, 0.475, 1.2, 10.8, 0.0),
             new Power("protected", "Protected", PowerType.STARTER, Material.SHIELD,
-                    11.75, 18.8, 2.4, 0.0, 0.475, 1.2, 0.0, 0.0),
+                    11.75, 10.8, 2.4, 0.0, 0.475, 1.2, 0.0, 0.0),
             new Power("simple", "Simple", PowerType.STARTER, Material.IRON_INGOT,
-                    5.82, 3.6, 3.6, 1.2, 1.45, 3.6, 5.4, 0.0),
+                    5.02, 3.6, 3.6, 1.2, 1.45, 3.6, 5.4, 0.0),
             new Power("warrior", "Warrior", PowerType.STARTER, Material.IRON_SWORD,
                     3.35, 1.2, 8.4, 0.0, 2.4, 6.0, 0.0, 0.0),
             new Power("commando", "Commando", PowerType.INTERMEDIATE, Material.CROSSBOW,
-                    5.82, 2.4, 8.4, 0.0, 0.475, 8.4, 0.0, 0.0),
+                    5.02, 2.4, 8.4, 0.0, 0.475, 8.4, 0.0, 0.0),
             new Power("disciplined", "Disciplined", PowerType.INTERMEDIATE, Material.GOLDEN_SWORD,
-                    5.82, 2.4, 7.2, 0.0, 1.45, 7.2, 0.0, 0.0),
+                    5.02, 2.4, 7.2, 0.0, 1.45, 7.2, 0.0, 0.0),
             new Power("inspired", "Inspired", PowerType.INTERMEDIATE, Material.ENCHANTED_BOOK,
-                    1.65, 1.2, 8.4, 0.0, 0.95, 3.6, 16.2, 0.0),
+                    1.65, 1.2, 4.8, 0.0, 0.95, 3.6, 16.2, 0.0),
             new Power("ominous", "Ominous", PowerType.INTERMEDIATE, Material.OMINOUS_BOTTLE,
-                    5.82, 0.0, 0.0, 3.6, 1.45, 3.6, 6.1, 0.9),
+                    5.02, 0.0, 3.6, 0.95, 1.45, 3.6, 6.1, 0.9),
             new Power("prepared", "Prepared", PowerType.INTERMEDIATE, Material.TOTEM_OF_UNDYING,
-                    12.4, 11.3, 1.93, 0.0, 0.475, 0.95, 0.0, 0.0));
+                    12.4, 11.3, 1.95, 0.0, 0.475, 0.95, 0.0, 0.0));
     private static final Map<String, Power> BY_ID;
 
     private PowerCatalog() {
