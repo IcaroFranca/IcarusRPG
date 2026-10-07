@@ -318,6 +318,24 @@ public final class CombatListener implements Listener {
         }
     }
 
+    /**
+     * TEMPORARY - companion to {@link #damage}'s own {@code [DamageDebug]} line: logs the
+     * event's {@link EntityDamageByEntityEvent#getFinalDamage()} at MONITOR (the truly-applied
+     * number, after Defense/Protection/every other reducer - including {@link
+     * #absorbBonusHealth} - has already run), so the two log lines together show whether a
+     * reported mismatch happens inside {@link #damage}'s own formula or somewhere downstream
+     * of it. Remove alongside that debug line once the cause is found.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void logFinalDamage(EntityDamageByEntityEvent e) {
+        Player p = this.attacker(e.getDamager());
+        if (p != null && e.getEntity() instanceof LivingEntity target) {
+            this.plugin.getLogger().info(String.format(java.util.Locale.ROOT,
+                    "[DamageDebug] %s's hit on %s actually landed for %.2f (event damage=%.2f)",
+                    p.getName(), target.getType(), e.getFinalDamage(), e.getDamage()));
+        }
+    }
+
     @EventHandler
     public void chunk(ChunkLoadEvent e) {
         for (Entity x : e.getChunk().getEntities()) {
@@ -485,23 +503,23 @@ public final class CombatListener implements Listener {
             // straight onto it gives the full sum without re-adding the leading 1.
             double damageMultiplier = this.combat.damageMultiplier(level) + enchantPercent / 100.0 + (this.abilities.outgoingMultiplier(p) - 1.0);
             damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead * arthropod;
-            // TEMPORARY - diagnosing "no Bedrock as armas não estão dando o dano real"
-            // (player report: Aspect of the End reading 85 against an unarmored, 0-Defense
-            // zombie instead of the expected ~210 from base 100 + 100 Strength). Nothing in
-            // this formula reads e.getDamage() or any other platform-sensitive vanilla value
-            // (every term here is this plugin's own PDC/service state), so there's no code
-            // path in this method that should behave differently for a Bedrock attacker -
-            // logging the full breakdown to find out where the real number actually diverges
-            // once reproduced live. Remove once the cause is found.
-            if (BedrockPlayers.isBedrock(p)) {
-                this.plugin.getLogger().info(String.format(java.util.Locale.ROOT,
-                        "[BedrockDamageDebug] %s hit %s with %s: weaponDamage=%.2f strength=%.2f initialDamage=%.2f "
-                                + "damageMultiplier=%.3f (combatLevel=%d combatLevelMult=%.3f enchantPercent=%.2f abilityOutgoing=%.3f) "
-                                + "critical=%b critMultiplier=%.3f mobBonus=%.3f backstab=%.3f armored=%.3f undead=%.3f arthropod=%.3f -> final=%.2f",
-                        p.getName(), target.getType(), weapon.getType(), weaponDamage, strength, initialDamage,
-                        damageMultiplier, level, this.combat.damageMultiplier(level), enchantPercent, this.abilities.outgoingMultiplier(p),
-                        critical, critMultiplier, mobBonus, backstab, armored, undead, arthropod, damage));
-            }
+            // TEMPORARY - diagnosing "o dano que eu estou dando não bate com o dano final"
+            // (player report, with a screenshot of SkillsMenuService's own damage-preview
+            // tooltip: the same formula computes a 284.1 baseline that the real hit against
+            // an unarmored, 0-Defense mob doesn't match). Originally gated to Bedrock
+            // attackers only (an earlier, narrower report); widened to every player now that
+            // this doesn't look platform-specific - logging every melee hit's full breakdown,
+            // plus a MONITOR-priority handler below logging the event's own getFinalDamage()
+            // (the truly-applied number after every other handler, including
+            // ArmorDefenseListener's Defense mitigation, has run), to see whether the drop
+            // happens inside this formula or somewhere downstream of it. Remove once found.
+            this.plugin.getLogger().info(String.format(java.util.Locale.ROOT,
+                    "[DamageDebug] %s (bedrock=%b) hit %s with %s: weaponDamage=%.2f strength=%.2f initialDamage=%.2f "
+                            + "damageMultiplier=%.3f (combatLevel=%d combatLevelMult=%.3f enchantPercent=%.2f abilityOutgoing=%.3f) "
+                            + "critical=%b critMultiplier=%.3f mobBonus=%.3f backstab=%.3f armored=%.3f undead=%.3f arthropod=%.3f -> final=%.2f",
+                    p.getName(), BedrockPlayers.isBedrock(p), target.getType(), weapon.getType(), weaponDamage, strength, initialDamage,
+                    damageMultiplier, level, this.combat.damageMultiplier(level), enchantPercent, this.abilities.outgoingMultiplier(p),
+                    critical, critMultiplier, mobBonus, backstab, armored, undead, arthropod, damage));
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
             double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
