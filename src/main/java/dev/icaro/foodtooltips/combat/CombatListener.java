@@ -523,12 +523,15 @@ public final class CombatListener implements Listener {
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
             double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
-            // A bow's own reforge Strength is flat points, same unit a sword's own Strength
-            // reforge uses (see the melee branch above) - folded in as a percentage right
-            // alongside the arrow's own enchant percentage rather than added as a flat
-            // bonus like weaponStrengthBonus, so "N points of Strength" means the same +N%
-            // regardless of whether the hit was melee or ranged.
-            double bowStrengthPercent = bowReforge.strength();
+            // A bow's own reforge Strength (and, same as the melee branch above, the sum of
+            // whatever's reforged across all 4 armor slots) is flat points, same unit a
+            // sword's own Strength reforge uses - folded in as a percentage right alongside
+            // the arrow's own enchant percentage rather than added as a flat bonus like
+            // weaponStrengthBonus, so "N points of Strength" means the same +N% regardless
+            // of whether the hit was melee or ranged. Armor Strength reforges used to only
+            // apply to melee here - a bow-wielding player's armor reforges silently did
+            // nothing until this was folded in too.
+            double bowStrengthPercent = bowReforge.strength() + armorReforge.strength();
             double archeryPotionPercent = this.archeryPotionPercent.applyAsDouble(p);
             damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent + archeryPotionPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                     * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead * arthropod;

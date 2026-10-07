@@ -14,6 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -25,7 +26,6 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.Plugin;
 
 /**
  * Applies and tracks both sword reforges ({@link ReforgePrefix}) and armor reforges
@@ -106,7 +106,7 @@ public final class ReforgeService {
     /** Wired after construction ({@code LegendaryWeaponService} itself depends on this class for its own Attack Speed reforge bonus, so the reverse reference can't be a constructor param without a cycle) - see {@link #applySwordLore}. */
     private LegendaryWeaponService legendary;
 
-    public ReforgeService(Plugin plugin, ItemTierService tiers, CombatSkillService combat) {
+    public ReforgeService(ItemTierService tiers, CombatSkillService combat) {
         this.tiers = tiers;
         this.combat = combat;
     }
@@ -365,9 +365,34 @@ public final class ReforgeService {
         }
     }
 
-    /** Replaces the reforge stat-line block right after the armor piece's own "Defesa: +N" line ({@code ArmorDefenseService#tooltip}, always index 0 when present) - or right at the start if that line is somehow missing (a piece with 0 base Defense, e.g. a Turtle Shell reused as a helmet skin, never gets one). */
+    /**
+     * Replaces the reforge stat-line block right after the armor piece's own "Defense: +N"
+     * line - found by its own text rather than assumed to always be index 0, since several
+     * items ({@code item.CreeperPantsService}, Zombie/Skeleton/Spider's armor, the Farming
+     * Collections' own Farmer Boots/Lantern Helmet...) bake a "Health: +N" line before their
+     * own "Defense: +N" one (both via {@code ArmorDefenseService#markOwnDefenseLore}) - a
+     * hardcoded index 1 here used to land the reforge block BETWEEN those two lines instead
+     * of after both. Inserts right at the start if no "Defense:" line is found at all (a
+     * piece with 0 base Defense, e.g. a Turtle Shell reused as a helmet skin, never gets one).
+     */
     private void applyArmorLore(ItemMeta meta, ArmorReforgeStats stats, Language l) {
-        this.replaceLoreBlock(meta, 1, this.armorStatLines(stats, l));
+        this.replaceLoreBlock(meta, this.defenseLoreIndex(meta) + 1, this.armorStatLines(stats, l));
+    }
+
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+
+    /** The index of this item's own "Defense: +N" lore line (see {@link #applyArmorLore}), or {@code -1} if it has none. */
+    private int defenseLoreIndex(ItemMeta meta) {
+        if (!meta.hasLore()) {
+            return -1;
+        }
+        List<Component> lore = meta.lore();
+        for (int i = 0; i < lore.size(); i++) {
+            if (PLAIN.serialize(lore.get(i)).startsWith("Defense:")) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /** Replaces the reforge stat-line block right at the very start of the bow's own lore - unlike a sword's Attack Speed or an armor piece's Defense, a plain bow has no {@code SwordDamageService}-style line of its own to anchor after (nothing else in this plugin gives a bow custom lore), so index 0 is simply where the block always goes. */

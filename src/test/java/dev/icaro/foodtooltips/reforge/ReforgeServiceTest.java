@@ -75,7 +75,7 @@ final class ReforgeServiceTest {
         when(plugin.getConfig()).thenReturn(new YamlConfiguration());
         this.tiers = new ItemTierService(plugin);
         CombatSkillService combat = new CombatSkillService(plugin);
-        this.reforge = new ReforgeService(plugin, this.tiers, combat);
+        this.reforge = new ReforgeService(this.tiers, combat);
 
         this.inventory = mock(PlayerInventory.class);
         when(this.inventory.containsAtLeast(any(), anyInt())).thenReturn(true);

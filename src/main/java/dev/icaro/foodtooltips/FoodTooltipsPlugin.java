@@ -217,7 +217,7 @@ extends JavaPlugin {
         ArmorDefenseService armor = new ArmorDefenseService();
         armor.general(general);
         ItemTierService tiers = new ItemTierService((Plugin)this);
-        ReforgeService reforgeService = new ReforgeService((Plugin)this, tiers, combat);
+        ReforgeService reforgeService = new ReforgeService(tiers, combat);
         stats.reforge(reforgeService);
         armor.reforge(reforgeService);
         LapisArmorService lapisArmor = new LapisArmorService((Plugin)this, tiers);

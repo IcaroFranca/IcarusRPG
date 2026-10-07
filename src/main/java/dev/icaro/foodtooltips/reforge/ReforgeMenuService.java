@@ -112,7 +112,7 @@ public final class ReforgeMenuService {
         }
         if (!this.reforge.isReforgeable(deposited)) {
             player.sendActionBar(this.text(
-                    "Only swords or armor can be reforged.",
+                    "Only swords, bows or armor can be reforged.",
                     NamedTextColor.RED));
             return;
         }
