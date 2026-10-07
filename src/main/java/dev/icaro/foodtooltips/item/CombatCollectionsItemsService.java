@@ -159,7 +159,11 @@ public final class CombatCollectionsItemsService {
                 new String[]{"CCC", "C C", "CCC"}, r -> r.setIngredient('C', new RecipeChoice.ExactChoice(this.rottenFleshCore())));
         this.newShapedRecipe(CollectionsCatalog.ZOMBIE_SWORD_RECIPE, this.zombieSword.createItem(),
                 new String[]{"Z", "Z", "S"}, r -> {
-                    r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem()));
+                    // A plain Material match, not RecipeChoice.ExactChoice(zombiesHeart.createItem())
+                    // - see ZombieSwordService#guardZombieSwordRecipe's own doc on why an exact-NBT
+                    // match against a custom player-head item is unreliable, and why that guard is
+                    // the real enforcement here instead.
+                    r.setIngredient('Z', Material.PLAYER_HEAD);
                     r.setIngredient('S', Material.STICK);
                 });
         this.newShapedRecipe(CollectionsCatalog.ZOMBIE_CHESTPLATE_RECIPE, this.zombieArmor.createChestplate(),

@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.HashMap;
@@ -22,11 +23,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.CraftingRecipe;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -161,6 +165,37 @@ public final class ZombieSwordService implements Listener {
     @EventHandler
     public void quit(PlayerQuitEvent e) {
         this.cooldowns.remove(e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * Enforces the real "both Z slots must actually be a Zombie's Heart" requirement the
+     * recipe's own ingredients no longer can (see {@code CombatCollectionsItemsService}'s own
+     * registration, which uses a plain {@link Material#PLAYER_HEAD} match here instead of
+     * {@code RecipeChoice.ExactChoice(zombiesHeart.createItem())}) - custom player-head items
+     * with a texture profile are a known-unreliable case for Bukkit's own exact-NBT ingredient
+     * match (a real crafted Zombie's Heart, round-tripped through saving/loading the player's
+     * inventory, isn't guaranteed to stay byte-identical to the one in-memory reference built
+     * once at server startup, even though both look and behave identically) - {@code
+     * HurricaneBowService#guardRunaansBowRecipe} hits the same category of problem for a
+     * different reason (its own ingredient's NBT varies per item by design, so an exact match
+     * can never work at all) and already uses this same "match broadly, verify by PDC marker
+     * in a {@link PrepareItemCraftEvent} guard" fix - {@link ZombiesHeartService#isZombiesHeart}
+     * is this recipe's own equivalent of that class's {@code isHurricaneBow}. Checks every
+     * matrix slot (not a fixed index) since this recipe's 1-column shape can match in any of
+     * the 3 grid columns.
+     */
+    @EventHandler
+    public void guardZombieSwordRecipe(PrepareItemCraftEvent e) {
+        Recipe recipe = e.getRecipe();
+        if (!(recipe instanceof CraftingRecipe crafting) || !CollectionsCatalog.ZOMBIE_SWORD_RECIPE.equals(crafting.getKey())) {
+            return;
+        }
+        for (ItemStack slot : e.getInventory().getMatrix()) {
+            if (slot != null && slot.getType() == Material.PLAYER_HEAD && !ZombiesHeartService.isZombiesHeart(slot)) {
+                e.getInventory().setResult(null);
+                return;
+            }
+        }
     }
 
     /** {@value #VITALITY_COST_PERCENT}% of {@code maxVitality} - broken out from {@link #instantHeal} so it's unit-testable without a live {@link Player}. */

@@ -9,10 +9,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 /**
  * Rotten Flesh Collection M6 - a custom-head item ("Heart (moldy)", minecraft-heads.com
@@ -40,6 +42,8 @@ import org.bukkit.inventory.meta.SkullMeta;
  */
 public final class ZombiesHeartService {
     private static final UUID PROFILE = UUID.nameUUIDFromBytes("icarusrpg:zombies_heart".getBytes(StandardCharsets.UTF_8));
+    /** See {@link #isZombiesHeart} - a plain PDC byte marker, checked instead of an exact-NBT {@code RecipeChoice.ExactChoice} match for {@code item.ZombieSwordService}'s own recipe (see that class's own {@code guardZombieSwordRecipe} doc on why). */
+    private static final NamespacedKey KEY = new NamespacedKey("foodtooltips", "zombies_heart");
     public static final int HEALTH = 50;
     public static final int VITALITY = 30;
     public static final int MENDING = 30;
@@ -56,6 +60,7 @@ public final class ZombiesHeartService {
         var profile = Bukkit.createProfile(PROFILE);
         profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", HeadTexture.ZOMBIES_HEART));
         meta.setPlayerProfile(profile);
+        meta.getPersistentDataContainer().set(KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Zombie's Heart", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         AccessoryItems.mark((ItemMeta) meta, AccessoryType.CHARM, "zombies_heart", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
         AccessoryItems.markHealthVitalityMending((ItemMeta) meta, HEALTH, VITALITY, MENDING);
@@ -72,5 +77,14 @@ public final class ZombiesHeartService {
         item.setItemMeta(meta);
         ItemStack tiered = this.tiers.applyTier(item, Language.EN);
         return tiered != null ? tiered : item;
+    }
+
+    /** See {@link #KEY}'s own doc - whether {@code item} is genuinely a Zombie's Heart, checked by PDC marker rather than exact-NBT identity. */
+    public static boolean isZombiesHeart(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE);
     }
 }
