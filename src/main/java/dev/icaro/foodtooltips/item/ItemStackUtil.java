@@ -1,5 +1,6 @@
 package dev.icaro.foodtooltips.item;
 
+import java.util.Set;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -19,9 +20,21 @@ public final class ItemStackUtil {
     private ItemStackUtil() {
     }
 
-    /** Returns true if anything moved (caller is responsible for writing the array back to the inventory). */
-    public static boolean coalesce(ItemStack[] storage) {
-        boolean changed = false;
+    /**
+     * Adds every slot index this pass actually moved an item into or out of to {@code touched}
+     * - a totally ordinary pair of non-full same-item stacks (two partial stacks of arrows, say,
+     * nothing to do with tier tagging at all) is extremely common in any real inventory, so this
+     * runs every tick and WILL merge them; the caller must only write back the indices actually
+     * added here (e.g. {@code Inventory#setItem} per slot), never the whole array unconditionally
+     * ({@code Inventory#setStorageContents}) - that was sending a full-inventory refresh packet
+     * on every tick ANY unrelated pair of stacks happened to merge, visible as every item in the
+     * inventory flickering (reported by two players testing the same build: "os itens voltou a
+     * flicar"). Previously returned a plain boolean for the same "did anything change" signal -
+     * true for literally any player with two non-full matching stacks anywhere, which is nearly
+     * always true during normal play, hence the constant flicker once that boolean drove a
+     * bulk {@code setStorageContents} call.
+     */
+    public static void coalesce(ItemStack[] storage, Set<Integer> touched) {
         for (int i = 0; i < storage.length; i++) {
             ItemStack into = storage[i];
             if (into == null || into.isEmpty() || into.getAmount() >= into.getMaxStackSize()) {
@@ -41,12 +54,12 @@ public final class ItemStackUtil {
                 if (from.getAmount() <= 0) {
                     storage[j] = null;
                 }
-                changed = true;
+                touched.add(i);
+                touched.add(j);
                 if (into.getAmount() >= into.getMaxStackSize()) {
                     break;
                 }
             }
         }
-        return changed;
     }
 }

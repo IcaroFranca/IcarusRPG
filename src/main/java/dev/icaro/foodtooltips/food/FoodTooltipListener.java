@@ -222,8 +222,12 @@ implements Listener {
         // clicked anywhere else. Only where every slot is interchangeable storage (see
         // isSimpleStorage) - never on a crafting/process block, where slot position is
         // meaningful and this would corrupt it instead.
-        if (coalesce && changed && ItemStackUtil.coalesce(contents)) {
-            changed = true;
+        if (coalesce && changed) {
+            // changed is already true from the rewrite pass above, so this write-back
+            // happens regardless - coalesce's own result doesn't need to gate it, only
+            // whether it runs at all (see this method's own doc on why: never silently
+            // re-merge stacks the player just split, only right after a real rewrite).
+            ItemStackUtil.coalesce(contents, new HashSet<>());
         }
         if (changed) {
             inv.setContents(contents);

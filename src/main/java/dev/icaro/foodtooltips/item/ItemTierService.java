@@ -4,8 +4,10 @@ import dev.icaro.foodtooltips.i18n.Language;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -169,12 +171,22 @@ public final class ItemTierService {
 
     // ----- Tooltip rewrite --------------------------------------------------
 
-    /** Applies the tier tooltip to every item in the player's inventory (storage, armor and offhand). */
+    /**
+     * Applies the tier tooltip to every item in the player's inventory (storage, armor and
+     * offhand) - writes back ONLY the slots that actually changed (see {@link
+     * ItemStackUtil#coalesce}'s own doc on why: {@code Inventory#setStorageContents}/{@code
+     * #setArmorContents} replace every slot at once, which sends the client a full-inventory
+     * refresh even for the untouched slots - since {@link ItemStackUtil#coalesce} legitimately
+     * merges ANY two non-full matching stacks (completely ordinary ambient inventory state,
+     * nothing to do with tier tagging), that blanket write used to fire on almost every call,
+     * visibly flickering every item in the inventory every tick - reported by two players
+     * testing the same build ("os itens voltou a flicar").
+     */
     public void applyItemTiers(Player p) {
         Language l = Language.of(p);
         PlayerInventory inv = p.getInventory();
         ItemStack[] storage = inv.getStorageContents();
-        boolean changed = false;
+        Set<Integer> touched = new HashSet<>();
         for (int i = 0; i < storage.length; i++) {
             ItemStack updated = this.applyTier(storage[i], l);
             if (updated == null) {
@@ -182,7 +194,7 @@ public final class ItemTierService {
             }
             if (updated != null) {
                 storage[i] = updated;
-                changed = true;
+                touched.add(i);
             }
         }
         // A freshly-received item (bought, mined, looted, given...) only gets its tier
@@ -191,13 +203,12 @@ public final class ItemTierService {
         // the game can't merge them and they end up as two separate slots even once both
         // are tagged identically. Re-coalescing every tick, right after tagging, heals
         // that split (and any other stray fragmentation) instead of leaving it stuck.
-        if (ItemStackUtil.coalesce(storage)) {
-            changed = true;
-        }
-        if (changed) {
-            inv.setStorageContents(storage);
+        ItemStackUtil.coalesce(storage, touched);
+        for (int i : touched) {
+            inv.setItem(i, storage[i]);
         }
         ItemStack[] armor = inv.getArmorContents();
+        boolean[] armorTouched = new boolean[armor.length];
         for (int i = 0; i < armor.length; i++) {
             ItemStack updated = this.applyTier(armor[i], l);
             if (updated == null) {
@@ -205,9 +216,24 @@ public final class ItemTierService {
             }
             if (updated != null) {
                 armor[i] = updated;
+                armorTouched[i] = true;
             }
         }
-        inv.setArmorContents(armor);
+        // getArmorContents()'s own stable index order: boots(0), leggings(1), chestplate(2),
+        // helmet(3) - same per-slot write reasoning as storage above, just via the named
+        // setters since armor has no setItem(int) equivalent.
+        if (armorTouched[0]) {
+            inv.setBoots(armor[0]);
+        }
+        if (armorTouched[1]) {
+            inv.setLeggings(armor[1]);
+        }
+        if (armorTouched[2]) {
+            inv.setChestplate(armor[2]);
+        }
+        if (armorTouched[3]) {
+            inv.setHelmet(armor[3]);
+        }
         ItemStack offhand = this.applyTier(inv.getItemInOffHand(), l);
         if (offhand == null) {
             offhand = this.repairTierSpacing(inv.getItemInOffHand());
