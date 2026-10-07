@@ -265,6 +265,9 @@ public final class WoodcuttingCrystalService implements Listener {
         stand.setArms(false);
         stand.setSmall(false);
         stand.setMarker(false);
+        // See FarmCrystalService's own doc on this exact fix - a placed, persistent crystal
+        // with a real collision box is an invisible wall exactly where it stands.
+        stand.setCollidable(false);
         stand.setSilent(true);
         stand.setPersistent(true);
         stand.setCustomNameVisible(false);

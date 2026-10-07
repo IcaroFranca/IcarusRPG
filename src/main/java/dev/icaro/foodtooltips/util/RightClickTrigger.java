@@ -5,9 +5,11 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.wrappers.BlockPosition;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -40,6 +42,21 @@ import org.bukkit.plugin.Plugin;
  * that thread and hops onto the main thread via {@link
  * org.bukkit.scheduler.BukkitScheduler#runTask} before calling {@code onRightClick} - every
  * caller's own real ability logic runs safely on the main thread no matter what.
+ *
+ * <p><b>Never cancels a right-click aimed at a block with its own vanilla interaction</b> (a
+ * door, gate, chest, hopper, furnace, button...) - {@code USE_ITEM_ON} fires for ANY right-click
+ * that has a block in reach, not just one meant to trigger an ability, so cancelling it
+ * unconditionally broke opening doors/gates/chests/hoppers for anyone simply holding one of
+ * these items (reported by two players testing the same build: "interagir coisas com a espada
+ * tmb n ta funcionando - abrir portas, portão, baú, funil - nada", fixed by taking the item out
+ * of their hand). {@link Material#isInteractable()} is read straight off the packet's own target
+ * block (synchronously, on this same Netty thread, same "cheap read of already-loaded data"
+ * reasoning {@code shouldHandle}'s own inventory check already relies on - never safe for a
+ * structural write like spawning an entity, but a plain {@code Material} field read off a
+ * resident chunk is) - true means let the packet through untouched so vanilla's own door/chest
+ * logic runs normally, with no ability trigger from this one click (Swap Hands still works for
+ * it). Only a right-click with no block in reach, or aimed at a plain non-interactive block
+ * (stone, dirt...), ever triggers the ability via this path.
  */
 public final class RightClickTrigger {
     private RightClickTrigger() {
@@ -68,10 +85,23 @@ public final class RightClickTrigger {
                 if (!shouldHandle.test(p)) {
                     return;
                 }
+                if (event.getPacketType() == PacketType.Play.Client.USE_ITEM_ON && targetsInteractableBlock(p, event)) {
+                    return;
+                }
                 event.setCancelled(true);
                 Bukkit.getScheduler().runTask(plugin, () -> onRightClick.accept(p));
             }
         });
         return true;
+    }
+
+    /** See this class's own doc on why a right-click aimed at a door/chest/gate/etc. must never be cancelled here. */
+    private static boolean targetsInteractableBlock(Player p, PacketEvent event) {
+        BlockPosition pos = event.getPacket().getBlockPositionModifier().readSafely(0);
+        if (pos == null) {
+            return false;
+        }
+        Material type = p.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getType();
+        return type.isInteractable();
     }
 }

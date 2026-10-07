@@ -132,6 +132,7 @@ implements Listener {
             d.setArms(false);
             d.setSmall(true);
             d.setMarker(false);
+            d.setCollidable(false);
             d.setSilent(true);
             d.setInvulnerable(true);
             d.setPersistent(false);

@@ -138,6 +138,11 @@ public final class FarmCrystalService implements Listener {
         stand.setArms(false);
         stand.setSmall(false);
         stand.setMarker(false);
+        // Not a marker (so its own helmet/head stays interactable/pickupable - see the
+        // class doc), but still must never physically block a player - a placed, persistent
+        // crystal with a real collision box is an invisible wall exactly where it stands,
+        // reported as "blocos invisiveis q barra o personagem a andar".
+        stand.setCollidable(false);
         stand.setSilent(true);
         stand.setPersistent(true);
         stand.setCustomNameVisible(false);
