@@ -149,6 +149,9 @@ public final class MushroomSoupFlightService implements Listener {
         Score score = objective.getScore(SCORE_ENTRY);
         score.customName(Component.text("Time left", NamedTextColor.AQUA));
         score.setScore(ticksRemaining / 20);
+        // The sidebar's own number on the right reads dd:hh:mm:ss instead of raw seconds.
+        score.numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat.fixed(
+                Component.text(dev.icaro.foodtooltips.util.DurationFormat.ddhhmmss(ticksRemaining / 20), NamedTextColor.WHITE)));
     }
 
     /** Removes the flight sidebar from {@code p} once their timer hits zero, reverting them back to the shared main scoreboard if nothing else is using their personal one (see {@link #ensurePersonalBoard}). */

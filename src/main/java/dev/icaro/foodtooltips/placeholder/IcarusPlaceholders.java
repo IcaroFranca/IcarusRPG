@@ -20,8 +20,9 @@ import org.bukkit.entity.Player;
  * scoreboard plugin's whole board while up - see {@code util.SidebarMode}), for TAB to show
  * instead: %icarusrpg_heat% (current Nether Heat, 0 outside it), %icarusrpg_nether% ("true"
  * in the Nether - for a Nether-only TAB board's display-condition, regardless of world name),
- * %icarusrpg_flight% (Mushroom Soup flight seconds left, 0 if none) and
- * %icarusrpg_flight_display% (a ready-made "✦ Flight: 30s" line, empty when not flying).
+ * %icarusrpg_flight% (Mushroom Soup flight seconds left, 0 if none - for conditions),
+ * %icarusrpg_flight_time% (that same time as dd:hh:mm:ss) and %icarusrpg_flight_display% (a
+ * ready-made "✦ Flight: 00:00:00:30" line, empty when not flying).
  */
 public final class IcarusPlaceholders extends PlaceholderExpansion {
     private final GlobalLevelService global;
@@ -69,9 +70,11 @@ public final class IcarusPlaceholders extends PlaceholderExpansion {
                 return String.valueOf(player.getWorld().getEnvironment() == org.bukkit.World.Environment.NETHER);
             case "flight":
                 return String.valueOf(this.flightSeconds.applyAsInt(player));
+            case "flight_time":
+                return dev.icaro.foodtooltips.util.DurationFormat.ddhhmmss(this.flightSeconds.applyAsInt(player));
             case "flight_display": {
                 int seconds = this.flightSeconds.applyAsInt(player);
-                return seconds > 0 ? "§d✦ Flight: §f" + seconds + "s" : "";
+                return seconds > 0 ? "§d✦ Flight: §f" + dev.icaro.foodtooltips.util.DurationFormat.ddhhmmss(seconds) : "";
             }
             default:
                 return null;
