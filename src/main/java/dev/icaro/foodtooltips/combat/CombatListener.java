@@ -530,8 +530,11 @@ public final class CombatListener implements Listener {
             // weaponStrengthBonus, so "N points of Strength" means the same +N% regardless
             // of whether the hit was melee or ranged. Armor Strength reforges used to only
             // apply to melee here - a bow-wielding player's armor reforges silently did
-            // nothing until this was folded in too.
-            double bowStrengthPercent = bowReforge.strength() + armorReforge.strength();
+            // nothing until this was folded in too. Same story for the Accessory Bag's own
+            // Power Strength (see power.MagicalPowerService) - melee reads it through
+            // stats.stats(p).strength(), but this branch never did, so a bow player's Power
+            // Strength was shown everywhere and applied nowhere.
+            double bowStrengthPercent = bowReforge.strength() + armorReforge.strength() + this.stats.accessoryStrength(p);
             double archeryPotionPercent = this.archeryPotionPercent.applyAsDouble(p);
             damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent + archeryPotionPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
                     * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead * arthropod;

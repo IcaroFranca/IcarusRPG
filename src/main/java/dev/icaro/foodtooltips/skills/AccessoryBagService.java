@@ -110,6 +110,11 @@ public final class AccessoryBagService {
     /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
     private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "accessory_bag_filler");
     private final Map<UUID, Inventory> cache = new HashMap<>();
+    /** See {@link #stored} - the last deserialized copy of each player's saved contents, keyed by the exact serialized string it came from. */
+    private final Map<UUID, LoadedContents> loaded = new HashMap<>();
+
+    private record LoadedContents(String data, ItemStack[] items) {
+    }
     private final Set<UUID> viewing = new HashSet<>();
 
     public AccessoryBagService(Plugin plugin, ItemTierService tiers, Consumer<Player> back) {
@@ -164,6 +169,7 @@ public final class AccessoryBagService {
         this.viewing.remove(p.getUniqueId());
         this.persist(p);
         this.cache.remove(p.getUniqueId());
+        this.loaded.remove(p.getUniqueId());
     }
 
     public void backButtonClicked(Player p) {
@@ -477,14 +483,38 @@ public final class AccessoryBagService {
         return false;
     }
 
-    /** {@code p}'s own {@value #STORAGE_SIZE} storage slots - from the live cached screen if {@code p} has one (so a change lands immediately, before the bag is ever closed/persisted), otherwise from their last-persisted PDC state. */
+    /**
+     * {@code p}'s own {@value #STORAGE_SIZE} storage slots - from the live cached screen if {@code
+     * p} has one (so a change lands immediately, before the bag is ever closed/persisted),
+     * otherwise from their last-persisted PDC state. Read-only for every caller: the items
+     * themselves may be shared with {@link #loaded}.
+     *
+     * <p>Until the player opens the bag this session there's no live {@link #cache} screen, and
+     * every caller here (Magical Power - read by every Power stat hook, so several times per HUD
+     * tick and on every hit - plus the Health/Vitality/Mending totals) used to deserialize the
+     * whole saved bag from scratch each time. {@link #loaded} keeps the last deserialized copy
+     * and reuses it for as long as the saved string is unchanged; any {@link #persist} writes a
+     * new string, so the next read naturally reloads.
+     */
     private ItemStack[] stored(Player p) {
         Inventory cached = this.cache.get(p.getUniqueId());
         if (cached != null) {
             return Arrays.copyOfRange(cached.getContents(), 0, STORAGE_SIZE);
         }
-        ItemStack[] saved = this.load(p);
-        return saved == null ? new ItemStack[STORAGE_SIZE] : saved;
+        String data = p.getPersistentDataContainer().get(this.contentsKey, PersistentDataType.STRING);
+        if (data == null || data.isEmpty()) {
+            return new ItemStack[STORAGE_SIZE];
+        }
+        LoadedContents previous = this.loaded.get(p.getUniqueId());
+        if (previous == null || !previous.data().equals(data)) {
+            ItemStack[] saved = this.load(p);
+            if (saved == null) {
+                return new ItemStack[STORAGE_SIZE];
+            }
+            previous = new LoadedContents(data, saved);
+            this.loaded.put(p.getUniqueId(), previous);
+        }
+        return previous.items().clone();
     }
 
     /**

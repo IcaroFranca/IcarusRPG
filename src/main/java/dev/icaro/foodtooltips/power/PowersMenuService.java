@@ -65,11 +65,21 @@ public final class PowersMenuService {
         int total = this.accessoryBag.totalMagicalPower(p);
         double multiplier = MagicalPowerService.statsMultiplier(total);
         Power selected = this.magicalPower.selected(p);
+        Power effective = this.magicalPower.effective(p);
 
         List<Component> headLore = new ArrayList<>();
         headLore.add(this.text("Magical Power: " + total, NamedTextColor.LIGHT_PURPLE));
         headLore.add(this.text("Stats Multiplier: " + String.format(Locale.ROOT, "%.4f", multiplier), NamedTextColor.GRAY));
         headLore.add(this.text("Selected: " + selected.name(), NamedTextColor.YELLOW));
+        if (!effective.id().equals(selected.id())) {
+            headLore.add(this.text("Locked - using " + effective.name() + " instead", NamedTextColor.RED));
+        }
+        headLore.add(Component.empty());
+        // What the player is actually getting right now - the exact amounts every stat hook
+        // applies (see MagicalPowerService#defensePoints), not the raw formula output.
+        headLore.add(this.text("Active bonuses:", NamedTextColor.GRAY));
+        this.statLines(headLore, effective, multiplier);
+        headLore.add(this.text("More accessories = more Magical Power = bigger bonuses.", NamedTextColor.DARK_GRAY));
         headLore.add(Component.empty());
         headLore.add(this.text("From your accessories:", NamedTextColor.GRAY));
         List<ItemStack> equipped = this.accessoryBag.equippedAccessories(p);
@@ -120,25 +130,42 @@ public final class PowersMenuService {
         lore.add(this.text("Requires Combat " + (power.type() == PowerType.STARTER ? "0" : String.valueOf(MagicalPowerService.REQUIRED_COMBAT_LEVEL)),
                 unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
         lore.add(Component.empty());
-        this.statLine(lore, "Health", power.health(), multiplier);
-        this.statLine(lore, "Defense", power.defense(), multiplier);
-        this.statLine(lore, "Strength", power.strength(), multiplier);
-        this.statLine(lore, "Speed", power.speed(), multiplier);
-        this.statLine(lore, "Intelligence", power.intelligence(), multiplier);
-        this.statLine(lore, "Crit Chance", power.critChance(), multiplier);
-        this.statLine(lore, "Crit Damage", power.critDamage(), multiplier);
-        this.statLine(lore, "Mining Speed", power.miningSpeed(), multiplier);
+        this.statLines(lore, power, multiplier);
         lore.add(Component.empty());
         lore.add(this.text(active ? "SELECTED" : (unlocked ? "Click to select" : "LOCKED"), active ? NamedTextColor.GOLD : (unlocked ? NamedTextColor.YELLOW : NamedTextColor.RED)));
         return lore;
     }
 
-    private void statLine(List<Component> lore, String label, double base, double multiplier) {
+    /** Every stat {@code power} grants, at {@code multiplier}, in the same units/rounding the game applies it with. */
+    private void statLines(List<Component> lore, Power power, double multiplier) {
+        this.statLine(lore, "Health", power.health(), multiplier, false, "");
+        this.statLine(lore, "Defense", power.defense(), multiplier, true, "");
+        this.statLine(lore, "Strength", power.strength(), multiplier, true, "");
+        this.statLine(lore, "Speed", power.speed(), multiplier, false, "%");
+        this.statLine(lore, "Intelligence", power.intelligence(), multiplier, false, "");
+        this.statLine(lore, "Crit Chance", power.critChance(), multiplier, false, "%");
+        this.statLine(lore, "Crit Damage", power.critDamage(), multiplier, false, "%");
+        this.statLine(lore, "Mining Speed", power.miningSpeed(), multiplier, true, "");
+    }
+
+    /**
+     * One stat line showing what the player really gets: {@code wholePoints} stats (Defense,
+     * Strength, Mining Speed) only exist as whole numbers where they're applied (see {@link
+     * MagicalPowerService#defensePoints}), so they're rounded the same way here - one that rounds
+     * to nothing is greyed out with a nudge toward more Magical Power, instead of promising a
+     * fraction (the old "+0.36 Defense") the player never actually received.
+     */
+    private void statLine(List<Component> lore, String label, double base, double multiplier, boolean wholePoints, String unit) {
         if (base <= 0.0) {
             return;
         }
         double current = base * multiplier;
-        lore.add(this.text(String.format(Locale.ROOT, "+%.2f %s (base %.2f)", current, label, base), NamedTextColor.AQUA));
+        String value = wholePoints ? String.valueOf(Math.round(current)) : String.format(Locale.ROOT, "%.1f", current);
+        boolean nothing = wholePoints ? Math.round(current) == 0 : current < 0.05;
+        String line = String.format(Locale.ROOT, "+%s%s %s (base %.2f)", value, unit, label, base);
+        lore.add(nothing
+                ? this.text(line + " - needs more Magical Power", NamedTextColor.DARK_GRAY)
+                : this.text(line, NamedTextColor.AQUA));
     }
 
     private Component text(String value, NamedTextColor color) {

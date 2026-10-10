@@ -297,10 +297,11 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.power.MagicalPowerService magicalPower = new dev.icaro.foodtooltips.power.MagicalPowerService(this.accessoryBag, combat);
         dev.icaro.foodtooltips.power.PowersMenuService powersMenu = new dev.icaro.foodtooltips.power.PowersMenuService((Plugin)this, this.accessoryBag, magicalPower, this.accessoryBag::open);
         this.accessoryBag.powersMenu(powersMenu::open);
-        armor.accessoryDefenseBonus(e -> e instanceof Player power ? (int) Math.round(magicalPower.defenseBonus(power)) : 0);
-        stats.accessoryStrengthBonus(magicalPower::strengthBonus);
+        armor.accessoryDefenseBonus(e -> e instanceof Player power ? magicalPower.defensePoints(power) : 0);
+        stats.accessoryStrengthBonus(magicalPower::strengthPoints);
         stats.accessoryIntelligenceBonus(magicalPower::intelligenceBonus);
-        general.accessoryMiningSpeedBonus(p -> (int) Math.round(magicalPower.miningSpeedBonus(p)));
+        general.accessoryMiningSpeedBonus(magicalPower::miningSpeedPoints);
+        menus.magicalPower(magicalPower);
         this.creakingSight = new dev.icaro.foodtooltips.creaking.CreakingSightService((Plugin)this, this.accessoryBag);
         this.getServer().getPluginManager().registerEvents((Listener)this.creakingSight, (Plugin)this);
         this.creakingSight.start();

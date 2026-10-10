@@ -114,6 +114,7 @@ public final class SkillsMenuService {
     private ReforgeService reforge;
     private CollectionsMenuService collections;
     private dev.icaro.foodtooltips.trade.TradeMenuService trade;
+    private dev.icaro.foodtooltips.power.MagicalPowerService magicalPower;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -200,6 +201,30 @@ public final class SkillsMenuService {
     /** The MAIN screen's Trade button (slot {@value #TRADE_SLOT}, per the player's own explicit spec) - see {@link dev.icaro.foodtooltips.trade.TradeMenuService}. */
     public void trade(dev.icaro.foodtooltips.trade.TradeMenuService trade) {
         this.trade = trade;
+    }
+
+    /**
+     * Wired after construction, same reason as {@link #enchants} - lets {@link #head}/{@link
+     * #combatStatItems} count the Accessory Bag's selected Power. Crit Chance/Crit Damage used to
+     * be recomputed here from every source EXCEPT the Power, so the stats screen never moved when
+     * a player gained Magical Power even though {@code combat.CombatListener} was applying it -
+     * every other Power stat was already in its total, just never named in the breakdown.
+     */
+    public void magicalPower(dev.icaro.foodtooltips.power.MagicalPowerService magicalPower) {
+        this.magicalPower = magicalPower;
+    }
+
+    private double powerCritChance(Player p) {
+        return this.magicalPower == null ? 0.0 : this.magicalPower.critChanceBonus(p);
+    }
+
+    private double powerCritDamage(Player p) {
+        return this.magicalPower == null ? 0.0 : this.magicalPower.critDamageBonus(p);
+    }
+
+    /** "Power (Name) +value" breakdown line, or null (dropped by {@link #join}) when the Power grants nothing for this stat. */
+    private String powerLine(Player p, double value, String formatted) {
+        return this.magicalPower == null || value <= 0.0 ? null : "Power (" + this.magicalPower.effective(p).name() + ") +" + formatted;
     }
 
     /**
@@ -762,8 +787,8 @@ public final class SkillsMenuService {
                 : this.reforge.statsOf(mainHand).critDamage() + this.reforge.bowStatsOf(mainHand).critDamage() + this.reforge.totalArmorStats(p).critDamage();
         double reforgeStrength = this.reforge == null ? 0.0
                 : this.reforge.statsOf(mainHand).strength() + this.reforge.bowStatsOf(mainHand).strength() + this.reforge.totalArmorStats(p).strength();
-        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage;
-        double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p) + reforgeCritChance);
+        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage + this.powerCritDamage(p);
+        double critChance = Math.min(100.0, this.combat.critChance(c.level()) + this.abilities.critChanceBonus(p) + reforgeCritChance + this.powerCritChance(p));
         List<Component> lore = List.of(
                 this.text("View your equipment, stats, and more!", NamedTextColor.GRAY),
                 Component.empty(),
@@ -1013,9 +1038,20 @@ public final class SkillsMenuService {
         double reforgeDefense = armorReforge == null ? 0.0 : armorReforge.defense();
         double combatCritChance = this.combat.critChance(c.level());
         double critChanceBonus = this.abilities.critChanceBonus(p);
-        double critChance = Math.min(100.0, combatCritChance + critChanceBonus + reforgeCritChance);
+        double powerCritChance = this.powerCritChance(p);
+        double powerCritDamage = this.powerCritDamage(p);
+        double critChance = Math.min(100.0, combatCritChance + critChanceBonus + reforgeCritChance + powerCritChance);
         boolean criticalMastery = this.abilities.enabled(p, CombatAbility.CRITICAL_MASTERY);
-        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage;
+        double critDamage = (this.abilities.criticalDamageMultiplier(p) - 1.0) * 100.0 + reforgeCritDamage + powerCritDamage;
+        double accessoryHealth = this.accessoryBag == null ? 0.0 : this.accessoryBag.totalHealthBonus(p);
+        double powerHealth = this.magicalPower == null ? 0.0 : this.magicalPower.healthBonus(p);
+        int powerDefense = this.magicalPower == null ? 0 : this.magicalPower.defensePoints(p);
+        long powerStrength = this.magicalPower == null ? 0L : this.magicalPower.strengthPoints(p);
+        double powerIntelligence = this.magicalPower == null ? 0.0 : this.magicalPower.intelligenceBonus(p);
+        // A Power's Speed points become Movement Speed at 0.001 each (see
+        // MagicalPowerService#applySpeedAttribute) against vanilla's 0.1 base - i.e. exactly
+        // +1% per point on the Speed line below.
+        double powerSpeedPercent = this.magicalPower == null ? 0.0 : this.magicalPower.speedBonus(p);
         long globalStrength = g.level() / (long) this.global.levelsPerStrength() * (long) this.global.strengthPerGroup();
         long foragingStrength = this.general.bonusStrength(p);
         double baseHealth = this.stats.baseHealth();
@@ -1035,7 +1071,9 @@ public final class SkillsMenuService {
                         bestiaryHealth > 0 ? "Bestiary +" + Math.round(bestiaryHealth) : null,
                         globalHealth > 0 ? "Global Level +" + Math.round(globalHealth) : null,
                         skillHealth > 0 ? "Farming/Fishing +" + Math.round(skillHealth) : null,
-                        reforgeHealth != 0 ? "Reforge +" + Math.round(reforgeHealth) : null),
+                        reforgeHealth != 0 ? "Reforge +" + Math.round(reforgeHealth) : null,
+                        accessoryHealth > 0 ? "Accessories +" + Math.round(accessoryHealth) : null,
+                        this.powerLine(p, powerHealth, String.format(Locale.US, "%.1f", powerHealth))),
                 HEALTH_INFO, l));
 
         double damageReduction = this.armor.damageReduction(p) * 100.0;
@@ -1046,6 +1084,7 @@ public final class SkillsMenuService {
                         legsDef > 0 ? "Leggings +" + legsDef : null,
                         bootsDef > 0 ? "Boots +" + bootsDef : null,
                         miningDef > 0 ? "Mining +" + miningDef : null,
+                        this.powerLine(p, powerDefense, String.valueOf(powerDefense)),
                         defense == 0 ? "No source" : null),
                 ("= " + defense + "/(" + defense + "+100) = " + String.format(Locale.US, "%.1f", damageReduction) + "% damage reduction"),
                 DEFENSE_INFO, l));
@@ -1056,19 +1095,22 @@ public final class SkillsMenuService {
         items.add(this.statItem(Material.DIAMOND_SWORD, "✹ Strength: " + Math.round(s.strength() + reforgeStrength),
                 this.join("Global Level +" + globalStrength,
                         foragingStrength > 0 ? "Foraging +" + foragingStrength : null,
-                        reforgeStrength != 0 ? "Reforge +" + Math.round(reforgeStrength) : null),
+                        reforgeStrength != 0 ? "Reforge +" + Math.round(reforgeStrength) : null,
+                        this.powerLine(p, powerStrength, String.valueOf(powerStrength))),
                 STRENGTH_INFO, l));
 
         items.add(this.statItem(Material.ARROW, "☣ " + "Crit Chance: " + String.format(Locale.US, "%.1f", critChance) + "%",
                 this.join("Combat Level +" + String.format(Locale.US, "%.1f", combatCritChance) + "%",
                         critChanceBonus > 0 ? "Ruthless Strikes +" + String.format(Locale.US, "%.1f", critChanceBonus) + "%" : null,
-                        reforgeCritChance != 0 ? "Reforge +" + String.format(Locale.US, "%.1f", reforgeCritChance) + "%" : null),
+                        reforgeCritChance != 0 ? "Reforge +" + String.format(Locale.US, "%.1f", reforgeCritChance) + "%" : null,
+                        this.powerLine(p, powerCritChance, String.format(Locale.US, "%.1f", powerCritChance) + "%")),
                 CRIT_CHANCE_INFO, l));
 
         items.add(this.statItem(Material.NETHERITE_SWORD, "☠ " + "Crit Damage: " + String.format(Locale.US, "%.1f", critDamage) + "%",
                 this.join(criticalMastery ? "Critical Mastery (rank " + this.abilities.rank(p, CombatAbility.CRITICAL_MASTERY) + ")"
                                 : "Base (config) - Critical Mastery not unlocked",
-                        reforgeCritDamage != 0 ? "Reforge +" + String.format(Locale.US, "%.1f", reforgeCritDamage) + "%" : null),
+                        reforgeCritDamage != 0 ? "Reforge +" + String.format(Locale.US, "%.1f", reforgeCritDamage) + "%" : null,
+                        this.powerLine(p, powerCritDamage, String.format(Locale.US, "%.1f", powerCritDamage) + "%")),
                 CRIT_DAMAGE_INFO, l));
 
         items.add(this.statItem(Material.GOLDEN_AXE, "Ⓕ Ferocity: " + Math.round(s.ferocity()),
@@ -1089,7 +1131,8 @@ public final class SkillsMenuService {
         items.add(this.statItem(Material.LAPIS_LAZULI, "✎ " + "Intelligence: " + Math.round(s.intelligence()),
                 this.join("Base " + Math.round(this.stats.baseIntelligence()),
                         alchemyEnchantingIntelligence > 0 ? "Alchemy/Enchanting +" + alchemyEnchantingIntelligence : null,
-                        reforgeIntelligence != 0 ? "Reforge +" + Math.round(reforgeIntelligence) : null),
+                        reforgeIntelligence != 0 ? "Reforge +" + Math.round(reforgeIntelligence) : null,
+                        this.powerLine(p, powerIntelligence, String.format(Locale.US, "%.1f", powerIntelligence))),
                 INTELLIGENCE_INFO, l));
 
         // Agility/Speed is the same pairing as Intelligence/Mana above - a plain stat
@@ -1108,7 +1151,8 @@ public final class SkillsMenuService {
         long speedPercent = Math.round(this.value(p, Attribute.MOVEMENT_SPEED, 0.1) / 0.1 * 100.0);
         items.add(this.statItem(Material.SUGAR, "🏃 " + "Speed: " + speedPercent + "%",
                 this.join("Base 100%",
-                        agility > 0 ? "Agility +" + Math.round(agility) + "%" : null),
+                        agility > 0 ? "Agility +" + Math.round(agility) + "%" : null,
+                        this.powerLine(p, powerSpeedPercent, String.format(Locale.US, "%.1f", powerSpeedPercent) + "%")),
                 SPEED_INFO, l));
 
         items.add(this.statItem(Material.BLAZE_POWDER, "❉ " + "Ability Damage: " + Math.round(s.abilityDamage()) + "%",

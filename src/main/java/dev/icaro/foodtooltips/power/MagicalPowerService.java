@@ -119,6 +119,28 @@ public final class MagicalPowerService {
         return this.effective(p).miningSpeed() * this.multiplier(p);
     }
 
+    /**
+     * Defense/Strength/Mining Speed only exist as whole points wherever they're actually applied
+     * ({@code skills.ArmorDefenseService#defense}, {@code stats.PlayerStatsService#stats}, {@code
+     * skills.GeneralSkillService#applyMiningSpeedAttribute}), so these are the exact amounts the
+     * player really gets - wired into those hooks AND shown by {@link PowersMenuService}/{@code
+     * skills.SkillsMenuService}, so no screen ever promises a fraction (say "+0.36 Defense") that
+     * rounds away to nothing in play.
+     */
+    public int defensePoints(Player p) {
+        return (int) Math.round(this.defenseBonus(p));
+    }
+
+    /** See {@link #defensePoints}. */
+    public long strengthPoints(Player p) {
+        return Math.round(this.strengthBonus(p));
+    }
+
+    /** See {@link #defensePoints}. */
+    public int miningSpeedPoints(Player p) {
+        return (int) Math.round(this.miningSpeedBonus(p));
+    }
+
     /** Converts {@link #healthBonus} into the real vanilla Max Health attribute - see this class's own doc. */
     public void applyHealthAttribute(Player p) {
         AttributeInstance health = p.getAttribute(Attribute.MAX_HEALTH);

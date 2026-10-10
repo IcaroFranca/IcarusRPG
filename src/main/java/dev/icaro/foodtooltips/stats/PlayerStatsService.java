@@ -142,6 +142,11 @@ public final class PlayerStatsService {
         this.accessoryStrengthBonus = accessoryStrengthBonus;
     }
 
+    /** {@link #accessoryStrengthBonus} as the whole points {@link #stats} adds - exposed for {@code combat.CombatListener}'s own bow branch, which doesn't read {@link #stats}'s Strength total (see its own doc on why). */
+    public long accessoryStrength(Player p) {
+        return Math.round(this.accessoryStrengthBonus.applyAsDouble(p));
+    }
+
     /** Wired in after construction - see {@link #accessoryIntelligenceBonus}. */
     public void accessoryIntelligenceBonus(java.util.function.ToDoubleFunction<Player> accessoryIntelligenceBonus) {
         this.accessoryIntelligenceBonus = accessoryIntelligenceBonus;
@@ -247,7 +252,7 @@ public final class PlayerStatsService {
         double storedVitality = this.get(p, this.vitality, effectiveMaxVitality);
         AttributeInstance a = p.getAttribute(Attribute.MAX_HEALTH);
         long globalStrength = (this.global == null ? 0L : this.global.snapshot(p).strength()) + this.heldWeaponStrengthBonus.applyAsInt(p)
-                + Math.round(this.accessoryStrengthBonus.applyAsDouble(p));
+                + this.accessoryStrength(p);
 
         double swingRangeBonus = this.abilities == null ? 0.0 : this.abilities.swingRangeBonus(p);
         double healthRegenBonus = this.abilities == null ? 0.0 : this.abilities.healthRegenBonus(p);

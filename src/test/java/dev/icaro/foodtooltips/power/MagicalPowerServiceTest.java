@@ -123,4 +123,46 @@ final class MagicalPowerServiceTest {
         Player p = playerWithStoredSelection("commando");
         assertEquals("commando", service.effective(p).id());
     }
+
+    private static MagicalPowerService serviceWithMagicalPower(int magicalPower) {
+        AccessoryBagService accessoryBag = mock(AccessoryBagService.class);
+        when(accessoryBag.totalMagicalPower(any(Player.class))).thenReturn(magicalPower);
+        CombatSkillService combat = mock(CombatSkillService.class);
+        // Every Power unlocked, so each test gets exactly the Power it asks for.
+        when(combat.progress(any(Player.class))).thenReturn(new CombatProgress(MagicalPowerService.REQUIRED_COMBAT_LEVEL, 0.0, 0.0));
+        return new MagicalPowerService(accessoryBag, combat);
+    }
+
+    /** The whole point of the mechanic: every extra accessory (more Magical Power) has to mean bigger real bonuses. */
+    @Test
+    void moreMagicalPowerGivesBiggerAppliedBonuses() {
+        Player p = playerWithStoredSelection("protected");
+        MagicalPowerService few = serviceWithMagicalPower(12);
+        MagicalPowerService many = serviceWithMagicalPower(78);
+
+        assertTrue(many.healthBonus(p) > few.healthBonus(p));
+        assertTrue(many.defensePoints(p) > few.defensePoints(p));
+        assertTrue(many.strengthPoints(p) > few.strengthPoints(p));
+    }
+
+    /** The whole-point stats are exactly what the Defense/Strength/Mining Speed hooks receive - same rounding the menus show. */
+    @Test
+    void wholePointBonusesAreTheRoundedLiveBonus() {
+        Player p = playerWithStoredSelection("ominous");
+        MagicalPowerService service = serviceWithMagicalPower(78);
+
+        assertEquals(Math.round(service.strengthBonus(p)), service.strengthPoints(p));
+        assertEquals(Math.round(service.miningSpeedBonus(p)), service.miningSpeedPoints(p));
+        assertEquals(0, service.defensePoints(p), "Ominous grants no Defense at all");
+    }
+
+    @Test
+    void noAccessoriesMeansNoBonus() {
+        Player p = playerWithStoredSelection("warrior");
+        MagicalPowerService service = serviceWithMagicalPower(0);
+
+        assertEquals(0.0, service.healthBonus(p), 1e-9);
+        assertEquals(0L, service.strengthPoints(p));
+        assertEquals(0.0, service.critChanceBonus(p), 1e-9);
+    }
 }
