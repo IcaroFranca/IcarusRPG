@@ -67,6 +67,7 @@ final class CollectionsProgressServiceTest {
         // Netherrack included - empty milestone ladders for now) - see CollectionsCatalog's own doc.
         int miningEntries = CollectionsCatalog.entries(CollectionsCategory.MINING).size();
         assertEquals(14, miningEntries);
-        assertEquals(0, CollectionsCatalog.entries(CollectionsCategory.FISHING).size(), "FISHING should have no entries yet");
+        // Fishing's 10, same reward-less placeholderLadder() as Mining.
+        assertEquals(10, CollectionsCatalog.entries(CollectionsCategory.FISHING).size());
     }
 }

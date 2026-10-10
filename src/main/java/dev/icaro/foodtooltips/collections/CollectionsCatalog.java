@@ -24,8 +24,8 @@ import org.bukkit.NamespacedKey;
  * mining.MiningCatalog} treats as a Mining target (Netherrack included), each on a reward-less
  * {@link #placeholderLadder} for now - collecting counts and milestones advance, rewards to be
  * defined later (the player's own "não coloca conteúdo nenhum ... mas já coloca pra contar");
- * Fishing still has no entries at all, though it's a real {@link CollectionsCategory} value
- * already (so {@link CollectionsMenuService}'s category screen never has to change shape).
+ * Fishing the same way ("coloca de fishing da mesma forma") - what a fishing rod catches plus
+ * what aquatic mobs drop (the drops Combat deliberately left out, reserved for Fishing).
  *
  * <p>The recipe keys below are this class's own - {@code
  * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService}/{@code
@@ -454,6 +454,21 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, CollectionsCategory.MINING, "Detritos Antigos", "Ancient Debris", placeholderLadder()),
             new CollectionsEntry(Material.OBSIDIAN, Material.OBSIDIAN, CollectionsCategory.MINING, "Obsidiana", "Obsidian", placeholderLadder()),
             new CollectionsEntry(Material.NETHERRACK, Material.NETHERRACK, CollectionsCategory.MINING, "Netherrack", "Netherrack", placeholderLadder()),
+            // Fishing (rewards still to be defined - same placeholderLadder() as Mining). Credited
+            // from a fishing rod's real catch (skills.GeneralSkillListener#fish, after Luck of the
+            // Sea's own re-roll) and from aquatic mob drops (combat.CombatListener
+            // #creditCombatCollections - Guardian's Prismarine, Squid's Ink Sac, Elder Guardian's
+            // Sponge, a Cod/Salmon mob's own fish...).
+            new CollectionsEntry(Material.COD, Material.COD, CollectionsCategory.FISHING, "Bacalhau Cru", "Raw Cod", placeholderLadder()),
+            new CollectionsEntry(Material.SALMON, Material.SALMON, CollectionsCategory.FISHING, "Salmão Cru", "Raw Salmon", placeholderLadder()),
+            new CollectionsEntry(Material.TROPICAL_FISH, Material.TROPICAL_FISH, CollectionsCategory.FISHING, "Peixe Tropical", "Tropical Fish", placeholderLadder()),
+            new CollectionsEntry(Material.PUFFERFISH, Material.PUFFERFISH, CollectionsCategory.FISHING, "Baiacu", "Pufferfish", placeholderLadder()),
+            new CollectionsEntry(Material.PRISMARINE_SHARD, Material.PRISMARINE_SHARD, CollectionsCategory.FISHING, "Fragmento de Prismarinho", "Prismarine Shard", placeholderLadder()),
+            new CollectionsEntry(Material.PRISMARINE_CRYSTALS, Material.PRISMARINE_CRYSTALS, CollectionsCategory.FISHING, "Cristais de Prismarinho", "Prismarine Crystals", placeholderLadder()),
+            new CollectionsEntry(Material.INK_SAC, Material.INK_SAC, CollectionsCategory.FISHING, "Bolsa de Tinta", "Ink Sac", placeholderLadder()),
+            new CollectionsEntry(Material.LILY_PAD, Material.LILY_PAD, CollectionsCategory.FISHING, "Vitória-Régia", "Lily Pad", placeholderLadder()),
+            new CollectionsEntry(Material.NAUTILUS_SHELL, Material.NAUTILUS_SHELL, CollectionsCategory.FISHING, "Concha de Náutilo", "Nautilus Shell", placeholderLadder()),
+            new CollectionsEntry(Material.WET_SPONGE, Material.SPONGE, CollectionsCategory.FISHING, "Esponja", "Sponge", placeholderLadder()),
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),
                     CollectionsMilestone.recipeUnlock(250,

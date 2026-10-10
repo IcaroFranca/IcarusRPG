@@ -64,6 +64,10 @@ public record CollectionsMilestone(
         return new CollectionsMilestone(threshold, RewardKind.MINING_XP, xpAmount, List.of(), null, 0.0, rewardPt, rewardEn);
     }
 
+    public static CollectionsMilestone fishingXp(int threshold, int xpAmount, String rewardPt, String rewardEn) {
+        return new CollectionsMilestone(threshold, RewardKind.FISHING_XP, xpAmount, List.of(), null, 0.0, rewardPt, rewardEn);
+    }
+
     public static CollectionsMilestone combatXp(int threshold, int xpAmount, String rewardPt, String rewardEn) {
         return new CollectionsMilestone(threshold, RewardKind.COMBAT_XP, xpAmount, List.of(), null, 0.0, rewardPt, rewardEn);
     }

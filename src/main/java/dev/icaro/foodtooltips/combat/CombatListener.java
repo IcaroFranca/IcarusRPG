@@ -910,7 +910,17 @@ public final class CombatListener implements Listener {
     private void creditCombatCollections(Player p, EntityDeathEvent e) {
         Map<Material, Integer> totals = new HashMap<>();
         for (ItemStack drop : e.getDrops()) {
-            totals.merge(drop.getType(), drop.getAmount(), Integer::sum);
+            // Combat and Fishing (aquatic mob drops) Collections only: an animal's own drops
+            // (Leather, Mutton, Porkchop...) are already credited to Farming by
+            // skills.GeneralSkillListener#animalDrop - crediting them here too counted every one
+            // of them twice.
+            boolean credited = dev.icaro.foodtooltips.collections.CollectionsCatalog.find(drop.getType())
+                    .map(entry -> entry.category() == dev.icaro.foodtooltips.collections.CollectionsCategory.COMBAT
+                            || entry.category() == dev.icaro.foodtooltips.collections.CollectionsCategory.FISHING)
+                    .orElse(false);
+            if (credited) {
+                totals.merge(drop.getType(), drop.getAmount(), Integer::sum);
+            }
         }
         for (Map.Entry<Material, Integer> entry : totals.entrySet()) {
             CollectionsService.Update update = this.collections.record(p, entry.getKey(), entry.getValue());

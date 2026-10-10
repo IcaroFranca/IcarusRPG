@@ -234,7 +234,7 @@ implements Listener {
         }
         Set<Material> tracked = switch (e.getEntity().getType()) {
             case EntityType.CHICKEN -> EnumSet.of(Material.FEATHER, Material.CHICKEN, Material.COOKED_CHICKEN);
-            case EntityType.COW, EntityType.MOOSHROOM, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE ->
+            case EntityType.COW, EntityType.MOOSHROOM, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE, EntityType.LLAMA, EntityType.TRADER_LLAMA ->
                     EnumSet.of(Material.LEATHER);
             case EntityType.SHEEP -> EnumSet.of(Material.MUTTON, Material.COOKED_MUTTON);
             case EntityType.PIG -> EnumSet.of(Material.PORKCHOP, Material.COOKED_PORKCHOP);
@@ -586,6 +586,8 @@ implements Listener {
                 this.gain(p, SkillType.FORAGING, milestone.xpAmount());
             } else if (milestone.kind() == RewardKind.MINING_XP) {
                 this.gain(p, SkillType.MINING, milestone.xpAmount());
+            } else if (milestone.kind() == RewardKind.FISHING_XP) {
+                this.gain(p, SkillType.FISHING, milestone.xpAmount());
             }
         }
         this.collections.announce(p, drop, update, this.openCollectionsEntry);
@@ -748,6 +750,18 @@ implements Listener {
     public void fish(PlayerFishEvent e) {
         if (e.getState() == PlayerFishEvent.State.CAUGHT_FISH) {
             this.gain(e.getPlayer(), SkillType.FISHING, e.getCaught() instanceof Item ? 18.0 : 10.0);
+            // MONITOR, so this reads the real final catch (after Luck of the Sea's own treasure
+            // re-roll). Only Fishing Collections - a junk Bone/String/Leather catch must not
+            // count toward a Combat/Farming Collection that's meant to be earned another way.
+            if (e.getCaught() instanceof Item caught) {
+                ItemStack stack = caught.getItemStack();
+                boolean fishingCollection = dev.icaro.foodtooltips.collections.CollectionsCatalog.find(stack.getType())
+                        .map(entry -> entry.category() == dev.icaro.foodtooltips.collections.CollectionsCategory.FISHING)
+                        .orElse(false);
+                if (fishingCollection) {
+                    this.applyCollections(e.getPlayer(), stack.getType(), stack.getAmount());
+                }
+            }
         }
     }
 
