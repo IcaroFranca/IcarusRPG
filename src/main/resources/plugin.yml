@@ -1,10 +1,10 @@
 name: IcarusRPG
-version: '0.76.231'
+version: '0.76.232'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
 prefix: IcarusRPG
-softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention, Citizens, Sentinel, PlaceholderAPI, packetevents, ProtocolLib]
+softdepend: [Geyser-Spigot, floodgate, WorldGuard, GriefPrevention, Citizens, Sentinel, PlaceholderAPI, packetevents, ProtocolLib, Vault, VaultUnlocked, ExcellentEconomy]
 commands:
   skills:
     description: Opens the Skills menu.

@@ -52,6 +52,14 @@ combat:
   # crit chance/damage, Ferocity extra hits, ability outgoing multiplier) instead of
   # just Global Strength. false reverts to the old PvP-only formula.
   pvp-full-damage-stack: true
+# Coins paid straight into the killer's balance on every hostile mob kill (no item drops) -
+# needs Vault/VaultUnlocked plus an economy plugin (e.g. ExcellentEconomy + nightcore); the
+# economy plugin holds the balance and its placeholder shows it on the scoreboard.
+economy:
+  kill-rewards: true
+  # Coins per Blood Point the mob is worth (the value the Bestiary shows) - 1.0 means a
+  # Zombie (5 BP) pays 5 coins, a Zombie Miner (24 BP) pays 24.
+  coins-per-blood-point: 1.0
 combat-tree:
   # Blood Points are the currency spent in the Combat Ability Tree to unlock and upgrade nodes.
   # Every node's rank-1 cost and per-rank cost scale with its tier (how deep it sits in the
