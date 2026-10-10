@@ -74,6 +74,12 @@ public final class SkillsMenuService {
     private static final Map<Integer, SkillType> STATS_SKILL_SLOTS = Map.of(32, SkillType.MINING, 33, SkillType.FARMING, 41, SkillType.FISHING, 42, SkillType.FORAGING, 43, SkillType.ALCHEMY, 34, SkillType.ENCHANTING);
     /** Combat's own summary button slot on the STATS screen - the STAT_LIST equivalent of {@link #STATS_SKILL_SLOTS}, just not itself keyed by a SkillType (combat isn't a {@link SkillType}). */
     private static final int STATS_COMBAT_SLOT = 24;
+    /**
+     * The STATS screen's equipment column left of the armor one - slot -> the equipment it holds.
+     * No Necklace/Cape/Belt/Glove item exists yet, so each is a reserved, always-empty placeholder
+     * for now (see {@link #reservedSlot}); clicks on them do nothing, same as the armor column.
+     */
+    private static final Map<Integer, String> STATS_RESERVED_SLOTS = Map.of(10, "Necklace", 19, "Cape", 28, "Belt", 37, "Glove");
     /** Grid for the STAT_LIST screens (see {@link #openStatList}) - 3 rows of 7, the same catalog shape {@code EnchantMenuService}'s Guide/Milestones screens use. Comfortably covers Combat's 16 stats, the most of any category. */
     private static final int[] STAT_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
@@ -827,6 +833,9 @@ public final class SkillsMenuService {
         v.setItem(20, this.armorSlot(target.getInventory().getChestplate(), "Chestplate", l));
         v.setItem(29, this.armorSlot(target.getInventory().getLeggings(), "Leggings", l));
         v.setItem(38, this.armorSlot(target.getInventory().getBoots(), "Boots", l));
+        for (Map.Entry<Integer, String> e : STATS_RESERVED_SLOTS.entrySet()) {
+            v.setItem(e.getKey(), this.reservedSlot(e.getValue()));
+        }
         v.setItem(STATS_COMBAT_SLOT, this.combatStatsItem(target, l));
         for (Map.Entry<Integer, SkillType> e : STATS_SKILL_SLOTS.entrySet()) {
             v.setItem(e.getKey(), this.skillBonusItem(target, e.getValue(), l));
@@ -848,6 +857,11 @@ public final class SkillsMenuService {
         m.setOwningPlayer((OfflinePlayer) p);
         i.setItemMeta(m);
         return i;
+    }
+
+    /** An empty equipment slot that has no item type yet (see {@link #STATS_RESERVED_SLOTS}) - the same gray placeholder {@link #armorSlot} uses, showing only the equipment's name on hover. */
+    private ItemStack reservedSlot(String slotName) {
+        return this.item(Material.GRAY_STAINED_GLASS_PANE, slotName, List.of());
     }
 
     /** The player's actual equipped piece (real item, with its own name/enchants/lore), or an empty placeholder. */
