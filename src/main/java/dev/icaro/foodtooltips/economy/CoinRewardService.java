@@ -41,6 +41,8 @@ public final class CoinRewardService {
     /** The killer's Scavenger level (main-hand weapon) and the mob's level (its HP / 5, the number on its name tag) - late-bound so this class doesn't depend on the enchant/combat packages; both default to 0 (no bonus) until wired. */
     private java.util.function.ToIntFunction<Player> scavengerLevel = p -> 0;
     private java.util.function.ToIntFunction<LivingEntity> mobLevel = mob -> 0;
+    /** Extra coins per mob level from the Scavenger Talisman ({@code item.CombatTalismanService#scavengerCoinsPerMobLevel}) - stacks with the enchant's own rate. Defaults to none. */
+    private java.util.function.ToDoubleFunction<Player> talismanCoinsPerMobLevel = p -> 0.0;
     private boolean warned;
 
     /** {@code totalMaxHealth} - a mob's full Max Health including its bonus HP pool ({@code combat.MobVisualService#effectiveMaxHealth}). */
@@ -57,6 +59,11 @@ public final class CoinRewardService {
     public void scavenger(java.util.function.ToIntFunction<Player> scavengerLevel, java.util.function.ToIntFunction<LivingEntity> mobLevel) {
         this.scavengerLevel = scavengerLevel;
         this.mobLevel = mobLevel;
+    }
+
+    /** Wires the Scavenger Talisman in - see {@link #talismanCoinsPerMobLevel}. */
+    public void scavengerTalisman(java.util.function.ToDoubleFunction<Player> talismanCoinsPerMobLevel) {
+        this.talismanCoinsPerMobLevel = talismanCoinsPerMobLevel;
     }
 
     /** Scavenger's bonus for one kill: {@code coinsPerMobLevel} (see {@code enchant.IcarusEnchant#scavengerCoinsPerMobLevel}) times the mob's level, rounded to whole coins. */
@@ -96,9 +103,12 @@ public final class CoinRewardService {
         }
         Long fixed = this.bossCoins.get(mob.getType());
         long coins = fixed != null ? fixed : coinsFor(this.totalMaxHealth.applyAsDouble(mob), this.coinsByHealth);
-        int scavenger = this.scavengerLevel.applyAsInt(killer);
-        if (scavenger > 0) {
-            coins += scavengerBonus(dev.icaro.foodtooltips.enchant.IcarusEnchant.scavengerCoinsPerMobLevel(scavenger), this.mobLevel.applyAsInt(mob));
+        // Scavenger enchant (0.3/level of the enchant) and Scavenger Talisman (+0.5) add up into
+        // one coins-per-mob-level rate, the player's own "acumula com scavenger enchantment".
+        double perMobLevel = dev.icaro.foodtooltips.enchant.IcarusEnchant.scavengerCoinsPerMobLevel(this.scavengerLevel.applyAsInt(killer))
+                + this.talismanCoinsPerMobLevel.applyAsDouble(killer);
+        if (perMobLevel > 0.0) {
+            coins += scavengerBonus(perMobLevel, this.mobLevel.applyAsInt(mob));
         }
         if (coins <= 0L) {
             return;

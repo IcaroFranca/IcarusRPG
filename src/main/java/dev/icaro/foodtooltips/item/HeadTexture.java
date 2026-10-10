@@ -179,6 +179,14 @@ public final class HeadTexture {
     public static final String ENDER_PEARL_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWNiN2MyMWNjNDNkYzE3Njc4ZWU2ZjE2NTkxZmZhYWIxZjYzN2MzN2Y0ZjZiYmQ4Y2VhNDk3NDUxZDc2ZGI2ZCJ9fX0=";
     /** "Eye of Ender" (minecraft-heads.com Custom Head ID 126728) - the Eye of Ender Core crafting item, {@link #ENDER_PEARL_CORE}'s own upgrade - see {@code CombatCollectionsItemsService}. */
     public static final String EYE_OF_ENDER_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzRiZTY3YWVkZWRlMzE2ZTVmMDBhN2FkM2ZiZTMwYTgxY2VmNjdkNGRmN2NlZDEzMGZiZTAyYmUwMTU0OGJjZSJ9fX0=";
+    /** "Old Globe" (mcheads.ru Head ID 5219) - the Village Affinity Talisman, sold by the Combat Merchant - see {@code CombatTalismanService}. */
+    public static final String VILLAGE_AFFINITY_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWMxMWQ2Yzc5YjhhMWYxODkwMmQ3ODNjZGRhNGJkZmI5ZDQ3MzM3YjczNzkxMDI4YTEyNmE2ZTZjZjEwMWRlZiJ9fX0=";
+    /** "Deepslate Diamond Ore" (mcheads.ru Head ID 41336) - the Mine Affinity Talisman - see {@code CombatTalismanService}. */
+    public static final String MINE_AFFINITY_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2UwYWEzYTk1MjVkODY0NmYwNmIxMmE1NGExOTc3MGVhZjMyMDA1N2M5OGViZjYzZTY2M2ZkZTJkOWQ5YjEzMSJ9fX0=";
+    /** "Intimidation Talisman" (mcheads.ru Head ID 59137) - see {@code CombatTalismanService}. */
+    public static final String INTIMIDATION_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjgxMTdjMjA5YjY5ZWVhZjI2ODQ4MTZlMTZiZWQyNWU2NjUwMDhlNzMyOTYzMmZkZmNhNjUyMzc5OWNkN2Y3MSJ9fX0=";
+    /** "Redstone (yellow)" (mcheads.ru Head ID 48834) - the Scavenger Talisman - see {@code CombatTalismanService}. */
+    public static final String SCAVENGER_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzkzM2VlMjM2NTg4OGZkOTZhZDg4MzNlMTNjMjI0NzVmMGVmNjEzYWRkNzU0MWI3MmMyYWMzYzVmZTQyOGUyMSJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -190,7 +198,8 @@ public final class HeadTexture {
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
             BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, WHEAT_SEEDS_CORE, PITCHER_POD_CORE, BONE_CORE, PILE_OF_BONE_CORE,
             ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE, STRING_CORE, GUNPOWDER_CORE, FIREWORK_CORE,
-            ENDER_PEARL_CORE, EYE_OF_ENDER_CORE);
+            ENDER_PEARL_CORE, EYE_OF_ENDER_CORE, VILLAGE_AFFINITY_TALISMAN, MINE_AFFINITY_TALISMAN, INTIMIDATION_TALISMAN,
+            SCAVENGER_TALISMAN);
 
     private HeadTexture() {
     }

@@ -464,7 +464,10 @@ extends JavaPlugin {
         // Spider Eye Collection (M2/M3/M9) - wired alongside Bone/Rotten Flesh's own items.
         SpiderSwordService spiderSword = new SpiderSwordService();
         SpiderHatService spiderHat = new SpiderHatService(tiers);
-        armor.incomingMobTypeMultiplier(spiderHat::arthropodDamageMultiplier);
+        // The Combat Merchant's own talismans (sold through shop.ShopService below).
+        dev.icaro.foodtooltips.item.CombatTalismanService combatTalismans = new dev.icaro.foodtooltips.item.CombatTalismanService(tiers, this.accessoryBag, this.visuals::level);
+        pm.registerEvents((Listener)combatTalismans, (Plugin)this);
+        armor.incomingMobTypeMultiplier((target, attacker) -> spiderHat.arthropodDamageMultiplier(target, attacker) * combatTalismans.incomingMultiplier(target, attacker));
         LeapingSwordService leapingSword = new LeapingSwordService((Plugin)this, tiers, stats, abilities);
         pm.registerEvents((Listener)leapingSword, (Plugin)this);
         // String Collection (M2-M9) - wired alongside Bone/Rotten Flesh/Spider Eye's own items.
@@ -538,6 +541,19 @@ extends JavaPlugin {
         menus.meleePreview(combatListener::meleeWeaponDamage, combatListener::meleeStrength);
         dev.icaro.foodtooltips.economy.CoinRewardService coinRewards = new dev.icaro.foodtooltips.economy.CoinRewardService((Plugin)this, this.visuals::effectiveMaxHealth);
         coinRewards.scavenger(p -> enchants.customLevel(p.getInventory().getItemInMainHand(), dev.icaro.foodtooltips.enchant.IcarusEnchant.SCAVENGER), this.visuals::level);
+        coinRewards.scavengerTalisman(combatTalismans::scavengerCoinsPerMobLevel);
+        // NPC shops (shops.yml) - opened by a Citizens NPC running "/shop open <shop> <p>" from the console.
+        dev.icaro.foodtooltips.shop.ShopService shops = new dev.icaro.foodtooltips.shop.ShopService((Plugin)this);
+        shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.ZOMBIE, combatTalismans::createZombieTalisman);
+        shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.SKELETON, combatTalismans::createSkeletonTalisman);
+        shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.VILLAGE_AFFINITY, combatTalismans::createVillageAffinityTalisman);
+        shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.MINE_AFFINITY, combatTalismans::createMineAffinityTalisman);
+        shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.INTIMIDATION, combatTalismans::createIntimidationTalisman);
+        shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.SCAVENGER, combatTalismans::createScavengerTalisman);
+        shops.load();
+        pm.registerEvents((Listener)shops, (Plugin)this);
+        this.getCommand("shop").setExecutor(shops);
+        this.getCommand("shop").setTabCompleter(shops);
         combatListener.hostileKillCoins(coinRewards::rewardKill);
         this.getServer().getPluginManager().registerEvents((Listener)new dev.icaro.foodtooltips.economy.DeathPenaltyService((Plugin)this), (Plugin)this);
         combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
@@ -791,6 +807,7 @@ extends JavaPlugin {
             minerVariants.applyToInventory((Player)p);
             this.accessoryBag.refreshStandingEffects((Player)p);
             skeletonHat.applySpeedAttribute((Player)p);
+            combatTalismans.applySpeedAttribute((Player)p);
             this.accessoryBag.applyAccessoryHealth((Player)p);
             magicalPower.applyHealthAttribute((Player)p);
             magicalPower.applySpeedAttribute((Player)p);

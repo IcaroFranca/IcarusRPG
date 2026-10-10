@@ -1,0 +1,39 @@
+# IcarusRPG - NPC shops.
+#
+# Each top-level key is a shop id. A shop opens with:
+#   /shop open <shop id> <player>
+# meant to be run by a Citizens NPC (from the console), e.g. with the NPC selected:
+#   /npc command add shop open combat_merchant <p>
+# so the shop only ever opens through the NPC (players can't run /shop themselves).
+#
+# items: what the shop sells, in this order.
+#   item:  a vanilla material (ROTTEN_FLESH, DIAMOND...) or an IcarusRPG item ("icarus:<id>")
+#   price: coins per unit
+# Left-click buys 1; right-click opens 5/10/25/50/64 for stackable items.
+# After editing, apply with: /shop reload
+
+combat_merchant:
+  title: "Combat Merchant"
+  items:
+    - item: ROTTEN_FLESH
+      price: 8
+    - item: BONE
+      price: 8
+    - item: STRING
+      price: 10
+    - item: SLIME_BALL
+      price: 14
+    - item: GUNPOWDER
+      price: 10
+    - item: icarus:zombie_talisman
+      price: 500
+    - item: icarus:skeleton_talisman
+      price: 500
+    - item: icarus:village_affinity_talisman
+      price: 2500
+    - item: icarus:mine_affinity_talisman
+      price: 2500
+    - item: icarus:intimidation_talisman
+      price: 10000
+    - item: icarus:scavenger_talisman
+      price: 10000

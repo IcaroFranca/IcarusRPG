@@ -47,12 +47,13 @@ public final class ArmorDefenseListener implements Listener {
                 source = shooter;
             }
         }
-        // source (projectile shooters included - the Ender Dragon's fireballs) only decides
-        // how much Defense counts (see ArmorDefenseService#attackerDefensePierce); the mob-
-        // type multiplier below keeps reacting to a direct hit only, same as before.
+        // source includes projectile shooters (the Ender Dragon's fireballs, a Skeleton's arrows):
+        // it decides how much Defense counts (ArmorDefenseService#attackerDefensePierce) and the
+        // mob-type multiplier (Spider Hat, Zombie/Skeleton Talismans) - a Skeleton Talisman has to
+        // cover arrows, not just a melee hit.
         double damage = e.getDamage() * (1.0 - this.armor.damageReduction(target, source));
-        if (e instanceof EntityDamageByEntityEvent byEntity && byEntity.getDamager() instanceof LivingEntity attacker) {
-            damage *= this.armor.incomingMultiplier(target, attacker);
+        if (source != null) {
+            damage *= this.armor.incomingMultiplier(target, source);
         }
         e.setDamage(damage);
     }
