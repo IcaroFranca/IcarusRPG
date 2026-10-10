@@ -75,6 +75,8 @@ public final class MobDifficultyService {
     private final double minHealthOverworld;
     private final double minHealthNether;
     private final double minHealthEnd;
+    /** Total Max Health of an Enderman spawning in The End - see {@link #scale}. */
+    private final double endEndermanHealth;
     private final double minDamageOverworld;
     private final double minDamageNether;
     private final double minDamageEnd;
@@ -92,6 +94,7 @@ public final class MobDifficultyService {
         this.minHealthOverworld = p.getConfig().getDouble("mob-visuals.min-health-overworld", 0.0);
         this.minHealthNether = p.getConfig().getDouble("mob-visuals.min-health-nether", 4500.0);
         this.minHealthEnd = p.getConfig().getDouble("mob-visuals.min-health-end", 0.0);
+        this.endEndermanHealth = Math.max(0.0, p.getConfig().getDouble("mob-visuals.end-enderman-health", 750000.0));
         this.minDamageOverworld = p.getConfig().getDouble("mob-visuals.min-damage-overworld", 0.0);
         this.minDamageNether = p.getConfig().getDouble("mob-visuals.min-damage-nether", 500.0);
         this.minDamageEnd = p.getConfig().getDouble("mob-visuals.min-damage-end", 0.0);
@@ -176,6 +179,12 @@ public final class MobDifficultyService {
         Double overrideMinHealth = pdc.get(this.overrideMinHealthKey, PersistentDataType.DOUBLE);
         if (overrideMinHealth != null) {
             desiredTotal = Math.max(desiredTotal, overrideMinHealth);
+        }
+        // The End's own Endermen (the player's explicit 750K) - far past vanilla's 1024 cap,
+        // which is fine: everything above real-health-cap goes to the bonus HP pool below,
+        // exactly like the Nether's own 4500 floor already does.
+        if (e.getType() == EntityType.ENDERMAN && e.getWorld().getEnvironment() == World.Environment.THE_END) {
+            desiredTotal = Math.max(desiredTotal, this.endEndermanHealth);
         }
         double realMax = Math.min(desiredTotal, this.realHealthCap);
         double bonusMax = Math.max(0.0, desiredTotal - realMax);
