@@ -276,8 +276,10 @@ public final class MobVisualService implements Listener {
             return;
         }
         this.renderState.put(id, key);
-        TextComponent prefix = e instanceof Enemy ? Component.text((String)("[Lv" + this.level(e) + "] "), (TextColor)NamedTextColor.GRAY) : Component.empty();
-        Component hpLine = Component.text((String)(hp + "/" + maxHp), (TextColor)NamedTextColor.GREEN).append((Component)Component.text((String)"\u2764", (TextColor)NamedTextColor.RED));
+        // 6+ digit numbers shortened (750000 -> 750K, see CompactNumber) - the End's own 750K
+        // Endermen/15M Ender Dragon would otherwise stretch the tag across the screen.
+        TextComponent prefix = e instanceof Enemy ? Component.text((String)("[Lv" + dev.icaro.foodtooltips.util.CompactNumber.format(this.level(e)) + "] "), (TextColor)NamedTextColor.GRAY) : Component.empty();
+        Component hpLine = Component.text((String)(dev.icaro.foodtooltips.util.CompactNumber.format(hp) + "/" + dev.icaro.foodtooltips.util.CompactNumber.format(maxHp)), (TextColor)NamedTextColor.GREEN).append((Component)Component.text((String)"\u2764", (TextColor)NamedTextColor.RED));
         if (localized) {
             // Two SEPARATE passengers here (this one name-only, the other health-only)
             // stack fine on Java, but Geyser doesn't reliably translate a text display
@@ -400,7 +402,7 @@ public final class MobVisualService implements Listener {
     }
 
     private String number(double value) {
-        return Long.toString(Math.round(Math.max(0.0, value)));
+        return dev.icaro.foodtooltips.util.CompactNumber.format(Math.round(Math.max(0.0, value)));
     }
 
     private String humanize(String key) {
