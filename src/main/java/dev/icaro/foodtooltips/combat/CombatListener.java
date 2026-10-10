@@ -445,7 +445,11 @@ public final class CombatListener implements Listener {
             // this check, a projectile hit would read whatever's in the player's main
             // hand AT THE MOMENT THE ARROW LANDS (which could easily be an unrelated
             // enchanted sword, not the bow that actually fired it).
-            weaponDamage = this.weaponBaseDamage(p, weapon);
+            // The Undead's Sword's own bonus doubles its base 30 into 60 against undead
+            // (the player's own spec) - applied here, to WeaponDMG, not as a multiplier on
+            // the final damage like it used to be (that also doubled Strength, the Combat
+            // level bonus and everything else, out-damaging stronger swords vs Miners).
+            weaponDamage = this.weaponBaseDamage(p, weapon) * this.legendary.undeadMultiplier(target, weapon);
             enchantPercent = this.vanillaDamageEnchantPercent(weapon, target) + this.customMeleeDamagePercent(p, weapon, target);
             criticalEnchantBonus = 0.10 * this.enchants.customLevel(weapon, IcarusEnchant.CRITICAL);
             int lethalityLevel = this.enchants.customLevel(weapon, IcarusEnchant.LETHALITY);
@@ -484,7 +488,6 @@ public final class CombatListener implements Listener {
         double mobBonus = playerTarget ? 1.0 : 1.0 + BestiaryCatalog.find(target).map(entry -> this.bestiary.damageBonus(p, entry)).orElse(0.0);
         double backstab = this.legendary.backstabMultiplier(p, target, weapon);
         double armored = this.legendary.armoredMultiplier(target, weapon);
-        double undead = this.legendary.undeadMultiplier(target, weapon);
         double arthropod = this.arthropodMultiplier.applyAsDouble(target, weapon);
         double critMultiplier = critical
                 ? this.abilities.criticalMultiplier(p, this.critMultiplier) + criticalEnchantBonus
@@ -502,7 +505,7 @@ public final class CombatListener implements Listener {
             // "1 + CombatLevelBonus" (see CombatSkillService), so adding the rest
             // straight onto it gives the full sum without re-adding the leading 1.
             double damageMultiplier = this.combat.damageMultiplier(level) + enchantPercent / 100.0 + (this.abilities.outgoingMultiplier(p) - 1.0);
-            damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * undead * arthropod;
+            damage = initialDamage * damageMultiplier * critMultiplier * mobBonus * backstab * armored * arthropod;
             // TEMPORARY - diagnosing "o dano que eu estou dando não bate com o dano final"
             // (player report, with a screenshot of SkillsMenuService's own damage-preview
             // tooltip: the same formula computes a 284.1 baseline that the real hit against
@@ -516,10 +519,10 @@ public final class CombatListener implements Listener {
             this.plugin.getLogger().info(String.format(java.util.Locale.ROOT,
                     "[DamageDebug] %s (bedrock=%b) hit %s with %s: weaponDamage=%.2f strength=%.2f initialDamage=%.2f "
                             + "damageMultiplier=%.3f (combatLevel=%d combatLevelMult=%.3f enchantPercent=%.2f abilityOutgoing=%.3f) "
-                            + "critical=%b critMultiplier=%.3f mobBonus=%.3f backstab=%.3f armored=%.3f undead=%.3f arthropod=%.3f -> final=%.2f",
+                            + "critical=%b critMultiplier=%.3f mobBonus=%.3f backstab=%.3f armored=%.3f arthropod=%.3f -> final=%.2f",
                     p.getName(), BedrockPlayers.isBedrock(p), target.getType(), weapon.getType(), weaponDamage, strength, initialDamage,
                     damageMultiplier, level, this.combat.damageMultiplier(level), enchantPercent, this.abilities.outgoingMultiplier(p),
-                    critical, critMultiplier, mobBonus, backstab, armored, undead, arthropod, damage));
+                    critical, critMultiplier, mobBonus, backstab, armored, arthropod, damage));
         } else {
             double weaponStrengthBonus = this.legendary.strengthDamageBonus(p, weapon);
             double arrowEnchantPercent = this.arrowEnchantPercent(e.getDamager(), target);
@@ -537,7 +540,7 @@ public final class CombatListener implements Listener {
             double bowStrengthPercent = bowReforge.strength() + armorReforge.strength() + this.stats.accessoryStrength(p);
             double archeryPotionPercent = this.archeryPotionPercent.applyAsDouble(p);
             damage = (e.getDamage() * (1.0 + (arrowEnchantPercent + bowStrengthPercent + archeryPotionPercent) / 100.0) + weaponStrengthBonus) * this.combat.damageMultiplier(level) * mobBonus * this.abilities.outgoingMultiplier(p)
-                    * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * undead * arthropod;
+                    * this.global.strengthMultiplier(p) * critMultiplier * backstab * armored * arthropod;
         }
         e.setDamage(damage);
         this.legendary.onHit(p, target, weapon);
@@ -571,6 +574,41 @@ public final class CombatListener implements Listener {
     }
 
     /**
+     * The Attack Damage {@code weapon} itself carries - its own main-hand ADD_NUMBER modifiers
+     * on top of the wielder's innate {@link SwordDamageService#BASE_ATTACK_DAMAGE} (which every
+     * weapon here cancels with its own -1 "base zero" modifier), i.e. exactly the number the
+     * stats screen's damage preview reads off the real attribute. Null for an item with no
+     * modifiers of its own (a plain sword the periodic sweep hasn't converted yet), so the
+     * per-material tables below still cover that. Without this, a custom sword built on an
+     * ordinary material (the Zombie Sword's 100 on an IRON_SWORD, the Leaping Sword's and Aspect
+     * of the End's own numbers on a DIAMOND_SWORD) hit for that material's generic table value
+     * instead (30/35) while the stats screen promised its real one - reported as "a zombie sword
+     * está dando menos de 100 de dano se o final damage promete na casa dos 300".
+     */
+    static Double ownAttackDamage(ItemStack weapon) {
+        if (weapon == null || weapon.isEmpty()) {
+            return null;
+        }
+        ItemMeta meta = weapon.getItemMeta();
+        return meta == null ? null : ownAttackDamage(meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE));
+    }
+
+    /** {@link #ownAttackDamage(ItemStack)}'s own sum over the weapon's Attack Damage {@code modifiers} - split out so it's testable without a live server's attribute registry. */
+    static Double ownAttackDamage(java.util.Collection<org.bukkit.attribute.AttributeModifier> modifiers) {
+        if (modifiers == null || modifiers.isEmpty()) {
+            return null;
+        }
+        double total = SwordDamageService.BASE_ATTACK_DAMAGE;
+        for (org.bukkit.attribute.AttributeModifier modifier : modifiers) {
+            if (modifier.getOperation() == org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER
+                    && modifier.getSlotGroup().test(EquipmentSlot.HAND)) {
+                total += modifier.getAmount();
+            }
+        }
+        return Math.max(0.0, total);
+    }
+
+    /**
      * The weapon's own known flat total - {@code SwordDamageService}/{@code
      * ToolDamageService}/{@code PolearmDamageService}'s per-material tables, or a
      * legendary weapon's own base Attack Damage plus its Strength-scaling bonus (Two
@@ -586,6 +624,10 @@ public final class CombatListener implements Listener {
         LegendaryWeapon legendaryWeapon = LegendaryWeaponService.of(weapon);
         if (legendaryWeapon != null) {
             return legendaryWeapon.baseAttackDamage() + this.legendary.strengthDamageBonus(attacker, weapon);
+        }
+        Double own = ownAttackDamage(weapon);
+        if (own != null) {
+            return own;
         }
         Double base = SwordDamageService.totalDamage(weapon.getType());
         if (base == null) {
