@@ -72,7 +72,7 @@ public final class SpiderSwordService {
         return meta != null && meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE);
     }
 
-    /** {@value #MULTIPLIER} if {@code weapon} is this exact sword and {@code target} is an {@link #ARTHROPOD_TYPES} mob, else 1.0 - wired into {@code combat.CombatListener#arthropodMultiplier}. */
+    /** {@value #MULTIPLIER} if {@code weapon} is this exact sword and {@code target} is an {@link #ARTHROPOD_TYPES} mob, else 1.0 - wired into {@code combat.CombatListener#arthropodMultiplier}, which applies it to the sword's own base damage (30 -> 60), not the final hit. */
     public double damageMultiplier(LivingEntity target, ItemStack weapon) {
         if (!isSpiderSword(weapon)) {
             return 1.0;
