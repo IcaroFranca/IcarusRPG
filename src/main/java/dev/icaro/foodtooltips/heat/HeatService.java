@@ -214,6 +214,11 @@ public final class HeatService implements Listener {
      * entries at all means nothing else renders in the box below the title.
      */
     private void showBoard(Player p, int currentHeat) {
+        // A scoreboard plugin (TAB) owns the sidebar - the value goes out as %icarusrpg_heat%
+        // for its own board instead of replacing it (see util.SidebarMode).
+        if (!dev.icaro.foodtooltips.util.SidebarMode.useOwnSidebar(this.plugin)) {
+            return;
+        }
         Scoreboard board = this.ensurePersonalBoard(p);
         Objective objective = board.getObjective(OBJECTIVE_ID);
         if (objective == null) {

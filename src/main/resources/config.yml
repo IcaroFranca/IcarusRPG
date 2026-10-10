@@ -33,6 +33,10 @@ stats:
 hud:
   update-ticks: 5
   spacing: "     "
+  # Nether Heat / Mushroom Soup flight timers on this plugin's own sidebar: auto = only when
+  # TAB isn't installed (with TAB, use the %icarusrpg_heat% / %icarusrpg_flight_display%
+  # placeholders on its scoreboard instead), true = always, false = never.
+  own-sidebar: auto
 combat:
   max-level: 200
   # Flat crit chance every player has regardless of level - on top of this, no more

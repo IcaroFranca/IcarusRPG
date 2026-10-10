@@ -68,6 +68,19 @@ public final class MushroomSoupFlightService implements Listener {
      * so this class works before it's ever wired.
      */
     private Consumer<Player> onScoreboardReplaced = p -> {};
+    /** Whether this plugin may show its own flight sidebar (see {@code util.SidebarMode}) - late-bound since this class has no plugin reference; defaults to yes. */
+    private java.util.function.BooleanSupplier ownSidebar = () -> true;
+
+    /** Wired after construction - see {@link #ownSidebar}. */
+    public void ownSidebar(java.util.function.BooleanSupplier ownSidebar) {
+        this.ownSidebar = ownSidebar;
+    }
+
+    /** Whole seconds of Mushroom Soup flight {@code p} has left, 0 if none - shown as %icarusrpg_flight% when a scoreboard plugin owns the sidebar. */
+    public int remainingSeconds(Player p) {
+        Integer ticks = this.remainingTicks.get(p.getUniqueId());
+        return ticks == null ? 0 : Math.max(0, ticks / 20);
+    }
 
     /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link #onScoreboardReplaced}'s own doc. */
     public void onScoreboardReplaced(Consumer<Player> callback) {
@@ -122,6 +135,9 @@ public final class MushroomSoupFlightService implements Listener {
 
     /** Renders/updates {@code p}'s own sidebar with the flight time remaining (seconds) - a personal {@link Scoreboard} of their own, so nobody else's sidebar is ever touched by this. */
     private void showBoard(Player p, int ticksRemaining) {
+        if (!this.ownSidebar.getAsBoolean()) {
+            return;
+        }
         Scoreboard board = this.ensurePersonalBoard(p);
         Objective objective = board.getObjective(OBJECTIVE_ID);
         if (objective == null) {

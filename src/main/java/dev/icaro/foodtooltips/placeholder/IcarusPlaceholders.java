@@ -15,12 +15,23 @@ import org.bukkit.entity.Player;
  *
  * <p>%icarusrpg_globallevel% - the player's current Global Level (see {@link
  * GlobalLevelService#snapshot}), as a plain integer string.
+ *
+ * <p>The sidebar values this plugin used to put on its own temporary board (which hid a
+ * scoreboard plugin's whole board while up - see {@code util.SidebarMode}), for TAB to show
+ * instead: %icarusrpg_heat% (current Nether Heat, 0 outside it), %icarusrpg_nether% ("true"
+ * in the Nether - for a Nether-only TAB board's display-condition, regardless of world name),
+ * %icarusrpg_flight% (Mushroom Soup flight seconds left, 0 if none) and
+ * %icarusrpg_flight_display% (a ready-made "✦ Flight: 30s" line, empty when not flying).
  */
 public final class IcarusPlaceholders extends PlaceholderExpansion {
     private final GlobalLevelService global;
+    private final java.util.function.ToIntFunction<Player> heat;
+    private final java.util.function.ToIntFunction<Player> flightSeconds;
 
-    public IcarusPlaceholders(GlobalLevelService global) {
+    public IcarusPlaceholders(GlobalLevelService global, java.util.function.ToIntFunction<Player> heat, java.util.function.ToIntFunction<Player> flightSeconds) {
         this.global = global;
+        this.heat = heat;
+        this.flightSeconds = flightSeconds;
     }
 
     @Override
@@ -49,9 +60,21 @@ public final class IcarusPlaceholders extends PlaceholderExpansion {
         if (player == null) {
             return "";
         }
-        if (identifier.equals("globallevel")) {
-            return String.valueOf(this.global.snapshot(player).level());
+        switch (identifier) {
+            case "globallevel":
+                return String.valueOf(this.global.snapshot(player).level());
+            case "heat":
+                return String.valueOf(this.heat.applyAsInt(player));
+            case "nether":
+                return String.valueOf(player.getWorld().getEnvironment() == org.bukkit.World.Environment.NETHER);
+            case "flight":
+                return String.valueOf(this.flightSeconds.applyAsInt(player));
+            case "flight_display": {
+                int seconds = this.flightSeconds.applyAsInt(player);
+                return seconds > 0 ? "§d✦ Flight: §f" + seconds + "s" : "";
+            }
+            default:
+                return null;
         }
-        return null;
     }
 }

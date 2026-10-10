@@ -235,6 +235,7 @@ extends JavaPlugin {
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();
+        mushroomSoupFlight.ownSidebar(() -> dev.icaro.foodtooltips.util.SidebarMode.useOwnSidebar((Plugin)this));
         CowHatService cowHat = new CowHatService();
         ArcheryPotionService archeryPotion = new ArcheryPotionService();
         ManaPotionService manaPotion = new ManaPotionService();
@@ -843,7 +844,7 @@ extends JavaPlugin {
         });
         Bukkit.getScheduler().runTask((Plugin)this, presentation::refreshAll);
         if (this.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new IcarusPlaceholders(global).register();
+            new IcarusPlaceholders(global, this.heatService::currentHeat, mushroomSoupFlight::remainingSeconds).register();
         }
     }
 
