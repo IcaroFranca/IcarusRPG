@@ -43,6 +43,9 @@ public final class CoinRewardService {
     private final boolean spawnerMobsPay;
     private final NavigableMap<Double, Long> coinsByHealth;
     private final Map<EntityType, Long> bossCoins;
+    /** The killer's Scavenger level (main-hand weapon) and the mob's level (its HP / 5, the number on its name tag) - late-bound so this class doesn't depend on the enchant/combat packages; both default to 0 (no bonus) until wired. */
+    private java.util.function.ToIntFunction<Player> scavengerLevel = p -> 0;
+    private java.util.function.ToIntFunction<LivingEntity> mobLevel = mob -> 0;
     private boolean warned;
 
     /** {@code totalMaxHealth} - a mob's full Max Health including its bonus HP pool ({@code combat.MobVisualService#effectiveMaxHealth}). */
@@ -53,6 +56,17 @@ public final class CoinRewardService {
         this.spawnerMobsPay = plugin.getConfig().getBoolean("economy.spawner-mobs-pay", true);
         this.coinsByHealth = loadBrackets(plugin.getConfig().getConfigurationSection("economy.coins-by-health"));
         this.bossCoins = loadBossCoins(plugin.getConfig().getConfigurationSection("economy.boss-coins"));
+    }
+
+    /** Wires Scavenger in - see {@link #scavengerLevel}. */
+    public void scavenger(java.util.function.ToIntFunction<Player> scavengerLevel, java.util.function.ToIntFunction<LivingEntity> mobLevel) {
+        this.scavengerLevel = scavengerLevel;
+        this.mobLevel = mobLevel;
+    }
+
+    /** Scavenger's bonus for one kill: {@code coinsPerMobLevel} (see {@code enchant.IcarusEnchant#scavengerCoinsPerMobLevel}) times the mob's level, rounded to whole coins. */
+    public static long scavengerBonus(double coinsPerMobLevel, int mobLevel) {
+        return Math.max(0L, Math.round(coinsPerMobLevel * Math.max(0, mobLevel)));
     }
 
     /** The bracket a mob with {@code maxHealth} total HP falls into - the highest threshold at or below it; 0 below the lowest one. */
@@ -87,6 +101,10 @@ public final class CoinRewardService {
         }
         Long fixed = this.bossCoins.get(mob.getType());
         long coins = fixed != null ? fixed : coinsFor(this.totalMaxHealth.applyAsDouble(mob), this.coinsByHealth);
+        int scavenger = this.scavengerLevel.applyAsInt(killer);
+        if (scavenger > 0) {
+            coins += scavengerBonus(dev.icaro.foodtooltips.enchant.IcarusEnchant.scavengerCoinsPerMobLevel(scavenger), this.mobLevel.applyAsInt(mob));
+        }
         if (coins <= 0L) {
             return;
         }

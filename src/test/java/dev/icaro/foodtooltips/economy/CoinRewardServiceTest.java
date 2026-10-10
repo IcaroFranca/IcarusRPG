@@ -27,6 +27,17 @@ final class CoinRewardServiceTest {
         assertEquals(20L, CoinRewardService.coinsFor(2500.0, TABLE));
     }
 
+    /** Scavenger: 0.3/0.6/0.9/1.2/1.5 coins per mob level (mob level = HP / 5), the player's own spec - no cap. */
+    @Test
+    void scavengerPaysPerMobLevel() {
+        assertEquals(0.3, dev.icaro.foodtooltips.enchant.IcarusEnchant.scavengerCoinsPerMobLevel(1), 1e-9);
+        assertEquals(1.5, dev.icaro.foodtooltips.enchant.IcarusEnchant.scavengerCoinsPerMobLevel(5), 1e-9);
+        assertEquals(6L, CoinRewardService.scavengerBonus(0.3, 21), "Scavenger I on a level 21 Zombie");
+        assertEquals(32L, CoinRewardService.scavengerBonus(1.5, 21), "Scavenger V on a level 21 Zombie");
+        assertEquals(1350L, CoinRewardService.scavengerBonus(1.5, 900), "Scavenger V on a level 900 Nether mob");
+        assertEquals(0L, CoinRewardService.scavengerBonus(1.5, 0));
+    }
+
     @Test
     void belowTheLowestThresholdPaysNothing() {
         NavigableMap<Double, Long> custom = new TreeMap<>();

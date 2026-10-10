@@ -88,6 +88,8 @@ public enum IcarusEnchant {
     THUNDERLORD("Senhor do Trovão", "Thunderlord", 5, Category.SWORD),
     VAMPIRISM("Vampirismo", "Vampirism", 5, Category.SWORD),
     VENOMOUS("Venenoso", "Venomous", 5, Category.SWORD),
+    /** Brand new, sword-only - bonus coins on every kill, {@link #scavengerCoinsPerMobLevel} per mob level (the player's own spec: 0.3/0.6/0.9/1.2/1.5) - paid by {@code economy.CoinRewardService#rewardKill} on top of the mob's own coins. */
+    SCAVENGER("Catador", "Scavenger", 5, Category.SWORD),
 
     /**
      * The plugin's own bow enchant family - genuinely new mechanics, none of them a
@@ -193,6 +195,7 @@ public enum IcarusEnchant {
             case CRITICAL -> 2;
             case LIFE_STEAL -> 3;
             case LUCK -> 4;
+            case SCAVENGER -> 4;
             case VAMPIRISM -> 5;
             case CUBISM -> 6;
             case IMPALING -> 7;
@@ -244,7 +247,7 @@ public enum IcarusEnchant {
             case FIRE_ASPECT, THORNS -> new int[]{15, 30, 45};
             case PROTECTION, FIRE_PROTECTION, BLAST_PROTECTION, PROJECTILE_PROTECTION, FEATHER_FALLING, GROWTH -> new int[]{10, 15, 20, 25, 30};
             case RESPIRATION -> new int[]{10, 20, 30};
-            case CRITICAL, CUBISM, ENDER_SLAYER, EXECUTE, GIANT_KILLER, IMPALING, LETHALITY, LUCK, THUNDERLORD, VAMPIRISM, VENOMOUS -> new int[]{10, 20, 30, 40, 50};
+            case CRITICAL, CUBISM, ENDER_SLAYER, EXECUTE, GIANT_KILLER, IMPALING, LETHALITY, LUCK, SCAVENGER, THUNDERLORD, VAMPIRISM, VENOMOUS -> new int[]{10, 20, 30, 40, 50};
             case AIMING, SNIPE -> new int[]{10, 20, 30, 40, 50};
             case CHANCE -> new int[]{15, 30, 45};
             case PIERCING -> new int[]{25};
@@ -327,6 +330,9 @@ public enum IcarusEnchant {
             }
             case LUCK -> EnchantText.wrap(List.of(EnchantText.Token.plain("Increases the chance of mobs dropping their equipped weapon and armor by"), EnchantText.Token.value(level, "%", l -> l * 5),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain(".")));
+            case SCAVENGER -> EnchantText.wrap(List.of(EnchantText.Token.plain("Killing a mob grants"),
+                            EnchantText.Token.colored("+" + number(scavengerCoinsPerMobLevel(level == null ? 1 : level)), EnchantText.VALUE_COLOR),
+                            EnchantText.perLevel(level, false), EnchantText.Token.plain("coins for each of its levels.")));
             case THUNDERLORD -> EnchantText.wrap(List.of(EnchantText.Token.plain("Every 3 hits, a lightning bolt strikes the target for"), EnchantText.Token.value(level, "%", l -> l * 8),
                             EnchantText.perLevel(level, false), EnchantText.Token.plain("of the hit's damage.")));
             case VAMPIRISM -> EnchantText.wrap(List.of(EnchantText.Token.plain("Heals"), EnchantText.Token.value(level, "%", l -> l), EnchantText.perLevel(level, false),
@@ -359,6 +365,11 @@ public enum IcarusEnchant {
     /** Linear per level, except the last level ({@code maxLevel}) jumps straight to {@code jumpValue} instead of continuing the line - same shape {@code VanillaEnchantEntry#linearCapped}/{@code CombatListener#linearCapped} use, duplicated here for this class's own description text (see those two classes' own docs on why small per-class copies beat one shared method). */
     private static int lastLevelJump(int level, int maxLevel, int perLevel, int jumpValue) {
         return level >= maxLevel ? jumpValue : perLevel * level;
+    }
+
+    /** Scavenger's bonus coins per mob level at {@code level} - 0.3 per enchant level (0.3/0.6/0.9/1.2/1.5), the player's own spec. */
+    public static double scavengerCoinsPerMobLevel(int level) {
+        return 0.3 * Math.max(0, level);
     }
 
     /** A double trimmed to a whole number when it lands on one (e.g. "1" not "1.0"), otherwise its plain decimal form (e.g. "0.2") - used by the family of descriptions above whose per-level rate doesn't land on a whole number for every level (Execute, Giant Killer, Experience, Lethality, Life Steal, Venomous). */
