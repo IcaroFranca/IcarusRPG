@@ -77,6 +77,12 @@ economy:
     ender_dragon: 5000
   # false = mobs spawned by a monster spawner (mob farms) pay nothing.
   spawner-mobs-pay: true
+# Dying costs money instead of items: the player keeps their inventory (and XP levels) and
+# loses this % of their balance (rounded down to whole coins). Needs the economy above.
+death:
+  keep-inventory: true
+  keep-experience: true
+  money-loss-percent: 50.0
 combat-tree:
   # Blood Points are the currency spent in the Combat Ability Tree to unlock and upgrade nodes.
   # Every node's rank-1 cost and per-rank cost scale with its tier (how deep it sits in the

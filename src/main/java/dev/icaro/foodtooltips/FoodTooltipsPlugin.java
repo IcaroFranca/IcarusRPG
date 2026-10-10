@@ -538,6 +538,7 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.economy.CoinRewardService coinRewards = new dev.icaro.foodtooltips.economy.CoinRewardService((Plugin)this, this.visuals::effectiveMaxHealth);
         coinRewards.scavenger(p -> enchants.customLevel(p.getInventory().getItemInMainHand(), dev.icaro.foodtooltips.enchant.IcarusEnchant.SCAVENGER), this.visuals::level);
         combatListener.hostileKillCoins(coinRewards::rewardKill);
+        this.getServer().getPluginManager().registerEvents((Listener)new dev.icaro.foodtooltips.economy.DeathPenaltyService((Plugin)this), (Plugin)this);
         combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
         combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);

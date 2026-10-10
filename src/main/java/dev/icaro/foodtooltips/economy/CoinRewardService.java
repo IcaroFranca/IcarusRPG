@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.function.ToDoubleFunction;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -29,14 +28,10 @@ import org.bukkit.plugin.Plugin;
  * amount for specific bosses instead (the Ender Dragon's 5000), and {@code
  * economy.spawner-mobs-pay: false} stops spawner-spawned mobs (mob farms) from paying anything.
  *
- * <p>Vault is an optional dependency: every Vault type lives in {@link VaultBridge}, a nested
- * class the JVM only loads once Vault's own classes are confirmed present, so this plugin keeps
- * running (minus the rewards, with a single console warning) on a server without Vault or
- * without any economy plugin registered behind it.
+ * <p>Vault is an optional dependency (see {@link VaultEconomy}): without it, or without an
+ * economy plugin registered behind it, rewards are skipped with a single console warning.
  */
 public final class CoinRewardService {
-    private static final String VAULT_ECONOMY_CLASS = "net.milkbowl.vault.economy.Economy";
-
     private final Plugin plugin;
     private final ToDoubleFunction<LivingEntity> totalMaxHealth;
     private final boolean enabled;
@@ -108,7 +103,7 @@ public final class CoinRewardService {
         if (coins <= 0L) {
             return;
         }
-        if (!vaultPresent() || !VaultBridge.deposit(killer, coins)) {
+        if (!VaultEconomy.deposit(killer, coins)) {
             this.warnOnce();
         }
     }
@@ -153,23 +148,4 @@ public final class CoinRewardService {
         return coins;
     }
 
-    private static boolean vaultPresent() {
-        try {
-            Class.forName(VAULT_ECONOMY_CLASS, false, CoinRewardService.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException | LinkageError ex) {
-            return false;
-        }
-    }
-
-    /** The only place that touches Vault's own types - see the class doc on why it's isolated. */
-    private static final class VaultBridge {
-        static boolean deposit(Player player, long coins) {
-            var registration = Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy.class);
-            if (registration == null) {
-                return false;
-            }
-            return registration.getProvider().depositPlayer(player, coins).transactionSuccess();
-        }
-    }
 }
