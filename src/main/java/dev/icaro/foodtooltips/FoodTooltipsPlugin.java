@@ -843,6 +843,11 @@ extends JavaPlugin {
             this.visuals.track((LivingEntity)p);
         });
         Bukkit.getScheduler().runTask((Plugin)this, presentation::refreshAll);
+        // A data reload (/minecraft:reload, /reload...) wipes every plugin-added recipe - see
+        // RecipeKeeper. Snapshotted a tick from now, once every service above has registered its own.
+        dev.icaro.foodtooltips.crafting.RecipeKeeper recipeKeeper = new dev.icaro.foodtooltips.crafting.RecipeKeeper((Plugin)this);
+        this.getServer().getPluginManager().registerEvents((Listener)recipeKeeper, (Plugin)this);
+        Bukkit.getScheduler().runTask((Plugin)this, recipeKeeper::snapshot);
         if (this.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new IcarusPlaceholders(global, this.heatService::currentHeat, mushroomSoupFlight::remainingSeconds).register();
         }
