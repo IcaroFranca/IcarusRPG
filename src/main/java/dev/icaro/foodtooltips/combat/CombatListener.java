@@ -498,7 +498,7 @@ public final class CombatListener implements Listener {
                 : 1.0;
         double damage;
         if (melee) {
-            double strength = this.stats.stats(p).strength() + this.reforge.statsOf(weapon).strength() + armorReforge.strength();
+            double strength = this.meleeStrength(p, weapon);
             double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + strength / 100.0);
             // 1 + CombatLevelBonus + Enchants + WeaponBonus (always 0, see this method's
             // own doc) + AbilityTreeBonus - combat.damageMultiplier(level) already IS
@@ -620,6 +620,21 @@ public final class CombatListener implements Listener {
      * {@value #BASE_UNARMED_DAMAGE} already covers that baseline (matches real Hypixel
      * SkyBlock's own bare-hands damage).
      */
+    /** WeaponDMG exactly as a real melee hit uses it (see {@link #damage}) - public so the stats screen's own damage preview ({@code skills.SkillsMenuService#damageItem}) reads the very same number instead of re-deriving it. */
+    public double meleeWeaponDamage(Player attacker, ItemStack weapon) {
+        return this.weaponBaseDamage(attacker, weapon);
+    }
+
+    /**
+     * Strength exactly as a real melee hit uses it: the stats total (Global Level, held weapon,
+     * Powers...) plus this weapon's own reforge plus every equipped armor piece's reforge - public
+     * for the same reason as {@link #meleeWeaponDamage}. The stats screen's damage preview used to
+     * read the stats total alone, so any Strength reforge was applied in combat but never shown.
+     */
+    public double meleeStrength(Player p, ItemStack weapon) {
+        return this.stats.stats(p).strength() + this.reforge.statsOf(weapon).strength() + this.reforge.totalArmorStats(p).strength();
+    }
+
     private double weaponBaseDamage(Player attacker, ItemStack weapon) {
         LegendaryWeapon legendaryWeapon = LegendaryWeaponService.of(weapon);
         if (legendaryWeapon != null) {

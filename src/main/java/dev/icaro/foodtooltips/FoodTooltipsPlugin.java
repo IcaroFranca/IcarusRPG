@@ -532,6 +532,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new BestiaryListener(bestiary), (Plugin)this);
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService, collectionsService);
         combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
+        menus.meleePreview(combatListener::meleeWeaponDamage, combatListener::meleeStrength);
         combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
         combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);

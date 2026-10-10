@@ -121,6 +121,10 @@ public final class SkillsMenuService {
     private CollectionsMenuService collections;
     private dev.icaro.foodtooltips.trade.TradeMenuService trade;
     private dev.icaro.foodtooltips.power.MagicalPowerService magicalPower;
+    /** See {@link #meleePreview} - until wired, the preview falls back to the held weapon's raw attribute. */
+    private java.util.function.ToDoubleBiFunction<Player, ItemStack> meleeWeaponDamage;
+    /** See {@link #meleePreview} - until wired, the preview falls back to the stats total alone. */
+    private java.util.function.ToDoubleBiFunction<Player, ItemStack> meleeStrength;
     private final Map<UUID, View> views = new HashMap<>();
 
     public SkillsMenuService(CombatSkillService c, GeneralSkillService g, PlayerStatsService s, CombatAbilityService a, MiningMenuService m, GlobalLevelService global, ArmorDefenseService armor, BestiaryProgressService bestiaryProgress) {
@@ -218,6 +222,17 @@ public final class SkillsMenuService {
      */
     public void magicalPower(dev.icaro.foodtooltips.power.MagicalPowerService magicalPower) {
         this.magicalPower = magicalPower;
+    }
+
+    /**
+     * Wired after construction to {@code combat.CombatListener#meleeWeaponDamage}/{@code
+     * #meleeStrength} - the damage preview ({@link #damageItem}) then shows exactly the WeaponDMG
+     * and Strength a real hit uses (Strength reforges on the weapon and armor, a Strength-scaling
+     * legendary's own bonus damage), instead of its own partial re-derivation of them.
+     */
+    public void meleePreview(java.util.function.ToDoubleBiFunction<Player, ItemStack> weaponDamage, java.util.function.ToDoubleBiFunction<Player, ItemStack> strength) {
+        this.meleeWeaponDamage = weaponDamage;
+        this.meleeStrength = strength;
     }
 
     private double powerCritChance(Player p) {
@@ -1188,10 +1203,11 @@ public final class SkillsMenuService {
                 MENDING_INFO, l));
 
         ItemStack weapon = p.getInventory().getItemInMainHand();
-        double weaponDamage = this.value(p, Attribute.ATTACK_DAMAGE, 1.0);
+        double weaponDamage = this.meleeWeaponDamage == null ? this.value(p, Attribute.ATTACK_DAMAGE, 1.0) : this.meleeWeaponDamage.applyAsDouble(p, weapon);
+        double meleeStrength = this.meleeStrength == null ? s.strength() : this.meleeStrength.applyAsDouble(p, weapon);
         double combatLevelBonus = this.combat.damageMultiplier(c.level()) - 1.0;
         double abilityTreeBonus = this.abilities.outgoingMultiplier(p) - 1.0;
-        items.add(this.damageItem(l, weapon, weaponDamage, s.strength(), combatLevelBonus, abilityTreeBonus));
+        items.add(this.damageItem(l, weapon, weaponDamage, meleeStrength, combatLevelBonus, abilityTreeBonus));
 
         return items;
     }
@@ -1224,8 +1240,8 @@ public final class SkillsMenuService {
      * LegendaryWeaponService} granted the equipped weapon, so this works correctly for
      * any of them without needing its own reference to those classes).
      */
-    private ItemStack damageItem(Language l, ItemStack weapon, double weaponDamage, long strength, double combatLevelBonus, double abilityTreeBonus) {
-        double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + (double) strength / 100.0);
+    private ItemStack damageItem(Language l, ItemStack weapon, double weaponDamage, double strength, double combatLevelBonus, double abilityTreeBonus) {
+        double initialDamage = (BASE_UNARMED_DAMAGE + weaponDamage) * (1.0 + strength / 100.0);
         int sharpness = weapon.getEnchantmentLevel(Enchantment.SHARPNESS);
         double vanillaEnchantPercent = sharpness > 0 ? linearCapped(sharpness) : 0.0;
         int firstStrikeLevel = this.enchants == null ? 0 : this.enchants.customLevel(weapon, IcarusEnchant.FIRST_STRIKE);
@@ -1252,7 +1268,7 @@ public final class SkillsMenuService {
         for (String part : LoreWrap.wrapText("Initial Damage = (5 + Weapon DMG) × (1 + Strength/100)", LoreWrap.DEFAULT_WIDTH)) {
             lore.add(this.text(part, NamedTextColor.GOLD));
         }
-        lore.add(this.text("= (5 + " + String.format(Locale.US, "%.1f", weaponDamage) + ") × (1 + " + strength + "/100) = "
+        lore.add(this.text("= (5 + " + String.format(Locale.US, "%.1f", weaponDamage) + ") × (1 + " + Math.round(strength) + "/100) = "
                 + String.format(Locale.US, "%.2f", initialDamage), NamedTextColor.GREEN));
         lore.add(Component.empty());
         for (String part : LoreWrap.wrapText("Multiplier = 1 + Level Bonus + Enchants + Ability Bonus", LoreWrap.DEFAULT_WIDTH)) {
