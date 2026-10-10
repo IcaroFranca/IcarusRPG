@@ -292,6 +292,13 @@ public final class ItemTierService {
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false));
         meta.getPersistentDataContainer().set(this.tierKey, PersistentDataType.BYTE, (byte) 1);
+        // Tagged with today's spacing logic, so it never needs repairTierSpacing's one-time fix -
+        // marked done right away. Without this, the periodic sweep stamped that marker onto every
+        // tagged item in an inventory later, so a real Talisman/Ring/Lapis Core never again matched
+        // the freshly built (unmarked) reference a RecipeChoice.ExactChoice compares it against -
+        // every Ring/Artifact upgrade and the Lapis recipes silently refused real ingredients
+        // (reported: "não está conseguindo fazer o mangrove sweep ring").
+        meta.getPersistentDataContainer().set(this.spacingRepairedKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
     }

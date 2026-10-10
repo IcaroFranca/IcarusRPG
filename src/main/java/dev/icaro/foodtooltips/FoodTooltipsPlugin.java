@@ -458,6 +458,7 @@ extends JavaPlugin {
                 && sample.getType() == org.bukkit.Material.PLAYER_HEAD ? zombiesHeartPreview.clone() : sample);
         ZombieSwordService zombieSword = new ZombieSwordService(tiers, stats);
         pm.registerEvents((Listener)zombieSword, (Plugin)this);
+        pm.registerEvents((Listener)new dev.icaro.foodtooltips.item.ArmorUpgradeRecipeGuard(), (Plugin)this);
         stats.heldWeaponIntelligenceBonus(zombieSword::heldIntelligenceBonus);
         ZombieArmorService zombieArmor = new ZombieArmorService((Plugin)this, tiers, stats);
         pm.registerEvents((Listener)zombieArmor, (Plugin)this);

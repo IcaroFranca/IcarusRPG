@@ -143,6 +143,24 @@ public final class FarmingCollectionsItemsService {
     private static final NamespacedKey SPROUT_ARMOR_KEY = new NamespacedKey("foodtooltips", "sprout_armor_piece");
     private static final NamespacedKey FARMHAND_ARMOR_KEY = new NamespacedKey("foodtooltips", "farmhand_armor_piece");
     private static final NamespacedKey HAYMAKER_ARMOR_KEY = new NamespacedKey("foodtooltips", "haymaker_armor_piece");
+
+    /** Whether {@code item} is a real Farmhand Armor piece - what a Haymaker recipe's center must be (see {@code ArmorUpgradeRecipeGuard}). */
+    public static boolean isFarmhandPiece(org.bukkit.inventory.ItemStack item) {
+        return hasMarker(item, FARMHAND_ARMOR_KEY);
+    }
+
+    /** Whether {@code item} is a real Haymaker Armor piece - what a Sprout recipe's center must be (see {@code ArmorUpgradeRecipeGuard}). */
+    public static boolean isHaymakerPiece(org.bukkit.inventory.ItemStack item) {
+        return hasMarker(item, HAYMAKER_ARMOR_KEY);
+    }
+
+    private static boolean hasMarker(org.bukkit.inventory.ItemStack item, NamespacedKey key) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        var meta = item.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(key, PersistentDataType.BYTE);
+    }
     private static final NamespacedKey FARMER_BOOTS_KEY = new NamespacedKey("foodtooltips", "farmer_boots_piece");
     private static final NamespacedKey FARMER_BOOTS_HEALTH_KEY = new NamespacedKey("foodtooltips", "farmer_boots_health");
     private static final NamespacedKey FARMER_BOOTS_SPEED_KEY = new NamespacedKey("foodtooltips", "farmer_boots_speed");
@@ -578,7 +596,10 @@ public final class FarmingCollectionsItemsService {
         ShapedRecipe recipe = new ShapedRecipe(key, result);
         recipe.shape("CCC", "CFC", "CCC");
         recipe.setIngredient('C', new RecipeChoice.ExactChoice(this.carrotCore()));
-        recipe.setIngredient('F', new RecipeChoice.ExactChoice(haymakerPiece));
+        // Any piece of that armor type - ArmorUpgradeRecipeGuard checks it's really a Haymaker
+        // piece. An exact match can never hold for worn armor: the inventory sweeps add its
+        // Durability/Defense lore (and the durability itself changes with use).
+        recipe.setIngredient('F', haymakerPiece.getType());
         Bukkit.addRecipe(recipe);
     }
 
@@ -614,7 +635,9 @@ public final class FarmingCollectionsItemsService {
         ShapedRecipe recipe = new ShapedRecipe(key, result);
         recipe.shape("WWW", "WFW", "WWW");
         recipe.setIngredient('W', new RecipeChoice.ExactChoice(this.wheatCore()));
-        recipe.setIngredient('F', new RecipeChoice.ExactChoice(farmhandPiece));
+        // Same as newSproutRecipe's own center - ArmorUpgradeRecipeGuard checks it's really a
+        // Farmhand piece.
+        recipe.setIngredient('F', farmhandPiece.getType());
         Bukkit.addRecipe(recipe);
     }
 
