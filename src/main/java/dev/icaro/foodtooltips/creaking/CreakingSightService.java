@@ -119,7 +119,7 @@ public final class CreakingSightService implements Listener {
 
     /** Call once from {@code FoodTooltipsPlugin#onEnable} - a no-op (logged once) if PacketEvents isn't installed. */
     public void start() {
-        this.packetEventsAvailable = Bukkit.getPluginManager().getPlugin("packetevents") != null;
+        this.packetEventsAvailable = Bukkit.getPluginManager().isPluginEnabled("packetevents");
         if (!this.packetEventsAvailable) {
             this.plugin.getLogger().info("PacketEvents não encontrado - o glow do Creaking Sight (Pale Oak) fica desativado.");
             return;
@@ -324,8 +324,7 @@ public final class CreakingSightService implements Listener {
     }
 
     private void sendMetadata(Player viewer, int entityId, byte sharedFlags) {
-        List<EntityData<?>> data = List.of(new EntityData<>(SHARED_FLAGS_INDEX, EntityDataTypes.BYTE, sharedFlags));
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerEntityMetadata(entityId, data));
+        Packets.sendMetadata(viewer, entityId, sharedFlags);
     }
 
     /**
@@ -339,6 +338,32 @@ public final class CreakingSightService implements Listener {
             return;
         }
         for (GlowCategory category : GlowCategory.values()) {
+            Packets.createTeam(viewer, category);
+        }
+    }
+
+    private void addToTeam(Player viewer, GlowCategory category, UUID entityId) {
+        Packets.addToTeam(viewer, category, entityId);
+    }
+
+    private void removeFromTeam(Player viewer, GlowCategory category, UUID entityId) {
+        Packets.removeFromTeam(viewer, category, entityId);
+    }
+
+    /**
+     * Every PacketEvents type lives here, never in the outer class: the JVM resolves the types a
+     * class's bytecode uses when it links it, so with these calls inline, just registering this
+     * class as a Listener on a server WITHOUT packetevents threw NoClassDefFoundError and took the
+     * whole plugin down in onEnable. This nested class is only loaded once {@link #start} has
+     * confirmed packetevents is there (every caller is gated on packetEventsAvailable).
+     */
+    private static final class Packets {
+        static void sendMetadata(Player viewer, int entityId, byte sharedFlags) {
+            List<EntityData<?>> data = List.of(new EntityData<>(SHARED_FLAGS_INDEX, EntityDataTypes.BYTE, sharedFlags));
+            PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerEntityMetadata(entityId, data));
+        }
+
+        static void createTeam(Player viewer, GlowCategory category) {
             WrapperPlayServerTeams.ScoreBoardTeamInfo info = new WrapperPlayServerTeams.ScoreBoardTeamInfo(
                     Component.empty(), Component.empty(), Component.empty(),
                     WrapperPlayServerTeams.NameTagVisibility.ALWAYS, WrapperPlayServerTeams.CollisionRule.ALWAYS,
@@ -346,15 +371,15 @@ public final class CreakingSightService implements Listener {
             PacketEvents.getAPI().getPlayerManager().sendPacket(viewer,
                     new WrapperPlayServerTeams(category.teamName(), WrapperPlayServerTeams.TeamMode.CREATE, info));
         }
-    }
 
-    private void addToTeam(Player viewer, GlowCategory category, UUID entityId) {
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerTeams(
-                category.teamName(), WrapperPlayServerTeams.TeamMode.ADD_ENTITIES, Optional.empty(), entityId.toString()));
-    }
+        static void addToTeam(Player viewer, GlowCategory category, UUID entityId) {
+            PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerTeams(
+                    category.teamName(), WrapperPlayServerTeams.TeamMode.ADD_ENTITIES, Optional.empty(), entityId.toString()));
+        }
 
-    private void removeFromTeam(Player viewer, GlowCategory category, UUID entityId) {
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerTeams(
-                category.teamName(), WrapperPlayServerTeams.TeamMode.REMOVE_ENTITIES, Optional.empty(), entityId.toString()));
+        static void removeFromTeam(Player viewer, GlowCategory category, UUID entityId) {
+            PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerTeams(
+                    category.teamName(), WrapperPlayServerTeams.TeamMode.REMOVE_ENTITIES, Optional.empty(), entityId.toString()));
+        }
     }
 }

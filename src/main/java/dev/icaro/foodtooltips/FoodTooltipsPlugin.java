@@ -861,11 +861,21 @@ extends JavaPlugin {
         if (this.progressBar != null) {
             this.progressBar.shutdown();
         }
+        // Each checked on its own: if onEnable failed partway through, only the services it had
+        // already created exist - one missing one must not stop the rest from saving.
         if (this.quiver != null) {
             this.quiver.saveAll();
+        }
+        if (this.wardrobe != null) {
             this.wardrobe.saveAll();
+        }
+        if (this.potionBag != null) {
             this.potionBag.saveAll();
+        }
+        if (this.accessoryBag != null) {
             this.accessoryBag.saveAll();
+        }
+        if (this.storage != null) {
             this.storage.saveAll();
         }
     }

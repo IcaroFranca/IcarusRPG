@@ -74,34 +74,48 @@ public final class RightClickTrigger {
      * pass that method reference directly.
      */
     public static boolean registerIfAvailable(Plugin plugin, Predicate<Player> shouldHandle, Consumer<Player> onRightClick) {
-        if (Bukkit.getPluginManager().getPlugin("ProtocolLib") == null) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
             return false;
         }
-        ProtocolLibrary.getProtocolManager().addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
-                PacketType.Play.Client.USE_ITEM, PacketType.Play.Client.USE_ITEM_ON) {
-            @Override
-            public void onPacketReceiving(PacketEvent event) {
-                Player p = event.getPlayer();
-                if (!shouldHandle.test(p)) {
-                    return;
-                }
-                if (event.getPacketType() == PacketType.Play.Client.USE_ITEM_ON && targetsInteractableBlock(p, event)) {
-                    return;
-                }
-                event.setCancelled(true);
-                Bukkit.getScheduler().runTask(plugin, () -> onRightClick.accept(p));
-            }
-        });
+        ProtocolLibBridge.register(plugin, shouldHandle, onRightClick);
         return true;
     }
 
-    /** See this class's own doc on why a right-click aimed at a door/chest/gate/etc. must never be cancelled here. */
-    private static boolean targetsInteractableBlock(Player p, PacketEvent event) {
-        BlockPosition pos = event.getPacket().getBlockPositionModifier().readSafely(0);
-        if (pos == null) {
-            return false;
+    /**
+     * Every ProtocolLib type lives here, never in {@link RightClickTrigger} itself: the JVM
+     * resolves a class's referenced types when it links it, so with them in the outer class,
+     * merely calling {@link #registerIfAvailable} on a server WITHOUT ProtocolLib threw
+     * NoClassDefFoundError before the "is it installed?" check could even run - and since that
+     * happens inside onEnable, it disabled the whole plugin. This nested class is only loaded
+     * once that check has passed.
+     */
+    private static final class ProtocolLibBridge {
+        static void register(Plugin plugin, Predicate<Player> shouldHandle, Consumer<Player> onRightClick) {
+            ProtocolLibrary.getProtocolManager().addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
+                    PacketType.Play.Client.USE_ITEM, PacketType.Play.Client.USE_ITEM_ON) {
+                @Override
+                public void onPacketReceiving(PacketEvent event) {
+                    Player p = event.getPlayer();
+                    if (!shouldHandle.test(p)) {
+                        return;
+                    }
+                    if (event.getPacketType() == PacketType.Play.Client.USE_ITEM_ON && targetsInteractableBlock(p, event)) {
+                        return;
+                    }
+                    event.setCancelled(true);
+                    Bukkit.getScheduler().runTask(plugin, () -> onRightClick.accept(p));
+                }
+            });
         }
-        Material type = p.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getType();
-        return type.isInteractable();
+
+        /** See the outer class's own doc on why a right-click aimed at a door/chest/gate/etc. must never be cancelled here. */
+        private static boolean targetsInteractableBlock(Player p, PacketEvent event) {
+            BlockPosition pos = event.getPacket().getBlockPositionModifier().readSafely(0);
+            if (pos == null) {
+                return false;
+            }
+            Material type = p.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getType();
+            return type.isInteractable();
+        }
     }
 }
