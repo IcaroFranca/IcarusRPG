@@ -865,6 +865,9 @@ public final class CombatListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void death(EntityDeathEvent e) {
         Player p = e.getEntity().getKiller();
+        // Before the killer check (vanilla Endermen drop pearls whoever kills them) and before
+        // applyLootBonus below, so the Bestiary's own loot multiplier copies real pearls.
+        this.normalizeEndermanDrops(e, p);
         if (p == null) {
             return;
         }
@@ -878,7 +881,6 @@ public final class CombatListener implements Listener {
         });
         this.rollMinerLegendaryDrop(e, p);
         this.rollEquipmentDrops(e, p);
-        this.sanitizeEndermanDrops(e);
         this.creditCombatCollections(p, e);
         // A Citizens-tagged NPC is never instanceof Enemy - it's a Player-type entity
         // under the hood - so it needs its own check here to still count as a hostile
@@ -1181,21 +1183,40 @@ public final class CombatListener implements Listener {
     }
 
     /**
-     * An Enderman is only ever meant to drop Ender Pearl here - some of the terrain/overhaul
-     * datapacks this server runs (StellarityLite, confirmed by the player) rewrite the vanilla
-     * Enderman loot table to drop Chorus Fruit instead, which would otherwise slip past {@link
-     * #creditCombatCollections} as a bogus Ender Pearl Collection credit (it only reads {@link
-     * EntityDeathEvent#getDrops()}'s own Material, it has no way to tell a datapack-swapped drop
-     * from a real one) and clutter the kill with an item that has nothing to do with this mob.
-     * Stripped back to vanilla's own shape regardless of whatever loot table actually produced
-     * the drops, so any other datapack/plugin pulling the same trick on this or another server is
-     * covered too - not specific to Chorus Fruit.
+     * An Enderman drops exactly what vanilla's own loot table gives it - Ender Pearls, plus
+     * whatever block it was carrying - regardless of the loot table actually loaded: some of
+     * the terrain/overhaul datapacks this server runs (StellarityLite, confirmed by the player)
+     * rewrite it to drop Chorus Fruit instead. This used to only strip the non-pearl drops,
+     * which with that datapack meant stripping everything: the pearl was already gone, so
+     * Endermen dropped nothing at all ("os endermans não estão dropando ender pearl"). Now every
+     * loot-table drop is replaced by this method's own vanilla-shaped roll ({@link
+     * #rollEnderPearls}), so any other datapack/plugin pulling the same trick is covered too.
      */
-    private void sanitizeEndermanDrops(EntityDeathEvent e) {
-        if (e.getEntityType() != EntityType.ENDERMAN) {
+    private void normalizeEndermanDrops(EntityDeathEvent e, Player killer) {
+        if (!(e.getEntity() instanceof org.bukkit.entity.Enderman enderman)) {
             return;
         }
-        e.getDrops().removeIf(drop -> drop.getType() != Material.ENDER_PEARL);
+        org.bukkit.block.data.BlockData carried = enderman.getCarriedBlock();
+        Material carriedType = carried == null ? null : carried.getMaterial();
+        e.getDrops().removeIf(drop -> drop.getType() != carriedType);
+        int looting = 0;
+        if (killer != null) {
+            ItemStack weapon = killer.getInventory().getItemInMainHand();
+            looting = weapon.getEnchantmentLevel(Enchantment.LOOTING) + this.enchants.customLevel(weapon, IcarusEnchant.CHANCE);
+        }
+        int pearls = rollEnderPearls(looting, ThreadLocalRandom.current());
+        if (pearls > 0) {
+            e.getDrops().add(new ItemStack(Material.ENDER_PEARL, pearls));
+        }
+    }
+
+    /** Vanilla's own Enderman pearl roll: 0-1, plus another 0-1 per Looting level (Chance counts as Looting, same as {@link #rollEquipmentDrops}). */
+    static int rollEnderPearls(int looting, java.util.random.RandomGenerator random) {
+        int count = random.nextInt(2);
+        for (int i = 0; i < looting; i++) {
+            count += random.nextInt(2);
+        }
+        return count;
     }
 
     /** A Zombie Miner (only - Skeleton Miner has no special drop) has a small chance of dropping the Undead's Sword - the first non-admin way to obtain it (previously {@code /rpgitems}-only, via {@code LegendaryItemsMenuService}). */
