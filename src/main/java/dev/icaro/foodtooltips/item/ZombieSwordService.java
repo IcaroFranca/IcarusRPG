@@ -1,6 +1,5 @@
 package dev.icaro.foodtooltips.item;
 
-import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.stats.PlayerStatsService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.HashMap;
@@ -183,11 +182,17 @@ public final class ZombieSwordService implements Listener {
      * is this recipe's own equivalent of that class's {@code isHurricaneBow}. Checks every
      * matrix slot (not a fixed index) since this recipe's 1-column shape can match in any of
      * the 3 grid columns.
+     *
+     * <p>Covers Zombie Armor too ({@link ZombiesHeartService#RECIPES}) - its pieces used to
+     * keep the ExactChoice match, which fails for the same reason (worse: {@code
+     * ItemTierService#repairTierSpacing} stamps its own PDC marker onto every real heart in an
+     * inventory, a marker the reference item never gets, and Paper's exact match compares every
+     * component, PDC included).
      */
     @EventHandler
-    public void guardZombieSwordRecipe(PrepareItemCraftEvent e) {
+    public void guardZombiesHeartRecipes(PrepareItemCraftEvent e) {
         Recipe recipe = e.getRecipe();
-        if (!(recipe instanceof CraftingRecipe crafting) || !CollectionsCatalog.ZOMBIE_SWORD_RECIPE.equals(crafting.getKey())) {
+        if (!(recipe instanceof CraftingRecipe crafting) || !ZombiesHeartService.RECIPES.contains(crafting.getKey())) {
             return;
         }
         for (ItemStack slot : e.getInventory().getMatrix()) {

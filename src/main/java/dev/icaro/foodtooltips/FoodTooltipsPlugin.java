@@ -445,6 +445,11 @@ extends JavaPlugin {
         armor.zombieHatBonus(zombieHat::defenseBonus);
         general.pickaxeMiningFortuneBonus(zombiePickaxe::miningFortuneBonus);
         ZombiesHeartService zombiesHeart = new ZombiesHeartService(tiers);
+        // Zombie's Heart recipes take a plain Player Head ingredient (see ZombiesHeartService#RECIPES) -
+        // without this the recipe book showed just that generic head, not the item actually required.
+        org.bukkit.inventory.ItemStack zombiesHeartPreview = zombiesHeart.createItem();
+        recipeBook.ingredientDisplay((recipeKey, sample) -> ZombiesHeartService.RECIPES.contains(recipeKey)
+                && sample.getType() == org.bukkit.Material.PLAYER_HEAD ? zombiesHeartPreview.clone() : sample);
         ZombieSwordService zombieSword = new ZombieSwordService(tiers, stats);
         pm.registerEvents((Listener)zombieSword, (Plugin)this);
         stats.heldWeaponIntelligenceBonus(zombieSword::heldIntelligenceBonus);

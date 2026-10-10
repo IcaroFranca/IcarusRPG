@@ -124,11 +124,18 @@ public final class RecipeBookMenuService {
         RecipeCategory resolve(NamespacedKey recipeKey);
     }
 
+    /** Late-bound, same shape as {@link RequirementCheck} - swaps the item a recipe's own ingredient would show ({@code sample}, its {@link RecipeChoice#getItemStack()}) for a more faithful one, for a recipe whose real requirement lives in a craft-time guard rather than its ingredients (today: {@code item.ZombiesHeartService#RECIPES}, a plain Player Head ingredient that would otherwise show as just that, not the Zombie's Heart it actually needs). Defaults to showing {@code sample} unchanged. */
+    @FunctionalInterface
+    public interface IngredientDisplay {
+        ItemStack display(NamespacedKey recipeKey, ItemStack sample);
+    }
+
     private final Plugin plugin;
     private final Consumer<Player> back;
     private final Map<UUID, View> views = new HashMap<>();
     private RequirementCheck requirementCheck = (viewer, key) -> null;
     private CategoryResolver categoryResolver = key -> RecipeCategory.OTHER;
+    private IngredientDisplay ingredientDisplay = (key, sample) -> sample;
 
     public RecipeBookMenuService(Plugin plugin, Consumer<Player> back) {
         this.plugin = plugin;
@@ -143,6 +150,11 @@ public final class RecipeBookMenuService {
     /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link CategoryResolver}'s own doc. */
     public void categoryResolver(CategoryResolver categoryResolver) {
         this.categoryResolver = categoryResolver;
+    }
+
+    /** Wired after construction, same reason as every other late-bound setter in this codebase - see {@link IngredientDisplay}'s own doc. */
+    public void ingredientDisplay(IngredientDisplay ingredientDisplay) {
+        this.ingredientDisplay = ingredientDisplay;
     }
 
     public boolean viewing(Player p) {
@@ -378,7 +390,7 @@ public final class RecipeBookMenuService {
         }
         lore.add(this.text("Ingredients:", NamedTextColor.GRAY));
         for (RecipeChoice choice : this.choicesOf(recipe)) {
-            ItemStack sample = choice.getItemStack();
+            ItemStack sample = this.sample(recipe, choice);
             if (sample == null || sample.isEmpty()) {
                 continue;
             }
@@ -415,7 +427,7 @@ public final class RecipeBookMenuService {
                 String line = rows[row];
                 for (int col = 0; col < line.length() && col < 3; col++) {
                     RecipeChoice choice = choices.get(line.charAt(col));
-                    ItemStack sample = choice == null ? null : choice.getItemStack();
+                    ItemStack sample = choice == null ? null : this.sample(recipe, choice);
                     if (sample != null && !sample.isEmpty()) {
                         grid[row * 3 + col] = sample.clone();
                     }
@@ -424,13 +436,19 @@ public final class RecipeBookMenuService {
         } else if (recipe instanceof ShapelessRecipe shapeless) {
             List<RecipeChoice> choices = shapeless.getChoiceList();
             for (int i = 0; i < choices.size() && i < 9; i++) {
-                ItemStack sample = choices.get(i).getItemStack();
+                ItemStack sample = this.sample(recipe, choices.get(i));
                 if (sample != null && !sample.isEmpty()) {
                     grid[i] = sample.clone();
                 }
             }
         }
         return grid;
+    }
+
+    /** The item shown for {@code choice} in {@code recipe} - its own sample, run through {@link #ingredientDisplay}. */
+    private ItemStack sample(CraftingRecipe recipe, RecipeChoice choice) {
+        ItemStack sample = choice.getItemStack();
+        return sample == null || sample.isEmpty() ? sample : this.ingredientDisplay.display(recipe.getKey(), sample);
     }
 
     private Inventory blank(String title) {

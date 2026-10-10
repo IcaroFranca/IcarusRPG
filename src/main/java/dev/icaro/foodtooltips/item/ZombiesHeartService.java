@@ -1,8 +1,10 @@
 package dev.icaro.foodtooltips.item;
 
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
 import dev.icaro.foodtooltips.i18n.Language;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -42,8 +44,18 @@ import org.bukkit.persistence.PersistentDataType;
  */
 public final class ZombiesHeartService {
     private static final UUID PROFILE = UUID.nameUUIDFromBytes("icarusrpg:zombies_heart".getBytes(StandardCharsets.UTF_8));
-    /** See {@link #isZombiesHeart} - a plain PDC byte marker, checked instead of an exact-NBT {@code RecipeChoice.ExactChoice} match for {@code item.ZombieSwordService}'s own recipe (see that class's own {@code guardZombieSwordRecipe} doc on why). */
+    /** See {@link #isZombiesHeart} - a plain PDC byte marker, checked instead of an exact-NBT {@code RecipeChoice.ExactChoice} match for every recipe in {@link #RECIPES} (see {@code item.ZombieSwordService#guardZombiesHeartRecipes}'s own doc on why). */
     private static final NamespacedKey KEY = new NamespacedKey("foodtooltips", "zombies_heart");
+    private static final String FAMILY = "zombies_heart";
+    /**
+     * Every recipe that consumes a Zombie's Heart - all registered with a plain {@link
+     * Material#PLAYER_HEAD} ingredient and enforced by {@code
+     * ZombieSwordService#guardZombiesHeartRecipes} (see its own doc), and shown with the real
+     * item in the recipe book instead of that generic head (see {@code FoodTooltipsPlugin}'s
+     * own {@code RecipeBookMenuService#ingredientDisplay} wiring).
+     */
+    public static final Set<NamespacedKey> RECIPES = Set.of(CollectionsCatalog.ZOMBIE_SWORD_RECIPE,
+            CollectionsCatalog.ZOMBIE_CHESTPLATE_RECIPE, CollectionsCatalog.ZOMBIE_LEGGINGS_RECIPE, CollectionsCatalog.ZOMBIE_BOOTS_RECIPE);
     public static final int HEALTH = 50;
     public static final int VITALITY = 30;
     public static final int MENDING = 30;
@@ -62,7 +74,7 @@ public final class ZombiesHeartService {
         meta.setPlayerProfile(profile);
         meta.getPersistentDataContainer().set(KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Zombie's Heart", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        AccessoryItems.mark((ItemMeta) meta, AccessoryType.CHARM, "zombies_heart", 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
+        AccessoryItems.mark((ItemMeta) meta, AccessoryType.CHARM, FAMILY, 0, 0.0, 0.0, 0.0, 0, 0, 0, 0);
         AccessoryItems.markHealthVitalityMending((ItemMeta) meta, HEALTH, VITALITY, MENDING);
         this.tiers.forceTier((ItemMeta) meta, ItemTier.B);
         meta.lore(List.of(
@@ -79,12 +91,21 @@ public final class ZombiesHeartService {
         return tiered != null ? tiered : item;
     }
 
-    /** See {@link #KEY}'s own doc - whether {@code item} is genuinely a Zombie's Heart, checked by PDC marker rather than exact-NBT identity. */
+    /**
+     * See {@link #KEY}'s own doc - whether {@code item} is genuinely a Zombie's Heart, checked by
+     * PDC marker rather than exact-NBT identity. {@link #KEY} only exists since 0.76.219, so a
+     * Zombie's Heart crafted before that carries just its {@link AccessoryItems#family} marker
+     * ({@value #FAMILY}, set by {@link #createItem} since the item was first added) - accepted
+     * too, or every older heart would be silently refused by {@code
+     * ZombieSwordService#guardZombiesHeartRecipes} (reported: "ta pedindo uma player head
+     * generica sem razão" - the recipe looked satisfied but never produced a result).
+     */
     public static boolean isZombiesHeart(ItemStack item) {
         if (item == null || item.isEmpty()) {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE);
+        return meta != null && (meta.getPersistentDataContainer().has(KEY, PersistentDataType.BYTE)
+                || FAMILY.equals(AccessoryItems.family(item)));
     }
 }

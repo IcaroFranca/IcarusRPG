@@ -157,21 +157,6 @@ public final class CombatCollectionsItemsService {
                 new String[]{"RRR", "R R", "RRR"}, r -> r.setIngredient('R', Material.ROTTEN_FLESH));
         this.newShapedRecipe(CollectionsCatalog.ZOMBIES_HEART_RECIPE, this.zombiesHeart.createItem(),
                 new String[]{"CCC", "C C", "CCC"}, r -> r.setIngredient('C', new RecipeChoice.ExactChoice(this.rottenFleshCore())));
-        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_SWORD_RECIPE, this.zombieSword.createItem(),
-                new String[]{"Z", "Z", "S"}, r -> {
-                    // A plain Material match, not RecipeChoice.ExactChoice(zombiesHeart.createItem())
-                    // - see ZombieSwordService#guardZombieSwordRecipe's own doc on why an exact-NBT
-                    // match against a custom player-head item is unreliable, and why that guard is
-                    // the real enforcement here instead.
-                    r.setIngredient('Z', Material.PLAYER_HEAD);
-                    r.setIngredient('S', Material.STICK);
-                });
-        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_CHESTPLATE_RECIPE, this.zombieArmor.createChestplate(),
-                new String[]{"Z Z", "ZZZ", "ZZZ"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
-        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_LEGGINGS_RECIPE, this.zombieArmor.createLeggings(),
-                new String[]{"ZZZ", "Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
-        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_BOOTS_RECIPE, this.zombieArmor.createBoots(),
-                new String[]{"Z Z", "Z Z"}, r -> r.setIngredient('Z', new RecipeChoice.ExactChoice(this.zombiesHeart.createItem())));
         this.newShapedRecipe(CollectionsCatalog.SPIDER_SWORD_RECIPE, this.spiderSword.createItem(),
                 new String[]{"S", "S", "T"}, r -> {
                     r.setIngredient('S', Material.SPIDER_EYE);
@@ -271,6 +256,36 @@ public final class CombatCollectionsItemsService {
                     r.setIngredient('C', new RecipeChoice.ExactChoice(this.enderPearlCore()));
                     r.setIngredient('G', Material.ENCHANTED_GOLDEN_APPLE);
                 });
+        this.registerZombiesHeartRecipes();
+    }
+
+    /**
+     * Every recipe in {@link ZombiesHeartService#RECIPES} - a plain {@link Material#PLAYER_HEAD}
+     * ingredient, not {@code RecipeChoice.ExactChoice(zombiesHeart.createItem())}: see {@code
+     * ZombieSwordService#guardZombiesHeartRecipes}'s own doc on why an exact match against a
+     * real Zombie's Heart is unreliable, and why that guard is the real enforcement here.
+     *
+     * <p>Deliberately registered LAST: Paper tries crafting recipes in registration order and
+     * takes the first that matches, so "any player head" would otherwise shadow every later
+     * recipe of the same shape built from a different custom-head Core - the Leaping Sword's
+     * own "F/F/stick" with Fermented Spider Eye Cores (registered after the Zombie Sword's
+     * "Z/Z/stick") silently stopped producing anything from 0.76.219 on, its grid matching the
+     * Zombie Sword first and the guard then clearing the result. Every other plugin recipe
+     * (Farming/Foraging register before this class, see {@code FoodTooltipsPlugin}) gets
+     * tried first this way, and only a grid none of them claims falls through to these.
+     */
+    private void registerZombiesHeartRecipes() {
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_SWORD_RECIPE, this.zombieSword.createItem(),
+                new String[]{"Z", "Z", "S"}, r -> {
+                    r.setIngredient('Z', Material.PLAYER_HEAD);
+                    r.setIngredient('S', Material.STICK);
+                });
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_CHESTPLATE_RECIPE, this.zombieArmor.createChestplate(),
+                new String[]{"Z Z", "ZZZ", "ZZZ"}, r -> r.setIngredient('Z', Material.PLAYER_HEAD));
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_LEGGINGS_RECIPE, this.zombieArmor.createLeggings(),
+                new String[]{"ZZZ", "Z Z", "Z Z"}, r -> r.setIngredient('Z', Material.PLAYER_HEAD));
+        this.newShapedRecipe(CollectionsCatalog.ZOMBIE_BOOTS_RECIPE, this.zombieArmor.createBoots(),
+                new String[]{"Z Z", "Z Z"}, r -> r.setIngredient('Z', Material.PLAYER_HEAD));
     }
 
     private ItemStack enderPearlCore() {
