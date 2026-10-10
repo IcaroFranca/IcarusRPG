@@ -20,9 +20,11 @@ import org.bukkit.NamespacedKey;
  * as Combat's own 14 entries (every material a real hostile {@code bestiary.BestiaryCatalog}
  * mob commonly drops, minus one-off boss loot and anything an aquatic mob drops, reserved
  * for Fishing instead) - 13 still inert per the player's own "vou te falar com o tempo o que
- * cada um vai ter", Bone's own template now filled in. Mining/Fishing still have no entries at all, though both are real
- * {@link CollectionsCategory} values already (so {@link CollectionsMenuService}'s category
- * screen never has to change shape once any of them are filled in).
+ * cada um vai ter", Bone's own template now filled in. Mining now has its own inert templates too
+ * (one per resource {@code mining.MiningCatalog} already treats as a Mining target - milestones
+ * to be filled in later, per the player's own "deixa já o molde dos collections de mining");
+ * Fishing still has no entries at all, though it's a real {@link CollectionsCategory} value
+ * already (so {@link CollectionsMenuService}'s category screen never has to change shape).
  *
  * <p>The recipe keys below are this class's own - {@code
  * dev.icaro.foodtooltips.item.FarmingCollectionsItemsService}/{@code
@@ -414,6 +416,24 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.BREEZE_ROD, Material.BREEZE_ROD, CollectionsCategory.COMBAT, "Bastão de Brisa", "Breeze Rod", List.of()),
             new CollectionsEntry(Material.PHANTOM_MEMBRANE, Material.PHANTOM_MEMBRANE, CollectionsCategory.COMBAT, "Membrana de Phantom", "Phantom Membrane", List.of()),
             new CollectionsEntry(Material.WITHER_SKELETON_SKULL, Material.WITHER_SKELETON_SKULL, CollectionsCategory.COMBAT, "Crânio de Esqueleto Wither", "Wither Skeleton Skull", List.of()),
+            // Mining templates (empty milestone ladders, to be filled in later) - block -> drop,
+            // the same pair skills.GeneralSkillListener credits: an ore by its real drop (raw
+            // metal/gem, Fortune copies included - a Smelting Touch ingot still counts as its raw
+            // form), a stone block 1 per block broken. Deepslate ore variants share their
+            // regular ore's entry through the drop.
+            new CollectionsEntry(Material.STONE, Material.COBBLESTONE, CollectionsCategory.MINING, "Pedregulho", "Cobblestone", List.of()),
+            new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", List.of()),
+            new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", List.of()),
+            new CollectionsEntry(Material.COPPER_ORE, Material.RAW_COPPER, CollectionsCategory.MINING, "Cobre", "Copper", List.of()),
+            new CollectionsEntry(Material.IRON_ORE, Material.RAW_IRON, CollectionsCategory.MINING, "Ferro", "Iron", List.of()),
+            new CollectionsEntry(Material.GOLD_ORE, Material.RAW_GOLD, CollectionsCategory.MINING, "Ouro", "Gold", List.of()),
+            new CollectionsEntry(Material.REDSTONE_ORE, Material.REDSTONE, CollectionsCategory.MINING, "Redstone", "Redstone", List.of()),
+            new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", List.of()),
+            new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", List.of()),
+            new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", List.of()),
+            new CollectionsEntry(Material.NETHER_QUARTZ_ORE, Material.QUARTZ, CollectionsCategory.MINING, "Quartzo do Nether", "Nether Quartz", List.of()),
+            new CollectionsEntry(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, CollectionsCategory.MINING, "Detritos Antigos", "Ancient Debris", List.of()),
+            new CollectionsEntry(Material.OBSIDIAN, Material.OBSIDIAN, CollectionsCategory.MINING, "Obsidiana", "Obsidian", List.of()),
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),
                     CollectionsMilestone.recipeUnlock(250,

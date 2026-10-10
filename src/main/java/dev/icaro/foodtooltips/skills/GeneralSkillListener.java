@@ -440,6 +440,10 @@ implements Listener {
             }
             if (MiningCatalog.isOre(m) && !p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
                 this.track(k, new Target(SkillType.MINING, x.drop()), p);
+            } else if (MiningCatalog.isStone(m)) {
+                // Stone isn't a tracked drop target (no Fortune) - its Mining Collection
+                // (Cobblestone, Cobbled Deepslate...) is credited 1 per block right here instead.
+                this.applyCollections(p, x.drop(), 1);
             }
         });
         if (this.isLog(m)) {
@@ -580,6 +584,8 @@ implements Listener {
                 this.gain(p, SkillType.FARMING, milestone.xpAmount());
             } else if (milestone.kind() == RewardKind.FORAGING_XP) {
                 this.gain(p, SkillType.FORAGING, milestone.xpAmount());
+            } else if (milestone.kind() == RewardKind.MINING_XP) {
+                this.gain(p, SkillType.MINING, milestone.xpAmount());
             }
         }
         this.collections.announce(p, drop, update, this.openCollectionsEntry);
@@ -685,13 +691,16 @@ implements Listener {
             // Read from e.getItems() above (before the Telekinesis sweep below removes
             // those entities), so this counts the real harvested amount - Fortune's own
             // copies included - regardless of whether Telekinesis is on for this player;
-            // same reasoning as the overflow branch just above. Farming/Foraging only for
-            // now (see #applyCollections's own doc) - Mining has no catalog entries yet.
-            // Brown Mushroom redirects to Red's own catalog entry (see the tracking site
-            // in #broken); every other tracked material already matches its entry directly.
-            if (t.skill == SkillType.FARMING || t.skill == SkillType.FORAGING) {
+            // same reasoning as the overflow branch just above. Brown Mushroom redirects to
+            // Red's own catalog entry (see the tracking site in #broken); every other tracked
+            // material already matches its entry directly. A Mining ore is credited by its own
+            // raw drop (t.drop), not the Smelting Touch result, so an Iron Ingot from Smelting
+            // Touch still counts toward the Iron (Raw Iron) Collection.
+            if (t.skill == SkillType.FARMING || t.skill == SkillType.FORAGING || t.skill == SkillType.MINING) {
                 if (trackedTotal > 0) {
-                    this.applyCollections(p, trackedDrop == Material.BROWN_MUSHROOM ? Material.RED_MUSHROOM : trackedDrop, trackedTotal);
+                    Material credited = t.skill == SkillType.MINING ? t.drop
+                            : trackedDrop == Material.BROWN_MUSHROOM ? Material.RED_MUSHROOM : trackedDrop;
+                    this.applyCollections(p, credited, trackedTotal);
                 }
                 // Any OTHER item bundled into the same harvest (e.g. Wheat's own bonus
                 // Wheat Seeds, dropped alongside the tracked Wheat itself) - the real

@@ -6,6 +6,8 @@ public enum RewardKind {
     FARMING_XP,
     /** Grants {@code CollectionsMilestone#xpAmount} Foraging skill XP. */
     FORAGING_XP,
+    /** Grants {@code CollectionsMilestone#xpAmount} Mining skill XP. */
+    MINING_XP,
     /** Unlocks {@code CollectionsMilestone#recipe} (see {@link CollectionsService#hasUnlockedRecipe}). */
     RECIPE_UNLOCK,
     /** Discounts {@code CollectionsMilestone#discountEnchant}'s own Enchanting Table XP cost by {@code CollectionsMilestone#discountPercent} - see {@code EnchantMenuService#discountedCost}. */
