@@ -405,6 +405,8 @@ extends JavaPlugin {
         armor.defenseMultiplier(e -> (minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0) * (mushroomArmor.bonusActive(e) ? 3.0 : 1.0));
         // Zombie/Skeleton Miners wear Miner's Armor for looks only - its Defense never applies to them.
         armor.ignoresArmorDefense(MinerVariantService::isMiner);
+        // The Ender Dragon's hits ignore part of the player's Defense (end-mobs config).
+        armor.attackerDefensePierce(difficulty::defensePierce);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();

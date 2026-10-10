@@ -104,10 +104,20 @@ mob-visuals:
   min-health-overworld: 0.0
   min-health-nether: 4500.0
   min-health-end: 0.0
-  # Total Max Health every Enderman spawning in The End gets (0 = just the rules above).
-  # Way past vanilla's 1024 cap on purpose - the excess lives in the same bonus HP pool
-  # the Nether's own 4500 floor already uses (see real-health-cap just below).
-  end-enderman-health: 750000.0
+  # Per-mob overrides for mobs spawning in The End (keyed by entity type): health = total
+  # Max Health (way past vanilla's 1024 cap on purpose - the excess lives in the same bonus
+  # HP pool the Nether's own 4500 floor uses, see real-health-cap just below), damage = the
+  # minimum damage each of its hits deals before Defense, defense-ignored-percent = how much
+  # of the player's Defense its hits ignore (70 = only 30% of the player's Defense counts).
+  # 0 = keep the normal rules for that value. Only applies to mobs spawned after a change.
+  end-mobs:
+    enderman:
+      health: 750000.0
+      damage: 3500.0
+    ender_dragon:
+      health: 15000000.0
+      damage: 2200.0
+      defense-ignored-percent: 70.0
   # Vanilla's own Max Health attribute hard-caps at 1024 no matter what's set on it -
   # everything above this cap is tracked as a separate bonus HP pool instead (absorbs
   # damage first, same idea as vanilla's own Absorption effect - see

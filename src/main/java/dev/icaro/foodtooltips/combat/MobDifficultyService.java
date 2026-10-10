@@ -3,7 +3,10 @@ package dev.icaro.foodtooltips.combat;
 import dev.icaro.foodtooltips.bestiary.BestiaryCatalog;
 import dev.icaro.foodtooltips.bestiary.BestiaryCategory;
 import dev.icaro.foodtooltips.bestiary.BestiaryEntry;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.bukkit.Location;
@@ -11,6 +14,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Boss;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -62,6 +67,8 @@ public final class MobDifficultyService {
     private final NamespacedKey dmgMultiplierKey = new NamespacedKey("foodtooltips", "mob_dmg_multiplier");
     private final NamespacedKey overrideMinHealthKey = new NamespacedKey("foodtooltips", "mob_override_min_health");
     private final NamespacedKey overrideMinDamageKey = new NamespacedKey("foodtooltips", "mob_override_min_damage");
+    /** Fraction (0-1) of a player's Defense this mob's hits ignore - see {@link #defensePierce}. */
+    private final NamespacedKey defensePierceKey = new NamespacedKey("foodtooltips", "mob_defense_pierce");
 
     private final double flatHealthMultiplier;
     private final double healthPerXp;
@@ -75,8 +82,8 @@ public final class MobDifficultyService {
     private final double minHealthOverworld;
     private final double minHealthNether;
     private final double minHealthEnd;
-    /** Total Max Health of an Enderman spawning in The End - see {@link #scale}. */
-    private final double endEndermanHealth;
+    /** {@code mob-visuals.end-mobs} - per-type overrides for mobs spawning in The End, see {@link #scale}. */
+    private final Map<EntityType, EndMob> endMobs;
     private final double minDamageOverworld;
     private final double minDamageNether;
     private final double minDamageEnd;
@@ -94,7 +101,7 @@ public final class MobDifficultyService {
         this.minHealthOverworld = p.getConfig().getDouble("mob-visuals.min-health-overworld", 0.0);
         this.minHealthNether = p.getConfig().getDouble("mob-visuals.min-health-nether", 4500.0);
         this.minHealthEnd = p.getConfig().getDouble("mob-visuals.min-health-end", 0.0);
-        this.endEndermanHealth = Math.max(0.0, p.getConfig().getDouble("mob-visuals.end-enderman-health", 750000.0));
+        this.endMobs = loadEndMobs(p.getConfig().getConfigurationSection("mob-visuals.end-mobs"));
         this.minDamageOverworld = p.getConfig().getDouble("mob-visuals.min-damage-overworld", 0.0);
         this.minDamageNether = p.getConfig().getDouble("mob-visuals.min-damage-nether", 500.0);
         this.minDamageEnd = p.getConfig().getDouble("mob-visuals.min-damage-end", 0.0);
@@ -180,11 +187,19 @@ public final class MobDifficultyService {
         if (overrideMinHealth != null) {
             desiredTotal = Math.max(desiredTotal, overrideMinHealth);
         }
-        // The End's own Endermen (the player's explicit 750K) - far past vanilla's 1024 cap,
-        // which is fine: everything above real-health-cap goes to the bonus HP pool below,
-        // exactly like the Nether's own 4500 floor already does.
-        if (e.getType() == EntityType.ENDERMAN && e.getWorld().getEnvironment() == World.Environment.THE_END) {
-            desiredTotal = Math.max(desiredTotal, this.endEndermanHealth);
+        // The End's own per-type overrides (the player's explicit Enderman 750K / Ender Dragon
+        // 15M) - far past vanilla's 1024 cap, which is fine: everything above real-health-cap
+        // goes to the bonus HP pool below, exactly like the Nether's own 4500 floor already does.
+        EndMob endMob = e.getWorld().getEnvironment() == World.Environment.THE_END ? this.endMobs.get(e.getType()) : null;
+        if (endMob != null) {
+            desiredTotal = Math.max(desiredTotal, endMob.health());
+            if (endMob.damage() > 0.0) {
+                Double existing = pdc.get(this.overrideMinDamageKey, PersistentDataType.DOUBLE);
+                pdc.set(this.overrideMinDamageKey, PersistentDataType.DOUBLE, Math.max(existing == null ? 0.0 : existing, endMob.damage()));
+            }
+            if (endMob.defensePierce() > 0.0) {
+                pdc.set(this.defensePierceKey, PersistentDataType.DOUBLE, endMob.defensePierce());
+            }
         }
         double realMax = Math.min(desiredTotal, this.realHealthCap);
         double bonusMax = Math.max(0.0, desiredTotal - realMax);
@@ -223,11 +238,23 @@ public final class MobDifficultyService {
         };
     }
 
+    /** Fraction (0-1) of a player's Defense {@code mob}'s hits ignore - {@code end-mobs.<type>.defense-ignored-percent}, stamped at spawn by {@link #scale}; 0 for everything else. */
+    public double defensePierce(LivingEntity mob) {
+        Double stored = mob.getPersistentDataContainer().get(this.defensePierceKey, PersistentDataType.DOUBLE);
+        return stored == null ? 0.0 : stored;
+    }
+
     /**
      * Drains {@code mob}'s bonus HP pool (see {@link #scale}) by up to {@code damage},
      * returning whatever's left over to actually apply to its real vanilla health -
      * either the full amount (no pool, or already empty) or the remainder once the pool
      * runs dry. Persists the pool's new remaining value back to PDC.
+     *
+     * <p>A {@link Boss} (Ender Dragon, Wither) splits every hit proportionally instead (see
+     * {@link #proportionalShare}): its vanilla boss bar only ever reads the REAL health, so
+     * with a pool drained first it would sit frozen at 100% for nearly the whole fight (the
+     * Ender Dragon's 15M is 14,999,000 pool over 1000 real) and only start moving at the very
+     * end. Splitting keeps real health tracking the true total, so the bar drops smoothly.
      */
     public double absorb(LivingEntity mob, double damage) {
         if (damage <= 0.0) {
@@ -235,12 +262,63 @@ public final class MobDifficultyService {
         }
         PersistentDataContainer pdc = mob.getPersistentDataContainer();
         Double bonus = pdc.get(this.bonusHpKey, PersistentDataType.DOUBLE);
+        if (mob instanceof Boss) {
+            Double bonusMax = pdc.get(this.bonusMaxHpKey, PersistentDataType.DOUBLE);
+            AttributeInstance attribute = mob.getAttribute(Attribute.MAX_HEALTH);
+            if (bonus == null || bonusMax == null || bonusMax <= 0.0 || attribute == null) {
+                return damage;
+            }
+            double[] split = proportionalShare(mob.getHealth(), attribute.getValue(), bonus, bonusMax, damage);
+            pdc.set(this.bonusHpKey, PersistentDataType.DOUBLE, split[1]);
+            return split[0];
+        }
         if (bonus == null || bonus <= 0.0) {
             return damage;
         }
         double absorbed = Math.min(bonus, damage);
         pdc.set(this.bonusHpKey, PersistentDataType.DOUBLE, bonus - absorbed);
         return damage - absorbed;
+    }
+
+    /**
+     * {@link #absorb}'s Boss split: takes {@code damage} off the true total (real + pool), then
+     * re-divides what's left so real health stays the same fraction of its own max as the
+     * total is of its own max. Returns {damage to apply to real health, new pool value}.
+     */
+    static double[] proportionalShare(double realHealth, double realMax, double pool, double poolMax, double damage) {
+        double totalMax = realMax + poolMax;
+        double newTotal = Math.max(0.0, realHealth + pool - damage);
+        double newReal = realMax * newTotal / totalMax;
+        double newPool = Math.max(0.0, newTotal - newReal);
+        return new double[]{Math.max(0.0, realHealth - newReal), newPool};
+    }
+
+    private record EndMob(double health, double damage, double defensePierce) {
+    }
+
+    /** {@code mob-visuals.end-mobs} - falls back to the player's own spec (Enderman 750K/3.5K, Ender Dragon 15M/2.2K/70%) when the section is missing, e.g. a server config.yml from before this existed. */
+    private static Map<EntityType, EndMob> loadEndMobs(ConfigurationSection section) {
+        Map<EntityType, EndMob> mobs = new EnumMap<>(EntityType.class);
+        if (section == null) {
+            mobs.put(EntityType.ENDERMAN, new EndMob(750000.0, 3500.0, 0.0));
+            mobs.put(EntityType.ENDER_DRAGON, new EndMob(15000000.0, 2200.0, 0.70));
+            return mobs;
+        }
+        for (String key : section.getKeys(false)) {
+            EntityType type;
+            try {
+                type = EntityType.valueOf(key.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                continue;
+            }
+            ConfigurationSection mob = section.getConfigurationSection(key);
+            if (mob == null) {
+                continue;
+            }
+            double pierce = Math.max(0.0, Math.min(100.0, mob.getDouble("defense-ignored-percent", 0.0))) / 100.0;
+            mobs.put(type, new EndMob(Math.max(0.0, mob.getDouble("health", 0.0)), Math.max(0.0, mob.getDouble("damage", 0.0)), pierce));
+        }
+        return mobs;
     }
 
     private double minHealth(World world) {

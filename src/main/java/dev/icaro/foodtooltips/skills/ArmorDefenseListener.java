@@ -1,6 +1,7 @@
 package dev.icaro.foodtooltips.skills;
 
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -38,7 +39,18 @@ public final class ArmorDefenseListener implements Listener {
         if (!(e.getEntity() instanceof LivingEntity target)) {
             return;
         }
-        double damage = e.getDamage() * (1.0 - this.armor.damageReduction(target));
+        LivingEntity source = null;
+        if (e instanceof EntityDamageByEntityEvent byEntity) {
+            if (byEntity.getDamager() instanceof LivingEntity direct) {
+                source = direct;
+            } else if (byEntity.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof LivingEntity shooter) {
+                source = shooter;
+            }
+        }
+        // source (projectile shooters included - the Ender Dragon's fireballs) only decides
+        // how much Defense counts (see ArmorDefenseService#attackerDefensePierce); the mob-
+        // type multiplier below keeps reacting to a direct hit only, same as before.
+        double damage = e.getDamage() * (1.0 - this.armor.damageReduction(target, source));
         if (e instanceof EntityDamageByEntityEvent byEntity && byEntity.getDamager() instanceof LivingEntity attacker) {
             damage *= this.armor.incomingMultiplier(target, attacker);
         }

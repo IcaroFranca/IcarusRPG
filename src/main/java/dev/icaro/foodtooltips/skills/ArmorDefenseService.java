@@ -76,6 +76,8 @@ public final class ArmorDefenseService {
      * still gets all of it. Defaults to never (every wearer counts its armor).
      */
     private java.util.function.Predicate<LivingEntity> ignoresArmorDefense = e -> false;
+    /** Fraction (0-1) of the target's Defense an attacker's hits ignore - late-bound to {@code combat.MobDifficultyService#defensePierce} (the Ender Dragon's 70%, per the player's own spec). Defaults to ignoring none. */
+    private java.util.function.ToDoubleFunction<LivingEntity> attackerDefensePierce = attacker -> 0.0;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
@@ -120,6 +122,11 @@ public final class ArmorDefenseService {
     /** Wired in after construction - see {@link #incomingMobTypeMultiplier}. */
     public void incomingMobTypeMultiplier(java.util.function.ToDoubleBiFunction<LivingEntity, LivingEntity> incomingMobTypeMultiplier) {
         this.incomingMobTypeMultiplier = incomingMobTypeMultiplier;
+    }
+
+    /** Wired in after construction - see {@link #attackerDefensePierce}. */
+    public void attackerDefensePierce(java.util.function.ToDoubleFunction<LivingEntity> attackerDefensePierce) {
+        this.attackerDefensePierce = attackerDefensePierce;
     }
 
     /** Wired in after construction - see {@link #ignoresArmorDefense}. */
@@ -195,8 +202,19 @@ public final class ArmorDefenseService {
 
     /** Same curve as before (defense/(defense+100)): 100 Defense = 50% reduction, approaching 100% asymptotically. */
     public double damageReduction(LivingEntity e) {
-        int defense = this.defense(e);
-        return (double) defense / ((double) defense + 100.0);
+        return reduction(this.defense(e), 0.0);
+    }
+
+    /** {@link #damageReduction(LivingEntity)} against a hit from {@code attacker} (null if none) - only the part of {@code target}'s Defense the attacker doesn't ignore ({@link #attackerDefensePierce}) counts. */
+    public double damageReduction(LivingEntity target, LivingEntity attacker) {
+        double pierce = attacker == null ? 0.0 : this.attackerDefensePierce.applyAsDouble(attacker);
+        return reduction(this.defense(target), pierce);
+    }
+
+    /** The defense/(defense+100) curve, with {@code pierce} (0-1) of {@code defense} ignored first. */
+    static double reduction(int defense, double pierce) {
+        double effective = defense * (1.0 - Math.max(0.0, Math.min(1.0, pierce)));
+        return effective / (effective + 100.0);
     }
 
     /** Defense contributed by a single equipped piece (0 for an empty slot) - {@link #forceDefense}'s override if the item carries one, else its Material's own value. Exposed for a per-piece breakdown display. */

@@ -49,6 +49,14 @@ final class ArmorDefenseServiceTest {
         assertEquals(40 + PROTECTION_BONUS, service.defense(other));
     }
 
+    /** The Ender Dragon ignores 70% of the player's Defense: 1000 Defense only counts as 300 against it. */
+    @Test
+    void defensePierceOnlyCountsTheUnignoredPart() {
+        assertEquals(1000.0 / 1100.0, ArmorDefenseService.reduction(1000, 0.0), 1e-9);
+        assertEquals(300.0 / 400.0, ArmorDefenseService.reduction(1000, 0.70), 1e-9);
+        assertEquals(0.0, ArmorDefenseService.reduction(1000, 1.0), 1e-9);
+    }
+
     private static ArmorDefenseService service() {
         ArmorDefenseService service = new ArmorDefenseService();
         service.protectionBonus(e -> PROTECTION_BONUS);
