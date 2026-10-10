@@ -57,9 +57,26 @@ combat:
 # economy plugin holds the balance and its placeholder shows it on the scoreboard.
 economy:
   kill-rewards: true
-  # Coins per Blood Point the mob is worth (the value the Bestiary shows) - 1.0 means a
-  # Zombie (5 BP) pays 5 coins, a Zombie Miner (24 BP) pays 24.
-  coins-per-blood-point: 1.0
+  # Coins by how strong the mob is: its TOTAL Max Health at spawn (bonus HP pool included).
+  # Each key is a minimum HP - a mob pays the value of the highest key at or below its HP.
+  # Defaults: common mobs (~100-200 HP) 1, Miners (300 HP) 4, Nether mobs (4500 HP) 20,
+  # End Endermen (750K HP) 400.
+  coins-by-health:
+    "0": 1
+    "250": 4
+    "500": 6
+    "1000": 10
+    "2500": 20
+    "5000": 30
+    "10000": 50
+    "50000": 100
+    "250000": 200
+    "750000": 400
+  # Fixed amount for specific bosses, ignoring the HP table above (keyed by entity type).
+  boss-coins:
+    ender_dragon: 5000
+  # false = mobs spawned by a monster spawner (mob farms) pay nothing.
+  spawner-mobs-pay: true
 combat-tree:
   # Blood Points are the currency spent in the Combat Ability Tree to unlock and upgrade nodes.
   # Every node's rank-1 cost and per-rank cost scale with its tier (how deep it sits in the

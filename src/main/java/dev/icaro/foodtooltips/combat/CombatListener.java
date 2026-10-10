@@ -170,8 +170,8 @@ public final class CombatListener implements Listener {
     private java.util.function.ToDoubleFunction<Player> archeryPotionPercent = p -> 0.0;
     /** The Spider Eye Collection's own Spider Sword - {@code item.SpiderSwordService#damageMultiplier} ({@value item.SpiderSwordService#PERCENT}% bonus vs Arthropod mobs), same shape {@code item.legendary.LegendaryWeaponService#undeadMultiplier} already is. Defaults to always-1.0 (no change). */
     private java.util.function.ToDoubleBiFunction<LivingEntity, ItemStack> arthropodMultiplier = (target, weapon) -> 1.0;
-    /** Coins paid for a hostile kill, given the mob's Blood Points value (see {@code economy.CoinRewardService#rewardKill}) - late-bound like every hook here so this class never depends on the economy package. Defaults to paying nothing. */
-    private java.util.function.ObjLongConsumer<Player> hostileKillCoins = (p, bloodPoints) -> {};
+    /** Coins paid for a hostile kill (see {@code economy.CoinRewardService#rewardKill}) - late-bound like every hook here so this class never depends on the economy package. Defaults to paying nothing. */
+    private java.util.function.BiConsumer<Player, LivingEntity> hostileKillCoins = (p, mob) -> {};
     /** The Spider Eye Collection's own Spider Hat - +25 Crit Chance while worn (see {@code item.SpiderHatService#critChanceBonus}), folded into {@link #attack}'s own crit-chance roll. Defaults to always-0. */
     private java.util.function.ToDoubleFunction<Player> spiderHatCritChanceBonus = p -> 0.0;
     /** The Spider Eye Collection's own Leaping Sword - +25 Crit Damage while held (see {@code item.LeapingSwordService#critDamageBonus}), folded into {@link #attack}'s own crit multiplier. Defaults to always-0. */
@@ -192,7 +192,7 @@ public final class CombatListener implements Listener {
     }
 
     /** Wired after construction - see {@link #hostileKillCoins}'s own doc. */
-    public void hostileKillCoins(java.util.function.ObjLongConsumer<Player> hostileKillCoins) {
+    public void hostileKillCoins(java.util.function.BiConsumer<Player, LivingEntity> hostileKillCoins) {
         this.hostileKillCoins = hostileKillCoins;
     }
 
@@ -859,7 +859,7 @@ public final class CombatListener implements Listener {
         if (e.getEntity() instanceof Enemy || CitizensIntegrationService.isNpc(e.getEntity())) {
             long valorEarned = this.valor.mobValor(e.getEntity());
             this.valor.deposit(p, valorEarned);
-            this.hostileKillCoins.accept(p, valorEarned);
+            this.hostileKillCoins.accept(p, e.getEntity());
             this.abilities.hostileKill(p);
             double hp = this.visuals.effectiveMaxHealth(e.getEntity());
             double fallback = Math.max(1L, Math.round(Math.max(5.0, hp * this.hpXp + this.visuals.level(e.getEntity()) * this.levelXp) / 10.0));

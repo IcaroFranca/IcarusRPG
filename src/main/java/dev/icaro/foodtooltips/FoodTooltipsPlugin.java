@@ -535,7 +535,7 @@ extends JavaPlugin {
         CombatListener combatListener = new CombatListener((Plugin)this, combat, this.visuals, bestiaryProgress, this.progressBar, abilities, global, stats, valor, armor, general, legendary, enchants, difficulty, passives, reforgeService, collectionsService);
         combatListener.archeryPotionPercent(archeryPotion::bonusPercent);
         menus.meleePreview(combatListener::meleeWeaponDamage, combatListener::meleeStrength);
-        combatListener.hostileKillCoins(new dev.icaro.foodtooltips.economy.CoinRewardService((Plugin)this)::rewardKill);
+        combatListener.hostileKillCoins(new dev.icaro.foodtooltips.economy.CoinRewardService((Plugin)this, this.visuals::effectiveMaxHealth)::rewardKill);
         combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
         combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);
