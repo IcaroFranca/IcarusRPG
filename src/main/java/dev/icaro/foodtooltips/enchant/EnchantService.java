@@ -46,6 +46,8 @@ import org.bukkit.plugin.Plugin;
 public final class EnchantService {
     private static final String LORE_HEADER_PT = "Encantamentos:";
     private static final String LORE_HEADER_EN = "Enchantments:";
+    /** {@code DurabilityService}'s own live lore line - see {@link #findAnchorIndex}. */
+    private static final String DURABILITY_PREFIX = "Durability: ";
     private static final String[] ROMAN = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
     /** More than this many applied custom entries and the lore drops each one's description line - keeps the tooltip from ballooning. */
     private static final int DESCRIPTION_CUTOFF = 4;
@@ -375,12 +377,9 @@ public final class EnchantService {
         if (levels.isEmpty() && !meta.hasItemFlag(ItemFlag.HIDE_ENCHANTS)) {
             return false;
         }
-        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-        List<Component> original = new ArrayList<>(lore);
-        this.stripLoreBlock(lore);
+        List<Component> original = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        List<Component> lore = withEnchantBlock(original, levels.isEmpty() ? List.of() : this.loreBlock(levels, pt, item.getType()));
         if (!levels.isEmpty()) {
-            List<Component> block = this.loreBlock(levels, pt, item.getType());
-            this.insertBeforeTier(lore, block);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             meta.setEnchantmentGlintOverride(true);
         } else {
@@ -482,8 +481,16 @@ public final class EnchantService {
         }
     }
 
+    /** {@code original} with its "Encantamentos"/"Enchantments" block replaced by {@code block} (just removed, if empty) - the pure list half of {@link #rebuildLore}, package-private for tests. */
+    static List<Component> withEnchantBlock(List<Component> original, List<Component> block) {
+        List<Component> lore = new ArrayList<>(original);
+        stripLoreBlock(lore);
+        insertBeforeTier(lore, block);
+        return lore;
+    }
+
     /** Removes an existing "Encantamentos"/"Enchantments" block (its header, everything after until the next blank/end, and the blank line right before it) so {@link #rebuildLore} can add a fresh one without duplicating it. */
-    private void stripLoreBlock(List<Component> lore) {
+    private static void stripLoreBlock(List<Component> lore) {
         int headerIndex = -1;
         for (int i = 0; i < lore.size(); i++) {
             String s = PLAIN.serialize(lore.get(i));
@@ -497,13 +504,13 @@ public final class EnchantService {
         }
         int from = headerIndex > 0 && PLAIN.serialize(lore.get(headerIndex - 1)).isEmpty() ? headerIndex - 1 : headerIndex;
         int to = headerIndex + 1;
-        // Stops at the next blank line OR the TIER badge line - never past it, since
-        // this block is inserted right before TIER (see rebuildLore) with nothing
-        // blank in between, unlike FoodTooltipService's own block (always last, so a
-        // blank-only stop condition is enough there but would eat the TIER line here).
+        // Stops at the next blank line OR the TIER badge/Durability line - never past
+        // either, since this block is inserted right before them (see insertBeforeTier)
+        // with nothing blank in between, unlike FoodTooltipService's own block (always
+        // last, so a blank-only stop condition is enough there but would eat them here).
         while (to < lore.size()) {
             String s = PLAIN.serialize(lore.get(to));
-            if (s.isEmpty() || s.startsWith("TIER ")) {
+            if (s.isEmpty() || s.startsWith("TIER ") || s.startsWith(DURABILITY_PREFIX)) {
                 break;
             }
             to++;
@@ -511,9 +518,20 @@ public final class EnchantService {
         lore.subList(from, to).clear();
     }
 
-    private int findTierIndex(List<Component> lore) {
+    /**
+     * Where {@link #insertBeforeTier} puts the block: right before {@code
+     * DurabilityService}'s own "Durability: X / Y" line if the item has one, else right
+     * before TIER. DurabilityService re-places its line right before TIER every HUD tick
+     * too, so if this block also anchored on TIER the two would keep swapping places -
+     * each pass moving the other's block, both reporting a change, an equipped armor
+     * piece rewritten twice every tick (lore flickering, the equip sound looping while
+     * the inventory was open). Anchoring above Durability gives one fixed order both
+     * agree on: Enchantments, Durability, TIER.
+     */
+    private static int findAnchorIndex(List<Component> lore) {
         for (int i = 0; i < lore.size(); i++) {
-            if (PLAIN.serialize(lore.get(i)).startsWith("TIER ")) {
+            String s = PLAIN.serialize(lore.get(i));
+            if (s.startsWith(DURABILITY_PREFIX) || s.startsWith("TIER ")) {
                 return i;
             }
         }
@@ -521,8 +539,9 @@ public final class EnchantService {
     }
 
     /**
-     * Inserts {@code block} right before the item's "TIER ..." badge line (or at the
-     * end, if it isn't tagged yet) - same "insert before TIER" convention {@code
+     * Inserts {@code block} right before the item's Durability line, or its "TIER ..."
+     * badge line (see {@link #findAnchorIndex}), or at the end if it has neither - same
+     * "insert before TIER" convention {@code
      * FoodTooltipService#insertBeforeTier} already uses for its own block, reusing
      * whatever blank line already happens to sit at the insertion point instead of
      * always adding a fresh one. Without this - {@code loreBlock} used to prepend its
@@ -531,25 +550,25 @@ public final class EnchantService {
      * a row before "Encantamentos:"/"Enchantments:" and none at all before TIER, since
      * the block's own trailing content landed directly against it.
      */
-    private void insertBeforeTier(List<Component> lore, List<Component> block) {
+    private static void insertBeforeTier(List<Component> lore, List<Component> block) {
         if (block.isEmpty()) {
             return;
         }
-        int at = this.findTierIndex(lore);
+        int at = findAnchorIndex(lore);
         if (at < 0) {
             at = lore.size();
         }
-        if (at == 0 || !this.isBlank(lore.get(at - 1))) {
+        if (at == 0 || !isBlank(lore.get(at - 1))) {
             lore.add(at++, Component.empty());
         }
         lore.addAll(at, block);
         at += block.size();
-        if (at < lore.size() && !this.isBlank(lore.get(at))) {
+        if (at < lore.size() && !isBlank(lore.get(at))) {
             lore.add(at, Component.empty());
         }
     }
 
-    private boolean isBlank(Component c) {
+    private static boolean isBlank(Component c) {
         return PLAIN.serialize(c).isEmpty();
     }
 

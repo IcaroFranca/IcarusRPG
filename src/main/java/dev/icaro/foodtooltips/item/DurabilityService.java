@@ -138,18 +138,23 @@ public final class DurabilityService {
     /** Rebuilds {@code meta}'s "Durability: X / Y" lore line from {@code damageable}'s current state; returns true if the lore actually changed. */
     private boolean syncDurabilityLore(ItemMeta meta, Damageable damageable) {
         List<Component> original = Objects.requireNonNullElse(meta.lore(), List.of());
-        ArrayList<Component> lore = new ArrayList<Component>(original);
-        this.removeDurabilityLine(lore);
         int max = damageable.getMaxDamage();
         int damage = damageable.hasDamage() ? damageable.getDamage() : 0;
-        int remaining = Math.max(0, max - damage);
-        List<Component> block = List.of(this.line("Durability: " + remaining + " / " + max, NamedTextColor.GRAY));
-        this.insertBeforeTier(lore, block);
+        List<Component> lore = withDurabilityLine(original, Math.max(0, max - damage), max);
         if (lore.equals(original)) {
             return false;
         }
         meta.lore(lore);
         return true;
+    }
+
+    /** {@code lore} with its "Durability: X / Y" line (re)placed right before the TIER line - the pure list half of {@link #syncDurabilityLore}, public so {@code EnchantServiceLoreOrderTest} can run both sweeps together. */
+    public static List<Component> withDurabilityLine(List<Component> original, int remaining, int max) {
+        ArrayList<Component> lore = new ArrayList<Component>(original);
+        removeDurabilityLine(lore);
+        List<Component> block = List.of(line("Durability: " + remaining + " / " + max, NamedTextColor.GRAY));
+        insertBeforeTier(lore, block);
+        return lore;
     }
 
     /**
@@ -158,22 +163,22 @@ public final class DurabilityService {
      * isn't one), so two otherwise-identical stacks never end up with this block in a
      * different relative position and permanently fail to stack.
      */
-    private void insertBeforeTier(List<Component> lore, List<Component> block) {
-        int at = this.findTierIndex(lore);
+    private static void insertBeforeTier(List<Component> lore, List<Component> block) {
+        int at = findTierIndex(lore);
         if (at < 0) {
             at = lore.size();
         }
-        if (at == 0 || !this.isBlank(lore.get(at - 1))) {
+        if (at == 0 || !isBlank(lore.get(at - 1))) {
             lore.add(at++, Component.empty());
         }
         lore.addAll(at, block);
         at += block.size();
-        if (at < lore.size() && !this.isBlank(lore.get(at))) {
+        if (at < lore.size() && !isBlank(lore.get(at))) {
             lore.add(at, Component.empty());
         }
     }
 
-    private int findTierIndex(List<Component> lore) {
+    private static int findTierIndex(List<Component> lore) {
         for (int i = 0; i < lore.size(); i++) {
             if (P.serialize(lore.get(i)).startsWith("TIER ")) {
                 return i;
@@ -182,24 +187,24 @@ public final class DurabilityService {
         return -1;
     }
 
-    private boolean isBlank(Component c) {
+    private static boolean isBlank(Component c) {
         return P.serialize(c).isEmpty();
     }
 
-    private void removeDurabilityLine(List<Component> lore) {
+    private static void removeDurabilityLine(List<Component> lore) {
         int i = 0;
         while (i < lore.size()) {
             if (!P.serialize(lore.get(i)).startsWith("Durability: ")) {
                 i++;
                 continue;
             }
-            int from = i > 0 && this.isBlank(lore.get(i - 1)) ? i - 1 : i;
+            int from = i > 0 && isBlank(lore.get(i - 1)) ? i - 1 : i;
             lore.subList(from, i + 1).clear();
             i = Math.max(0, from - 1);
         }
     }
 
-    private Component line(String s, NamedTextColor c) {
+    private static Component line(String s, NamedTextColor c) {
         return Component.text(s, (TextColor) c).decoration(TextDecoration.ITALIC, false);
     }
 }
