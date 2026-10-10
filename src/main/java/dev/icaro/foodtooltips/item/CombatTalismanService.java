@@ -48,8 +48,11 @@ import org.bukkit.inventory.meta.SkullMeta;
  * <li><b>Village Affinity Talisman</b> - +{@value #VILLAGE_SPEED} Speed inside a village.
  * <li><b>Mine Affinity Talisman</b> - +{@value #MINE_SPEED} Speed in the Overworld's negative
  * layers (below Y 0 - the same line Zombie/Skeleton Miners spawn under).
- * <li><b>Intimidation Talisman</b> - level 1 mobs (HP / 5, the number on their name tag) no
- * longer target or hurt the player - literally level 1, per the player's own explicit call.
+ * <li><b>Intimidation Talisman</b> - mobs of level {@value #INTIMIDATION_MAX_LEVEL} or lower (HP / 5,
+ * the number on their name tag) no longer target or hurt the player. Started as literally level 1,
+ * but every hostile mob here spawns with at least 5x its vanilla HP, so only tiny Slimes/Magma
+ * Cubes were ever level 1 - raised to 25 per the player's own call ("quase nenhum mob é nivel 1"),
+ * which covers the common surface mobs (Zombie/Skeleton/Creeper ~21, Spider ~17...).
  * <li><b>Scavenger Talisman</b> - +{@value #SCAVENGER_COINS_PER_MOB_LEVEL} coins per mob level
  * on every kill, stacking with the Scavenger enchant (see {@code economy.CoinRewardService}).
  * </ul>
@@ -63,6 +66,8 @@ public final class CombatTalismanService implements Listener {
     public static final String SCAVENGER = "scavenger_talisman";
 
     public static final int MOB_TYPE_REDUCTION_PERCENT = 5;
+    /** Highest mob level the Intimidation Talisman scares off - see the class doc. */
+    public static final int INTIMIDATION_MAX_LEVEL = 25;
     public static final int VILLAGE_SPEED = 10;
     public static final int MINE_SPEED = 25;
     public static final double SCAVENGER_COINS_PER_MOB_LEVEL = 0.5;
@@ -105,7 +110,7 @@ public final class CombatTalismanService implements Listener {
 
     public ItemStack createIntimidationTalisman() {
         return this.talisman(head(HeadTexture.INTIMIDATION_TALISMAN, INTIMIDATION), "Intimidation Talisman", INTIMIDATION,
-                "Level 1 mobs no longer attack you");
+                "Mobs of level " + INTIMIDATION_MAX_LEVEL + " or lower no longer attack you");
     }
 
     public ItemStack createScavengerTalisman() {
@@ -211,7 +216,7 @@ public final class CombatTalismanService implements Listener {
                 || structure == Structure.VILLAGE_SNOWY || structure == Structure.VILLAGE_TAIGA;
     }
 
-    /** Intimidation: a level 1 mob never picks a player wearing the talisman as its target. */
+    /** Intimidation: a mob of level {@value #INTIMIDATION_MAX_LEVEL} or lower never picks a player wearing the talisman as its target. */
     @EventHandler(ignoreCancelled = true)
     public void target(EntityTargetLivingEntityEvent e) {
         if (e.getTarget() instanceof Player p && e.getEntity() instanceof LivingEntity mob && this.intimidates(p, mob)) {
@@ -237,7 +242,7 @@ public final class CombatTalismanService implements Listener {
     }
 
     private boolean intimidates(Player p, LivingEntity mob) {
-        return this.mobLevel.applyAsInt(mob) <= 1 && this.accessoryBag.hasFamily(p, INTIMIDATION);
+        return this.mobLevel.applyAsInt(mob) <= INTIMIDATION_MAX_LEVEL && this.accessoryBag.hasFamily(p, INTIMIDATION);
     }
 
     private static String trimmed(double v) {
