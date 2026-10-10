@@ -20,9 +20,10 @@ import org.bukkit.NamespacedKey;
  * as Combat's own 14 entries (every material a real hostile {@code bestiary.BestiaryCatalog}
  * mob commonly drops, minus one-off boss loot and anything an aquatic mob drops, reserved
  * for Fishing instead) - 13 still inert per the player's own "vou te falar com o tempo o que
- * cada um vai ter", Bone's own template now filled in. Mining now has its own inert templates too
- * (one per resource {@code mining.MiningCatalog} already treats as a Mining target - milestones
- * to be filled in later, per the player's own "deixa já o molde dos collections de mining");
+ * cada um vai ter", Bone's own template now filled in. Mining has one entry per resource {@code
+ * mining.MiningCatalog} treats as a Mining target (Netherrack included), each on a reward-less
+ * {@link #placeholderLadder} for now - collecting counts and milestones advance, rewards to be
+ * defined later (the player's own "não coloca conteúdo nenhum ... mas já coloca pra contar");
  * Fishing still has no entries at all, though it's a real {@link CollectionsCategory} value
  * already (so {@link CollectionsMenuService}'s category screen never has to change shape).
  *
@@ -245,6 +246,23 @@ public final class CollectionsCatalog {
         return list;
     }
 
+    /**
+     * The {@link #DEFAULT_THRESHOLDS} ladder with no reward on any rung yet - collecting counts
+     * and every milestone completes (Global Level XP included, same as any milestone), it just
+     * grants nothing of its own until real rewards are decided. Per the player's own spec for
+     * Mining: "não coloca conteúdo nenhum nos collections de mining ainda, mas já coloca pra
+     * contar e avançar os milestones". A rung's reward later replaces it the same way {@link
+     * #genericXpWithOverrides} swaps a tier.
+     */
+    private static List<CollectionsMilestone> placeholderLadder() {
+        List<CollectionsMilestone> list = new ArrayList<>();
+        for (int threshold : DEFAULT_THRESHOLDS) {
+            list.add(new CollectionsMilestone(threshold, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                    "Recompensa em breve", "Reward coming soon"));
+        }
+        return list;
+    }
+
     private static java.util.Map.Entry<Integer, CollectionsMilestone> at(int milestoneNumber, CollectionsMilestone milestone) {
         return java.util.Map.entry(milestoneNumber - 1, milestone);
     }
@@ -416,24 +434,26 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.BREEZE_ROD, Material.BREEZE_ROD, CollectionsCategory.COMBAT, "Bastão de Brisa", "Breeze Rod", List.of()),
             new CollectionsEntry(Material.PHANTOM_MEMBRANE, Material.PHANTOM_MEMBRANE, CollectionsCategory.COMBAT, "Membrana de Phantom", "Phantom Membrane", List.of()),
             new CollectionsEntry(Material.WITHER_SKELETON_SKULL, Material.WITHER_SKELETON_SKULL, CollectionsCategory.COMBAT, "Crânio de Esqueleto Wither", "Wither Skeleton Skull", List.of()),
-            // Mining templates (empty milestone ladders, to be filled in later) - block -> drop,
+            // Mining (rewards still to be defined - every rung is a placeholderLadder() for now,
+            // counting and completing with no reward of its own) - block -> drop,
             // the same pair skills.GeneralSkillListener credits: an ore by its real drop (raw
             // metal/gem, Fortune copies included - a Smelting Touch ingot still counts as its raw
             // form), a stone block 1 per block broken. Deepslate ore variants share their
             // regular ore's entry through the drop.
-            new CollectionsEntry(Material.STONE, Material.COBBLESTONE, CollectionsCategory.MINING, "Pedregulho", "Cobblestone", List.of()),
-            new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", List.of()),
-            new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", List.of()),
-            new CollectionsEntry(Material.COPPER_ORE, Material.RAW_COPPER, CollectionsCategory.MINING, "Cobre", "Copper", List.of()),
-            new CollectionsEntry(Material.IRON_ORE, Material.RAW_IRON, CollectionsCategory.MINING, "Ferro", "Iron", List.of()),
-            new CollectionsEntry(Material.GOLD_ORE, Material.RAW_GOLD, CollectionsCategory.MINING, "Ouro", "Gold", List.of()),
-            new CollectionsEntry(Material.REDSTONE_ORE, Material.REDSTONE, CollectionsCategory.MINING, "Redstone", "Redstone", List.of()),
-            new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", List.of()),
-            new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", List.of()),
-            new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", List.of()),
-            new CollectionsEntry(Material.NETHER_QUARTZ_ORE, Material.QUARTZ, CollectionsCategory.MINING, "Quartzo do Nether", "Nether Quartz", List.of()),
-            new CollectionsEntry(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, CollectionsCategory.MINING, "Detritos Antigos", "Ancient Debris", List.of()),
-            new CollectionsEntry(Material.OBSIDIAN, Material.OBSIDIAN, CollectionsCategory.MINING, "Obsidiana", "Obsidian", List.of()),
+            new CollectionsEntry(Material.STONE, Material.COBBLESTONE, CollectionsCategory.MINING, "Pedregulho", "Cobblestone", placeholderLadder()),
+            new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", placeholderLadder()),
+            new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", placeholderLadder()),
+            new CollectionsEntry(Material.COPPER_ORE, Material.RAW_COPPER, CollectionsCategory.MINING, "Cobre", "Copper", placeholderLadder()),
+            new CollectionsEntry(Material.IRON_ORE, Material.RAW_IRON, CollectionsCategory.MINING, "Ferro", "Iron", placeholderLadder()),
+            new CollectionsEntry(Material.GOLD_ORE, Material.RAW_GOLD, CollectionsCategory.MINING, "Ouro", "Gold", placeholderLadder()),
+            new CollectionsEntry(Material.REDSTONE_ORE, Material.REDSTONE, CollectionsCategory.MINING, "Redstone", "Redstone", placeholderLadder()),
+            new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", placeholderLadder()),
+            new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", placeholderLadder()),
+            new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", placeholderLadder()),
+            new CollectionsEntry(Material.NETHER_QUARTZ_ORE, Material.QUARTZ, CollectionsCategory.MINING, "Quartzo do Nether", "Nether Quartz", placeholderLadder()),
+            new CollectionsEntry(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, CollectionsCategory.MINING, "Detritos Antigos", "Ancient Debris", placeholderLadder()),
+            new CollectionsEntry(Material.OBSIDIAN, Material.OBSIDIAN, CollectionsCategory.MINING, "Obsidiana", "Obsidian", placeholderLadder()),
+            new CollectionsEntry(Material.NETHERRACK, Material.NETHERRACK, CollectionsCategory.MINING, "Netherrack", "Netherrack", placeholderLadder()),
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),
                     CollectionsMilestone.recipeUnlock(250,

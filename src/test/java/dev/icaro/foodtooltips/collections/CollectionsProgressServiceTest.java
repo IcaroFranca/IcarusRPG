@@ -63,10 +63,10 @@ final class CollectionsProgressServiceTest {
         // own doc.
         int combatEntries = CollectionsCatalog.entries(CollectionsCategory.COMBAT).size();
         assertEquals(14, combatEntries);
-        // Mining's 13 templates (one per resource MiningCatalog treats as a Mining target,
-        // empty milestone ladders for now) - see CollectionsCatalog's own doc.
+        // Mining's 14 templates (one per resource MiningCatalog treats as a Mining target,
+        // Netherrack included - empty milestone ladders for now) - see CollectionsCatalog's own doc.
         int miningEntries = CollectionsCatalog.entries(CollectionsCategory.MINING).size();
-        assertEquals(13, miningEntries);
+        assertEquals(14, miningEntries);
         assertEquals(0, CollectionsCatalog.entries(CollectionsCategory.FISHING).size(), "FISHING should have no entries yet");
     }
 }
