@@ -67,6 +67,15 @@ public final class ArmorDefenseService {
     private java.util.function.ToIntFunction<LivingEntity> accessoryDefenseBonus = e -> 0;
     /** The Spider Eye Collection's own Spider Hat - {@code item.SpiderHatService#arthropodDamageMultiplier} (-30% damage taken from Arthropod attackers while worn), applied by {@code ArmorDefenseListener#defense} on top of {@link #damageReduction} whenever the damage source is a {@link LivingEntity}. Takes both target and attacker (unlike every other hook here), since it depends on who's hitting, not just who's wearing what. Defaults to always-1.0 (no change). */
     private java.util.function.ToDoubleBiFunction<LivingEntity, LivingEntity> incomingMobTypeMultiplier = (target, attacker) -> 1.0;
+    /**
+     * Entities that wear armor purely for show: their equipped pieces (and the Protection enchant
+     * on them) never count toward {@link #defense} - late-bound the same way as {@link
+     * #protectionBonus}, wired to {@code combat.MinerVariantService#isMiner} so a Zombie/Skeleton
+     * Miner keeps its Miner's Armor on (look, 1% drop rolls) without getting that armor's
+     * Defense, per the player's own explicit call. A player wearing the very same looted pieces
+     * still gets all of it. Defaults to never (every wearer counts its armor).
+     */
+    private java.util.function.Predicate<LivingEntity> ignoresArmorDefense = e -> false;
 
     /** Wired in after construction (the two services depend on each other), same pattern as {@code PlayerStatsService#general}. */
     public void general(GeneralSkillService general) {
@@ -113,6 +122,11 @@ public final class ArmorDefenseService {
         this.incomingMobTypeMultiplier = incomingMobTypeMultiplier;
     }
 
+    /** Wired in after construction - see {@link #ignoresArmorDefense}. */
+    public void ignoresArmorDefense(java.util.function.Predicate<LivingEntity> ignoresArmorDefense) {
+        this.ignoresArmorDefense = ignoresArmorDefense;
+    }
+
     /** See {@link #incomingMobTypeMultiplier}'s own doc - called by {@code ArmorDefenseListener#defense}. */
     public double incomingMultiplier(LivingEntity target, LivingEntity attacker) {
         return this.incomingMobTypeMultiplier.applyAsDouble(target, attacker);
@@ -127,16 +141,18 @@ public final class ArmorDefenseService {
      * plus {@link GeneralSkillService#bonusDefense} (Mining, 1 per level, never
      * scaled) for players, minus whatever Lethality's own debuff (see {@link
      * #lethalityPenalty}) currently takes off - works for any player or mob, mobs
-     * just never have a skill bonus to add. Never negative.
+     * just never have a skill bonus to add. Never negative. An entity {@link
+     * #ignoresArmorDefense} gets nothing from its equipped armor or its Protection enchant.
      */
     public int defense(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
-        int armorDefense = eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
+        boolean armorCounts = !this.ignoresArmorDefense.test(e);
+        int armorDefense = !armorCounts || eq == null ? 0 : pieceDefense(eq.getHelmet()) + pieceDefense(eq.getChestplate()) + pieceDefense(eq.getLeggings()) + pieceDefense(eq.getBoots());
         if (e instanceof Player p && this.reforge != null) {
             armorDefense += (int) Math.round(this.reforge.totalArmorStats(p).defense());
         }
         int skillBonus = e instanceof Player p && this.general != null ? this.general.bonusDefense(p) : 0;
-        int protection = this.protectionBonus.applyAsInt(e);
+        int protection = armorCounts ? this.protectionBonus.applyAsInt(e) : 0;
         double multiplier = this.defenseMultiplier.applyAsDouble(e);
         int total = (int) Math.round((armorDefense + protection) * multiplier) + skillBonus
                 + this.farmerBootsBonus.applyAsInt(e) + this.zombieHatBonus.applyAsInt(e) + this.accessoryDefenseBonus.applyAsInt(e)

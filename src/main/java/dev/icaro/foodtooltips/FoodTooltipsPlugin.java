@@ -403,6 +403,8 @@ extends JavaPlugin {
         // or the other (see each service's own doc), but nothing stops mixing pieces from
         // both sets across slots, so this stays correct (2x, 3x or 6x) either way.
         armor.defenseMultiplier(e -> (minerVariants.minerArmorBonusActive(e) ? 2.0 : 1.0) * (mushroomArmor.bonusActive(e) ? 3.0 : 1.0));
+        // Zombie/Skeleton Miners wear Miner's Armor for looks only - its Defense never applies to them.
+        armor.ignoresArmorDefense(MinerVariantService::isMiner);
         global.onChange(p -> {
             presentation.refresh((Player)p);
             presentation.refreshAll();

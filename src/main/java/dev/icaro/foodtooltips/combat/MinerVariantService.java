@@ -44,12 +44,15 @@ import org.bukkit.plugin.Plugin;
  * full set of "Miner's Armor": a pack-native leather helmet and gray-dyed leather
  * chestplate/leggings/boots - cosmetically cheap gear, but every piece's Defense is
  * forced to Diamond's own per-piece numbers ({@code ArmorDefenseService#forceDefense})
- * regardless of its real Material. Whoever wears at least one piece - the Miner mob
- * itself, or a player who looted one - gets both that base Defense and the Protection
- * enchant bonus doubled while standing at or below {@code miner-variants.below-y} (see
- * {@link #minerArmorBonusActive}, wired into {@code ArmorDefenseService#defenseMultiplier}
- * from {@code FoodTooltipsPlugin}) - a live position check, not a permanent tag, so the
- * bonus comes and goes with "camadas negativas" per the user's own spec. Every piece is
+ * regardless of its real Material. A player who looted and wears at least one piece gets
+ * both that base Defense and the Protection enchant bonus doubled while standing at or
+ * below {@code miner-variants.below-y} (see {@link #minerArmorBonusActive}, wired into
+ * {@code ArmorDefenseService#defenseMultiplier} from {@code FoodTooltipsPlugin}) - a live
+ * position check, not a permanent tag, so the bonus comes and goes with "camadas
+ * negativas" per the user's own spec. The Miner mob itself wears the set for looks (and
+ * its own drop rolls) only: {@link #isMiner} is wired into {@code
+ * ArmorDefenseService#ignoresArmorDefense}, so none of that armor's Defense - base,
+ * Protection, or the underground doubling - ever applies to it. Every piece is
  * also enchanted with this plugin's own Protection V ({@code +4}/level/piece on top, see
  * {@code ArmorEnchantEffectListener#protectionDefenseBonus}, not gated on material so
  * it still contributes even worn on the head) and unbreakable. Its own guaranteed
@@ -353,6 +356,11 @@ public final class MinerVariantService implements Listener {
         return lore;
     }
 
+    /** Whether {@code e} is a Zombie/Skeleton Miner mob ({@link #VARIANT_KEY}) - never true for a player, even one wearing the full Miner's Armor set. */
+    public static boolean isMiner(LivingEntity e) {
+        return e.getPersistentDataContainer().has(VARIANT_KEY, PersistentDataType.BYTE);
+    }
+
     /** Whether {@code e} has at least one Miner's Armor piece equipped - see {@code ArmorDefenseService#isMinerPiece}. */
     private static boolean wearingAnyPiece(LivingEntity e) {
         EntityEquipment eq = e.getEquipment();
@@ -364,8 +372,9 @@ public final class MinerVariantService implements Listener {
     }
 
     /**
-     * Whether {@code e} - the Zombie/Skeleton Miner itself, or a player who looted and
-     * wears its gear - currently gets Miner's Armor's doubled Defense: wearing at least
+     * Whether {@code e} - in practice a player who looted and wears its gear, since the
+     * Miner mob's own armor never counts at all (see {@link #isMiner}) - currently gets
+     * Miner's Armor's doubled Defense: wearing at least
      * one piece ({@link #wearingAnyPiece}) AND standing at or below {@link #belowY}
      * ("camadas negativas", the same threshold a Zombie/Skeleton has to spawn below to
      * become a Miner in the first place) - per the user's own spec, the doubling
