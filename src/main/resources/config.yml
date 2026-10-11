@@ -145,6 +145,12 @@ mob-visuals:
       health: 15000000.0
       damage: 2200.0
       defense-ignored-percent: 70.0
+  # Same per-mob overrides for mobs in the Nether (same keys as end-mobs). Unlike end-mobs,
+  # a raised health here also reaches mobs that already exist (Bastion Piglin Brutes never
+  # despawn) the next time their chunk loads.
+  nether-mobs:
+    piglin_brute:
+      health: 18000.0
   # Vanilla's own Max Health attribute hard-caps at 1024 no matter what's set on it -
   # everything above this cap is tracked as a separate bonus HP pool instead (absorbs
   # damage first, same idea as vanilla's own Absorption effect - see

@@ -84,6 +84,8 @@ public final class MobDifficultyService {
     private final double minHealthEnd;
     /** {@code mob-visuals.end-mobs} - per-type overrides for mobs spawning in The End, see {@link #scale}. */
     private final Map<EntityType, EndMob> endMobs;
+    /** {@code mob-visuals.nether-mobs} - the same per-type overrides, for mobs in the Nether (the Piglin Brute's 18K). */
+    private final Map<EntityType, EndMob> netherMobs;
     private final double minDamageOverworld;
     private final double minDamageNether;
     private final double minDamageEnd;
@@ -102,6 +104,7 @@ public final class MobDifficultyService {
         this.minHealthNether = p.getConfig().getDouble("mob-visuals.min-health-nether", 4500.0);
         this.minHealthEnd = p.getConfig().getDouble("mob-visuals.min-health-end", 0.0);
         this.endMobs = loadEndMobs(p.getConfig().getConfigurationSection("mob-visuals.end-mobs"));
+        this.netherMobs = loadNetherMobs(p.getConfig().getConfigurationSection("mob-visuals.nether-mobs"));
         this.minDamageOverworld = p.getConfig().getDouble("mob-visuals.min-damage-overworld", 0.0);
         this.minDamageNether = p.getConfig().getDouble("mob-visuals.min-damage-nether", 500.0);
         this.minDamageEnd = p.getConfig().getDouble("mob-visuals.min-damage-end", 0.0);
@@ -165,6 +168,7 @@ public final class MobDifficultyService {
     public void scale(LivingEntity e) {
         PersistentDataContainer pdc = e.getPersistentDataContainer();
         if (pdc.has(this.scaledKey, PersistentDataType.BYTE)) {
+            this.raiseToOverride(e);
             return;
         }
         pdc.set(this.scaledKey, PersistentDataType.BYTE, (byte) 1);
@@ -190,7 +194,7 @@ public final class MobDifficultyService {
         // The End's own per-type overrides (the player's explicit Enderman 750K / Ender Dragon
         // 15M) - far past vanilla's 1024 cap, which is fine: everything above real-health-cap
         // goes to the bonus HP pool below, exactly like the Nether's own 4500 floor already does.
-        EndMob endMob = e.getWorld().getEnvironment() == World.Environment.THE_END ? this.endMobs.get(e.getType()) : null;
+        EndMob endMob = this.override(e);
         if (endMob != null) {
             desiredTotal = Math.max(desiredTotal, endMob.health());
             if (endMob.damage() > 0.0) {
@@ -296,6 +300,48 @@ public final class MobDifficultyService {
     private record EndMob(double health, double damage, double defensePierce) {
     }
 
+    /** {@code e}'s per-type override for the dimension it's in ({@code end-mobs}/{@code nether-mobs}), or null. */
+    private EndMob override(LivingEntity e) {
+        return switch (e.getWorld().getEnvironment()) {
+            case THE_END -> this.endMobs.get(e.getType());
+            case NETHER -> this.netherMobs.get(e.getType());
+            default -> null;
+        };
+    }
+
+    /**
+     * An already-scaled mob whose override was raised later (a Bastion's Piglin Brutes never
+     * despawn, so they'd keep the old total forever): tops its bonus HP pool up so its total
+     * Max Health reaches the override - the extra arrives at full health. Never lowers anything.
+     */
+    private void raiseToOverride(LivingEntity e) {
+        EndMob override = this.override(e);
+        AttributeInstance attribute = e.getAttribute(Attribute.MAX_HEALTH);
+        if (override == null || override.health() <= 0.0 || attribute == null) {
+            return;
+        }
+        PersistentDataContainer pdc = e.getPersistentDataContainer();
+        double bonusMax = pdc.getOrDefault(this.bonusMaxHpKey, PersistentDataType.DOUBLE, 0.0);
+        double missing = override.health() - (attribute.getValue() + bonusMax);
+        if (missing <= 0.5) {
+            return;
+        }
+        pdc.set(this.bonusMaxHpKey, PersistentDataType.DOUBLE, bonusMax + missing);
+        pdc.set(this.bonusHpKey, PersistentDataType.DOUBLE, pdc.getOrDefault(this.bonusHpKey, PersistentDataType.DOUBLE, 0.0) + missing);
+    }
+
+    /** {@code mob-visuals.nether-mobs} - same format as {@code end-mobs}; falls back to the player's own spec (Piglin Brute 18K) when the section is missing, e.g. a server config.yml from before this existed. */
+    private static Map<EntityType, EndMob> loadNetherMobs(ConfigurationSection section) {
+        // Empty too: on the first boot after this section was added, Bukkit hands back an empty
+        // section made from the jar's defaults instead of null.
+        if (section == null || section.getKeys(false).isEmpty()) {
+            Map<EntityType, EndMob> mobs = new EnumMap<>(EntityType.class);
+            mobs.put(EntityType.PIGLIN_BRUTE, new EndMob(18000.0, 0.0, 0.0));
+            return mobs;
+        }
+        return loadEndMobs(section);
+    }
+
     /** {@code mob-visuals.end-mobs} - falls back to the player's own spec (Enderman 750K/3.5K, Ender Dragon 15M/2.2K/70%) when the section is missing, e.g. a server config.yml from before this existed. */
     private static Map<EntityType, EndMob> loadEndMobs(ConfigurationSection section) {
         Map<EntityType, EndMob> mobs = new EnumMap<>(EntityType.class);
@@ -315,8 +361,10 @@ public final class MobDifficultyService {
             if (mob == null) {
                 continue;
             }
-            double pierce = Math.max(0.0, Math.min(100.0, mob.getDouble("defense-ignored-percent", 0.0))) / 100.0;
-            mobs.put(type, new EndMob(Math.max(0.0, mob.getDouble("health", 0.0)), Math.max(0.0, mob.getDouble("damage", 0.0)), pierce));
+            // No explicit fallback: getDouble(path, def) would skip the jar's own defaults, which are
+            // all a section has on the first boot after it was added to config.yml.
+            double pierce = Math.max(0.0, Math.min(100.0, mob.getDouble("defense-ignored-percent"))) / 100.0;
+            mobs.put(type, new EndMob(Math.max(0.0, mob.getDouble("health")), Math.max(0.0, mob.getDouble("damage")), pierce));
         }
         return mobs;
     }

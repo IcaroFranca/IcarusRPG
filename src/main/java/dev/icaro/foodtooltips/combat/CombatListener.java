@@ -331,6 +331,17 @@ public final class CombatListener implements Listener {
         }
     }
 
+    /** Mobs loaded with their chunk: an already-scaled one whose per-type override was raised since (see {@code MobDifficultyService#scale}) catches up here. */
+    @EventHandler
+    public void entitiesLoad(org.bukkit.event.world.EntitiesLoadEvent e) {
+        for (Entity x : e.getEntities()) {
+            if (x instanceof LivingEntity l) {
+                this.difficulty.scale(l);
+                this.visuals.update(l);
+            }
+        }
+    }
+
     @EventHandler
     public void chunk(ChunkLoadEvent e) {
         for (Entity x : e.getChunk().getEntities()) {
