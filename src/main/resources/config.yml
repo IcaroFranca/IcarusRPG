@@ -251,6 +251,9 @@ travel:
   # instead of guessing a name like "world", which Multiverse/similar setups often
   # rename.
   default-world: ""
+  # The Lobby button in the middle of the menu - the Multiverse world it sends players to
+  # (its spawn, set with /mv setspawn). Hidden while that world isn't loaded.
+  lobby-world: "Lobby"
 items:
   # Every damageable item's Max Durability is multiplied by this (vanilla materials
   # only care about relative wear, so a bigger number just means more uses before it

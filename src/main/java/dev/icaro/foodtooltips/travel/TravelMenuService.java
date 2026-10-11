@@ -63,6 +63,7 @@ public final class TravelMenuService {
     private final Consumer<Player> back;
     private final CollectionsProgressService collectionsProgress;
     private final String defaultWorld;
+    private final String lobbyWorld;
 
     public TravelMenuService(Plugin plugin, Consumer<Player> back, CollectionsProgressService collectionsProgress) {
         this.plugin = plugin;
@@ -73,6 +74,7 @@ public final class TravelMenuService {
         // "world" - Multiverse and similar setups often name it something else entirely.
         String configuredDefault = plugin.getConfig().getString("travel.default-world", "");
         this.defaultWorld = configuredDefault.isBlank() ? Bukkit.getWorlds().get(0).getName() : configuredDefault;
+        this.lobbyWorld = plugin.getConfig().getString("travel.lobby-world", "Lobby");
     }
 
     public void open(Player p) {
@@ -91,6 +93,13 @@ public final class TravelMenuService {
         pane.addItem(new GuiItem(this.item(Material.GRASS_BLOCK, "Default World",
                 List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                 event -> this.travel(p, this.defaultWorld)), 3, 1);
+
+        // The Lobby sits in the very middle; only while its world is actually loaded.
+        if (!this.lobbyWorld.isBlank() && Bukkit.getWorld(this.lobbyWorld) != null) {
+            pane.addItem(new GuiItem(this.item(Material.NETHER_STAR, "Lobby",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travel(p, this.lobbyWorld)), 4, 1);
+        }
 
         pane.addItem(new GuiItem(this.item(Material.RED_BED, "Bed/Anchor Spawn",
                 List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
@@ -129,7 +138,7 @@ public final class TravelMenuService {
         if (this.collectionsProgress.achieved(p, this.mangroveLogEntry()) >= 4) {
             pane.addItem(new GuiItem(this.item(Material.MANGROVE_PROPAGULE, "Nearest Mangrove Swamp",
                     List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
-                    event -> this.travelToNearestMangroveSwamp(p)), 4, 1);
+                    event -> this.travelToNearestMangroveSwamp(p)), 6, 0);
         }
 
         if (this.collectionsProgress.achieved(p, this.cherryLogEntry()) >= 4) {
