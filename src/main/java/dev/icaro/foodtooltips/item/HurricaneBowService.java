@@ -103,7 +103,8 @@ public final class HurricaneBowService implements Listener {
     /** Cumulative kills needed for 1/2/3/4/5 total arrows - index 0 (0 kills) is the bow's own starting tier. */
     static final int[] KILL_THRESHOLDS = {0, 20, 75, 150, 250};
     static final int[] ARROW_COUNTS = {1, 2, 3, 4, 5};
-    private static final String[] UPGRADE_NAMES = {null, "Double Shot", "Triple Shot", "Quad Shot", null};
+    /** Name of the upgrade each tier unlocks (index 0 is the starting tier, never "next") - every tier past 0 needs one: {@link #applyHurricaneLore} shows it as "Next Upgrade" and a missing one threw there, silently dropping every kill from 150 on (the bow froze at 149). */
+    static final String[] UPGRADE_NAMES = {null, "Double Shot", "Triple Shot", "Quad Shot", "Penta Shot"};
     private static final int MAX_ARROWS = ARROW_COUNTS[ARROW_COUNTS.length - 1];
     private static final int FULL_POTENTIAL_KILLS = KILL_THRESHOLDS[KILL_THRESHOLDS.length - 1];
     /** Degrees of horizontal spread between fanned-out extra arrows - purely cosmetic (so they don't fly as exact overlapping clones), same idea {@code combat...} AoE spreads already use elsewhere for visual clarity. */

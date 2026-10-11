@@ -41,4 +41,13 @@ final class HurricaneBowServiceTest {
         assertEquals(5, HurricaneBowService.arrowCountFor(250));
         assertEquals(5, HurricaneBowService.arrowCountFor(1000));
     }
+
+    /** The bow froze at 149 kills: tier 4 had no name, so the 150th kill's lore rebuild threw and the kill was dropped. */
+    @Test
+    void everyUpgradeTierHasAName() {
+        assertEquals(HurricaneBowService.KILL_THRESHOLDS.length, HurricaneBowService.UPGRADE_NAMES.length);
+        for (int tier = 1; tier < HurricaneBowService.UPGRADE_NAMES.length; tier++) {
+            org.junit.jupiter.api.Assertions.assertNotNull(HurricaneBowService.UPGRADE_NAMES[tier], "upgrade tier " + tier);
+        }
+    }
 }
