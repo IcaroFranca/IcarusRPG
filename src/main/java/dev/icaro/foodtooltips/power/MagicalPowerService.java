@@ -15,8 +15,8 @@ import org.bukkit.persistence.PersistentDataType;
  * {@link AccessoryBagService#totalMagicalPower}) and Powers (named presets of BASE stat bonuses,
  * {@link PowerCatalog}) together: {@link #statsMultiplier(double)} is the player's own exact
  * "Stats Multiplier" formula, and each {@code xBonus(Player)} method below is the selected {@link
- * Power}'s base value for that stat times the player's own live multiplier - never a fixed
- * amount, recomputed every time since Magical Power itself moves as accessories are swapped.
+ * Power}'s base value for that stat plus that base times the player's own live multiplier (see
+ * {@link #total}) - never a fixed amount, recomputed every time since Magical Power itself moves as accessories are swapped.
  * One Power selected at a time, persisted via PDC, same shape as {@code global.LevelColorService}
  * - including its {@link #selected}/{@link #effective}/{@link #unlocked} split: the 5
  * Intermediate Powers require {@value #REQUIRED_COMBAT_LEVEL} Combat (per the reference table's
@@ -57,6 +57,15 @@ public final class MagicalPowerService {
         return 29.97 * Math.pow(Math.log(0.0019 * magicalPower + 1.0), 1.2);
     }
 
+    /**
+     * What a Power stat actually grants: its base value always, plus the same base scaled by the
+     * Magical Power multiplier on top - the player's own "dar os atributos base e também os que
+     * aumentam conforme o magical power aumenta". With no accessories it's exactly the base.
+     */
+    public static double total(double base, double multiplier) {
+        return base * (1.0 + multiplier);
+    }
+
     public double multiplier(Player p) {
         return statsMultiplier(this.accessoryBag.totalMagicalPower(p));
     }
@@ -88,35 +97,35 @@ public final class MagicalPowerService {
     }
 
     public double healthBonus(Player p) {
-        return this.effective(p).health() * this.multiplier(p);
+        return total(this.effective(p).health(), this.multiplier(p));
     }
 
     public double defenseBonus(Player p) {
-        return this.effective(p).defense() * this.multiplier(p);
+        return total(this.effective(p).defense(), this.multiplier(p));
     }
 
     public double strengthBonus(Player p) {
-        return this.effective(p).strength() * this.multiplier(p);
+        return total(this.effective(p).strength(), this.multiplier(p));
     }
 
     public double speedBonus(Player p) {
-        return this.effective(p).speed() * this.multiplier(p);
+        return total(this.effective(p).speed(), this.multiplier(p));
     }
 
     public double critChanceBonus(Player p) {
-        return this.effective(p).critChance() * this.multiplier(p);
+        return total(this.effective(p).critChance(), this.multiplier(p));
     }
 
     public double critDamageBonus(Player p) {
-        return this.effective(p).critDamage() * this.multiplier(p);
+        return total(this.effective(p).critDamage(), this.multiplier(p));
     }
 
     public double intelligenceBonus(Player p) {
-        return this.effective(p).intelligence() * this.multiplier(p);
+        return total(this.effective(p).intelligence(), this.multiplier(p));
     }
 
     public double miningSpeedBonus(Player p) {
-        return this.effective(p).miningSpeed() * this.multiplier(p);
+        return total(this.effective(p).miningSpeed(), this.multiplier(p));
     }
 
     /**

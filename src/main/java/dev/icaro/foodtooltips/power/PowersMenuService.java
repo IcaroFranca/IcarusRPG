@@ -153,16 +153,18 @@ public final class PowersMenuService {
      * Strength, Mining Speed) only exist as whole numbers where they're applied (see {@link
      * MagicalPowerService#defensePoints}), so they're rounded the same way here - one that rounds
      * to nothing is greyed out with a nudge toward more Magical Power, instead of promising a
-     * fraction (the old "+0.36 Defense") the player never actually received.
+     * fraction (the old "+0.36 Defense") the player never actually received. The value is the
+     * whole bonus (base + Magical Power scaling, see {@link MagicalPowerService#total}) - one
+     * number, never the two parts separately.
      */
     private void statLine(List<Component> lore, String label, double base, double multiplier, boolean wholePoints, String unit) {
         if (base <= 0.0) {
             return;
         }
-        double current = base * multiplier;
+        double current = MagicalPowerService.total(base, multiplier);
         String value = wholePoints ? String.valueOf(Math.round(current)) : String.format(Locale.ROOT, "%.1f", current);
         boolean nothing = wholePoints ? Math.round(current) == 0 : current < 0.05;
-        String line = String.format(Locale.ROOT, "+%s%s %s (base %.2f)", value, unit, label, base);
+        String line = String.format(Locale.ROOT, "+%s%s %s", value, unit, label);
         lore.add(nothing
                 ? this.text(line + " - needs more Magical Power", NamedTextColor.DARK_GRAY)
                 : this.text(line, NamedTextColor.AQUA));

@@ -157,12 +157,23 @@ final class MagicalPowerServiceTest {
     }
 
     @Test
-    void noAccessoriesMeansNoBonus() {
+    void noAccessoriesStillGrantsTheBaseStats() {
         Player p = playerWithStoredSelection("warrior");
         MagicalPowerService service = serviceWithMagicalPower(0);
+        Power warrior = PowerCatalog.find("warrior").orElseThrow();
 
-        assertEquals(0.0, service.healthBonus(p), 1e-9);
-        assertEquals(0L, service.strengthPoints(p));
-        assertEquals(0.0, service.critChanceBonus(p), 1e-9);
+        assertEquals(warrior.health(), service.healthBonus(p), 1e-9);
+        assertEquals(Math.round(warrior.strength()), service.strengthPoints(p));
+        assertEquals(warrior.critChance(), service.critChanceBonus(p), 1e-9);
+    }
+
+    @Test
+    void bonusIsBasePlusTheScaledPart() {
+        Player p = playerWithStoredSelection("warrior");
+        MagicalPowerService service = serviceWithMagicalPower(100);
+        Power warrior = PowerCatalog.find("warrior").orElseThrow();
+        double multiplier = MagicalPowerService.statsMultiplier(100);
+
+        assertEquals(warrior.health() + warrior.health() * multiplier, service.healthBonus(p), 1e-9);
     }
 }
