@@ -156,6 +156,7 @@ public final class LavaFishingService implements Listener {
         ItemStack item = new ItemStack(Material.FISHING_ROD);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(MAGMA_ROD_KEY, PersistentDataType.BYTE, (byte) 1);
+        meta.setUnbreakable(true);
         meta.displayName(Component.text("Magma Rod", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
                 line("Fishes in lava as well as water.", NamedTextColor.RED),
@@ -164,6 +165,22 @@ public final class LavaFishingService implements Listener {
         item.setItemMeta(meta);
         item.setData(DataComponentTypes.ITEM_MODEL, MAGMA_ROD_MODEL);
         return item;
+    }
+
+    /** A Magma Rod crafted before it was unbreakable becomes so (and fully repaired) the first time it's cast - before any fishing could damage it. */
+    private static void makeUnbreakable(ItemStack rod) {
+        if (!isMagmaRod(rod)) {
+            return;
+        }
+        ItemMeta meta = rod.getItemMeta();
+        if (meta.isUnbreakable() && !(meta instanceof org.bukkit.inventory.meta.Damageable d && d.hasDamage())) {
+            return;
+        }
+        meta.setUnbreakable(true);
+        if (meta instanceof org.bukkit.inventory.meta.Damageable d) {
+            d.setDamage(0);
+        }
+        rod.setItemMeta(meta);
     }
 
     public static boolean isMagmaRod(ItemStack item) {
@@ -214,6 +231,7 @@ public final class LavaFishingService implements Listener {
         if (e.getState() == PlayerFishEvent.State.FISHING) {
             this.forget(hook.getUniqueId());
             ItemStack rod = e.getHand() == EquipmentSlot.OFF_HAND ? p.getInventory().getItemInOffHand() : p.getInventory().getItemInMainHand();
+            makeUnbreakable(rod);
             this.casts.put(hook.getUniqueId(), new Cast(hook, p, isMagmaRod(rod),
                     this.enchantLevel.apply(rod, dev.icaro.foodtooltips.enchant.IcarusEnchant.LURE),
                     this.enchantLevel.apply(rod, dev.icaro.foodtooltips.enchant.IcarusEnchant.LUCK_OF_THE_SEA),
