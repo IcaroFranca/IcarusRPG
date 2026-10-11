@@ -43,7 +43,7 @@ import org.bukkit.plugin.Plugin;
 /**
  * The Cobblestone Collection's (Mining) items:
  * <ul>
- * <li><b>M3 Personal Compactor</b> (Tier C), <b>M5 Personal Compactor 3000</b> (Tier D),
+ * <li><b>M3 Personal Compactor</b> (Tier C), <b>M5 Personal Compactor 3000</b> (Tier B),
  * <b>M7 Personal Compactor 4000</b> (Tier A) and <b>M9 Personal Compactor 5000</b> (Tier S) - one
  * upgrade line of accessories (only the best one in the Accessory Bag counts) with 1 / 3 / 7 / 7
  * slots. Each slot holds a block; whenever the player has enough of that block's own ingredient
@@ -140,7 +140,7 @@ public final class CobblestoneCollectionService implements Listener {
     public ItemStack compactor(int model) {
         String name = model == 1 ? "Personal Compactor" : "Personal Compactor " + model;
         ItemTier tier = switch (model) {
-            case 3000 -> ItemTier.D;
+            case 3000 -> ItemTier.B;
             case 4000 -> ItemTier.A;
             case 5000 -> ItemTier.S;
             default -> ItemTier.C;
