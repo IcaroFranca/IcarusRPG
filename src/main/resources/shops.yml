@@ -43,7 +43,7 @@ combat_merchant:
     - item: icarus:knight_killer
       price: 280000
 
-# Farm Merchant: the Tomato Seed and vanilla's own seeds - the custom crops still to come go
+# Farm Merchant: the Tomato Seed, vanilla's own seeds and farming tools - the custom crops still to come go
 # here too (as "icarus:<id>").
 farm_merchant:
   title: "Farm Merchant"
@@ -62,3 +62,7 @@ farm_merchant:
       price: 20
     - item: PITCHER_POD
       price: 20
+    - item: DIAMOND_HOE
+      price: 300
+    - item: WATER_BUCKET
+      price: 25
