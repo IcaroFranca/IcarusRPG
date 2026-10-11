@@ -574,6 +574,20 @@ implements Listener {
      * service itself) and announces every kind of unlock (XP, recipe, enchant discount alike)
      * in one combined chat message.
      */
+    /**
+     * Emeralds a villager (or Wandering Trader) pays out in a trade also count towards the
+     * Emerald Collection - the player's own call, since Emerald Ore is so rare that mining alone
+     * barely moves it. Paper fires this once per completed trade (shift-click trading included),
+     * and MONITOR/ignoreCancelled means only a trade that really happened counts.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void villagerTrade(io.papermc.paper.event.player.PlayerTradeEvent e) {
+        ItemStack result = e.getTrade().getResult();
+        if (result.getType() == Material.EMERALD && e.getPlayer().getGameMode() != GameMode.CREATIVE) {
+            this.applyCollections(e.getPlayer(), Material.EMERALD, result.getAmount());
+        }
+    }
+
     private void applyCollections(Player p, Material drop, int amount) {
         CollectionsService.Update update = this.collections.record(p, drop, amount);
         if (!update.any()) {
