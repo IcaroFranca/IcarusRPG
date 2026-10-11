@@ -53,6 +53,11 @@ public final class TravelMenuService {
      * occasionally reporting "not found" a bit closer to home than before.
      */
     private static final int BIOME_SEARCH_RADIUS = 100;
+    /** Random Cave (Coal Collection M6) - how far from the player the destination can land, how many chunks are tried, and how deep under the surface a spot must be. See {@link #travelToRandomCave}. */
+    private static final int CAVE_MIN_DISTANCE = 200;
+    private static final int CAVE_MAX_DISTANCE = 2000;
+    private static final int CAVE_ATTEMPTS = 8;
+    private static final int CAVE_MIN_DEPTH = 12;
 
     private final Plugin plugin;
     private final Consumer<Player> back;
@@ -143,6 +148,12 @@ public final class TravelMenuService {
             pane.addItem(new GuiItem(this.item(Material.CRIMSON_NYLIUM, "Nearest Crimson Forest",
                     List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
                     event -> this.travelToNearestCrimsonForest(p)), 5, 0);
+        }
+
+        if (this.collectionsProgress.achieved(p, this.coalEntry()) >= CollectionsCatalog.COAL_RANDOM_CAVE_MILESTONE) {
+            pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.RANDOM_CAVE, "Random Cave",
+                    List.of(this.text("Click to teleport.", NamedTextColor.YELLOW)), NamedTextColor.GOLD),
+                    event -> this.travelToRandomCave(p)), 3, 0);
         }
 
         pane.addItem(new GuiItem(this.customHeadItem(HeadTexture.BACK, "Back", List.of(), NamedTextColor.GOLD), event -> this.back.accept(p)), 4, 2);
@@ -354,6 +365,105 @@ public final class TravelMenuService {
         }
         p.closeInventory();
         this.teleportTo(p, destination);
+    }
+
+    private CollectionsEntry coalEntry() {
+        return CollectionsCatalog.find(Material.COAL_ORE).orElseThrow();
+    }
+
+    /**
+     * Coal Collection M6's own reward: a random underground cave in the Overworld, somewhere
+     * {@value #CAVE_MIN_DISTANCE}-{@value #CAVE_MAX_DISTANCE} blocks from the player (from the
+     * default world's spawn when they're in another dimension). Unlike the biome buttons, the
+     * destination chunk is loaded with {@link World#getChunkAtAsync} - generating a far-away
+     * chunk synchronously is exactly what crashed the server through the Watchdog before (see
+     * {@link #BIOME_SEARCH_RADIUS}'s own doc) - and Paper completes that future back on the main
+     * thread, so {@link #findCave} reads blocks safely. Up to {@value #CAVE_ATTEMPTS} random
+     * chunks are tried before giving up.
+     */
+    private void travelToRandomCave(Player p) {
+        World world = p.getWorld().getEnvironment() == World.Environment.NORMAL ? p.getWorld() : Bukkit.getWorld(this.defaultWorld);
+        if (world == null || world.getEnvironment() != World.Environment.NORMAL) {
+            p.sendMessage(Component.text("That location isn't available right now.", NamedTextColor.RED));
+            return;
+        }
+        Location origin = world.equals(p.getWorld()) ? p.getLocation() : world.getSpawnLocation();
+        p.closeInventory();
+        p.sendMessage(Component.text("Searching for a cave...", NamedTextColor.GRAY));
+        this.searchCave(p, world, origin, CAVE_ATTEMPTS);
+    }
+
+    private void searchCave(Player p, World world, Location origin, int attemptsLeft) {
+        if (!p.isOnline()) {
+            return;
+        }
+        if (attemptsLeft <= 0) {
+            p.sendMessage(Component.text("Couldn't find a cave this time. Try again.", NamedTextColor.RED));
+            return;
+        }
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        double angle = random.nextDouble(Math.PI * 2);
+        double distance = random.nextDouble(CAVE_MIN_DISTANCE, CAVE_MAX_DISTANCE);
+        int x = origin.getBlockX() + (int) (Math.cos(angle) * distance);
+        int z = origin.getBlockZ() + (int) (Math.sin(angle) * distance);
+        if (!world.getWorldBorder().isInside(new Location(world, x, 0, z))) {
+            this.searchCave(p, world, origin, attemptsLeft - 1);
+            return;
+        }
+        world.getChunkAtAsync(x >> 4, z >> 4).thenAccept(chunk -> {
+            Location cave = findCave(chunk);
+            if (cave == null) {
+                this.searchCave(p, world, origin, attemptsLeft - 1);
+            } else if (p.isOnline()) {
+                this.teleportTo(p, cave);
+            }
+        });
+    }
+
+    /**
+     * A spot in {@code chunk} that's really inside a cave: two blocks of air over a solid,
+     * non-hazardous floor, at least {@value #CAVE_MIN_DEPTH} blocks under the surface and with
+     * no sky light reaching it, no lava right under or around the feet. Columns are tried in a
+     * random order so the same chunk doesn't always give the same spot. Null if none.
+     */
+    static Location findCave(org.bukkit.Chunk chunk) {
+        World world = chunk.getWorld();
+        int minY = world.getMinHeight() + 6;
+        java.util.List<Integer> columns = new ArrayList<>();
+        for (int i = 0; i < 256; i++) {
+            columns.add(i);
+        }
+        java.util.Collections.shuffle(columns);
+        for (int column : columns.subList(0, 64)) {
+            int lx = column & 15;
+            int lz = column >> 4;
+            int surface = world.getHighestBlockYAt((chunk.getX() << 4) + lx, (chunk.getZ() << 4) + lz);
+            for (int y = minY; y < surface - CAVE_MIN_DEPTH; y++) {
+                org.bukkit.block.Block feet = chunk.getBlock(lx, y, lz);
+                if (!feet.getType().isAir() || !feet.getRelative(org.bukkit.block.BlockFace.UP).getType().isAir()) {
+                    continue;
+                }
+                org.bukkit.block.Block floor = feet.getRelative(org.bukkit.block.BlockFace.DOWN);
+                if (!floor.getType().isSolid() || floor.getType() == Material.MAGMA_BLOCK || feet.getLightFromSky() > 0 || nearLava(feet)) {
+                    continue;
+                }
+                return feet.getLocation().add(0.5, 0.0, 0.5);
+            }
+        }
+        return null;
+    }
+
+    private static boolean nearLava(org.bukkit.block.Block feet) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (feet.getRelative(dx, dy, dz).getType() == Material.LAVA) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /** Shared teleport plumbing both {@link #travel} and {@link #travelToBedSpawn} go through - chunk-loading and the passenger workaround apply the same way regardless of which destination was picked. */

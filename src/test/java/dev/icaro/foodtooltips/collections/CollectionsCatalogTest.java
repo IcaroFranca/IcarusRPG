@@ -386,6 +386,24 @@ final class CollectionsCatalogTest {
     }
 
     @Test
+    void coalRewards() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.COAL_ORE).orElseThrow().milestones();
+        assertEquals(9, m.size());
+        assertEquals(RewardKind.MINING_XP, m.get(0).kind());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(RewardKind.ENCHANT_DISCOUNT, m.get(1).kind());
+        assertEquals(IcarusEnchant.SMELTING_TOUCH, m.get(1).discountEnchant());
+        assertEquals(25.0, m.get(1).discountPercent());
+        assertEquals(List.of(CollectionsCatalog.COAL_CORE_RECIPE), m.get(2).recipes());
+        assertEquals(5000, m.get(3).xpAmount());
+        assertEquals(List.of(CollectionsCatalog.ENCHANTED_LAVA_BUCKET_RECIPE), m.get(4).recipes());
+        assertTrue(m.get(CollectionsCatalog.COAL_RANDOM_CAVE_MILESTONE - 1).rewardEn().contains("Random Cave"));
+        assertEquals(List.of(CollectionsCatalog.COAL_BLOCK_CORE_RECIPE), m.get(6).recipes());
+        assertEquals(RewardKind.MINING_XP, m.get(7).kind());
+        assertEquals(RewardKind.MINING_XP, m.get(8).kind());
+    }
+
+    @Test
     void redstoneRewards() {
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.REDSTONE_ORE).orElseThrow().milestones();
         assertEquals(9, m.size());

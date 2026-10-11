@@ -204,6 +204,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey REDSTONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "redstone_core");
     public static final NamespacedKey WEATHER_WAND_RECIPE = new NamespacedKey("foodtooltips", "weather_wand");
     public static final NamespacedKey REDSTONE_BLOCK_CORE_RECIPE = new NamespacedKey("foodtooltips", "redstone_block_core");
+    public static final NamespacedKey COAL_CORE_RECIPE = new NamespacedKey("foodtooltips", "coal_core");
+    public static final NamespacedKey ENCHANTED_LAVA_BUCKET_RECIPE = new NamespacedKey("foodtooltips", "enchanted_lava_bucket");
+    public static final NamespacedKey COAL_BLOCK_CORE_RECIPE = new NamespacedKey("foodtooltips", "coal_block_core");
+    /** Coal Collection milestone that unlocks the Locations menu's Random Cave button (1-based, see {@code travel.TravelMenuService}). */
+    public static final int COAL_RANDOM_CAVE_MILESTONE = 6;
 
     /**
      * The threshold ladder every Combat Collection entry uses (the player's own explicit
@@ -451,7 +456,29 @@ public final class CollectionsCatalog {
             // regular ore's entry through the drop.
             new CollectionsEntry(Material.STONE, Material.COBBLESTONE, CollectionsCategory.MINING, "Pedregulho", "Cobblestone", placeholderLadder()),
             new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", placeholderLadder()),
-            new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", placeholderLadder()),
+            new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Mineração", "+1000 Mining XP"),
+                    CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.SMELTING_TOUCH, 25.0,
+                            "-25% de custo em XP para Toque Fundente", "-25% XP cost for Smelting Touch"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Coal Core", "Unlocks the Coal Core recipe",
+                            COAL_CORE_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[3], 5000,
+                            "+5000 XP de Mineração", "+5000 Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Enchanted Lava Bucket", "Unlocks the Enchanted Lava Bucket recipe",
+                            ENCHANTED_LAVA_BUCKET_RECIPE),
+                    // No recipe - travel.TravelMenuService shows its Random Cave button from this milestone on.
+                    new CollectionsMilestone(DEFAULT_THRESHOLDS[COAL_RANDOM_CAVE_MILESTONE - 1], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Teleporte para uma Caverna Aleatória no menu de Locais", "Random Cave teleport in the Locations menu"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Coal Block Core", "Unlocks the Coal Block Core recipe",
+                            COAL_BLOCK_CORE_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[7], DEFAULT_XP[7],
+                            "+" + DEFAULT_XP[7] + " XP de Mineração", "+" + DEFAULT_XP[7] + " Mining XP"),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[8], DEFAULT_XP[8],
+                            "+" + DEFAULT_XP[8] + " XP de Mineração", "+" + DEFAULT_XP[8] + " Mining XP"))),
             new CollectionsEntry(Material.COPPER_ORE, Material.RAW_COPPER, CollectionsCategory.MINING, "Cobre", "Copper", placeholderLadder()),
             new CollectionsEntry(Material.IRON_ORE, Material.RAW_IRON, CollectionsCategory.MINING, "Ferro", "Iron", placeholderLadder()),
             new CollectionsEntry(Material.GOLD_ORE, Material.RAW_GOLD, CollectionsCategory.MINING, "Ouro", "Gold", placeholderLadder()),
