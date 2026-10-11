@@ -92,6 +92,8 @@ public final class EmeraldCollectionService {
     private static final Color ARMOR_COLOR = Color.fromRGB(0x00FF00);
     private static final Key SWORD_MODEL = Key.key("icarus", "emerald_sword");
     private static final String BONUS_LINE_PREFIX = "Current Damage Bonus: ";
+    /** Plain text both the original and the "(x/4)" versions of the armor's set-bonus line start with - "Full Set Bonus: Tank" covers pieces crafted before the counter existed too. */
+    private static final String SET_BONUS_LINE_PREFIX = "Full Set Bonus: Tank";
     private static final NamespacedKey SWORD_KEY = new NamespacedKey("foodtooltips", "emerald_sword");
     private static final NamespacedKey SWORD_DAMAGE_KEY = new NamespacedKey("foodtooltips", "emerald_sword_damage");
     private static final NamespacedKey SWORD_BASE_ZERO_KEY = new NamespacedKey("foodtooltips", "emerald_sword_base_zero");
@@ -258,14 +260,109 @@ public final class EmeraldCollectionService {
         meta.lore(List.of(
                 line("Defense: +" + defense, NamedTextColor.GREEN),
                 Component.empty().decoration(TextDecoration.ITALIC, false),
-                line("Full Set Bonus: Tank", NamedTextColor.GOLD),
+                setBonusLine(0),
                 line("Increases Health by +1 and Defense by +1", NamedTextColor.GRAY),
                 line("for every " + String.format(Locale.US, "%,d", TANK_EMERALDS_PER_POINT) + " Emeralds in your collection.", NamedTextColor.GRAY),
                 line("Max " + TANK_MAX + " each.", NamedTextColor.GRAY)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
+        item.setData(DataComponentTypes.ITEM_MODEL, armorModel(material));
         ItemStack tiered = this.tiers.applyTier(item, Language.EN);
         return tiered != null ? tiered : item;
+    }
+
+    /** The IcarusTexture icon of each piece ({@code icarus:emerald_helmet}...) - only the inventory icon; worn, it's still the #00FF00 dyed leather. */
+    private static Key armorModel(Material material) {
+        String piece = material.name().substring(material.name().indexOf('_') + 1).toLowerCase(Locale.ROOT);
+        return Key.key("icarus", "emerald_" + piece);
+    }
+
+    /** "Full Set Bonus: Tank (worn/4)" - see {@link #refreshArmorLore}. */
+    private static Component setBonusLine(int worn) {
+        return line(SET_BONUS_LINE_PREFIX + " (" + worn + "/4)", NamedTextColor.GOLD);
+    }
+
+    /** How many Emerald Armor pieces {@code p} is wearing right now. */
+    private static int piecesWorn(Player p) {
+        EntityEquipment eq = p.getEquipment();
+        if (eq == null) {
+            return 0;
+        }
+        int worn = 0;
+        for (ItemStack piece : new ItemStack[]{eq.getHelmet(), eq.getChestplate(), eq.getLeggings(), eq.getBoots()}) {
+            if (isArmorPiece(piece)) {
+                worn++;
+            }
+        }
+        return worn;
+    }
+
+    /**
+     * Keeps every Emerald Armor piece {@code p} carries (worn or in the inventory) showing how
+     * many pieces they're wearing in its "Full Set Bonus: Tank (x/4)" line - and gives pieces
+     * crafted before the icons existed their {@link #armorModel}. Only rewrites a piece when
+     * something actually changed.
+     */
+    private void refreshArmorLore(Player p) {
+        Component wanted = setBonusLine(piecesWorn(p));
+        var inv = p.getInventory();
+        ItemStack[] armor = inv.getArmorContents();
+        boolean armorChanged = false;
+        for (int i = 0; i < armor.length; i++) {
+            ItemStack updated = withSetBonusLine(armor[i], wanted);
+            if (updated != null) {
+                armor[i] = updated;
+                armorChanged = true;
+            }
+        }
+        if (armorChanged) {
+            inv.setArmorContents(armor);
+        }
+        ItemStack[] storage = inv.getStorageContents();
+        boolean storageChanged = false;
+        for (int i = 0; i < storage.length; i++) {
+            ItemStack updated = withSetBonusLine(storage[i], wanted);
+            if (updated != null) {
+                storage[i] = updated;
+                storageChanged = true;
+            }
+        }
+        if (storageChanged) {
+            inv.setStorageContents(storage);
+        }
+    }
+
+    /** {@code piece} with its set-bonus line replaced by {@code wanted} (and its icon model set), or null if it isn't an Emerald Armor piece or already up to date. */
+    private static ItemStack withSetBonusLine(ItemStack piece, Component wanted) {
+        if (!isArmorPiece(piece)) {
+            return null;
+        }
+        Key model = armorModel(piece.getType());
+        boolean missingModel = !model.equals(piece.getData(DataComponentTypes.ITEM_MODEL));
+        ItemMeta meta = piece.getItemMeta();
+        List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        boolean loreChanged = false;
+        for (int i = 0; i < lore.size(); i++) {
+            if (PlainTextComponentSerializer.plainText().serialize(lore.get(i)).startsWith(SET_BONUS_LINE_PREFIX)) {
+                if (!lore.get(i).equals(wanted)) {
+                    lore.set(i, wanted);
+                    loreChanged = true;
+                }
+                break;
+            }
+        }
+        if (!loreChanged && !missingModel) {
+            return null;
+        }
+        ItemStack copy = piece.clone();
+        if (loreChanged) {
+            meta.lore(lore);
+            copy.setItemMeta(meta);
+        }
+        if (missingModel) {
+            copy.setData(DataComponentTypes.ITEM_MODEL, model);
+        }
+        return copy;
     }
 
     private static boolean isArmorPiece(ItemStack item) {
@@ -372,6 +469,7 @@ public final class EmeraldCollectionService {
                 health.addTransientModifier(new AttributeModifier(TANK_HEALTH_KEY, bonus, AttributeModifier.Operation.ADD_NUMBER));
             }
         }
+        this.refreshArmorLore(p);
         ItemStack held = p.getInventory().getItemInMainHand();
         if (isEmeraldSword(held)) {
             ItemStack updated = withBonusLine(held, this.weaponDamageBonus(p, held));
