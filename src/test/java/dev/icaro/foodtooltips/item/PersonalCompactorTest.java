@@ -16,6 +16,7 @@ final class PersonalCompactorTest {
         assertArrayEquals(new int[]{4}, CobblestoneCollectionService.menuSlots(1));
         assertArrayEquals(new int[]{3, 4, 5}, CobblestoneCollectionService.menuSlots(3));
         assertArrayEquals(new int[]{1, 2, 3, 4, 5, 6, 7}, CobblestoneCollectionService.menuSlots(7));
+        assertArrayEquals(new int[]{1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15}, CobblestoneCollectionService.menuSlots(12));
     }
 
     private static ItemStack stack(int amount) {

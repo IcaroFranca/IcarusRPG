@@ -45,7 +45,7 @@ import org.bukkit.plugin.Plugin;
  * <ul>
  * <li><b>M3 Personal Compactor</b> (Tier C), <b>M5 Personal Compactor 3000</b> (Tier B),
  * <b>M7 Personal Compactor 4000</b> (Tier A) and <b>M9 Personal Compactor 5000</b> (Tier S) - one
- * upgrade line of accessories (only the best one in the Accessory Bag counts) with 1 / 3 / 7 / 7
+ * upgrade line of accessories (only the best one in the Accessory Bag counts) with 1 / 3 / 7 / 12
  * slots. Each slot holds a block; whenever the player has enough of that block's own ingredient
  * in their inventory (9 Iron Ingots -> 1 Iron Block, 4 Snowballs -> 1 Snow Block...), they are
  * compacted into it, until fewer are left.
@@ -72,7 +72,7 @@ public final class CobblestoneCollectionService implements Listener {
     private static final Map<NamespacedKey, Integer> RING_AMOUNTS = Map.of(
             CollectionsCatalog.PERSONAL_COMPACTOR_4000_RECIPE, 2,
             CollectionsCatalog.PERSONAL_COMPACTOR_5000_RECIPE, 4);
-    private static final int MAX_SLOTS = 7;
+    private static final int MAX_SLOTS = 12;
 
     private final Plugin plugin;
     private final ItemTierService tiers;
@@ -145,7 +145,12 @@ public final class CobblestoneCollectionService implements Listener {
             case 5000 -> ItemTier.S;
             default -> ItemTier.C;
         };
-        int slots = model == 1 ? 1 : model == 3000 ? 3 : MAX_SLOTS;
+        int slots = switch (model) {
+            case 3000 -> 3;
+            case 4000 -> 7;
+            case 5000 -> MAX_SLOTS;
+            default -> 1;
+        };
         AccessoryType type = model == 1 ? AccessoryType.TALISMAN : model == 3000 ? AccessoryType.RING : AccessoryType.ARTIFACT;
         ItemStack item = new ItemStack(Material.DISPENSER);
         ItemMeta meta = item.getItemMeta();
@@ -269,11 +274,11 @@ public final class CobblestoneCollectionService implements Listener {
 
     public void openMenu(Player p, int slots) {
         MenuHolder holder = new MenuHolder();
-        Inventory inv = Bukkit.createInventory(holder, 9, "Personal Compactor");
-        holder.inventory = inv;
         holder.slots = menuSlots(slots);
+        Inventory inv = Bukkit.createInventory(holder, holder.slots.length > 7 ? 18 : 9, "Personal Compactor");
+        holder.inventory = inv;
         ItemStack filler = named(Material.GRAY_STAINED_GLASS_PANE, " ", NamedTextColor.WHITE);
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, filler);
         }
         List<Material> blocks = this.configured(p);
@@ -284,13 +289,26 @@ public final class CobblestoneCollectionService implements Listener {
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p, holder.slots);
     }
 
-    /** The menu's slot positions for {@code slots} slots, centered in its one row. */
+    /** The menu's slot positions for {@code slots} slots: up to 7 centered in one row, more split over two centered rows (12 -> two rows of 6). */
     static int[] menuSlots(int slots) {
         int n = Math.max(1, Math.min(MAX_SLOTS, slots));
-        int start = (9 - n) / 2;
         int[] out = new int[n];
-        for (int i = 0; i < n; i++) {
-            out[i] = start + i;
+        if (n <= 7) {
+            int start = (9 - n) / 2;
+            for (int i = 0; i < n; i++) {
+                out[i] = start + i;
+            }
+            return out;
+        }
+        int top = (n + 1) / 2;
+        int bottom = n - top;
+        int topStart = (9 - top) / 2;
+        int bottomStart = 9 + (9 - bottom) / 2;
+        for (int i = 0; i < top; i++) {
+            out[i] = topStart + i;
+        }
+        for (int i = 0; i < bottom; i++) {
+            out[top + i] = bottomStart + i;
         }
         return out;
     }
