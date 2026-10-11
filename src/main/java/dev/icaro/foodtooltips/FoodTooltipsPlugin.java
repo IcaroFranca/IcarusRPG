@@ -811,6 +811,7 @@ extends JavaPlugin {
             chocolateArmor.applyToInventory((Player)p);
             growthArmor.applyToInventory((Player)p);
             emeraldCollection.applyToInventory((Player)p);
+            leapingSword.applyModel((Player)p);
             speedsterArmor.applyFullSetSpeed((Player)p);
             enchantedCarrotStick.applyMountSpeed((Player)p);
             mushroomSoupFlight.tick((Player)p, ticks);

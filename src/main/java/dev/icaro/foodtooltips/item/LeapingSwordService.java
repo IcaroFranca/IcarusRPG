@@ -60,6 +60,8 @@ public final class LeapingSwordService implements Listener {
     private static final NamespacedKey BASE_ZERO_KEY = new NamespacedKey("foodtooltips", "leaping_sword_base_zero");
     private static final NamespacedKey SPEED_KEY = new NamespacedKey("foodtooltips", "leaping_sword_speed");
 
+    /** The IcarusTexture pack's own item model ({@code assets/icarus/items/leaping_sword.json}) - without the pack it's a plain Diamond Sword. */
+    private static final net.kyori.adventure.key.Key MODEL = net.kyori.adventure.key.Key.key("icarus", "leaping_sword");
     public static final int DAMAGE = 150;
     public static final int STRENGTH = 100;
     public static final int CRIT_DAMAGE_BONUS = 25;
@@ -114,7 +116,23 @@ public final class LeapingSwordService implements Listener {
                 Component.text("Cooldown: " + COOLDOWN_SECONDS + "s", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
+        item.setData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_MODEL, MODEL);
         return item;
+    }
+
+    /** Gives every Leaping Sword in {@code p}'s inventory crafted before its IcarusTexture icon existed the {@link #MODEL} - from the plugin's periodic per-player sweep; only rewrites the inventory when one actually changed. */
+    public void applyModel(Player p) {
+        ItemStack[] storage = p.getInventory().getStorageContents();
+        boolean changed = false;
+        for (ItemStack item : storage) {
+            if (isLeapingSword(item) && !MODEL.equals(item.getData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_MODEL))) {
+                item.setData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_MODEL, MODEL);
+                changed = true;
+            }
+        }
+        if (changed) {
+            p.getInventory().setStorageContents(storage);
+        }
     }
 
     public static boolean isLeapingSword(ItemStack item) {
