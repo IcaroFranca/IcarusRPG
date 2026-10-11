@@ -246,6 +246,7 @@ extends JavaPlugin {
         this.getServer().getPluginManager().registerEvents((Listener)weatherWand, (Plugin)this);
         weatherWand.start();
         this.getServer().getPluginManager().registerEvents((Listener)new dev.icaro.foodtooltips.item.EnchantedLavaBucketListener(), (Plugin)this);
+        this.getServer().getPluginManager().registerEvents((Listener)new dev.icaro.foodtooltips.item.TeleportPadService((Plugin)this), (Plugin)this);
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();

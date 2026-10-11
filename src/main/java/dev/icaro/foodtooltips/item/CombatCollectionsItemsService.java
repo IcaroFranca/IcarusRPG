@@ -238,9 +238,7 @@ public final class CombatCollectionsItemsService {
                     r.setIngredient('C', new RecipeChoice.ExactChoice(this.enderPearlCore()));
                     r.setIngredient('N', Material.NETHERITE_INGOT);
                 });
-        // No behavior of its own yet - per the player's own explicit "Implementa o collection
-        // primeiro que depois te falo as configurações que ele vai ter", just the recipe and
-        // the milestone for now.
+        // The pad itself (placing, the menus, teleporting) - see TeleportPadService.
         this.newShapedRecipe(CollectionsCatalog.TELEPORT_PAD_RECIPE, this.teleportPad(),
                 new String[]{"OOO", "OEO", "OOO"}, r -> {
                     r.setIngredient('O', Material.OBSIDIAN);
@@ -306,13 +304,9 @@ public final class CombatCollectionsItemsService {
         return item;
     }
 
-    /** No behavior yet - see this class's own registration comment for the Teleport Pad recipe. */
+    /** Its behavior lives in {@link TeleportPadService}, which also builds the item. */
     private ItemStack teleportPad() {
-        var item = new ItemStack(Material.END_PORTAL_FRAME);
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text("Teleport Pad", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
+        return TeleportPadService.createItem();
     }
 
     private ItemStack gunpowderCore() {
