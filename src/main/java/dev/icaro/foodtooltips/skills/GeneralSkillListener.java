@@ -441,6 +441,57 @@ implements Listener {
         }
     }
 
+    /** A gravel block a player just broke, waiting for its {@link BlockDropItemEvent} - see {@link #gravelBreak}. */
+    private record GravelBreak(UUID player, boolean counts, boolean flintShovel) {
+    }
+
+    private final Map<String, GravelBreak> gravelBreaks = new HashMap<>();
+
+    /**
+     * Notes a gravel block a survival player breaks, so {@link #gravelDrops} knows - once its real
+     * drops exist - whether to turn them into Flint (Flint Shovel) and whether they count for the
+     * Gravel Collection (not for a gravel block the player placed themselves, same guard {@link
+     * #broken} applies to everything else).
+     */
+    @EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
+    public void gravelBreak(BlockBreakEvent e) {
+        Player p = e.getPlayer();
+        if (e.getBlock().getType() != Material.GRAVEL || p.getGameMode() == GameMode.CREATIVE) {
+            return;
+        }
+        String k = this.key(e.getBlock().getLocation());
+        boolean flint = dev.icaro.foodtooltips.item.GravelCollectionService.isFlintShovel(p.getInventory().getItemInMainHand());
+        this.gravelBreaks.put(k, new GravelBreak(p.getUniqueId(), !this.placed.contains(k), flint));
+    }
+
+    /**
+     * Gravel's real drops: with the Flint Shovel every Gravel becomes Flint, and every Gravel and
+     * Flint dropped counts for the Gravel Collection - Flint included, per the player's own spec.
+     * HIGH, so it runs before {@link #drops} (HIGHEST), whose Telekinesis moves these very items
+     * into the inventory.
+     */
+    @EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
+    public void gravelDrops(BlockDropItemEvent e) {
+        GravelBreak g = this.gravelBreaks.remove(this.key(e.getBlock().getLocation()));
+        if (g == null || !g.player().equals(e.getPlayer().getUniqueId())) {
+            return;
+        }
+        int total = 0;
+        for (Item entity : e.getItems()) {
+            ItemStack stack = entity.getItemStack();
+            if (g.flintShovel() && stack.getType() == Material.GRAVEL) {
+                stack = stack.withType(Material.FLINT);
+                entity.setItemStack(stack);
+            }
+            if (stack.getType() == Material.GRAVEL || stack.getType() == Material.FLINT) {
+                total += stack.getAmount();
+            }
+        }
+        if (g.counts() && total > 0) {
+            this.applyCollections(e.getPlayer(), Material.GRAVEL, total);
+        }
+    }
+
     private static final int MUSHROOM_CAP_MIN = 1;
     private static final int MUSHROOM_CAP_MAX = 2;
 
@@ -829,21 +880,44 @@ implements Listener {
         }
     }
 
-    /** Alchemy's +1%-per-level bonus to potion effect duration, from drinking a potion specifically (not splash/lingering/beacon/other environmental effects). Cancel-and-reapply rather than mutating the event in place, since {@link EntityPotionEffectEvent} doesn't expose a setter for the effect itself - the reapply fires this same event again, guarded by {@link #extendingPotion} so it isn't extended a second time. */
-    @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
+    /** The Potion Affinity accessories' summed bonus % - wired from {@code AccessoryBagService#totalPotionDurationBonusPercent}, see {@link #potionDuration}. */
+    private java.util.function.ToDoubleFunction<Player> potionAffinityPercent = p -> 0.0;
+
+    public void potionAffinityPercent(java.util.function.ToDoubleFunction<Player> potionAffinityPercent) {
+        this.potionAffinityPercent = potionAffinityPercent;
+    }
+
+    /**
+     * Every bonus to a drunk potion's duration, in one place: Alchemy's +1% per level times the
+     * Potion Affinity accessories' summed %. Cancels the original effect and applies the longer
+     * one in its place ({@link #extendingPotion} keeps that reapply from being extended again).
+     *
+     * <p>Alchemy's part used to be broken for every potion: it applied the longer effect without
+     * cancelling the original, so the original - applied right after - won, and the bonus never
+     * stuck (confirmed with a real drink on a test server: Swiftness at Alchemy 50 stayed 3:00).
+     * Potion Affinity lived in its own listener that did cancel, so the two fought over the same
+     * drink. Drinking while the effect is still running (an update, not a fresh effect - a
+     * Redstone potion over its own still-active copy, say) is now extended too.
+     */
+    @EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
     public void potionDuration(EntityPotionEffectEvent e) {
         if (!(e.getEntity() instanceof Player p) || this.extendingPotion.contains(p.getUniqueId())
                 || e.getCause() != EntityPotionEffectEvent.Cause.POTION_DRINK
-                || e.getAction() != EntityPotionEffectEvent.Action.ADDED || e.getNewEffect() == null) {
-            return;
-        }
-        double multiplier = this.skills.potionDurationMultiplier(p);
-        if (multiplier <= 1.0) {
+                || (e.getAction() != EntityPotionEffectEvent.Action.ADDED && e.getAction() != EntityPotionEffectEvent.Action.CHANGED)
+                || e.getNewEffect() == null) {
             return;
         }
         PotionEffect original = e.getNewEffect();
+        if (original.getType().isInstant() || original.isInfinite()) {
+            return;
+        }
+        double multiplier = this.skills.potionDurationMultiplier(p) * (1.0 + this.potionAffinityPercent.applyAsDouble(p) / 100.0);
+        if (multiplier <= 1.0) {
+            return;
+        }
         PotionEffect extended = new PotionEffect(original.getType(), (int) Math.round(original.getDuration() * multiplier),
                 original.getAmplifier(), original.isAmbient(), original.hasParticles(), original.hasIcon());
+        e.setCancelled(true);
         this.extendingPotion.add(p.getUniqueId());
         try {
             p.addPotionEffect(extended);

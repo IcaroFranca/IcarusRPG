@@ -101,6 +101,10 @@ public final class RedstoneDurationService implements Listener {
         if (item == null || !isPotion(item.getType()) || !(item.getItemMeta() instanceof PotionMeta meta)) {
             return false;
         }
+        if (CustomPotion.type(item) != null) {
+            // This plugin's own stat potions (Critical) keep their duration in the PDC instead.
+            return CustomPotion.duration(meta) < ticks;
+        }
         for (PotionEffect effect : effects(meta)) {
             if (!effect.getType().isInstant() && !effect.isInfinite() && effect.getDuration() < ticks) {
                 return true;
@@ -112,6 +116,12 @@ public final class RedstoneDurationService implements Listener {
     static ItemStack extended(ItemStack input, int ticks) {
         ItemStack out = input.clone();
         PotionMeta meta = (PotionMeta) out.getItemMeta();
+        if (CustomPotion.type(input) != null) {
+            meta.getPersistentDataContainer().set(CustomPotion.DURATION_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, ticks);
+            CustomPotion.describe(meta);
+            out.setItemMeta(meta);
+            return out;
+        }
         List<PotionEffect> effects = effects(meta);
         PotionType base = meta.getBasePotionType();
         if (base != null && !base.getPotionEffects().isEmpty()) {

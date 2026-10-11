@@ -239,6 +239,9 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.potion.RedstoneDurationService redstoneDuration = new dev.icaro.foodtooltips.potion.RedstoneDurationService((Plugin)this, miningCollectionsItems);
         redstoneDuration.registerMixes();
         this.getServer().getPluginManager().registerEvents((Listener)redstoneDuration, (Plugin)this);
+        dev.icaro.foodtooltips.potion.GlowstoneLevelService glowstoneLevel = new dev.icaro.foodtooltips.potion.GlowstoneLevelService((Plugin)this);
+        glowstoneLevel.registerMix();
+        this.getServer().getPluginManager().registerEvents((Listener)glowstoneLevel, (Plugin)this);
         dev.icaro.foodtooltips.item.WeatherWandService weatherWand = new dev.icaro.foodtooltips.item.WeatherWandService((Plugin)this);
         this.getServer().getPluginManager().registerEvents((Listener)weatherWand, (Plugin)this);
         weatherWand.start();
@@ -319,6 +322,9 @@ extends JavaPlugin {
         this.diamondCollection.registerRecipes();
         this.diamondCollection.start();
         this.getServer().getPluginManager().registerEvents((Listener)this.diamondCollection, (Plugin)this);
+        dev.icaro.foodtooltips.item.GravelCollectionService gravelCollection = new dev.icaro.foodtooltips.item.GravelCollectionService((Plugin)this, general, this.accessoryBag);
+        gravelCollection.registerRecipes();
+        this.getServer().getPluginManager().registerEvents((Listener)gravelCollection, (Plugin)this);
         armor.accessoryDefenseBonus(e -> e instanceof Player power ? magicalPower.defensePoints(power) : 0);
         stats.accessoryStrengthBonus(magicalPower::strengthPoints);
         stats.accessoryIntelligenceBonus(magicalPower::intelligenceBonus);
@@ -525,6 +531,7 @@ extends JavaPlugin {
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         GeneralSkillListener generalSkillListener = new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives, collectionsService);
         pm.registerEvents((Listener)generalSkillListener, (Plugin)this);
+        generalSkillListener.potionAffinityPercent(this.accessoryBag::totalPotionDurationBonusPercent);
         generalSkillListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
                 .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         generalSkillListener.heldToolHasOwnSweep(tool -> spruceAxe.isSpruceAxe(tool) || treecapitator.isTreecapitator(tool));
@@ -584,8 +591,8 @@ extends JavaPlugin {
         combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);
         combatListener.creeperHatCritDamageBonus(creeperHat::critDamageBonus);
-        combatListener.accessoryCritChanceBonus(magicalPower::critChanceBonus);
-        combatListener.accessoryCritDamageBonus(magicalPower::critDamageBonus);
+        combatListener.accessoryCritChanceBonus(p -> magicalPower.critChanceBonus(p) + gravelCollection.critChance(p));
+        combatListener.accessoryCritDamageBonus(p -> magicalPower.critDamageBonus(p) + gravelCollection.critDamage(p));
         combatListener.openCollectionsEntry((clicker, material) -> CollectionsCatalog.find(material)
                 .ifPresent(entry -> collectionsMenu.openEntry(clicker, entry, entry.category(), 0)));
         // Registration order among these EventPriority.HIGHEST EntityDamageEvent handlers
@@ -822,6 +829,7 @@ extends JavaPlugin {
             enchantedCarrotStick.applyMountSpeed((Player)p);
             mushroomSoupFlight.tick((Player)p, ticks);
             archeryPotion.tick((Player)p, ticks);
+            gravelCollection.tick((Player)p, ticks);
             manaPotion.tick((Player)p, ticks);
             lapisArmor.applyToInventory((Player)p);
             lapisExperience.applyToInventory((Player)p);

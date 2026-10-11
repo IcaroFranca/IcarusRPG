@@ -230,6 +230,8 @@ public final class CollectionsCatalog {
     public static final NamespacedKey PERFECT_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "perfect_chestplate");
     public static final NamespacedKey PERFECT_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "perfect_leggings");
     public static final NamespacedKey PERFECT_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "perfect_boots");
+    public static final NamespacedKey FLINT_SHOVEL_RECIPE = new NamespacedKey("foodtooltips", "flint_shovel");
+    public static final NamespacedKey ENCHANTED_FLINT_RECIPE = new NamespacedKey("foodtooltips", "enchanted_flint");
     /** Coal Collection milestone that unlocks the Locations menu's Random Cave button (1-based, see {@code travel.TravelMenuService}). */
     public static final int COAL_RANDOM_CAVE_MILESTONE = 6;
 
@@ -581,6 +583,30 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, CollectionsCategory.MINING, "Detritos Antigos", "Ancient Debris", placeholderLadder()),
             new CollectionsEntry(Material.OBSIDIAN, Material.OBSIDIAN, CollectionsCategory.MINING, "Obsidiana", "Obsidian", placeholderLadder()),
             new CollectionsEntry(Material.NETHERRACK, Material.NETHERRACK, CollectionsCategory.MINING, "Netherrack", "Netherrack", placeholderLadder()),
+            // Gravel: counts every Gravel AND Flint a broken gravel block drops (see
+            // skills.GeneralSkillListener#gravelDrops). M7's Critical Potion is a PotionMix (Awkward
+            // Potion + Flint), so - like the Resistance Potion - it has no CraftingRecipe key to gate.
+            new CollectionsEntry(Material.GRAVEL, Material.GRAVEL, CollectionsCategory.MINING, "Cascalho", "Gravel", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Mineração", "+1000 Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita da Flint Shovel", "Unlocks the Flint Shovel recipe",
+                            FLINT_SHOVEL_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[2], DEFAULT_XP[2],
+                            "+" + DEFAULT_XP[2] + " XP de Mineração", "+" + DEFAULT_XP[2] + " Mining XP"),
+                    CollectionsMilestone.vanillaEnchantDiscount(DEFAULT_THRESHOLDS[3], NamespacedKey.minecraft("sharpness"), 25.0,
+                            "-25% de custo em XP para Afiação", "-25% XP cost for Sharpness"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Enchanted Flint", "Unlocks the Enchanted Flint recipe",
+                            ENCHANTED_FLINT_RECIPE),
+                    CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[5], IcarusEnchant.FIRST_STRIKE, 25.0,
+                            "-25% de custo em XP para Primeiro Golpe", "-25% XP cost for First Strike"),
+                    new CollectionsMilestone(DEFAULT_THRESHOLDS[6], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                            "Desbloqueia a Critical Potion (Poção Estranha + Pederneira)", "Unlocks the Critical Potion (Awkward Potion + Flint)"),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[7], DEFAULT_XP[7],
+                            "+" + DEFAULT_XP[7] + " XP de Mineração", "+" + DEFAULT_XP[7] + " Mining XP"),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[8], DEFAULT_XP[8],
+                            "+" + DEFAULT_XP[8] + " XP de Mineração", "+" + DEFAULT_XP[8] + " Mining XP"))),
             // Fishing (rewards still to be defined - same placeholderLadder() as Mining). Credited
             // from a fishing rod's real catch (skills.GeneralSkillListener#fish, after Luck of the
             // Sea's own re-roll) and from aquatic mob drops (combat.CombatListener

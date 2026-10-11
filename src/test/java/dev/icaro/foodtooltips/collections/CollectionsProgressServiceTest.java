@@ -63,10 +63,10 @@ final class CollectionsProgressServiceTest {
         // own doc.
         int combatEntries = CollectionsCatalog.entries(CollectionsCategory.COMBAT).size();
         assertEquals(14, combatEntries);
-        // Mining's 14 templates (one per resource MiningCatalog treats as a Mining target,
-        // Netherrack included - empty milestone ladders for now) - see CollectionsCatalog's own doc.
+        // Mining: one per resource MiningCatalog treats as a Mining target (Netherrack included)
+        // plus Gravel (a shovel block, credited by its own drops) - see CollectionsCatalog.
         int miningEntries = CollectionsCatalog.entries(CollectionsCategory.MINING).size();
-        assertEquals(14, miningEntries);
+        assertEquals(15, miningEntries);
         // Fishing's 10, same reward-less placeholderLadder() as Mining.
         assertEquals(10, CollectionsCatalog.entries(CollectionsCategory.FISHING).size());
     }
