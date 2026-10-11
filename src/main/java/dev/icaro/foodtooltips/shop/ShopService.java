@@ -100,6 +100,13 @@ public final class ShopService implements Listener, CommandExecutor, TabComplete
             this.plugin.saveResource("shops.yml", false);
         }
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+        if (this.mergeNewDefaults(yaml)) {
+            try {
+                yaml.save(file);
+            } catch (java.io.IOException ex) {
+                this.plugin.getLogger().warning("Couldn't save shops.yml after adding new default items: " + ex.getMessage());
+            }
+        }
         Map<String, Shop> loaded = new LinkedHashMap<>();
         for (String id : yaml.getKeys(false)) {
             ConfigurationSection section = yaml.getConfigurationSection(id);
@@ -125,6 +132,71 @@ public final class ShopService implements Listener, CommandExecutor, TabComplete
         }
         this.shops = loaded;
         this.plugin.getLogger().info("Loaded " + loaded.size() + " shop(s) from shops.yml.");
+    }
+
+    /**
+     * Brings an existing {@code shops.yml} up to date with the jar's own default - otherwise an
+     * item added to a default shop in an update (Knight Killer) never reaches a server whose file
+     * was written by an older version. A missing default shop is added whole; in an existing one,
+     * every default item not offered before is appended with its default price. Each shop's
+     * {@code known-defaults} list remembers what was already offered, so an item the admin removed
+     * on purpose never comes back. Returns whether anything changed.
+     */
+    boolean mergeNewDefaults(YamlConfiguration yaml) {
+        java.io.InputStream resource = this.plugin.getResource("shops.yml");
+        if (resource == null) {
+            return false;
+        }
+        YamlConfiguration defaults = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(resource, java.nio.charset.StandardCharsets.UTF_8));
+        return mergeNewDefaults(yaml, defaults, added -> this.plugin.getLogger().info("shops.yml: added new default item " + added + "."));
+    }
+
+    static boolean mergeNewDefaults(YamlConfiguration yaml, YamlConfiguration defaults, java.util.function.Consumer<String> log) {
+        boolean changed = false;
+        for (String id : defaults.getKeys(false)) {
+            ConfigurationSection def = defaults.getConfigurationSection(id);
+            if (def == null) {
+                continue;
+            }
+            List<Map<?, ?>> defaultItems = def.getMapList("items");
+            List<String> defaultIds = new ArrayList<>();
+            for (Map<?, ?> raw : defaultItems) {
+                defaultIds.add(String.valueOf(raw.get("item")));
+            }
+            ConfigurationSection section = yaml.getConfigurationSection(id);
+            if (section == null) {
+                yaml.set(id + ".title", def.getString("title", id));
+                yaml.set(id + ".items", defaultItems);
+                yaml.set(id + ".known-defaults", defaultIds);
+                log.accept(id);
+                changed = true;
+                continue;
+            }
+            List<Map<?, ?>> items = new ArrayList<>(section.getMapList("items"));
+            java.util.Set<String> present = new java.util.HashSet<>();
+            for (Map<?, ?> raw : items) {
+                present.add(String.valueOf(raw.get("item")));
+            }
+            java.util.Set<String> known = new java.util.HashSet<>(section.getStringList("known-defaults"));
+            boolean added = false;
+            for (Map<?, ?> raw : defaultItems) {
+                String item = String.valueOf(raw.get("item"));
+                if (!present.contains(item) && !known.contains(item)) {
+                    items.add(raw);
+                    log.accept(id + "/" + item);
+                    added = true;
+                }
+            }
+            if (added) {
+                section.set("items", items);
+            }
+            if (added || !known.containsAll(defaultIds)) {
+                known.addAll(defaultIds);
+                section.set("known-defaults", new ArrayList<>(new java.util.TreeSet<>(known)));
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     /** {@code amount} of {@code entry}'s item (a custom item is always built as a single fresh copy), or null if it doesn't resolve. */

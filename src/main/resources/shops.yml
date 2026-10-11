@@ -11,6 +11,9 @@
 #   price: coins per unit
 # Left-click buys 1; right-click opens 5/10/25/50/64 for stackable items.
 # After editing, apply with: /shop reload
+#
+# Updates add new default items to an existing file on their own. known-defaults (written
+# by the plugin) lists what was already offered, so an item you delete stays deleted.
 
 combat_merchant:
   title: "Combat Merchant"
