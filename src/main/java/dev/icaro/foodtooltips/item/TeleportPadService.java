@@ -63,8 +63,12 @@ import org.bukkit.plugin.Plugin;
  * #COLOR_SLOT} the 16 dye colors, slot {@value #RENAME_SLOT} renaming (the client's own sign
  * editor, on a sign that only exists for that player for a moment - see {@link #startRename}),
  * slot {@value #CLOSE_SLOT} close and slot {@value #PICKUP_SLOT} picking the pad back up as an
- * item. Any other player can travel with it but not change it: their right-click opens just
- * the destination list (the owner's other pads), and every other screen/button is owner-only.
+ * item, and slot {@value #ACCESS_SLOT} who else may use it.
+ *
+ * <p><b>Access</b> is per pad: "allowed players only" (the default - the owner plus whoever they
+ * added from the online players) or "public" (everyone). A player with access can travel with the
+ * pad but never change it: their right-click opens just the destination list - the owner's other
+ * pads they also have access to - and every settings screen/button stays owner-only.
  *
  * <p>Pads live in {@code plugins/IcarusRPG/teleport_pads.yml}, saved on every change. A pad whose
  * block isn't an End Portal Frame anymore (broken in creative, replaced by a command...) is
@@ -82,6 +86,12 @@ public final class TeleportPadService implements Listener {
     static final int RENAME_SLOT = 15;
     static final int CLOSE_SLOT = 31;
     static final int PICKUP_SLOT = 35;
+    static final int ACCESS_SLOT = 22;
+    /** Access screen: mode toggle, "add player" and the allowed players' heads. */
+    private static final int MODE_SLOT = 4;
+    private static final int ADD_PLAYER_SLOT = 48;
+    private static final int FIRST_PLAYER_SLOT = 9;
+    private static final int LAST_PLAYER_SLOT = 44;
     /** Destination/color screens: back button. */
     private static final int BACK_SLOT = 49;
     private static final int COLOR_BACK_SLOT = 31;
@@ -106,6 +116,9 @@ public final class TeleportPadService implements Listener {
         String name;
         DyeColor color;
         UUID hologram;
+        /** Anyone may use it - otherwise only the owner and {@link #allowed}. */
+        boolean publicAccess;
+        final java.util.Set<UUID> allowed = new java.util.LinkedHashSet<>();
 
         Pad(UUID id, UUID owner, String world, int x, int y, int z, String name, DyeColor color, UUID hologram) {
             this.id = id;
@@ -128,12 +141,14 @@ public final class TeleportPadService implements Listener {
     private record Rename(UUID pad, Location signAt, BlockData realBlock) {
     }
 
-    private enum Screen { MAIN, DESTINATIONS, COLORS }
+    private enum Screen { MAIN, DESTINATIONS, COLORS, ACCESS, ADD_PLAYER }
 
     private static final class MenuHolder implements InventoryHolder {
         private final Screen screen;
         private final UUID pad;
         private final Map<Integer, UUID> destinations = new HashMap<>();
+        /** Access screens: slot -> player shown there. */
+        private final Map<Integer, UUID> players = new HashMap<>();
         private Inventory inventory;
 
         MenuHolder(Screen screen, UUID pad) {
@@ -216,7 +231,11 @@ public final class TeleportPadService implements Listener {
         e.setCancelled(true);
         Player p = e.getPlayer();
         if (!pad.owner.equals(p.getUniqueId())) {
-            // A guest: travelling is allowed, changing the pad isn't.
+            // A guest: travelling is allowed (with access), changing the pad isn't.
+            if (!canUse(pad, p.getUniqueId())) {
+                p.sendActionBar(Component.text("You don't have access to this Teleport Pad.", NamedTextColor.RED));
+                return;
+            }
             this.openDestinations(p, pad);
             return;
         }
@@ -236,6 +255,9 @@ public final class TeleportPadService implements Listener {
                 line("Color of this pad's name.", NamedTextColor.GRAY)));
         inv.setItem(RENAME_SLOT, named(Material.NAME_TAG, "Rename", NamedTextColor.YELLOW,
                 line("Current: ", NamedTextColor.GRAY).append(this.nameComponent(pad))));
+        inv.setItem(ACCESS_SLOT, named(Material.TRIPWIRE_HOOK, "Access", NamedTextColor.GOLD,
+                line(pad.publicAccess ? "Public - anyone can use it." : "Only you and " + pad.allowed.size() + " allowed player" + (pad.allowed.size() == 1 ? "" : "s") + ".", NamedTextColor.GRAY),
+                line("Click to change who can use this pad.", NamedTextColor.YELLOW)));
         inv.setItem(CLOSE_SLOT, closeButton());
         inv.setItem(PICKUP_SLOT, named(Material.BEDROCK, "Pick Up", NamedTextColor.RED,
                 line("Remove this Teleport Pad and get it back.", NamedTextColor.GRAY)));
@@ -250,7 +272,7 @@ public final class TeleportPadService implements Listener {
         fill(inv);
         int slot = 0;
         for (Pad pad : this.ownedBy(from.owner)) {
-            if (pad.id.equals(from.id) || slot >= MAX_DESTINATIONS) {
+            if (pad.id.equals(from.id) || slot >= MAX_DESTINATIONS || !canUse(pad, p.getUniqueId())) {
                 continue;
             }
             ItemStack icon = new ItemStack(woolOf(pad.color));
@@ -300,6 +322,75 @@ public final class TeleportPadService implements Listener {
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
     }
 
+    /** Whether {@code player} may travel with {@code pad} - its owner, anyone if it's public, else only an allowed player. */
+    static boolean canUse(Pad pad, UUID player) {
+        return pad.owner.equals(player) || pad.publicAccess || pad.allowed.contains(player);
+    }
+
+    private void openAccess(Player p, Pad pad) {
+        MenuHolder holder = new MenuHolder(Screen.ACCESS, pad.id);
+        Inventory inv = Bukkit.createInventory(holder, 54, "Access");
+        holder.inventory = inv;
+        fill(inv);
+        inv.setItem(MODE_SLOT, pad.publicAccess
+                ? named(Material.LIME_DYE, "Public", NamedTextColor.GREEN, line("Anyone can travel with this pad.", NamedTextColor.GRAY),
+                        line("Click: only allowed players.", NamedTextColor.YELLOW))
+                : named(Material.RED_DYE, "Allowed players only", NamedTextColor.RED, line("Only you and the players below.", NamedTextColor.GRAY),
+                        line("Click: make it public.", NamedTextColor.YELLOW)));
+        int slot = FIRST_PLAYER_SLOT;
+        for (UUID id : pad.allowed) {
+            if (slot > LAST_PLAYER_SLOT) {
+                break;
+            }
+            inv.setItem(slot, playerHead(id, line("Click to remove.", NamedTextColor.RED)));
+            holder.players.put(slot, id);
+            slot++;
+        }
+        inv.setItem(ADD_PLAYER_SLOT, named(Material.EMERALD, "Add Player", NamedTextColor.GREEN,
+                line("Pick one of the players online now.", NamedTextColor.GRAY)));
+        inv.setItem(BACK_SLOT, backButton());
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+    }
+
+    private void openAddPlayer(Player p, Pad pad) {
+        MenuHolder holder = new MenuHolder(Screen.ADD_PLAYER, pad.id);
+        Inventory inv = Bukkit.createInventory(holder, 54, "Add Player");
+        holder.inventory = inv;
+        fill(inv);
+        int slot = 0;
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (slot > LAST_PLAYER_SLOT) {
+                break;
+            }
+            if (online.getUniqueId().equals(pad.owner) || pad.allowed.contains(online.getUniqueId())) {
+                continue;
+            }
+            inv.setItem(slot, playerHead(online.getUniqueId(), line("Click to allow.", NamedTextColor.GREEN)));
+            holder.players.put(slot, online.getUniqueId());
+            slot++;
+        }
+        if (slot == 0) {
+            inv.setItem(22, named(Material.BARRIER, "Nobody to add", NamedTextColor.RED,
+                    line("Everyone online already has access.", NamedTextColor.GRAY)));
+        }
+        inv.setItem(BACK_SLOT, backButton());
+        p.openInventory(inv);
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+    }
+
+    private static ItemStack playerHead(UUID id, Component action) {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        org.bukkit.OfflinePlayer player = Bukkit.getOfflinePlayer(id);
+        meta.setOwningPlayer(player);
+        meta.displayName(Component.text(player.getName() == null ? id.toString() : player.getName(), NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+        meta.lore(List.of(action));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        item.setItemMeta(meta);
+        return item;
+    }
+
     @EventHandler
     public void click(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p) || !(e.getView().getTopInventory().getHolder() instanceof MenuHolder holder)) {
@@ -329,8 +420,33 @@ public final class TeleportPadService implements Listener {
                     case RENAME_SLOT -> this.startRename(p, pad);
                     case CLOSE_SLOT -> p.closeInventory();
                     case PICKUP_SLOT -> this.pickUp(p, pad);
+                    case ACCESS_SLOT -> this.openAccess(p, pad);
                     default -> {
                     }
+                }
+            }
+            case ACCESS -> {
+                if (slot == MODE_SLOT) {
+                    pad.publicAccess = !pad.publicAccess;
+                    this.save();
+                    this.openAccess(p, pad);
+                } else if (slot == ADD_PLAYER_SLOT) {
+                    this.openAddPlayer(p, pad);
+                } else if (slot == BACK_SLOT) {
+                    this.openMain(p, pad);
+                } else if (holder.players.containsKey(slot)) {
+                    pad.allowed.remove(holder.players.get(slot));
+                    this.save();
+                    this.openAccess(p, pad);
+                }
+            }
+            case ADD_PLAYER -> {
+                if (slot == BACK_SLOT) {
+                    this.openAccess(p, pad);
+                } else if (holder.players.containsKey(slot)) {
+                    pad.allowed.add(holder.players.get(slot));
+                    this.save();
+                    this.openAccess(p, pad);
                 }
             }
             case DESTINATIONS -> {
@@ -341,7 +457,14 @@ public final class TeleportPadService implements Listener {
                         p.closeInventory();
                     }
                 } else if (holder.destinations.containsKey(slot)) {
-                    this.teleport(p, this.pads.get(holder.destinations.get(slot)));
+                    Pad to = this.pads.get(holder.destinations.get(slot));
+                    // Access may have been taken away while the list was open.
+                    if (!canUse(pad, p.getUniqueId()) || (to != null && !canUse(to, p.getUniqueId()))) {
+                        p.closeInventory();
+                        p.sendActionBar(Component.text("You don't have access to this Teleport Pad.", NamedTextColor.RED));
+                        return;
+                    }
+                    this.teleport(p, to);
                 }
             }
             case COLORS -> {
@@ -571,6 +694,11 @@ public final class TeleportPadService implements Listener {
                 this.pads.put(UUID.fromString(key), new Pad(UUID.fromString(key), UUID.fromString(s.getString("owner")),
                         s.getString("world"), s.getInt("x"), s.getInt("y"), s.getInt("z"), s.getString("name", DEFAULT_NAME), color,
                         hologram == null ? null : UUID.fromString(hologram)));
+                Pad loaded = this.pads.get(UUID.fromString(key));
+                loaded.publicAccess = s.getBoolean("public", false);
+                for (String allowed : s.getStringList("allowed")) {
+                    loaded.allowed.add(UUID.fromString(allowed));
+                }
             } catch (RuntimeException ex) {
                 this.plugin.getLogger().warning("teleport_pads.yml: skipped a broken pad entry " + key + " (" + ex.getMessage() + ")");
             }
@@ -589,6 +717,8 @@ public final class TeleportPadService implements Listener {
             yaml.set(k + ".name", pad.name);
             yaml.set(k + ".color", pad.color.name());
             yaml.set(k + ".hologram", pad.hologram == null ? null : pad.hologram.toString());
+            yaml.set(k + ".public", pad.publicAccess);
+            yaml.set(k + ".allowed", pad.allowed.stream().map(UUID::toString).toList());
         }
         try {
             yaml.save(this.file);
