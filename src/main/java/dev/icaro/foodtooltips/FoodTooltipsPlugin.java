@@ -422,6 +422,7 @@ extends JavaPlugin {
         TrashMenuService trashMenu = new TrashMenuService((Plugin)this, menus::openMain);
         menus.trash(trashMenu);
         EnchantService enchants = new EnchantService((Plugin)this);
+        this.lavaFishing.enchantLevel((rod, enchant) -> enchants.customLevel(rod, enchant));
         menus.enchants(enchants);
         MinerVariantService minerVariants = new MinerVariantService((Plugin)this, enchants, difficulty, this.visuals, tiers);
         legendaryItemsMenu.minerArmor(minerVariants::createArmorSet);

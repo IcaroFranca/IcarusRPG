@@ -71,6 +71,10 @@ public final class LavaFishingService implements Listener {
     private static final Key MAGMA_ROD_MODEL = Key.key("icarus", "magma_rod");
     private static final Key MAGMA_FISH_MODEL = Key.key("icarus", "magma_fish");
     static final int INFERNO_CHANCE_PERCENT = 1;
+    /** Luck of the Sea's own Treasure Chance per level (see {@code enchant.CustomEnchantEffectListener#fishCatch}) - in lava the treasure is the Inferno Talisman. */
+    static final double LUCK_PERCENT_PER_LEVEL = 0.5;
+    /** The plugin's own Lure: -5% wait per level (see {@code enchant.CustomEnchantEffectListener#fish}). */
+    static final double LURE_PERCENT_PER_LEVEL = 5.0;
     static final int INFERNO_HEAT_RESISTANCE = 1;
     static final int LAVA_MIN_WAIT = 100;
     static final int LAVA_MAX_WAIT = 600;
@@ -97,6 +101,11 @@ public final class LavaFishingService implements Listener {
         final FishHook hook;
         final Player owner;
         final boolean magmaRod;
+        /** The rod's own Lure / Luck of the Sea levels (the plugin's enchants), read when it's cast. */
+        final int lure;
+        final int luck;
+        /** Vanilla Lure, if the rod has it: -5 s per level, as vanilla does in water. */
+        final int vanillaLure;
         ArmorStand label;
         int lavaWait = -1;
         int lavaApproach;
@@ -104,11 +113,21 @@ public final class LavaFishingService implements Listener {
         /** Water: a fish has been seen coming - "!!!" only shows after that (vanilla's timers all read 0 for a tick before the first wait is rolled too). */
         boolean waterComing;
 
-        Cast(FishHook hook, Player owner, boolean magmaRod) {
+        Cast(FishHook hook, Player owner, boolean magmaRod, int lure, int luck, int vanillaLure) {
             this.hook = hook;
             this.owner = owner;
             this.magmaRod = magmaRod;
+            this.lure = lure;
+            this.luck = luck;
+            this.vanillaLure = vanillaLure;
         }
+    }
+
+    /** The rod's level of one of the plugin's own enchants ({@code enchant.EnchantService#levelOf}) - wired once that service exists. */
+    private java.util.function.BiFunction<ItemStack, dev.icaro.foodtooltips.enchant.IcarusEnchant, Integer> enchantLevel = (rod, enchant) -> 0;
+
+    public void enchantLevel(java.util.function.BiFunction<ItemStack, dev.icaro.foodtooltips.enchant.IcarusEnchant, Integer> enchantLevel) {
+        this.enchantLevel = enchantLevel;
     }
 
     public LavaFishingService(Plugin plugin, ItemTierService tiers) {
@@ -140,7 +159,8 @@ public final class LavaFishingService implements Listener {
         meta.displayName(Component.text("Magma Rod", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
                 line("Fishes in lava as well as water.", NamedTextColor.RED),
-                line(INFERNO_CHANCE_PERCENT + "% chance of an Inferno Talisman in lava.", NamedTextColor.GRAY)));
+                line(INFERNO_CHANCE_PERCENT + "% chance of an Inferno Talisman in lava", NamedTextColor.GRAY),
+                line("(+" + LUCK_PERCENT_PER_LEVEL + "% per Luck of the Sea level).", NamedTextColor.GRAY)));
         item.setItemMeta(meta);
         item.setData(DataComponentTypes.ITEM_MODEL, MAGMA_ROD_MODEL);
         return item;
@@ -194,7 +214,10 @@ public final class LavaFishingService implements Listener {
         if (e.getState() == PlayerFishEvent.State.FISHING) {
             this.forget(hook.getUniqueId());
             ItemStack rod = e.getHand() == EquipmentSlot.OFF_HAND ? p.getInventory().getItemInOffHand() : p.getInventory().getItemInMainHand();
-            this.casts.put(hook.getUniqueId(), new Cast(hook, p, isMagmaRod(rod)));
+            this.casts.put(hook.getUniqueId(), new Cast(hook, p, isMagmaRod(rod),
+                    this.enchantLevel.apply(rod, dev.icaro.foodtooltips.enchant.IcarusEnchant.LURE),
+                    this.enchantLevel.apply(rod, dev.icaro.foodtooltips.enchant.IcarusEnchant.LUCK_OF_THE_SEA),
+                    rod.getEnchantmentLevel(Enchantment.LURE)));
             return;
         }
         if (e.getState() == PlayerFishEvent.State.LURED || e.getState() == PlayerFishEvent.State.BITE) {
@@ -202,19 +225,30 @@ public final class LavaFishingService implements Listener {
         }
         Cast cast = this.casts.get(hook.getUniqueId());
         if (cast != null && cast.lavaBite > 0 && e.getState() == PlayerFishEvent.State.REEL_IN) {
-            this.lavaCatch(p, hook.getLocation());
+            this.lavaCatch(p, hook.getLocation(), cast.luck);
         }
         this.forget(hook.getUniqueId());
     }
 
-    private void lavaCatch(Player p, Location at) {
-        boolean inferno = ThreadLocalRandom.current().nextInt(100) < INFERNO_CHANCE_PERCENT;
+    /** Chance (%) of a lava catch being the Inferno Talisman: {@value #INFERNO_CHANCE_PERCENT}% plus Luck of the Sea's {@value #LUCK_PERCENT_PER_LEVEL}% per level. */
+    static double infernoChancePercent(int luck) {
+        return INFERNO_CHANCE_PERCENT + LUCK_PERCENT_PER_LEVEL * Math.max(0, luck);
+    }
+
+    /** Ticks a lava bobber waits before a fish starts coming: {@code roll}, minus 5 s per vanilla Lure level, then -{@value #LURE_PERCENT_PER_LEVEL}% per level of the plugin's Lure - never under 1 s. */
+    static int lavaWaitTicks(int roll, int lure, int vanillaLure) {
+        double ticks = (roll - vanillaLure * 100) * (1.0 - Math.min(1.0, LURE_PERCENT_PER_LEVEL * Math.max(0, lure) / 100.0));
+        return Math.max(20, (int) ticks);
+    }
+
+    private void lavaCatch(Player p, Location at, int luck) {
+        boolean inferno = ThreadLocalRandom.current().nextDouble(100.0) < infernoChancePercent(luck);
         ItemStack loot = inferno ? this.infernoTalisman() : this.magmaFish();
         for (ItemStack overflow : p.getInventory().addItem(loot).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
         this.credit.credit(p, inferno ? null : Material.COOKED_COD, 1, CATCH_XP);
-        p.giveExp(ThreadLocalRandom.current().nextInt(1, 7));
+        p.giveExp(ThreadLocalRandom.current().nextInt(1, 7), true); // true: Mending repairs with it, like a vanilla catch's orbs
         p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1.0f, 0.8f);
         at.getWorld().spawnParticle(Particle.LAVA, at, 8, 0.2, 0.1, 0.2, 0.0);
         if (inferno) {
@@ -273,8 +307,7 @@ public final class LavaFishingService implements Listener {
     private String lavaPhase(Cast cast) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         if (cast.lavaWait < 0) {
-            int lure = cast.owner.getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.LURE);
-            cast.lavaWait = Math.max(20, random.nextInt(LAVA_MIN_WAIT, LAVA_MAX_WAIT + 1) - lure * 100);
+            cast.lavaWait = lavaWaitTicks(random.nextInt(LAVA_MIN_WAIT, LAVA_MAX_WAIT + 1), cast.lure, cast.vanillaLure);
             cast.lavaApproach = random.nextInt(LAVA_MIN_APPROACH, LAVA_MAX_APPROACH + 1);
         }
         Location at = cast.hook.getLocation();
