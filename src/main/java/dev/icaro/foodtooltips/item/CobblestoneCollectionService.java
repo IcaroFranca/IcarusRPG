@@ -336,39 +336,81 @@ public final class CobblestoneCollectionService implements Listener {
         return icon;
     }
 
+    /**
+     * Clicks on the configuration menu. The player's own inventory below works normally, so a
+     * block can be picked up onto the cursor - only the menu row itself is locked. Clicking a
+     * slot with a block on the cursor puts a ghost copy of it there (the player keeps theirs),
+     * clicking with an empty cursor clears it, and shift-clicking a block in the inventory sends
+     * it to the first empty slot.
+     */
     @EventHandler
     public void menuClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p) || !(e.getView().getTopInventory().getHolder() instanceof MenuHolder holder)) {
             return;
         }
-        e.setCancelled(true);
         int raw = e.getRawSlot();
+        boolean top = raw >= 0 && raw < holder.inventory.getSize();
+        if (!top) {
+            if (e.isShiftClick()) {
+                // Would move the stack into the menu - instead, use it to fill the first empty slot.
+                e.setCancelled(true);
+                ItemStack clicked = e.getCurrentItem();
+                if (clicked != null && !clicked.isEmpty()) {
+                    this.setSlot(p, holder, this.firstEmpty(p, holder), clicked);
+                }
+            } else if (e.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
+                // Collecting to the cursor would pull the ghost icons out of the menu.
+                e.setCancelled(true);
+            }
+            return;
+        }
+        e.setCancelled(true);
         int index = -1;
         for (int i = 0; i < holder.slots.length; i++) {
             if (holder.slots[i] == raw) {
                 index = i;
             }
         }
+        if (index >= 0) {
+            this.setSlot(p, holder, index, e.getCursor());
+        }
+    }
+
+    /** The first menu slot with no block yet, or -1 if they're all taken. */
+    private int firstEmpty(Player p, MenuHolder holder) {
+        List<Material> blocks = this.configured(p);
+        for (int i = 0; i < holder.slots.length; i++) {
+            if (blocks.get(i) == null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** Puts {@code item}'s block into menu slot {@code index} (or clears it, for an empty {@code item}) and saves - refusing anything with no compaction. */
+    private void setSlot(Player p, MenuHolder holder, int index, ItemStack item) {
         if (index < 0) {
+            p.sendActionBar(Component.text("Every slot is already taken - click one to clear it.", NamedTextColor.RED));
             return;
         }
         List<Material> blocks = this.configured(p);
-        ItemStack cursor = e.getCursor();
-        if (cursor == null || cursor.isEmpty()) {
+        if (item == null || item.isEmpty()) {
             blocks.set(index, null);
-        } else if (this.compactions().containsKey(cursor.getType())) {
-            blocks.set(index, cursor.getType());
+        } else if (this.compactions().containsKey(item.getType())) {
+            blocks.set(index, item.getType());
         } else {
             p.sendActionBar(Component.text("That block can't be compacted into.", NamedTextColor.RED));
             return;
         }
         this.save(p, blocks);
-        holder.inventory.setItem(raw, this.slotIcon(blocks.get(index)));
+        holder.inventory.setItem(holder.slots[index], this.slotIcon(blocks.get(index)));
     }
 
+    /** Only a drag that touches the menu row is blocked - dragging inside the player's own inventory works as usual. */
     @EventHandler
     public void menuDrag(InventoryDragEvent e) {
-        if (e.getView().getTopInventory().getHolder() instanceof MenuHolder) {
+        if (e.getView().getTopInventory().getHolder() instanceof MenuHolder holder
+                && e.getRawSlots().stream().anyMatch(slot -> slot < holder.inventory.getSize())) {
             e.setCancelled(true);
         }
     }
