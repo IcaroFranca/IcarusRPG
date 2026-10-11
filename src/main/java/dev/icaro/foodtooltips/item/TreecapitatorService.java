@@ -105,7 +105,7 @@ public final class TreecapitatorService {
     }
 
     static boolean isFellable(Material m) {
-        return m.name().endsWith("_LOG") || m.name().endsWith("_STEM");
+        return m.name().endsWith("_LOG") || m.name().endsWith("_STEM") || MushroomBlocks.is(m);
     }
 
     /** Normal chop: {@code origin} isn't included here - this only schedules the EXTRA {@value #SWEEP_BONUS} (plus any accessory bonus) logs {@link #connected} finds, breaking them one tick later - same "compute now, break next tick" split as {@code SpruceAxeService#chop}. */
@@ -163,7 +163,7 @@ public final class TreecapitatorService {
                         if (!seen.add(Pos.of(next))) {
                             continue;
                         }
-                        if (next.getType() != material || (this.isPlaced.test(next) && !p.isSneaking())) {
+                        if (!MushroomBlocks.sameTree(material, next.getType()) || (this.isPlaced.test(next) && !p.isSneaking())) {
                             continue;
                         }
                         out.add(next);

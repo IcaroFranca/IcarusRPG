@@ -405,6 +405,45 @@ implements Listener {
         }
     }
 
+    /**
+     * Huge mushroom blocks broken without Silk Touch always drop real mushrooms - the player's
+     * own "devem dropar cogumelos normais": vanilla's cap loot is 0-2 with roughly 3 in 4
+     * breaks giving nothing, and the stem gives nothing at all. A cap drops
+     * {@value #MUSHROOM_CAP_MIN}-{@value #MUSHROOM_CAP_MAX} of its own color, a stem 1 of
+     * either color. Vanilla's own drop is switched off and these go straight to the inventory
+     * with Telekinesis, the same as any block drop. The Mushroom Collection counts exactly what
+     * dropped - except for a player-placed block, which drops but doesn't count (same
+     * place-and-rebreak guard {@link #broken} applies). With Silk Touch vanilla's own whole-block
+     * drop stays, credited as 9 in {@link #broken}.
+     */
+    @EventHandler(priority=EventPriority.HIGH, ignoreCancelled=true)
+    public void mushroomDrops(BlockBreakEvent e) {
+        Material m = e.getBlock().getType();
+        Player p = e.getPlayer();
+        if (!dev.icaro.foodtooltips.item.MushroomBlocks.is(m) || p.getGameMode() == GameMode.CREATIVE
+                || p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
+            return;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Material mushroom = m == Material.RED_MUSHROOM_BLOCK ? Material.RED_MUSHROOM
+                : m == Material.BROWN_MUSHROOM_BLOCK ? Material.BROWN_MUSHROOM
+                : (random.nextBoolean() ? Material.RED_MUSHROOM : Material.BROWN_MUSHROOM);
+        int amount = m == Material.MUSHROOM_STEM ? 1 : random.nextInt(MUSHROOM_CAP_MIN, MUSHROOM_CAP_MAX + 1);
+        e.setDropItems(false);
+        ItemStack drop = new ItemStack(mushroom, amount);
+        if (this.global.telekinesisUnlocked(p) && this.passives.enabled(p, PassiveToggle.TELEKINESIS_BLOCK_DROPS)) {
+            this.give(p, drop);
+        } else {
+            e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation().add(0.5, 0.5, 0.5), drop);
+        }
+        if (!this.placed.contains(this.key(e.getBlock().getLocation()))) {
+            this.applyCollections(p, Material.RED_MUSHROOM, amount);
+        }
+    }
+
+    private static final int MUSHROOM_CAP_MIN = 1;
+    private static final int MUSHROOM_CAP_MAX = 2;
+
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
     public void broken(BlockBreakEvent e) {
         String k = this.key(e.getBlock().getLocation());
@@ -446,6 +485,18 @@ implements Listener {
                 this.applyCollections(p, x.drop(), 1);
             }
         });
+        if (dev.icaro.foodtooltips.item.MushroomBlocks.is(m)) {
+            // Huge mushroom blocks: with Silk Touch the whole block drops, worth 9 Mushrooms
+            // (a block's own worth); without it #mushroomDrops already dropped and credited
+            // real mushrooms. The stem keeps the Foraging XP it always had as a "_STEM" log.
+            if (m == Material.MUSHROOM_STEM) {
+                this.gain(p, SkillType.FORAGING, this.logXp(m));
+            }
+            if (p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
+                this.applyCollections(p, Material.RED_MUSHROOM, 9);
+            }
+            return;
+        }
         if (this.isLog(m)) {
             this.gain(p, SkillType.FORAGING, this.logXp(m));
             this.track(k, new Target(SkillType.FORAGING, m), p);
@@ -504,16 +555,6 @@ implements Listener {
             // credit time - see its own doc) rather than always RED_MUSHROOM here, since
             // that's what actually has to match the real dropped item's Material.
             this.track(k, new Target(SkillType.FARMING, m), p);
-        } else if ((m == Material.BROWN_MUSHROOM_BLOCK || m == Material.RED_MUSHROOM_BLOCK)
-                && p.getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
-            // A huge mushroom block only counts towards Mushroom Collections with Silk
-            // Touch (otherwise it just breaks into its usual 0-2 loot-table Red/Brown
-            // Mushroom items, already covered by the branch just above) - it drops the
-            // block itself, not a Red/Brown Mushroom item, so this can't flow through
-            // #track/#drops like every other Farming Collections source and is credited
-            // directly instead. Both colors fold into the same RED_MUSHROOM catalog
-            // entry (see the branch just above), 9 per block.
-            this.applyCollections(p, Material.RED_MUSHROOM, 9);
         } else if (m == Material.TORCHFLOWER_CROP) {
             // Same generic Ageable harvest as the final else-branch below, but Torchflower
             // needs one extra step: see #reseedTorchflower's own doc on why.

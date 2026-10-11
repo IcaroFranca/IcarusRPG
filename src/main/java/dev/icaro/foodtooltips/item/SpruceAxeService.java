@@ -134,7 +134,7 @@ public final class SpruceAxeService {
     }
 
     static boolean isFellable(Material m) {
-        return m.name().endsWith("_LOG") || m.name().endsWith("_STEM");
+        return m.name().endsWith("_LOG") || m.name().endsWith("_STEM") || MushroomBlocks.is(m);
     }
 
     /**
@@ -197,7 +197,7 @@ public final class SpruceAxeService {
                         if (!seen.add(Pos.of(next))) {
                             continue;
                         }
-                        if (next.getType() != material || (this.isPlaced.test(next) && !p.isSneaking())) {
+                        if (!MushroomBlocks.sameTree(material, next.getType()) || (this.isPlaced.test(next) && !p.isSneaking())) {
                             continue;
                         }
                         out.add(next);
