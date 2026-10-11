@@ -574,12 +574,27 @@ public final class LegendaryWeaponService {
         if (w == null) {
             return 0.0;
         }
-        long strength = this.stats.stats(attacker).strength();
+        double strength = this.totalStrength(attacker);
         return switch (w) {
             case DEMON_KING_DAGGERS -> strength * TWO_AS_ONE_DAMAGE_PER_STRENGTH;
             case KAMISH_WRATH -> strength * KAMISH_DAMAGE_PER_STRENGTH;
             default -> 0.0;
         };
+    }
+
+    /**
+     * The Strength the /skills menu shows - {@code PlayerStatsService}'s own total plus the
+     * Reforge Strength of the held item and all 4 armor pieces, the same sum {@code
+     * SkillsMenuService} displays. {@code stats.strength()} alone leaves the Reforge part out.
+     */
+    private double totalStrength(Player p) {
+        double strength = this.stats.stats(p).strength();
+        if (this.reforge != null) {
+            ItemStack mainHand = p.getInventory().getItemInMainHand();
+            strength += this.reforge.statsOf(mainHand).strength() + this.reforge.bowStatsOf(mainHand).strength()
+                    + this.reforge.totalArmorStats(p).strength();
+        }
+        return strength;
     }
 
     /** {@link #BACKSTAB_MULTIPLIER} if {@code weapon} is a dagger and {@code attacker} is behind {@code target}'s facing direction, else 1.0. */
