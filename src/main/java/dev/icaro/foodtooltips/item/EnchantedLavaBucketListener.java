@@ -13,7 +13,7 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * The Enchanted Lava Bucket (Coal Collection M5, built by {@link MiningCollectionsItemsService}):
+ * The Magical Lava Bucket (Coal Collection M5, built by {@link MiningCollectionsItemsService}):
  * places lava like a normal Lava Bucket, but stays full - the player's own "um balde de lava que
  * não consome a lava". Every vanilla way a Lava Bucket gets emptied by something other than
  * placing it (furnace fuel, a dispenser, a cauldron) is blocked instead, since each would turn
@@ -26,7 +26,17 @@ public final class EnchantedLavaBucketListener implements Listener {
     public void empty(PlayerBucketEmptyEvent e) {
         ItemStack held = e.getHand() == null ? null : e.getPlayer().getInventory().getItem(e.getHand());
         if (MiningCollectionsItemsService.isEnchantedLavaBucket(held)) {
-            e.setItemStack(held.clone());
+            // Also renames a bucket crafted back when it was called "Enchanted Lava Bucket" -
+            // only that exact old name, so one the player renamed on an anvil keeps its own.
+            ItemStack back = held.clone();
+            back.editMeta(meta -> {
+                if (meta.hasDisplayName() && "Enchanted Lava Bucket".equals(
+                        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(meta.displayName()))) {
+                    meta.displayName(Component.text(MiningCollectionsItemsService.LAVA_BUCKET_NAME, NamedTextColor.GOLD)
+                            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+                }
+            });
+            e.setItemStack(back);
         }
     }
 
@@ -36,7 +46,7 @@ public final class EnchantedLavaBucketListener implements Listener {
                 && (MiningCollectionsItemsService.isEnchantedLavaBucket(p.getInventory().getItemInMainHand())
                         || MiningCollectionsItemsService.isEnchantedLavaBucket(p.getInventory().getItemInOffHand()))) {
             e.setCancelled(true);
-            p.sendActionBar(Component.text("The Enchanted Lava Bucket can't fill cauldrons.", NamedTextColor.RED));
+            p.sendActionBar(Component.text("The Magical Lava Bucket can't fill cauldrons.", NamedTextColor.RED));
         }
     }
 

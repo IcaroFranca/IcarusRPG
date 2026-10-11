@@ -22,7 +22,7 @@ import org.bukkit.persistence.PersistentDataType;
  * The craftable rewards Mining's own {@link CollectionsCatalog} entries unlock - same role
  * {@code CombatCollectionsItemsService}/{@code FarmingCollectionsItemsService} play for their
  * own categories. Redstone: the Redstone Core (M2), the Weather Wand (M4) built from it, and the
- * Redstone Block Core (M8). Coal: the Coal Core (M3), the Enchanted Lava Bucket (M5, see {@link
+ * Redstone Block Core (M8). Coal: the Coal Core (M3), the Magical Lava Bucket (M5, see {@link
  * EnchantedLavaBucketListener}) and the Coal Block Core (M7). Both Cores also brew longer potions - see {@code
  * potion.RedstoneDurationService}. The Weather Wand carries {@link #WEATHER_WAND_KEY}, which
  * {@link WeatherWandService} reads for its weather menu.
@@ -38,7 +38,9 @@ public final class MiningCollectionsItemsService {
     private static final UUID REDSTONE_BLOCK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:redstone_block_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID COAL_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:coal_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID COAL_BLOCK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:coal_block_core".getBytes(StandardCharsets.UTF_8));
-    /** Marks the Enchanted Lava Bucket (Coal Collection M5) - see {@link EnchantedLavaBucketListener}. */
+    /** Marks the Magical Lava Bucket (Coal Collection M5) - see {@link EnchantedLavaBucketListener}. */
+    /** Display name of the Coal Collection's infinite lava bucket (it was "Enchanted Lava Bucket" before - the internal key/ids still say "enchanted"). */
+    public static final String LAVA_BUCKET_NAME = "Magical Lava Bucket";
     public static final NamespacedKey ENCHANTED_LAVA_BUCKET_KEY = new NamespacedKey("foodtooltips", "enchanted_lava_bucket");
 
     /** Registers every recipe this class owns - Redstone Collection M2, M4 and M8, Coal Collection M3, M5 and M7. */
@@ -112,7 +114,7 @@ public final class MiningCollectionsItemsService {
         var item = new ItemStack(Material.LAVA_BUCKET);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(ENCHANTED_LAVA_BUCKET_KEY, PersistentDataType.BYTE, (byte) 1);
-        meta.displayName(Component.text("Enchanted Lava Bucket", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text(LAVA_BUCKET_NAME, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.setEnchantmentGlintOverride(true);
         meta.lore(java.util.List.of(
                 Component.text("Places lava without ever emptying.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));

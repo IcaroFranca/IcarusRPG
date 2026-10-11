@@ -490,7 +490,7 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[3], 5000,
                             "+5000 XP de Mineração", "+5000 Mining XP"),
                     CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
-                            "Desbloqueia a receita do Enchanted Lava Bucket", "Unlocks the Enchanted Lava Bucket recipe",
+                            "Desbloqueia a receita do Magical Lava Bucket", "Unlocks the Magical Lava Bucket recipe",
                             ENCHANTED_LAVA_BUCKET_RECIPE),
                     // No recipe - travel.TravelMenuService shows its Random Cave button from this milestone on.
                     new CollectionsMilestone(DEFAULT_THRESHOLDS[COAL_RANDOM_CAVE_MILESTONE - 1], RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
