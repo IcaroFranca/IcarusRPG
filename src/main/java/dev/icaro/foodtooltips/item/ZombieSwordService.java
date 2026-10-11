@@ -189,17 +189,19 @@ public final class ZombieSwordService implements Listener {
      * inventory, a marker the reference item never gets, and Paper's exact match compares every
      * component, PDC included).
      */
-    @EventHandler
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOW)
     public void guardZombiesHeartRecipes(PrepareItemCraftEvent e) {
         Recipe recipe = e.getRecipe();
         if (!(recipe instanceof CraftingRecipe crafting) || !ZombiesHeartService.RECIPES.contains(crafting.getKey())) {
             return;
         }
-        for (ItemStack slot : e.getInventory().getMatrix()) {
-            if (slot != null && slot.getType() == Material.PLAYER_HEAD && !ZombiesHeartService.isZombiesHeart(slot)) {
-                e.getInventory().setResult(null);
-                return;
-            }
+        // Not real Zombie's Hearts: the grid may still be another head-based recipe of the
+        // same shape that this one shadows (Weather Wand, Emerald Sword/Armor) - show that
+        // one's result instead of nothing. LOW, so collections.CollectionsRecipeGateListener
+        // (NORMAL) still gets the last word on whether it's unlocked.
+        Recipe effective = dev.icaro.foodtooltips.crafting.ShadowedRecipes.effective(recipe, e.getInventory().getMatrix());
+        if (effective != recipe) {
+            e.getInventory().setResult(effective == null ? null : effective.getResult().clone());
         }
     }
 

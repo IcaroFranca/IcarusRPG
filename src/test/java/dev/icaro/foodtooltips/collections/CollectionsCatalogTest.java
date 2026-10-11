@@ -386,6 +386,21 @@ final class CollectionsCatalogTest {
     }
 
     @Test
+    void emeraldRewards() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.EMERALD_ORE).orElseThrow().milestones();
+        assertEquals(9, m.size());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(List.of(CollectionsCatalog.TALISMAN_OF_COINS_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.MAGNETIC_TALISMAN_RECIPE), m.get(2).recipes());
+        assertEquals(List.of(CollectionsCatalog.EMERALD_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(List.of(CollectionsCatalog.EMERALD_RING_RECIPE), m.get(4).recipes());
+        assertEquals(RewardKind.MINING_XP, m.get(5).kind());
+        assertEquals(List.of(CollectionsCatalog.EMERALD_BLOCK_CORE_RECIPE), m.get(6).recipes());
+        assertEquals(List.of(CollectionsCatalog.EMERALD_SWORD_RECIPE), m.get(7).recipes());
+        assertEquals(4, m.get(8).recipes().size());
+    }
+
+    @Test
     void coalRewards() {
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.COAL_ORE).orElseThrow().milestones();
         assertEquals(9, m.size());

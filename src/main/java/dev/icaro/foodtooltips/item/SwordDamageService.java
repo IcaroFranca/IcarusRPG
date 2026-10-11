@@ -167,7 +167,8 @@ public final class SwordDamageService {
      */
     private ItemStack rewrite(ItemStack item, Player p, Language l) {
         if (item == null || item.isEmpty() || LegendaryWeaponService.isLegendary(item) || ZombieSwordService.isZombieSword(item)
-                || LeapingSwordService.isLeapingSword(item) || AspectOfTheEndService.isAspectOfTheEnd(item)) {
+                || LeapingSwordService.isLeapingSword(item) || AspectOfTheEndService.isAspectOfTheEnd(item)
+                || EmeraldCollectionService.isEmeraldSword(item)) {
             // Legendary weapons (Kasaka's Venom Fang, Demon King's Longsword...) are
             // built on ordinary _SWORD materials too, but manage their own Attack
             // Damage/Speed and lore entirely - see LegendaryWeaponService#create. The

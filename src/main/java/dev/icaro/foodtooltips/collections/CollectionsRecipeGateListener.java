@@ -44,7 +44,9 @@ public final class CollectionsRecipeGateListener implements Listener {
 
     @EventHandler
     public void prepare(PrepareItemCraftEvent event) {
-        Recipe recipe = event.getRecipe();
+        // A Zombie recipe shadowing another head-based one judges that other recipe instead
+        // (see crafting.ShadowedRecipes) - otherwise its own unlock would gate the wrong item.
+        Recipe recipe = dev.icaro.foodtooltips.crafting.ShadowedRecipes.effective(event.getRecipe(), event.getInventory().getMatrix());
         NamespacedKey key;
         if (recipe instanceof CraftingRecipe crafting) {
             key = crafting.getKey();

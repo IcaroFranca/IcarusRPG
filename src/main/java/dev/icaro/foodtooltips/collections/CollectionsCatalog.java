@@ -207,6 +207,16 @@ public final class CollectionsCatalog {
     public static final NamespacedKey COAL_CORE_RECIPE = new NamespacedKey("foodtooltips", "coal_core");
     public static final NamespacedKey ENCHANTED_LAVA_BUCKET_RECIPE = new NamespacedKey("foodtooltips", "enchanted_lava_bucket");
     public static final NamespacedKey COAL_BLOCK_CORE_RECIPE = new NamespacedKey("foodtooltips", "coal_block_core");
+    public static final NamespacedKey TALISMAN_OF_COINS_RECIPE = new NamespacedKey("foodtooltips", "talisman_of_coins");
+    public static final NamespacedKey MAGNETIC_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "magnetic_talisman");
+    public static final NamespacedKey EMERALD_CORE_RECIPE = new NamespacedKey("foodtooltips", "emerald_core");
+    public static final NamespacedKey EMERALD_RING_RECIPE = new NamespacedKey("foodtooltips", "emerald_ring");
+    public static final NamespacedKey EMERALD_BLOCK_CORE_RECIPE = new NamespacedKey("foodtooltips", "emerald_block_core");
+    public static final NamespacedKey EMERALD_SWORD_RECIPE = new NamespacedKey("foodtooltips", "emerald_sword");
+    public static final NamespacedKey EMERALD_HELMET_RECIPE = new NamespacedKey("foodtooltips", "emerald_helmet");
+    public static final NamespacedKey EMERALD_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "emerald_chestplate");
+    public static final NamespacedKey EMERALD_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "emerald_leggings");
+    public static final NamespacedKey EMERALD_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "emerald_boots");
     /** Coal Collection milestone that unlocks the Locations menu's Random Cave button (1-based, see {@code travel.TravelMenuService}). */
     public static final int COAL_RANDOM_CAVE_MILESTONE = 6;
 
@@ -504,7 +514,32 @@ public final class CollectionsCatalog {
                     accessoryBagSlots(DEFAULT_THRESHOLDS[8]))),
             new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", placeholderLadder()),
             new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", placeholderLadder()),
-            new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", placeholderLadder()),
+            new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Mineração", "+1000 Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Talisman of Coins", "Unlocks the Talisman of Coins recipe",
+                            TALISMAN_OF_COINS_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Magnetic Talisman", "Unlocks the Magnetic Talisman recipe",
+                            MAGNETIC_TALISMAN_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Emerald Core", "Unlocks the Emerald Core recipe",
+                            EMERALD_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Emerald Ring", "Unlocks the Emerald Ring recipe",
+                            EMERALD_RING_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[5], DEFAULT_XP[5],
+                            "+" + DEFAULT_XP[5] + " XP de Mineração", "+" + DEFAULT_XP[5] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Emerald Block Core", "Unlocks the Emerald Block Core recipe",
+                            EMERALD_BLOCK_CORE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
+                            "Desbloqueia a receita da Emerald Sword", "Unlocks the Emerald Sword recipe",
+                            EMERALD_SWORD_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita da Emerald Armor", "Unlocks the Emerald Armor recipe",
+                            EMERALD_HELMET_RECIPE, EMERALD_CHESTPLATE_RECIPE, EMERALD_LEGGINGS_RECIPE, EMERALD_BOOTS_RECIPE))),
             new CollectionsEntry(Material.NETHER_QUARTZ_ORE, Material.QUARTZ, CollectionsCategory.MINING, "Quartzo do Nether", "Nether Quartz", placeholderLadder()),
             new CollectionsEntry(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, CollectionsCategory.MINING, "Detritos Antigos", "Ancient Debris", placeholderLadder()),
             new CollectionsEntry(Material.OBSIDIAN, Material.OBSIDIAN, CollectionsCategory.MINING, "Obsidiana", "Obsidian", placeholderLadder()),

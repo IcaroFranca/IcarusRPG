@@ -170,6 +170,8 @@ public final class CombatListener implements Listener {
     private java.util.function.ToDoubleFunction<Player> archeryPotionPercent = p -> 0.0;
     /** The Spider Eye Collection's own Spider Sword - {@code item.SpiderSwordService#damageMultiplier} ({@value item.SpiderSwordService#PERCENT}% bonus vs Arthropod mobs), same shape {@code item.legendary.LegendaryWeaponService#undeadMultiplier} already is. Defaults to always-1.0 (no change). */
     private java.util.function.ToDoubleBiFunction<LivingEntity, ItemStack> arthropodMultiplier = (target, weapon) -> 1.0;
+    /** Extra WeaponDMG a weapon gets from something outside its own item - the Emerald Sword's coin bonus ({@code item.EmeraldCollectionService#weaponDamageBonus}). Defaults to none. */
+    private java.util.function.ToDoubleBiFunction<Player, ItemStack> weaponDamageBonus = (p, weapon) -> 0.0;
     /** Coins paid for a hostile kill (see {@code economy.CoinRewardService#rewardKill}) - late-bound like every hook here so this class never depends on the economy package. Defaults to paying nothing. */
     private java.util.function.BiConsumer<Player, LivingEntity> hostileKillCoins = (p, mob) -> {};
     /** The Spider Eye Collection's own Spider Hat - +25 Crit Chance while worn (see {@code item.SpiderHatService#critChanceBonus}), folded into {@link #attack}'s own crit-chance roll. Defaults to always-0. */
@@ -197,6 +199,11 @@ public final class CombatListener implements Listener {
     }
 
     /** Wired after construction - see {@link #arthropodMultiplier}'s own doc. */
+    /** Wired in after construction - see {@link #weaponDamageBonus}. */
+    public void weaponDamageBonus(java.util.function.ToDoubleBiFunction<Player, ItemStack> weaponDamageBonus) {
+        this.weaponDamageBonus = weaponDamageBonus;
+    }
+
     public void arthropodMultiplier(java.util.function.ToDoubleBiFunction<LivingEntity, ItemStack> arthropodMultiplier) {
         this.arthropodMultiplier = arthropodMultiplier;
     }
@@ -621,7 +628,7 @@ public final class CombatListener implements Listener {
         }
         Double own = ownAttackDamage(weapon);
         if (own != null) {
-            return own;
+            return own + this.weaponDamageBonus.applyAsDouble(attacker, weapon);
         }
         Double base = SwordDamageService.totalDamage(weapon.getType());
         if (base == null) {

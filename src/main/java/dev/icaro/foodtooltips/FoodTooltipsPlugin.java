@@ -308,6 +308,11 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.power.MagicalPowerService magicalPower = new dev.icaro.foodtooltips.power.MagicalPowerService(this.accessoryBag, combat);
         dev.icaro.foodtooltips.power.PowersMenuService powersMenu = new dev.icaro.foodtooltips.power.PowersMenuService((Plugin)this, this.accessoryBag, magicalPower, this.accessoryBag::open);
         this.accessoryBag.powersMenu(powersMenu::open);
+        // Emerald Collection - recipes before CombatCollectionsItemsService (see EmeraldCollectionService#registerRecipes).
+        dev.icaro.foodtooltips.item.EmeraldCollectionService emeraldCollection = new dev.icaro.foodtooltips.item.EmeraldCollectionService((Plugin)this, tiers, this.accessoryBag, collectionsProgress);
+        emeraldCollection.registerRecipes();
+        emeraldCollection.start();
+        armor.setBonusDefense(emeraldCollection::defenseBonus);
         armor.accessoryDefenseBonus(e -> e instanceof Player power ? magicalPower.defensePoints(power) : 0);
         stats.accessoryStrengthBonus(magicalPower::strengthPoints);
         stats.accessoryIntelligenceBonus(magicalPower::intelligenceBonus);
@@ -569,6 +574,7 @@ extends JavaPlugin {
         combatListener.hostileKillCoins(coinRewards::rewardKill);
         this.getServer().getPluginManager().registerEvents((Listener)new dev.icaro.foodtooltips.economy.DeathPenaltyService((Plugin)this), (Plugin)this);
         combatListener.arthropodMultiplier(spiderSword::damageMultiplier);
+        combatListener.weaponDamageBonus(emeraldCollection::weaponDamageBonus);
         combatListener.spiderHatCritChanceBonus(p -> spiderHat.critChanceBonus(p) + creeperHat.critChanceBonus(p));
         combatListener.heldWeaponCritDamageBonus(leapingSword::critDamageBonus);
         combatListener.creeperHatCritDamageBonus(creeperHat::critDamageBonus);
@@ -804,6 +810,7 @@ extends JavaPlugin {
             rabbitArmor.applyToInventory((Player)p);
             chocolateArmor.applyToInventory((Player)p);
             growthArmor.applyToInventory((Player)p);
+            emeraldCollection.applyToInventory((Player)p);
             speedsterArmor.applyFullSetSpeed((Player)p);
             enchantedCarrotStick.applyMountSpeed((Player)p);
             mushroomSoupFlight.tick((Player)p, ticks);
