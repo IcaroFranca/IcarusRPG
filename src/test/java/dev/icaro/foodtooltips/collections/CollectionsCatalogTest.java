@@ -396,6 +396,7 @@ final class CollectionsCatalogTest {
         assertEquals(org.bukkit.NamespacedKey.minecraft("efficiency"), m.get(2).vanillaDiscountEnchant());
         assertEquals(25.0, m.get(2).discountPercent());
         assertEquals(List.of(CollectionsCatalog.WEATHER_WAND_RECIPE), m.get(3).recipes());
+        assertEquals(List.of(CollectionsCatalog.REDSTONE_BLOCK_CORE_RECIPE), m.get(7).recipes());
         // M2-M9 each add +9 Accessory Bag slots (AccessoryBagService#storageSize counts them).
         for (int i = 1; i < 9; i++) {
             assertTrue(m.get(i).rewardEn().contains("+9 Accessory Bag slots"), "Redstone milestone " + (i + 1));

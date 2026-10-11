@@ -233,7 +233,11 @@ extends JavaPlugin {
         FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers, general, pitcherWand);
         farmingCollectionsItems.registerRecipes();
         // Before CombatCollectionsItemsService - see MiningCollectionsItemsService's own doc.
-        new dev.icaro.foodtooltips.item.MiningCollectionsItemsService().registerRecipes();
+        dev.icaro.foodtooltips.item.MiningCollectionsItemsService miningCollectionsItems = new dev.icaro.foodtooltips.item.MiningCollectionsItemsService();
+        miningCollectionsItems.registerRecipes();
+        dev.icaro.foodtooltips.potion.RedstoneDurationService redstoneDuration = new dev.icaro.foodtooltips.potion.RedstoneDurationService((Plugin)this, miningCollectionsItems);
+        redstoneDuration.registerMixes();
+        this.getServer().getPluginManager().registerEvents((Listener)redstoneDuration, (Plugin)this);
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();

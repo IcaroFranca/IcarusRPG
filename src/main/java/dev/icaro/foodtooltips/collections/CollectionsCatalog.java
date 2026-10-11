@@ -203,6 +203,7 @@ public final class CollectionsCatalog {
     public static final NamespacedKey SAVING_GRACE_RECIPE = new NamespacedKey("foodtooltips", "saving_grace");
     public static final NamespacedKey REDSTONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "redstone_core");
     public static final NamespacedKey WEATHER_WAND_RECIPE = new NamespacedKey("foodtooltips", "weather_wand");
+    public static final NamespacedKey REDSTONE_BLOCK_CORE_RECIPE = new NamespacedKey("foodtooltips", "redstone_block_core");
 
     /**
      * The threshold ladder every Combat Collection entry uses (the player's own explicit
@@ -470,7 +471,9 @@ public final class CollectionsCatalog {
                     accessoryBagSlots(DEFAULT_THRESHOLDS[4]),
                     accessoryBagSlots(DEFAULT_THRESHOLDS[5]),
                     accessoryBagSlots(DEFAULT_THRESHOLDS[6]),
-                    accessoryBagSlots(DEFAULT_THRESHOLDS[7]),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
+                            "Desbloqueia a receita do Redstone Block Core e +9 espaços na Accessory Bag", "Unlocks the Redstone Block Core recipe and +9 Accessory Bag slots",
+                            REDSTONE_BLOCK_CORE_RECIPE),
                     accessoryBagSlots(DEFAULT_THRESHOLDS[8]))),
             new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", placeholderLadder()),
             new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", placeholderLadder()),
