@@ -422,6 +422,13 @@ public final class CombatListener implements Listener {
         }
         ItemStack weapon = p.getInventory().getItemInMainHand();
         boolean melee = !(e.getDamager() instanceof Projectile);
+        LegendaryWeapon gated = melee ? LegendaryWeaponService.of(weapon) : null;
+        if (gated != null && this.combat.progress(p).level() < gated.requiredCombatLevel()) {
+            // Below the weapon's Combat requirement the hit simply doesn't land.
+            e.setCancelled(true);
+            p.sendActionBar(Component.text("You need Combat " + gated.requiredCombatLevel() + " to use " + gated.name(false) + ".", NamedTextColor.RED));
+            return;
+        }
         double enchantPercent = 0.0;
         double criticalEnchantBonus = 0.0;
         double weaponDamage = 0.0;

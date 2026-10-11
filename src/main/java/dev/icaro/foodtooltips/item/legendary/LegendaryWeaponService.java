@@ -244,6 +244,9 @@ public final class LegendaryWeaponService {
                 // situational damage bonus (see abilityLines), already covered above.
             }
         }
+        if (w.requiredCombatLevel() > 0) {
+            lore.add(this.line("Requires Combat " + w.requiredCombatLevel(), NamedTextColor.RED));
+        }
         meta.lore(lore);
         item.setItemMeta(meta);
         if (w == LegendaryWeapon.UNDEAD_SWORD) {

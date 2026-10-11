@@ -37,3 +37,5 @@ combat_merchant:
       price: 10000
     - item: icarus:scavenger_talisman
       price: 10000
+    - item: icarus:knight_killer
+      price: 25000

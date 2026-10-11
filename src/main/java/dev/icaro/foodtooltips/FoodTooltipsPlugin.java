@@ -557,6 +557,7 @@ extends JavaPlugin {
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.MINE_AFFINITY, combatTalismans::createMineAffinityTalisman);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.INTIMIDATION, combatTalismans::createIntimidationTalisman);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.SCAVENGER, combatTalismans::createScavengerTalisman);
+        shops.registerItem("knight_killer", () -> legendary.create(dev.icaro.foodtooltips.item.legendary.LegendaryWeapon.KNIGHT_KILLER, dev.icaro.foodtooltips.i18n.Language.EN));
         shops.load();
         pm.registerEvents((Listener)shops, (Plugin)this);
         this.getCommand("shop").setExecutor(shops);

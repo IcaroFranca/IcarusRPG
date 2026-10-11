@@ -69,6 +69,14 @@ public enum LegendaryWeapon {
         return this.agility;
     }
 
+    /** Combat level needed to hit with this weapon at all (see {@code CombatListener#damage}) - 0 means no requirement. */
+    public int requiredCombatLevel() {
+        return switch (this) {
+            case KNIGHT_KILLER -> 12;
+            default -> 0;
+        };
+    }
+
     public String name(boolean pt) {
         return this.nameEn;
     }
