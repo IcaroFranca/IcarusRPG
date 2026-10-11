@@ -217,6 +217,19 @@ public final class CollectionsCatalog {
     public static final NamespacedKey EMERALD_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "emerald_chestplate");
     public static final NamespacedKey EMERALD_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "emerald_leggings");
     public static final NamespacedKey EMERALD_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "emerald_boots");
+    public static final NamespacedKey SPELUNKER_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "spelunker_talisman");
+    public static final NamespacedKey DIAMOND_CORE_RECIPE = new NamespacedKey("foodtooltips", "diamond_core");
+    public static final NamespacedKey SPELUNKER_RING_RECIPE = new NamespacedKey("foodtooltips", "spelunker_ring");
+    public static final NamespacedKey HARDENED_DIAMOND_HELMET_RECIPE = new NamespacedKey("foodtooltips", "hardened_diamond_helmet");
+    public static final NamespacedKey HARDENED_DIAMOND_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "hardened_diamond_chestplate");
+    public static final NamespacedKey HARDENED_DIAMOND_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "hardened_diamond_leggings");
+    public static final NamespacedKey HARDENED_DIAMOND_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "hardened_diamond_boots");
+    public static final NamespacedKey DIAMOND_BLOCK_CORE_RECIPE = new NamespacedKey("foodtooltips", "diamond_block_core");
+    public static final NamespacedKey SPELUNKER_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "spelunker_artifact");
+    public static final NamespacedKey PERFECT_HELMET_RECIPE = new NamespacedKey("foodtooltips", "perfect_helmet");
+    public static final NamespacedKey PERFECT_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "perfect_chestplate");
+    public static final NamespacedKey PERFECT_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "perfect_leggings");
+    public static final NamespacedKey PERFECT_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "perfect_boots");
     /** Coal Collection milestone that unlocks the Locations menu's Random Cave button (1-based, see {@code travel.TravelMenuService}). */
     public static final int COAL_RANDOM_CAVE_MILESTONE = 6;
 
@@ -513,7 +526,31 @@ public final class CollectionsCatalog {
                             REDSTONE_BLOCK_CORE_RECIPE),
                     accessoryBagSlots(DEFAULT_THRESHOLDS[8]))),
             new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", placeholderLadder()),
-            new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", placeholderLadder()),
+            new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Mineração", "+1000 Mining XP"),
+                    CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[1], IcarusEnchant.EXECUTE, 25.0,
+                            "-25% de custo em XP para Execução", "-25% XP cost for Execute"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Spelunker Talisman", "Unlocks the Spelunker Talisman recipe",
+                            SPELUNKER_TALISMAN_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Diamond Core", "Unlocks the Diamond Core recipe",
+                            DIAMOND_CORE_RECIPE),
+                    CollectionsMilestone.enchantDiscount(DEFAULT_THRESHOLDS[4], IcarusEnchant.CRITICAL, 25.0,
+                            "-25% de custo em XP para Crítico", "-25% XP cost for Critical"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[5],
+                            "Desbloqueia a receita do Spelunker Ring", "Unlocks the Spelunker Ring recipe",
+                            SPELUNKER_RING_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita da Hardened Diamond Armor", "Unlocks the Hardened Diamond Armor recipe",
+                            HARDENED_DIAMOND_HELMET_RECIPE, HARDENED_DIAMOND_CHESTPLATE_RECIPE, HARDENED_DIAMOND_LEGGINGS_RECIPE, HARDENED_DIAMOND_BOOTS_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[7],
+                            "Desbloqueia as receitas do Diamond Block Core e do Spelunker Artifact", "Unlocks the Diamond Block Core and Spelunker Artifact recipes",
+                            DIAMOND_BLOCK_CORE_RECIPE, SPELUNKER_ARTIFACT_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita da Perfect Armor", "Unlocks the Perfect Armor recipe",
+                            PERFECT_HELMET_RECIPE, PERFECT_CHESTPLATE_RECIPE, PERFECT_LEGGINGS_RECIPE, PERFECT_BOOTS_RECIPE))),
             new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", List.of(
                     CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
                             "+1000 XP de Mineração", "+1000 Mining XP"),

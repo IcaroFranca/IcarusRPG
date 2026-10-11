@@ -386,6 +386,21 @@ final class CollectionsCatalogTest {
     }
 
     @Test
+    void diamondRewards() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.DIAMOND_ORE).orElseThrow().milestones();
+        assertEquals(9, m.size());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(IcarusEnchant.EXECUTE, m.get(1).discountEnchant());
+        assertEquals(List.of(CollectionsCatalog.SPELUNKER_TALISMAN_RECIPE), m.get(2).recipes());
+        assertEquals(List.of(CollectionsCatalog.DIAMOND_CORE_RECIPE), m.get(3).recipes());
+        assertEquals(IcarusEnchant.CRITICAL, m.get(4).discountEnchant());
+        assertEquals(List.of(CollectionsCatalog.SPELUNKER_RING_RECIPE), m.get(5).recipes());
+        assertEquals(4, m.get(6).recipes().size());
+        assertEquals(List.of(CollectionsCatalog.DIAMOND_BLOCK_CORE_RECIPE, CollectionsCatalog.SPELUNKER_ARTIFACT_RECIPE), m.get(7).recipes());
+        assertEquals(4, m.get(8).recipes().size());
+    }
+
+    @Test
     void emeraldRewards() {
         List<CollectionsMilestone> m = CollectionsCatalog.find(Material.EMERALD_ORE).orElseThrow().milestones();
         assertEquals(9, m.size());

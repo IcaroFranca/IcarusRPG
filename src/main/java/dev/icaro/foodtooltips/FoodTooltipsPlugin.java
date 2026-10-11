@@ -201,6 +201,7 @@ extends JavaPlugin {
     private WardrobeService wardrobe;
     private PotionBagService potionBag;
     private AccessoryBagService accessoryBag;
+    private dev.icaro.foodtooltips.item.DiamondCollectionService diamondCollection;
     private dev.icaro.foodtooltips.creaking.CreakingSightService creakingSight;
     private dev.icaro.foodtooltips.heat.HeatService heatService;
     private PersonalStorageService storage;
@@ -313,6 +314,11 @@ extends JavaPlugin {
         emeraldCollection.registerRecipes();
         emeraldCollection.start();
         armor.setBonusDefense(emeraldCollection::defenseBonus);
+        // Diamond Collection - same "before CombatCollectionsItemsService" placement as Emerald's.
+        this.diamondCollection = new dev.icaro.foodtooltips.item.DiamondCollectionService((Plugin)this, tiers, this.accessoryBag);
+        this.diamondCollection.registerRecipes();
+        this.diamondCollection.start();
+        this.getServer().getPluginManager().registerEvents((Listener)this.diamondCollection, (Plugin)this);
         armor.accessoryDefenseBonus(e -> e instanceof Player power ? magicalPower.defensePoints(power) : 0);
         stats.accessoryStrengthBonus(magicalPower::strengthPoints);
         stats.accessoryIntelligenceBonus(magicalPower::intelligenceBonus);
@@ -891,6 +897,9 @@ extends JavaPlugin {
     }
 
     public void onDisable() {
+        if (this.diamondCollection != null) {
+            this.diamondCollection.clearAll();
+        }
         if (this.creakingSight != null) {
             this.creakingSight.stop();
         }
