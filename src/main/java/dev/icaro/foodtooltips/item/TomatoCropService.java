@@ -71,6 +71,8 @@ import org.joml.Vector3f;
 public final class TomatoCropService implements Listener, CommandExecutor {
     static final String GREEN_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjc3YWQ3YjBlYmZiM2MyZWVhM2Y5Y2Q0NTI5ZTExNTMxOWFiYTNlNzEyZTMzMzU1MGM5OWQ1Y2YyNGIwODkifX19";
     static final String RIPE_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDE4Njg2M2ZkZjNmM2UyOTc5ZWM2ZDk3OGEwODhkOGE0Zjg2NjRjNTBiNWI2ZDI5YWQ0YTdhYzI2NGEwMTcifX19";
+    /** The Tomato Seed's IcarusTexture icon (0.9.8+). */
+    private static final net.kyori.adventure.key.Key SEED_MODEL = net.kyori.adventure.key.Key.key("icarus", "tomato_seeds");
     private static final NamespacedKey SEED_KEY = new NamespacedKey("foodtooltips", "tomato_seed");
     private static final NamespacedKey TOMATO_KEY = new NamespacedKey("foodtooltips", "tomato");
     /** A chunk's tomato plants: "x,y,z,ripe" entries (world coordinates) joined by ";". */
@@ -139,6 +141,7 @@ public final class TomatoCropService implements Listener, CommandExecutor {
         meta.lore(List.of(line("Plant on farmland.", NamedTextColor.GRAY),
                 line("Right click when ripe to pick the Tomatoes.", NamedTextColor.GRAY)));
         item.setItemMeta(meta);
+        item.setData(DataComponentTypes.ITEM_MODEL, SEED_MODEL);
         return item;
     }
 
