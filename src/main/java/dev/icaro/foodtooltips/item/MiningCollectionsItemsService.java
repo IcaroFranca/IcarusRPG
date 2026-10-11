@@ -23,9 +23,8 @@ import org.bukkit.persistence.PersistentDataType;
  * {@code CombatCollectionsItemsService}/{@code FarmingCollectionsItemsService} play for their
  * own categories. Today only Redstone: the Redstone Core (M2), the Weather Wand (M4) built from
  * it, and the Redstone Block Core (M8). Both Cores also brew longer potions - see {@code
- * potion.RedstoneDurationService}. The Weather Wand has no ability yet - just the item and
- * its recipe, same "collection first, behavior later" step the Teleport Pad took - so it
- * carries {@link #WEATHER_WAND_KEY} for whatever service eventually gives it one.
+ * potion.RedstoneDurationService}. The Weather Wand carries {@link #WEATHER_WAND_KEY}, which
+ * {@link WeatherWandService} reads for its weather menu.
  *
  * <p>Must be registered BEFORE {@code CombatCollectionsItemsService}: the Weather Wand's own
  * "core/core/stick" grid is the exact shape of the Zombie Sword's plain-{@code PLAYER_HEAD}
@@ -76,13 +75,14 @@ public final class MiningCollectionsItemsService {
         return item;
     }
 
-    /** An enchanted-looking Stick ({@link ItemMeta#setEnchantmentGlintOverride}, no real enchantment) - see this class's own doc on why it has no ability yet. */
+    /** An enchanted-looking Stick ({@link ItemMeta#setEnchantmentGlintOverride}, no real enchantment) - its ability lives in {@link WeatherWandService}. */
     public ItemStack weatherWand() {
         var item = new ItemStack(Material.STICK);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(WEATHER_WAND_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Weather Wand", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
         meta.setEnchantmentGlintOverride(true);
+        meta.lore(java.util.List.of(Component.text("Right click to change the weather.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;

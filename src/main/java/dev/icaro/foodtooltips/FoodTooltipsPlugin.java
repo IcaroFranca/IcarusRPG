@@ -238,6 +238,9 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.potion.RedstoneDurationService redstoneDuration = new dev.icaro.foodtooltips.potion.RedstoneDurationService((Plugin)this, miningCollectionsItems);
         redstoneDuration.registerMixes();
         this.getServer().getPluginManager().registerEvents((Listener)redstoneDuration, (Plugin)this);
+        dev.icaro.foodtooltips.item.WeatherWandService weatherWand = new dev.icaro.foodtooltips.item.WeatherWandService((Plugin)this);
+        this.getServer().getPluginManager().registerEvents((Listener)weatherWand, (Plugin)this);
+        weatherWand.start();
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();
