@@ -680,6 +680,14 @@ implements Listener {
         }
     }
 
+    /** A catch the plugin hands out itself (lava fishing - see {@code item.LavaFishingService}): Fishing XP like a normal catch, plus its Collection. */
+    public void creditFishingCatch(Player p, Material collection, int amount, double xp) {
+        this.gain(p, SkillType.FISHING, xp);
+        if (collection != null) {
+            this.applyCollections(p, collection, amount);
+        }
+    }
+
     private void applyCollections(Player p, Material drop, int amount) {
         CollectionsService.Update update = this.collections.record(p, drop, amount);
         if (!update.any()) {

@@ -650,6 +650,10 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.LILY_PAD, Material.LILY_PAD, CollectionsCategory.FISHING, "Vitória-Régia", "Lily Pad", placeholderLadder()),
             new CollectionsEntry(Material.NAUTILUS_SHELL, Material.NAUTILUS_SHELL, CollectionsCategory.FISHING, "Concha de Náutilo", "Nautilus Shell", placeholderLadder()),
             new CollectionsEntry(Material.WET_SPONGE, Material.SPONGE, CollectionsCategory.FISHING, "Esponja", "Sponge", placeholderLadder()),
+            // Magma Fish: the lava fishing catch (item.LavaFishingService) - a Cooked Cod with its
+            // own model, credited only by a lava catch; its menu icon is the real Magma Fish
+            // (see #registerIcon).
+            new CollectionsEntry(Material.COOKED_COD, Material.COOKED_COD, CollectionsCategory.FISHING, "Peixe de Magma", "Magma Fish", placeholderLadder()),
             new CollectionsEntry(Material.CACTUS, Material.CACTUS, CollectionsCategory.FARMING, "Cacto", "Cactus", List.of(
                     CollectionsMilestone.farmingXp(100, 1000, "+1000 XP de Agricultura", "+1000 Farming XP"),
                     CollectionsMilestone.recipeUnlock(250,
@@ -1254,6 +1258,19 @@ public final class CollectionsCatalog {
      * entries' progress forever, since {@code find(CARROT)} would never match an entry
      * keyed by {@code CARROTS}.
      */
+    /** Menu icons for entries whose collected item is one of this plugin's own (Magma Fish) rather than the plain Material - see {@link #icon}. */
+    private static final java.util.Map<Material, java.util.function.Supplier<org.bukkit.inventory.ItemStack>> ICONS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerIcon(Material material, java.util.function.Supplier<org.bukkit.inventory.ItemStack> icon) {
+        ICONS.put(material, icon);
+    }
+
+    /** The item a Collections screen shows for {@code material} - its registered icon if it has one, else the plain Material. */
+    public static org.bukkit.inventory.ItemStack icon(Material material) {
+        java.util.function.Supplier<org.bukkit.inventory.ItemStack> icon = ICONS.get(material);
+        return icon == null ? org.bukkit.inventory.ItemStack.of(material) : icon.get();
+    }
+
     public static Optional<CollectionsEntry> find(Material material) {
         return ENTRIES.stream().filter(e -> e.material() == material || e.drop() == material).findFirst();
     }

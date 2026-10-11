@@ -390,7 +390,7 @@ public final class CollectionsMenuService {
     }
 
     private ItemStack item(Material mat, String name, List<Component> lore) {
-        ItemStack i = ItemStack.of(mat);
+        ItemStack i = CollectionsCatalog.icon(mat);
         ItemMeta m = i.getItemMeta();
         m.displayName(Component.text(name, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         m.lore(lore.stream().map(x -> x.decoration(TextDecoration.ITALIC, false)).toList());

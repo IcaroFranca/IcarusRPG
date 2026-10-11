@@ -202,6 +202,7 @@ extends JavaPlugin {
     private PotionBagService potionBag;
     private AccessoryBagService accessoryBag;
     private dev.icaro.foodtooltips.item.DiamondCollectionService diamondCollection;
+    private dev.icaro.foodtooltips.item.LavaFishingService lavaFishing;
     private dev.icaro.foodtooltips.creaking.CreakingSightService creakingSight;
     private dev.icaro.foodtooltips.heat.HeatService heatService;
     private PersonalStorageService storage;
@@ -543,6 +544,11 @@ extends JavaPlugin {
         generalSkillListener.heldToolHasOwnSweep(tool -> spruceAxe.isSpruceAxe(tool) || treecapitator.isTreecapitator(tool));
         spruceAxe.isPlaced(generalSkillListener::isPlaced);
         treecapitator.isPlaced(generalSkillListener::isPlaced);
+        this.lavaFishing = new dev.icaro.foodtooltips.item.LavaFishingService((Plugin)this, tiers, generalSkillListener::creditFishingCatch);
+        this.lavaFishing.registerRecipe();
+        this.lavaFishing.start();
+        pm.registerEvents((Listener)this.lavaFishing, (Plugin)this);
+        CollectionsCatalog.registerIcon(org.bukkit.Material.COOKED_COD, this.lavaFishing::magmaFish);
         spruceAxe.accessorySweepBonus(general::sweepBonus);
         treecapitator.accessorySweepBonus(general::sweepBonus);
         BrewingMenuService brewingMenu = new BrewingMenuService(brewingStandFuel, generalSkillListener, potionGuide);
@@ -911,6 +917,9 @@ extends JavaPlugin {
     }
 
     public void onDisable() {
+        if (this.lavaFishing != null) {
+            this.lavaFishing.clearAll();
+        }
         if (this.diamondCollection != null) {
             this.diamondCollection.clearAll();
         }

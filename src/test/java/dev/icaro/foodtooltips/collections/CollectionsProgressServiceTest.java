@@ -68,6 +68,6 @@ final class CollectionsProgressServiceTest {
         int miningEntries = CollectionsCatalog.entries(CollectionsCategory.MINING).size();
         assertEquals(15, miningEntries);
         // Fishing's 10, same reward-less placeholderLadder() as Mining.
-        assertEquals(10, CollectionsCatalog.entries(CollectionsCategory.FISHING).size());
+        assertEquals(11, CollectionsCatalog.entries(CollectionsCategory.FISHING).size());
     }
 }
