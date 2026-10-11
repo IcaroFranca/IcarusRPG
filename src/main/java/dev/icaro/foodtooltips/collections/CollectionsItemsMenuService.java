@@ -29,9 +29,12 @@ import org.bukkit.inventory.meta.SkullMeta;
  * recipe(s) actually resolve to a real registered {@link Recipe} (skipping enchant discounts,
  * plain XP milestones, and the handful of "unlocked in name only" ones with no real recipe to
  * gate - a PotionMix like the Adrenaline/Resistance Potions, or Sprout Armor's own "recipe
- * coming soon"), one tile per milestone (a 4-piece armor set's own milestone is ONE tile that
+ * coming soon"), one tile per item - except an armor set, whose milestone is ONE tile that
  * gives every piece at once, same "whole set, one click" shape {@code
- * LegendaryItemsMenuService#armorSetPreview} already uses for Miner's/Lapis Lazuli Armor).
+ * LegendaryItemsMenuService#armorSetPreview} already uses for Miner's/Lapis Lazuli Armor. A
+ * milestone unlocking different items (Diamond M8: Diamond Block Core + Spelunker Artifact;
+ * String M4: String Core + Grappling Hook) used to be a single tile too, showing only its first
+ * item - see {@link #tiles}.
  *
  * <p>{@link #open} opens a {@link CollectionsCategory} picker rather than a single flat list -
  * per the player's own "quero uma espécie de separação e filtragem para não passar tantas
@@ -63,8 +66,8 @@ public final class CollectionsItemsMenuService {
     private static final int PREV_SLOT = 47;
     private static final int NEXT_SLOT = 51;
 
-    /** Pairs a givable milestone with the {@link CollectionsEntry#category()} it came from, since {@link CollectionsMilestone} itself carries no category - see {@link #givableMilestones()}. */
-    private record CategorizedMilestone(CollectionsCategory category, CollectionsMilestone milestone) {
+    /** One givable tile: the recipe(s) it hands out (several only for an armor set) and the {@link CollectionsEntry#category()} it came from - see {@link #tiles()}. */
+    private record Tile(CollectionsCategory category, List<NamespacedKey> recipes) {
     }
 
     /** {@code category == null} means the picker screen; {@code page} is only meaningful once a category is picked. */
@@ -73,7 +76,7 @@ public final class CollectionsItemsMenuService {
 
     private final Consumer<Player> back;
     private final Map<UUID, View> views = new HashMap<>();
-    private final Map<UUID, Map<Integer, CollectionsMilestone>> viewing = new HashMap<>();
+    private final Map<UUID, Map<Integer, Tile>> viewing = new HashMap<>();
 
     public CollectionsItemsMenuService(Consumer<Player> back) {
         this.back = back;
@@ -83,8 +86,8 @@ public final class CollectionsItemsMenuService {
     public void open(Player p) {
         Language l = Language.of(p);
         Map<CollectionsCategory, Integer> counts = new EnumMap<>(CollectionsCategory.class);
-        for (CategorizedMilestone cm : givableMilestones()) {
-            counts.merge(cm.category(), 1, Integer::sum);
+        for (Tile tile : tiles()) {
+            counts.merge(tile.category(), 1, Integer::sum);
         }
         Inventory inv = Bukkit.createInventory(null, 54, "Collections Items");
         this.fill(inv);
@@ -109,9 +112,8 @@ public final class CollectionsItemsMenuService {
 
     /** {@code category}'s own paginated list of givable milestones - what used to be this class's single top-level list before it was split by {@link CollectionsCategory}. */
     public void openCategory(Player p, CollectionsCategory category, int wanted) {
-        List<CollectionsMilestone> all = givableMilestones().stream()
-                .filter(cm -> cm.category() == category)
-                .map(CategorizedMilestone::milestone)
+        List<Tile> all = tiles().stream()
+                .filter(tile -> tile.category() == category)
                 .toList();
         int pages = Math.max(1, (int) Math.ceil(all.size() / (double) PER_PAGE));
         int page = Math.max(0, Math.min(pages - 1, wanted));
@@ -121,12 +123,12 @@ public final class CollectionsItemsMenuService {
         this.fill(inv);
         int from = page * PER_PAGE;
         int to = Math.min(from + PER_PAGE, all.size());
-        Map<Integer, CollectionsMilestone> buttons = new HashMap<>();
+        Map<Integer, Tile> buttons = new HashMap<>();
         for (int i = from; i < to; i++) {
-            CollectionsMilestone milestone = all.get(i);
+            Tile tile = all.get(i);
             int slot = SLOTS[i - from];
-            inv.setItem(slot, this.preview(milestone, l));
-            buttons.put(slot, milestone);
+            inv.setItem(slot, this.preview(tile));
+            buttons.put(slot, tile);
         }
         inv.setItem(BACK_SLOT, this.customHead(HeadTexture.BACK, "Back", List.of()));
         if (page > 0) {
@@ -182,58 +184,80 @@ public final class CollectionsItemsMenuService {
             this.openCategory(p, view.category(), view.page() + 1);
             return;
         }
-        Map<Integer, CollectionsMilestone> shown = this.viewing.get(p.getUniqueId());
-        CollectionsMilestone milestone = shown == null ? null : shown.get(slot);
-        if (milestone == null) {
+        Map<Integer, Tile> shown = this.viewing.get(p.getUniqueId());
+        Tile tile = shown == null ? null : shown.get(slot);
+        if (tile == null) {
             return;
         }
-        Language l = Language.of(p);
-        for (NamespacedKey key : milestone.recipes()) {
+        List<String> names = new ArrayList<>();
+        for (NamespacedKey key : tile.recipes()) {
             Recipe recipe = Bukkit.getRecipe(key);
             if (recipe == null) {
                 continue;
             }
-            for (ItemStack overflow : p.getInventory().addItem(recipe.getResult().clone()).values()) {
+            ItemStack result = recipe.getResult().clone();
+            names.add(plainName(result));
+            for (ItemStack overflow : p.getInventory().addItem(result).values()) {
                 p.getWorld().dropItemNaturally(p.getLocation(), overflow);
             }
         }
-        p.sendMessage(Component.text("Received: " + milestone.reward(l == Language.PT), NamedTextColor.GREEN));
+        p.sendMessage(Component.text("Received: " + String.join(", ", names), NamedTextColor.GREEN));
     }
 
-    /** Every {@link RewardKind#RECIPE_UNLOCK} milestone across the whole catalog whose own recipe(s) resolve to a real {@link Recipe} right now, each paired with its parent entry's own {@link CollectionsCategory} - recomputed on every open rather than cached, since which recipes exist can change across a {@code /reload}. */
-    private static List<CategorizedMilestone> givableMilestones() {
-        List<CategorizedMilestone> out = new ArrayList<>();
+    private static String plainName(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.hasDisplayName()
+                ? net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(meta.displayName())
+                : item.getType().name();
+    }
+
+    /**
+     * Every givable tile across the whole catalog, recomputed on every open (which recipes exist
+     * can change across a {@code /reload}): each {@link RewardKind#RECIPE_UNLOCK} milestone's
+     * recipes that resolve to a real {@link Recipe} right now become one tile each - unless they
+     * are all pieces of one armor set, which stay a single "whole set" tile.
+     */
+    private static List<Tile> tiles() {
+        List<Tile> out = new ArrayList<>();
         for (CollectionsEntry entry : CollectionsCatalog.entries()) {
             for (CollectionsMilestone milestone : entry.milestones()) {
-                if (milestone.kind() != RewardKind.RECIPE_UNLOCK || milestone.recipes().isEmpty()) {
+                if (milestone.kind() != RewardKind.RECIPE_UNLOCK) {
                     continue;
                 }
-                boolean resolvable = milestone.recipes().stream().anyMatch(key -> Bukkit.getRecipe(key) != null);
-                if (resolvable) {
-                    out.add(new CategorizedMilestone(entry.category(), milestone));
+                List<NamespacedKey> resolved = milestone.recipes().stream().filter(key -> Bukkit.getRecipe(key) != null).toList();
+                if (resolved.isEmpty()) {
+                    continue;
+                }
+                if (resolved.size() > 1 && isArmorSet(resolved)) {
+                    out.add(new Tile(entry.category(), resolved));
+                } else {
+                    for (NamespacedKey key : resolved) {
+                        out.add(new Tile(entry.category(), List.of(key)));
+                    }
                 }
             }
         }
         return out;
     }
 
-    private ItemStack preview(CollectionsMilestone milestone, Language l) {
-        ItemStack result = null;
-        for (NamespacedKey key : milestone.recipes()) {
-            Recipe recipe = Bukkit.getRecipe(key);
-            if (recipe != null) {
-                result = recipe.getResult().clone();
-                break;
+    /** Whether every recipe in {@code keys} makes a piece of armor (helmet, chestplate, leggings or boots). */
+    private static boolean isArmorSet(List<NamespacedKey> keys) {
+        for (NamespacedKey key : keys) {
+            String type = Bukkit.getRecipe(key).getResult().getType().name();
+            if (!type.endsWith("_HELMET") && !type.endsWith("_CHESTPLATE") && !type.endsWith("_LEGGINGS") && !type.endsWith("_BOOTS")) {
+                return false;
             }
         }
-        if (result == null) {
-            return this.item(Material.BARRIER, "?", List.of());
-        }
+        return true;
+    }
+
+    private ItemStack preview(Tile tile) {
+        ItemStack result = Bukkit.getRecipe(tile.recipes().get(0)).getResult().clone();
         ItemMeta meta = result.getItemMeta();
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
         lore.add(Component.empty());
-        if (milestone.recipes().size() > 1) {
-            lore.add(this.text(("Gives the full set (" + milestone.recipes().size() + " pieces)."), NamedTextColor.YELLOW));
+        if (tile.recipes().size() > 1) {
+            lore.add(this.text(("Gives the full set (" + tile.recipes().size() + " pieces)."), NamedTextColor.YELLOW));
         }
         lore.add(this.text("Click to receive.", NamedTextColor.YELLOW));
         meta.lore(lore);
