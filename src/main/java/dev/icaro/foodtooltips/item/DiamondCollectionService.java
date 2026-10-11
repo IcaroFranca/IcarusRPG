@@ -24,6 +24,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -58,6 +59,13 @@ import org.joml.Vector3f;
  * outline shows, through any wall. Each display is hidden from everyone by default and shown only
  * to its own player ({@link Player#showEntity}), and never saved with the chunk. A native Paper
  * entity, so unlike the Creaking Sight glow this needs no PacketEvents.
+ *
+ * <p><b>Bedrock (Geyser):</b> Geyser doesn't translate display entities, and Bedrock has no glow
+ * outline at all - a Bedrock player saw nothing. For them ({@link
+ * dev.icaro.foodtooltips.skills.BedrockPlayers#isBedrock}) each ore gets a floating name tag
+ * instead - an invisible marker armor stand named after the ore, in its color (see {@link
+ * #BEDROCK_LABELS}). Bedrock draws name tags through walls, so it works the same way: every ore
+ * in range is marked, shown to that player alone.
  */
 public final class DiamondCollectionService implements Listener {
     public static final String SPELUNKER_FAMILY = "spelunker";
@@ -100,6 +108,28 @@ public final class DiamondCollectionService implements Listener {
             Map.entry(Material.NETHER_QUARTZ_ORE, Color.fromRGB(0xF2EEE6)),
             Map.entry(Material.ANCIENT_DEBRIS, Color.fromRGB(0x9A6B4F)));
 
+    /** Bedrock's version of {@link #ORE_COLORS}: the ore's name in the closest of the 16 chat colors (Bedrock name tags have no hex colors). */
+    static final Map<Material, Component> BEDROCK_LABELS = Map.ofEntries(
+            Map.entry(Material.COAL_ORE, Component.text("Coal", NamedTextColor.DARK_GRAY)),
+            Map.entry(Material.DEEPSLATE_COAL_ORE, Component.text("Coal", NamedTextColor.DARK_GRAY)),
+            Map.entry(Material.IRON_ORE, Component.text("Iron", NamedTextColor.GRAY)),
+            Map.entry(Material.DEEPSLATE_IRON_ORE, Component.text("Iron", NamedTextColor.GRAY)),
+            Map.entry(Material.COPPER_ORE, Component.text("Copper", NamedTextColor.GOLD)),
+            Map.entry(Material.DEEPSLATE_COPPER_ORE, Component.text("Copper", NamedTextColor.GOLD)),
+            Map.entry(Material.GOLD_ORE, Component.text("Gold", NamedTextColor.YELLOW)),
+            Map.entry(Material.DEEPSLATE_GOLD_ORE, Component.text("Gold", NamedTextColor.YELLOW)),
+            Map.entry(Material.NETHER_GOLD_ORE, Component.text("Gold", NamedTextColor.YELLOW)),
+            Map.entry(Material.REDSTONE_ORE, Component.text("Redstone", NamedTextColor.RED)),
+            Map.entry(Material.DEEPSLATE_REDSTONE_ORE, Component.text("Redstone", NamedTextColor.RED)),
+            Map.entry(Material.LAPIS_ORE, Component.text("Lapis", NamedTextColor.BLUE)),
+            Map.entry(Material.DEEPSLATE_LAPIS_ORE, Component.text("Lapis", NamedTextColor.BLUE)),
+            Map.entry(Material.DIAMOND_ORE, Component.text("Diamond", NamedTextColor.AQUA)),
+            Map.entry(Material.DEEPSLATE_DIAMOND_ORE, Component.text("Diamond", NamedTextColor.AQUA)),
+            Map.entry(Material.EMERALD_ORE, Component.text("Emerald", NamedTextColor.GREEN)),
+            Map.entry(Material.DEEPSLATE_EMERALD_ORE, Component.text("Emerald", NamedTextColor.GREEN)),
+            Map.entry(Material.NETHER_QUARTZ_ORE, Component.text("Quartz", NamedTextColor.WHITE)),
+            Map.entry(Material.ANCIENT_DEBRIS, Component.text("Ancient Debris", NamedTextColor.DARK_RED)));
+
     private static final NamespacedKey RADIUS_KEY = new NamespacedKey("foodtooltips", "spelunker_radius");
     private static final NamespacedKey ARMOR_KEY = new NamespacedKey("foodtooltips", "diamond_collection_armor");
 
@@ -107,7 +137,11 @@ public final class DiamondCollectionService implements Listener {
     private final ItemTierService tiers;
     private final AccessoryBagService accessoryBag;
     /** Each player's glowing ores, keyed by block position in its world. */
-    private final Map<UUID, Map<BlockKey, BlockDisplay>> glowing = new HashMap<>();
+    private final Map<UUID, Map<BlockKey, Glow>> glowing = new HashMap<>();
+
+    /** One marked ore: the entity showing it (a {@link BlockDisplay} on Java, a name-tag armor stand on Bedrock) and the ore it was made for, so a changed block is noticed. */
+    private record Glow(Entity entity, Material ore) {
+    }
 
     private record BlockKey(UUID world, int x, int y, int z) {
         static BlockKey of(Block b) {
@@ -290,7 +324,8 @@ public final class DiamondCollectionService implements Listener {
 
     private void scan(Player p) {
         int radius = p.isDead() ? 0 : this.spelunkerRadius(p);
-        Map<BlockKey, BlockDisplay> mine = this.glowing.computeIfAbsent(p.getUniqueId(), id -> new HashMap<>());
+        Map<BlockKey, Glow> mine = this.glowing.computeIfAbsent(p.getUniqueId(), id -> new HashMap<>());
+        boolean bedrock = dev.icaro.foodtooltips.skills.BedrockPlayers.isBedrock(p);
         Set<BlockKey> wanted = new HashSet<>();
         if (radius > 0) {
             Block center = p.getLocation().getBlock();
@@ -309,22 +344,23 @@ public final class DiamondCollectionService implements Listener {
                         }
                         BlockKey key = BlockKey.of(block);
                         wanted.add(key);
-                        BlockDisplay existing = mine.get(key);
-                        if (existing == null || !existing.isValid() || existing.getBlock().getMaterial() != block.getType()) {
+                        Glow existing = mine.get(key);
+                        if (existing == null || !existing.entity().isValid() || existing.ore() != block.getType()) {
                             if (existing != null) {
-                                existing.remove();
+                                existing.entity().remove();
                             }
-                            mine.put(key, this.spawnGlow(p, block, color));
+                            Entity marker = bedrock ? this.spawnLabel(p, block) : this.spawnGlow(p, block, color);
+                            mine.put(key, new Glow(marker, block.getType()));
                         }
                     }
                 }
             }
         }
-        Iterator<Map.Entry<BlockKey, BlockDisplay>> it = mine.entrySet().iterator();
+        Iterator<Map.Entry<BlockKey, Glow>> it = mine.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<BlockKey, BlockDisplay> entry = it.next();
+            Map.Entry<BlockKey, Glow> entry = it.next();
             if (!wanted.contains(entry.getKey())) {
-                entry.getValue().remove();
+                entry.getValue().entity().remove();
                 it.remove();
             }
         }
@@ -348,10 +384,28 @@ public final class DiamondCollectionService implements Listener {
         return display;
     }
 
+    /** Bedrock's marker: an invisible, hitbox-less armor stand at the ore's center, its name tag showing the ore's name in its color - only to {@code p}. See this class's own doc. */
+    private Entity spawnLabel(Player p, Block block) {
+        Location at = block.getLocation().add(0.5, 0.25, 0.5);
+        org.bukkit.entity.ArmorStand label = block.getWorld().spawn(at, org.bukkit.entity.ArmorStand.class, a -> {
+            a.setMarker(true);
+            a.setInvisible(true);
+            a.setGravity(false);
+            a.setSilent(true);
+            a.setInvulnerable(true);
+            a.customName(BEDROCK_LABELS.get(block.getType()));
+            a.setCustomNameVisible(true);
+            a.setVisibleByDefault(false);
+            a.setPersistent(false);
+        });
+        p.showEntity(this.plugin, label);
+        return label;
+    }
+
     private void clear(UUID player) {
-        Map<BlockKey, BlockDisplay> mine = this.glowing.remove(player);
+        Map<BlockKey, Glow> mine = this.glowing.remove(player);
         if (mine != null) {
-            mine.values().forEach(BlockDisplay::remove);
+            mine.values().forEach(glow -> glow.entity().remove());
         }
     }
 
