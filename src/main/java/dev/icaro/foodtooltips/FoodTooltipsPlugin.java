@@ -203,7 +203,7 @@ extends JavaPlugin {
     private AccessoryBagService accessoryBag;
     private dev.icaro.foodtooltips.item.DiamondCollectionService diamondCollection;
     private dev.icaro.foodtooltips.item.LavaFishingService lavaFishing;
-    private dev.icaro.foodtooltips.item.TomatoCropService tomatoCrop;
+    private dev.icaro.foodtooltips.item.CustomCropService crops;
     private dev.icaro.foodtooltips.creaking.CreakingSightService creakingSight;
     private dev.icaro.foodtooltips.heat.HeatService heatService;
     private PersonalStorageService storage;
@@ -592,11 +592,12 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.economy.CoinRewardService coinRewards = new dev.icaro.foodtooltips.economy.CoinRewardService((Plugin)this, this.visuals::effectiveMaxHealth);
         coinRewards.scavenger(p -> enchants.customLevel(p.getInventory().getItemInMainHand(), dev.icaro.foodtooltips.enchant.IcarusEnchant.SCAVENGER), this.visuals::level);
         coinRewards.scavengerTalisman(combatTalismans::scavengerCoinsPerMobLevel);
-        // Tomato - custom crop; built before the shops, whose Farm Merchant sells its seed.
-        this.tomatoCrop = new dev.icaro.foodtooltips.item.TomatoCropService((Plugin)this);
-        this.getServer().getPluginManager().registerEvents((Listener)this.tomatoCrop, (Plugin)this);
-        this.tomatoCrop.start();
-        this.getCommand("tomatoseed").setExecutor(this.tomatoCrop);
+        // Custom crops (Tomato, Corn) - built before the shops, whose Farm Merchant sells their seeds.
+        this.crops = new dev.icaro.foodtooltips.item.CustomCropService((Plugin)this);
+        this.getServer().getPluginManager().registerEvents((Listener)this.crops, (Plugin)this);
+        this.crops.start();
+        this.getCommand("tomatoseed").setExecutor(this.crops);
+        this.getCommand("cornseed").setExecutor(this.crops);
         // NPC shops (shops.yml) - opened by a Citizens NPC running "/shop open <shop> <p>" from the console.
         dev.icaro.foodtooltips.shop.ShopService shops = new dev.icaro.foodtooltips.shop.ShopService((Plugin)this);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.ZOMBIE, combatTalismans::createZombieTalisman);
@@ -605,7 +606,8 @@ extends JavaPlugin {
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.MINE_AFFINITY, combatTalismans::createMineAffinityTalisman);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.INTIMIDATION, combatTalismans::createIntimidationTalisman);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.SCAVENGER, combatTalismans::createScavengerTalisman);
-        shops.registerItem("tomato_seed", () -> this.tomatoCrop.seed(1));
+        shops.registerItem("tomato_seed", () -> this.crops.seed(dev.icaro.foodtooltips.item.CustomCropService.Crop.TOMATO, 1));
+        shops.registerItem("corn_seed", () -> this.crops.seed(dev.icaro.foodtooltips.item.CustomCropService.Crop.CORN, 1));
         shops.registerItem("knight_killer", () -> legendary.create(dev.icaro.foodtooltips.item.legendary.LegendaryWeapon.KNIGHT_KILLER, dev.icaro.foodtooltips.i18n.Language.EN));
         shops.load();
         pm.registerEvents((Listener)shops, (Plugin)this);
@@ -939,8 +941,8 @@ extends JavaPlugin {
             if (this.lavaFishing != null) {
                 this.lavaFishing.clearAll();
             }
-            if (this.tomatoCrop != null) {
-                this.tomatoCrop.clearAll();
+            if (this.crops != null) {
+                this.crops.clearAll();
             }
             if (this.diamondCollection != null) {
                 this.diamondCollection.clearAll();

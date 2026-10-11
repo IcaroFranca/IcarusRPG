@@ -50,6 +50,8 @@ farm_merchant:
   items:
     - item: icarus:tomato_seed
       price: 10
+    - item: icarus:corn_seed
+      price: 15
     - item: WHEAT_SEEDS
       price: 5
     - item: BEETROOT_SEEDS
