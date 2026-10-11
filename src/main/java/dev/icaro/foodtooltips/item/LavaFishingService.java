@@ -82,7 +82,8 @@ public final class LavaFishingService implements Listener {
 
     private final Plugin plugin;
     private final ItemTierService tiers;
-    private final CatchCredit credit;
+    private CatchCredit credit = (p, collection, amount, xp) -> {
+    };
     private final Map<UUID, Cast> casts = new HashMap<>();
 
     /** Fishing XP + Collection for a catch this class hands out itself - {@code GeneralSkillListener#creditFishingCatch}. */
@@ -110,9 +111,13 @@ public final class LavaFishingService implements Listener {
         }
     }
 
-    public LavaFishingService(Plugin plugin, ItemTierService tiers, CatchCredit credit) {
+    public LavaFishingService(Plugin plugin, ItemTierService tiers) {
         this.plugin = plugin;
         this.tiers = tiers;
+    }
+
+    /** Set once {@code GeneralSkillListener} exists - built later than this class, whose Inferno Talisman the Deepslate recipes need first. */
+    public void credit(CatchCredit credit) {
         this.credit = credit;
     }
 

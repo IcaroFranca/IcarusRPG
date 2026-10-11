@@ -329,6 +329,15 @@ extends JavaPlugin {
         cobblestoneCollection.start();
         this.getServer().getPluginManager().registerEvents((Listener)cobblestoneCollection, (Plugin)this);
         this.accessoryBag.itemRightClick(cobblestoneCollection::bagRightClick);
+        // Lava fishing - built here (its catch credit is wired once GeneralSkillListener exists) because the Deepslate recipes need its Inferno Talisman.
+        this.lavaFishing = new dev.icaro.foodtooltips.item.LavaFishingService((Plugin)this, tiers);
+        this.lavaFishing.registerRecipe();
+        this.lavaFishing.start();
+        this.getServer().getPluginManager().registerEvents((Listener)this.lavaFishing, (Plugin)this);
+        CollectionsCatalog.registerIcon(org.bukkit.Material.COOKED_COD, this.lavaFishing::magmaFish);
+        dev.icaro.foodtooltips.item.DeepslateCollectionService deepslateCollection = new dev.icaro.foodtooltips.item.DeepslateCollectionService(tiers, this.accessoryBag, this.lavaFishing::infernoTalisman);
+        deepslateCollection.registerRecipes();
+        this.getServer().getPluginManager().registerEvents((Listener)deepslateCollection, (Plugin)this);
         dev.icaro.foodtooltips.item.GravelCollectionService gravelCollection = new dev.icaro.foodtooltips.item.GravelCollectionService((Plugin)this, general, this.accessoryBag);
         gravelCollection.registerRecipes();
         this.getServer().getPluginManager().registerEvents((Listener)gravelCollection, (Plugin)this);
@@ -343,6 +352,8 @@ extends JavaPlugin {
         this.heatService = new dev.icaro.foodtooltips.heat.HeatService((Plugin)this, this.accessoryBag);
         this.getServer().getPluginManager().registerEvents((Listener)this.heatService, (Plugin)this);
         this.heatService.start();
+        this.heatService.armorHeatResistance(dev.icaro.foodtooltips.item.DeepslateCollectionService::armorHeatResistance);
+        this.heatService.miningBonusPercent(deepslateCollection::heatMiningBonusPercent);
         general.heatMiningSpeedBonus(this.heatService::miningSpeedBonus);
         general.heatMiningFortuneBonus(this.heatService::miningFortuneBonus);
         LeafletArmorService leafletArmor = new LeafletArmorService((Plugin)this);
@@ -544,11 +555,7 @@ extends JavaPlugin {
         generalSkillListener.heldToolHasOwnSweep(tool -> spruceAxe.isSpruceAxe(tool) || treecapitator.isTreecapitator(tool));
         spruceAxe.isPlaced(generalSkillListener::isPlaced);
         treecapitator.isPlaced(generalSkillListener::isPlaced);
-        this.lavaFishing = new dev.icaro.foodtooltips.item.LavaFishingService((Plugin)this, tiers, generalSkillListener::creditFishingCatch);
-        this.lavaFishing.registerRecipe();
-        this.lavaFishing.start();
-        pm.registerEvents((Listener)this.lavaFishing, (Plugin)this);
-        CollectionsCatalog.registerIcon(org.bukkit.Material.COOKED_COD, this.lavaFishing::magmaFish);
+        this.lavaFishing.credit(generalSkillListener::creditFishingCatch);
         spruceAxe.accessorySweepBonus(general::sweepBonus);
         treecapitator.accessorySweepBonus(general::sweepBonus);
         BrewingMenuService brewingMenu = new BrewingMenuService(brewingStandFuel, generalSkillListener, potionGuide);

@@ -88,6 +88,10 @@ public final class HeatService implements Listener {
     private Consumer<Player> onScoreboardReplaced = p -> {
     };
     private BukkitTask task;
+    /** Heat Resistance from worn armor (the Inferno Armor - see {@code item.DeepslateCollectionService#armorHeatResistance}), on top of the Accessory Bag's. */
+    private java.util.function.ToIntFunction<Player> armorHeatResistance = p -> 0;
+    /** Extra % on Heat's own Mining Speed/Fortune (the Inferno Artifact - see {@code item.DeepslateCollectionService#heatMiningBonusPercent}). */
+    private java.util.function.ToDoubleFunction<Player> miningBonusPercent = p -> 0.0;
 
     public HeatService(Plugin plugin, AccessoryBagService accessoryBag) {
         this.plugin = plugin;
@@ -126,12 +130,29 @@ public final class HeatService implements Listener {
 
     /** {@value #MINING_SPEED_PER_HEAT} per current Heat point - wired into {@code skills.GeneralSkillService#heatMiningSpeedBonus}. */
     public int miningSpeedBonus(Player p) {
-        return this.currentHeat(p) * MINING_SPEED_PER_HEAT;
+        return (int) Math.round(this.currentHeat(p) * MINING_SPEED_PER_HEAT * this.miningBonusMultiplier(p));
+    }
+
+    public void armorHeatResistance(java.util.function.ToIntFunction<Player> source) {
+        this.armorHeatResistance = source;
+    }
+
+    public void miningBonusPercent(java.util.function.ToDoubleFunction<Player> source) {
+        this.miningBonusPercent = source;
+    }
+
+    /** Every Heat Resistance {@code p} has - the Accessory Bag's plus worn armor's. */
+    public int totalHeatResistance(Player p) {
+        return this.accessoryBag.totalHeatResistance(p) + this.armorHeatResistance.applyAsInt(p);
+    }
+
+    private double miningBonusMultiplier(Player p) {
+        return 1.0 + this.miningBonusPercent.applyAsDouble(p) / 100.0;
     }
 
     /** {@value #MINING_FORTUNE_PER_HEAT} per current Heat point - wired into {@code skills.GeneralSkillService#heatMiningFortuneBonus}. */
     public int miningFortuneBonus(Player p) {
-        return this.currentHeat(p) * MINING_FORTUNE_PER_HEAT;
+        return (int) Math.round(this.currentHeat(p) * MINING_FORTUNE_PER_HEAT * this.miningBonusMultiplier(p));
     }
 
     @EventHandler
@@ -156,7 +177,7 @@ public final class HeatService implements Listener {
 
     private void tickOne(Player p) {
         UUID id = p.getUniqueId();
-        int resistance = this.accessoryBag.totalHeatResistance(p);
+        int resistance = this.totalHeatResistance(p);
         double intervalSeconds = tickIntervalSeconds(resistance);
         double elapsedSeconds = SCAN_INTERVAL_TICKS / 20.0;
         TickResult result = accumulate(this.progress.getOrDefault(id, 0.0), elapsedSeconds, intervalSeconds);

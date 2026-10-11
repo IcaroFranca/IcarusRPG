@@ -237,6 +237,14 @@ public final class CollectionsCatalog {
     public static final NamespacedKey PERSONAL_COMPACTOR_5000_RECIPE = new NamespacedKey("foodtooltips", "personal_compactor_5000");
     public static final NamespacedKey FLINT_SHOVEL_RECIPE = new NamespacedKey("foodtooltips", "flint_shovel");
     public static final NamespacedKey ENCHANTED_FLINT_RECIPE = new NamespacedKey("foodtooltips", "enchanted_flint");
+    public static final NamespacedKey ENCHANTED_COBBLED_DEEPSLATE_RECIPE = new NamespacedKey("foodtooltips", "enchanted_cobbled_deepslate");
+    public static final NamespacedKey INFERNO_RING_RECIPE = new NamespacedKey("foodtooltips", "inferno_ring");
+    public static final NamespacedKey ENCHANTED_DEEPSLATE_CORE_RECIPE = new NamespacedKey("foodtooltips", "enchanted_deepslate_core");
+    public static final NamespacedKey INFERNO_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "inferno_artifact");
+    public static final NamespacedKey INFERNO_HELMET_RECIPE = new NamespacedKey("foodtooltips", "inferno_helmet");
+    public static final NamespacedKey INFERNO_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "inferno_chestplate");
+    public static final NamespacedKey INFERNO_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "inferno_leggings");
+    public static final NamespacedKey INFERNO_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "inferno_boots");
     /** Coal Collection milestone that unlocks the Locations menu's Random Cave button (1-based, see {@code travel.TravelMenuService}). */
     public static final int COAL_RANDOM_CAVE_MILESTONE = 6;
 
@@ -508,7 +516,32 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
                             "Desbloqueia a receita do Personal Compactor 5000", "Unlocks the Personal Compactor 5000 recipe",
                             PERSONAL_COMPACTOR_5000_RECIPE))),
-            new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", placeholderLadder()),
+            // Cobbled Deepslate: the Inferno line (item.DeepslateCollectionService) - upgrades of the
+            // lava-fished Inferno Talisman, and the Inferno Armor.
+            new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Mineração", "+1000 Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita da Enchanted Cobbled Deepslate", "Unlocks the Enchanted Cobbled Deepslate recipe",
+                            ENCHANTED_COBBLED_DEEPSLATE_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[2], DEFAULT_XP[2],
+                            "+" + DEFAULT_XP[2] + " XP de Mineração", "+" + DEFAULT_XP[2] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita do Inferno Ring", "Unlocks the Inferno Ring recipe",
+                            INFERNO_RING_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Enchanted Deepslate Core", "Unlocks the Enchanted Deepslate Core recipe",
+                            ENCHANTED_DEEPSLATE_CORE_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[5], DEFAULT_XP[5],
+                            "+" + DEFAULT_XP[5] + " XP de Mineração", "+" + DEFAULT_XP[5] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Inferno Artifact", "Unlocks the Inferno Artifact recipe",
+                            INFERNO_ARTIFACT_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[7], DEFAULT_XP[7],
+                            "+" + DEFAULT_XP[7] + " XP de Mineração", "+" + DEFAULT_XP[7] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita da Inferno Armor", "Unlocks the Inferno Armor recipe",
+                            INFERNO_HELMET_RECIPE, INFERNO_CHESTPLATE_RECIPE, INFERNO_LEGGINGS_RECIPE, INFERNO_BOOTS_RECIPE))),
             new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", List.of(
                     CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
                             "+1000 XP de Mineração", "+1000 Mining XP"),
