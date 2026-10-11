@@ -43,6 +43,10 @@ import org.bukkit.plugin.Plugin;
  * packet (and cancels it, so the two paths never both open the menu). A right-click on a door,
  * chest or any other interactable block is left alone either way.
  *
+ * <p>After a weather change the wand is on a {@value #COOLDOWN_MILLIS}ms cooldown: right-clicking
+ * during it shows the seconds left instead of opening the menu. Just looking at the menu and
+ * closing it costs nothing.
+ *
  * <p>Each choice gets a random length in the same ranges vanilla's own {@code /weather} uses
  * when no duration is given, so the weather keeps cycling naturally afterwards.
  */
@@ -53,7 +57,12 @@ public final class WeatherWandService implements Listener {
     private static final int SUN_SLOT = 15;
     private static final int CLOSE_SLOT = 31;
 
+    /** Wait after a weather change before the wand works again - the player's own spec. */
+    private static final long COOLDOWN_MILLIS = 5_000L;
+
     private final Plugin plugin;
+    /** When each player's wand is usable again - see {@link #COOLDOWN_MILLIS}. */
+    private final java.util.Map<UUID, Long> readyAt = new java.util.HashMap<>();
 
     public WeatherWandService(Plugin plugin) {
         this.plugin = plugin;
@@ -94,6 +103,11 @@ public final class WeatherWandService implements Listener {
 
     public void open(Player p) {
         if (isMenu(p.getOpenInventory().getTopInventory())) {
+            return;
+        }
+        long left = this.readyAt.getOrDefault(p.getUniqueId(), 0L) - System.currentTimeMillis();
+        if (left > 0) {
+            p.sendActionBar(Component.text("Weather Wand cooldown: " + (left + 999) / 1000 + "s", NamedTextColor.RED));
             return;
         }
         MenuHolder holder = new MenuHolder();
@@ -155,6 +169,7 @@ public final class WeatherWandService implements Listener {
                 world.setThunderDuration(world.getWeatherDuration());
             }
         }
+        this.readyAt.put(p.getUniqueId(), System.currentTimeMillis() + COOLDOWN_MILLIS);
         p.sendActionBar(Component.text("Weather set to " + label + ".", NamedTextColor.GREEN));
     }
 

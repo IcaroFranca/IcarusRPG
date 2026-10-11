@@ -82,7 +82,9 @@ public final class MiningCollectionsItemsService {
         meta.getPersistentDataContainer().set(WEATHER_WAND_KEY, PersistentDataType.BYTE, (byte) 1);
         meta.displayName(Component.text("Weather Wand", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
         meta.setEnchantmentGlintOverride(true);
-        meta.lore(java.util.List.of(Component.text("Right click to change the weather.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
+        meta.lore(java.util.List.of(
+                Component.text("Right click to change the weather.", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("Cooldown: 5s", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false)));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;
