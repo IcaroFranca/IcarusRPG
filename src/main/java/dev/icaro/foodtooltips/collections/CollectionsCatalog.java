@@ -230,6 +230,11 @@ public final class CollectionsCatalog {
     public static final NamespacedKey PERFECT_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "perfect_chestplate");
     public static final NamespacedKey PERFECT_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "perfect_leggings");
     public static final NamespacedKey PERFECT_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "perfect_boots");
+    public static final NamespacedKey PERSONAL_COMPACTOR_RECIPE = new NamespacedKey("foodtooltips", "personal_compactor");
+    public static final NamespacedKey ENCHANTED_COBBLESTONE_RECIPE = new NamespacedKey("foodtooltips", "enchanted_cobblestone");
+    public static final NamespacedKey PERSONAL_COMPACTOR_3000_RECIPE = new NamespacedKey("foodtooltips", "personal_compactor_3000");
+    public static final NamespacedKey PERSONAL_COMPACTOR_4000_RECIPE = new NamespacedKey("foodtooltips", "personal_compactor_4000");
+    public static final NamespacedKey PERSONAL_COMPACTOR_5000_RECIPE = new NamespacedKey("foodtooltips", "personal_compactor_5000");
     public static final NamespacedKey FLINT_SHOVEL_RECIPE = new NamespacedKey("foodtooltips", "flint_shovel");
     public static final NamespacedKey ENCHANTED_FLINT_RECIPE = new NamespacedKey("foodtooltips", "enchanted_flint");
     /** Coal Collection milestone that unlocks the Locations menu's Random Cave button (1-based, see {@code travel.TravelMenuService}). */
@@ -479,7 +484,30 @@ public final class CollectionsCatalog {
             // metal/gem, Fortune copies included - a Smelting Touch ingot still counts as its raw
             // form), a stone block 1 per block broken. Deepslate ore variants share their
             // regular ore's entry through the drop.
-            new CollectionsEntry(Material.STONE, Material.COBBLESTONE, CollectionsCategory.MINING, "Pedregulho", "Cobblestone", placeholderLadder()),
+            new CollectionsEntry(Material.STONE, Material.COBBLESTONE, CollectionsCategory.MINING, "Pedregulho", "Cobblestone", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], DEFAULT_XP[0],
+                            "+" + DEFAULT_XP[0] + " XP de Mineração", "+" + DEFAULT_XP[0] + " Mining XP"),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[1], DEFAULT_XP[1],
+                            "+" + DEFAULT_XP[1] + " XP de Mineração", "+" + DEFAULT_XP[1] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[2],
+                            "Desbloqueia a receita do Personal Compactor", "Unlocks the Personal Compactor recipe",
+                            PERSONAL_COMPACTOR_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita da Enchanted Cobblestone", "Unlocks the Enchanted Cobblestone recipe",
+                            ENCHANTED_COBBLESTONE_RECIPE),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[4],
+                            "Desbloqueia a receita do Personal Compactor 3000", "Unlocks the Personal Compactor 3000 recipe",
+                            PERSONAL_COMPACTOR_3000_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[5], DEFAULT_XP[5],
+                            "+" + DEFAULT_XP[5] + " XP de Mineração", "+" + DEFAULT_XP[5] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[6],
+                            "Desbloqueia a receita do Personal Compactor 4000", "Unlocks the Personal Compactor 4000 recipe",
+                            PERSONAL_COMPACTOR_4000_RECIPE),
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[7], DEFAULT_XP[7],
+                            "+" + DEFAULT_XP[7] + " XP de Mineração", "+" + DEFAULT_XP[7] + " Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[8],
+                            "Desbloqueia a receita do Personal Compactor 5000", "Unlocks the Personal Compactor 5000 recipe",
+                            PERSONAL_COMPACTOR_5000_RECIPE))),
             new CollectionsEntry(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, CollectionsCategory.MINING, "Ardósia Pedregulhosa", "Cobbled Deepslate", placeholderLadder()),
             new CollectionsEntry(Material.COAL_ORE, Material.COAL, CollectionsCategory.MINING, "Carvão", "Coal", List.of(
                     CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,

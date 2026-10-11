@@ -55,6 +55,12 @@ public final class AccessoryBagListener implements Listener {
             this.bag.nextPage(p);
             return;
         }
+        if (topInventory && this.bag.isStorageSlot(p, raw) && e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT
+                && this.bag.rightClicked(p, e.getCurrentItem())) {
+            // An accessory with its own menu (the Personal Compactor) - opened instead of picking it up.
+            e.setCancelled(true);
+            return;
+        }
         if (topInventory && !this.bag.isStorageSlot(p, raw)) {
             e.setCancelled(true);
             return;

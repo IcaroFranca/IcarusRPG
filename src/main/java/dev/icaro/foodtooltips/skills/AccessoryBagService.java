@@ -158,6 +158,18 @@ public final class AccessoryBagService {
         this.openPowers = openPowers == null ? p -> {} : openPowers;
     }
 
+    /** What a right-click on one of the bag's own items does (the Personal Compactor opens its menu) - true if it was handled. Wired after construction, see {@link #itemRightClick}. */
+    private java.util.function.BiPredicate<Player, ItemStack> itemRightClick = (p, item) -> false;
+
+    public void itemRightClick(java.util.function.BiPredicate<Player, ItemStack> itemRightClick) {
+        this.itemRightClick = itemRightClick;
+    }
+
+    /** See {@link #itemRightClick}. */
+    public boolean rightClicked(Player p, ItemStack item) {
+        return item != null && !item.isEmpty() && this.itemRightClick.test(p, item);
+    }
+
     /** Always true for now - see this class's own doc. */
     public boolean unlocked(Player p) {
         return true;

@@ -322,6 +322,11 @@ extends JavaPlugin {
         this.diamondCollection.registerRecipes();
         this.diamondCollection.start();
         this.getServer().getPluginManager().registerEvents((Listener)this.diamondCollection, (Plugin)this);
+        dev.icaro.foodtooltips.item.CobblestoneCollectionService cobblestoneCollection = new dev.icaro.foodtooltips.item.CobblestoneCollectionService((Plugin)this, tiers, this.accessoryBag);
+        cobblestoneCollection.registerRecipes();
+        cobblestoneCollection.start();
+        this.getServer().getPluginManager().registerEvents((Listener)cobblestoneCollection, (Plugin)this);
+        this.accessoryBag.itemRightClick(cobblestoneCollection::bagRightClick);
         dev.icaro.foodtooltips.item.GravelCollectionService gravelCollection = new dev.icaro.foodtooltips.item.GravelCollectionService((Plugin)this, general, this.accessoryBag);
         gravelCollection.registerRecipes();
         this.getServer().getPluginManager().registerEvents((Listener)gravelCollection, (Plugin)this);
