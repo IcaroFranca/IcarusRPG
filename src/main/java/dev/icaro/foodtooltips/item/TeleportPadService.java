@@ -58,12 +58,13 @@ import org.bukkit.plugin.Plugin;
  * survival, can't be pushed or blown up). Every placed pad has an owner, a name and a color; its
  * name floats above it as a hologram ({@link TextDisplay}) in that color.
  *
- * <p>Right-clicking a pad opens its 4-row menu (owner only): slot {@value #DEST_SLOT} the
- * destinations - every OTHER pad the same player has placed, in any world - slot {@value
+ * <p>Right-clicking a pad opens its 4-row menu for its owner: slot {@value #DEST_SLOT} the
+ * destinations - every OTHER pad the same owner has placed, in any world - slot {@value
  * #COLOR_SLOT} the 16 dye colors, slot {@value #RENAME_SLOT} renaming (the client's own sign
  * editor, on a sign that only exists for that player for a moment - see {@link #startRename}),
  * slot {@value #CLOSE_SLOT} close and slot {@value #PICKUP_SLOT} picking the pad back up as an
- * item.
+ * item. Any other player can travel with it but not change it: their right-click opens just
+ * the destination list (the owner's other pads), and every other screen/button is owner-only.
  *
  * <p>Pads live in {@code plugins/IcarusRPG/teleport_pads.yml}, saved on every change. A pad whose
  * block isn't an End Portal Frame anymore (broken in creative, replaced by a command...) is
@@ -215,8 +216,8 @@ public final class TeleportPadService implements Listener {
         e.setCancelled(true);
         Player p = e.getPlayer();
         if (!pad.owner.equals(p.getUniqueId())) {
-            String owner = Bukkit.getOfflinePlayer(pad.owner).getName();
-            p.sendActionBar(Component.text("This Teleport Pad belongs to " + (owner == null ? "someone else" : owner) + ".", NamedTextColor.RED));
+            // A guest: travelling is allowed, changing the pad isn't.
+            this.openDestinations(p, pad);
             return;
         }
         this.openMain(p, pad);
@@ -248,7 +249,7 @@ public final class TeleportPadService implements Listener {
         holder.inventory = inv;
         fill(inv);
         int slot = 0;
-        for (Pad pad : this.ownedBy(p.getUniqueId())) {
+        for (Pad pad : this.ownedBy(from.owner)) {
             if (pad.id.equals(from.id) || slot >= MAX_DESTINATIONS) {
                 continue;
             }
@@ -314,6 +315,12 @@ public final class TeleportPadService implements Listener {
             return;
         }
         int slot = e.getRawSlot();
+        boolean owner = pad.owner.equals(p.getUniqueId());
+        if (!owner && holder.screen != Screen.DESTINATIONS) {
+            // Only the owner gets the settings screens - a stale one (ownership can't change, but be safe) just closes.
+            p.closeInventory();
+            return;
+        }
         switch (holder.screen) {
             case MAIN -> {
                 switch (slot) {
@@ -328,7 +335,11 @@ public final class TeleportPadService implements Listener {
             }
             case DESTINATIONS -> {
                 if (slot == BACK_SLOT) {
-                    this.openMain(p, pad);
+                    if (owner) {
+                        this.openMain(p, pad);
+                    } else {
+                        p.closeInventory();
+                    }
                 } else if (holder.destinations.containsKey(slot)) {
                     this.teleport(p, this.pads.get(holder.destinations.get(slot)));
                 }
