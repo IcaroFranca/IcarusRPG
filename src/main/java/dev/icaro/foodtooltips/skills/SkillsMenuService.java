@@ -370,7 +370,7 @@ public final class SkillsMenuService {
             for (String part : LoreWrap.wrapText("Store several accessories (Talismans, Rings, Artifacts) in here.", LoreWrap.DEFAULT_WIDTH)) {
                 accessoryLore.add(this.text(part, NamedTextColor.GRAY));
             }
-            accessoryLore.add(this.text(AccessoryBagService.STORAGE_SIZE + " " + "slots", NamedTextColor.GOLD));
+            accessoryLore.add(this.text(this.accessoryBag.storageSize(p) + "/" + AccessoryBagService.MAX_STORAGE_SIZE + " " + "slots", NamedTextColor.GOLD));
             accessoryLore.add(this.click(l));
             v.setItem(ACCESSORY_BAG_SLOT, this.item(Material.BUNDLE, "Accessory Bag", accessoryLore));
         } else {

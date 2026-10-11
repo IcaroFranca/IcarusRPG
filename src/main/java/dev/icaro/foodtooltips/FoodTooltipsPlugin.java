@@ -232,6 +232,8 @@ extends JavaPlugin {
         pitcherWand.start();
         FarmingCollectionsItemsService farmingCollectionsItems = new FarmingCollectionsItemsService((Plugin)this, tiers, general, pitcherWand);
         farmingCollectionsItems.registerRecipes();
+        // Before CombatCollectionsItemsService - see MiningCollectionsItemsService's own doc.
+        new dev.icaro.foodtooltips.item.MiningCollectionsItemsService().registerRecipes();
         general.armorFarmingFortuneBonus(farmingCollectionsItems::farmingFortuneBonus);
         armor.farmerBootsBonus(farmingCollectionsItems::farmerBootsDefenseBonus);
         MushroomSoupFlightService mushroomSoupFlight = new MushroomSoupFlightService();
@@ -291,7 +293,7 @@ extends JavaPlugin {
         menus.wardrobe(this.wardrobe);
         this.potionBag = new PotionBagService((Plugin)this, collectionsProgress, menus::openMain);
         menus.potionBag(this.potionBag);
-        this.accessoryBag = new AccessoryBagService((Plugin)this, tiers, menus::openMain);
+        this.accessoryBag = new AccessoryBagService((Plugin)this, tiers, collectionsProgress, menus::openMain);
         menus.accessoryBag(this.accessoryBag);
         this.accessoryBag.start();
         stats.accessoryBag(this.accessoryBag);

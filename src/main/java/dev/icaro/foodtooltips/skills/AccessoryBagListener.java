@@ -42,17 +42,27 @@ public final class AccessoryBagListener implements Listener {
         }
         int raw = e.getRawSlot();
         boolean topInventory = raw >= 0 && raw < e.getView().getTopInventory().getSize();
-        if (topInventory && this.bag.isCloseSlot(raw)) {
+        if (topInventory && this.bag.isCloseSlot(p, raw)) {
             e.setCancelled(true);
             this.bag.backButtonClicked(p);
             return;
         }
-        if (topInventory && this.bag.isPowersSlot(raw)) {
+        if (topInventory && this.bag.isPowersSlot(p, raw)) {
             e.setCancelled(true);
             this.bag.powersButtonClicked(p);
             return;
         }
-        if (topInventory && !this.bag.isStorageSlot(raw)) {
+        if (topInventory && this.bag.isPreviousSlot(p, raw)) {
+            e.setCancelled(true);
+            this.bag.previousPage(p);
+            return;
+        }
+        if (topInventory && this.bag.isNextSlot(p, raw)) {
+            e.setCancelled(true);
+            this.bag.nextPage(p);
+            return;
+        }
+        if (topInventory && !this.bag.isStorageSlot(p, raw)) {
             e.setCancelled(true);
             return;
         }
@@ -65,7 +75,7 @@ public final class AccessoryBagListener implements Listener {
             return;
         }
         int topSize = e.getView().getTopInventory().getSize();
-        boolean touchesLockedOrDecorative = e.getRawSlots().stream().anyMatch(slot -> slot < topSize && !this.bag.isStorageSlot(slot));
+        boolean touchesLockedOrDecorative = e.getRawSlots().stream().anyMatch(slot -> slot < topSize && !this.bag.isStorageSlot(p, slot));
         if (touchesLockedOrDecorative) {
             e.setCancelled(true);
             return;
@@ -76,7 +86,7 @@ public final class AccessoryBagListener implements Listener {
     @EventHandler
     public void close(InventoryCloseEvent e) {
         if (e.getPlayer() instanceof Player p) {
-            this.bag.close(p);
+            this.bag.close(p, e.getInventory());
         }
     }
 

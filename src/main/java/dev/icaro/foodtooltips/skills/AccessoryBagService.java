@@ -2,6 +2,9 @@ package dev.icaro.foodtooltips.skills;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import dev.icaro.foodtooltips.collections.CollectionsCatalog;
+import dev.icaro.foodtooltips.collections.CollectionsEntry;
+import dev.icaro.foodtooltips.collections.CollectionsProgressService;
 import dev.icaro.foodtooltips.i18n.Language;
 import dev.icaro.foodtooltips.item.AccessoryItems;
 import dev.icaro.foodtooltips.item.HeadTexture;
@@ -52,8 +55,8 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 /**
  * A per-player storage area for accessories (Talismans/Rings/Artifacts, any {@code
- * item.AccessoryType} - see {@code item.AccessoryItems}) - {@value #STORAGE_SIZE} plain,
- * interchangeable slots, no per-type dedicated cell: a player can carry several accessories
+ * item.AccessoryType} - see {@code item.AccessoryItems}) - {@value #BASE_STORAGE_SIZE} or more
+ * (see {@link #storageSize}) plain, interchangeable slots, no per-type dedicated cell: a player can carry several accessories
  * at once, including more than one of the same type (e.g. two Rings from different
  * Collections), per the player's own explicit "não precisa ter slot pra tipo... teremos
  * vários" spec (an earlier version of this class gave Talisman/Ring/Artifact one fixed slot
@@ -67,26 +70,30 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
  * real unlock condition is decided later.
  *
  * <p>Same PDC-persisted, {@code BukkitObjectOutputStream}-over-{@code ItemStack[]} Base64
- * pattern every other bag in this plugin uses (see {@code PotionBagService}), sized to the
- * exact minimum canvas that fits its {@value #STORAGE_SIZE} real slots plus one decorative
- * close-button row below them (see {@code skills.PersonalStorageService#totalSizeFor}'s own
- * doc on why every custom menu in this plugin no longer needs to pad out to a fixed 54-slot
- * canvas).
+ * pattern every other bag in this plugin uses (see {@code PotionBagService}). {@link
+ * #storageSize} grows by {@value #BONUS_PER_MILESTONE} per Redstone Collection milestone from M2
+ * on (up to {@value #MAX_STORAGE_SIZE}); a size change never drops anything - {@link
+ * #contentsFor} carries every saved item into the resized array. Past {@value #PAGE_SIZE} slots
+ * the bag splits into pages: {@link #cache} holds the whole logical array, and each open screen
+ * ({@link Screen}) shows one {@value #PAGE_SIZE}-slot window of it, sized to the exact minimum
+ * canvas that fits that page's rows plus one decorative navigation row below them (see {@code
+ * skills.PersonalStorageService#totalSizeFor}'s own doc on why every custom menu in this plugin
+ * no longer needs to pad out to a fixed 54-slot canvas).
  */
 public final class AccessoryBagService {
-    public static final int STORAGE_SIZE = 9;
-    private static final int SIZE = STORAGE_SIZE + 9;
-    private static final int CLOSE_SLOT = 13;
+    /** Storage before any Redstone Collection bonus. */
+    public static final int BASE_STORAGE_SIZE = 9;
+    /** Extra slots per Redstone Collection milestone crossed, M2 through M9 - see {@link #storageSize}. */
+    private static final int BONUS_PER_MILESTONE = 9;
+    public static final int MAX_STORAGE_SIZE = BASE_STORAGE_SIZE + 8 * BONUS_PER_MILESTONE;
+    /** Storage slots per page - five rows, the sixth being the navigation row. */
+    private static final int PAGE_SIZE = 45;
+    /** Columns of the navigation row below each page's storage rows. */
+    private static final int PREVIOUS_COLUMN = 0;
+    private static final int CLOSE_COLUMN = 4;
     /** Opens {@code power.PowersMenuService} - see {@link #powersButtonClicked}. */
-    private static final int POWERS_SLOT = 15;
-    /**
-     * {@code 0..STORAGE_SIZE-1} - passed as {@code MenuBackground#apply}'s own "persistent
-     * slots" so an empty (but real, usable) storage cell stays visible instead of vanishing
-     * into the seamless background the instant nothing is in it (see {@code
-     * PersonalStorageService#storageSlots}'s own doc on the exact same fix, needed after a
-     * player reported their Personal Storage's own empty cells doing exactly that).
-     */
-    private static final int[] STORAGE_SLOTS = java.util.stream.IntStream.range(0, STORAGE_SIZE).toArray();
+    private static final int POWERS_COLUMN = 6;
+    private static final int NEXT_COLUMN = 8;
     /** {@link AccessoryItems#family} for the Pumpkin Collection's own standalone Farmer Orb - see {@link #pulseFarmerOrbs}. */
     private static final String FARMER_ORB_FAMILY = "farmer_orb";
     /** {@link AccessoryItems#family} for the Mushroom Collection's own standalone Night Vision Charm - see {@link #refreshStandingEffects}. */
@@ -103,24 +110,47 @@ public final class AccessoryBagService {
 
     private final Plugin plugin;
     private final ItemTierService tiers;
+    private final CollectionsProgressService collectionsProgress;
     private final Consumer<Player> back;
     /** Wired in after construction (the Powers menu is built on top of this class) - see {@code power.PowersMenuService#open}. */
     private Consumer<Player> openPowers = p -> {};
     private final NamespacedKey contentsKey = new NamespacedKey("foodtooltips", "accessory_bag_contents");
     /** Marks {@link #filler()}'s own decorative pane - see {@link #isFiller}. */
     private final NamespacedKey fillerKey = new NamespacedKey("foodtooltips", "accessory_bag_filler");
-    private final Map<UUID, Inventory> cache = new HashMap<>();
+    /** Each player's whole bag (every page), once they've opened it this session - see {@link #contentsFor}. */
+    private final Map<UUID, ItemStack[]> cache = new HashMap<>();
     /** See {@link #stored} - the last deserialized copy of each player's saved contents, keyed by the exact serialized string it came from. */
     private final Map<UUID, LoadedContents> loaded = new HashMap<>();
+    /** The page screen each player currently has open - see {@link Screen}. */
+    private final Map<UUID, Screen> screens = new HashMap<>();
 
     private record LoadedContents(String data, ItemStack[] items) {
     }
-    private final Set<UUID> viewing = new HashSet<>();
 
-    public AccessoryBagService(Plugin plugin, ItemTierService tiers, Consumer<Player> back) {
+    /**
+     * One open page: its storage rows show {@code cache[offset .. offset+slots-1]}, and its
+     * navigation row starts at {@code navStart}. Captured at open time, so a milestone crossed
+     * while the bag is open never shifts the slot mapping under the player's cursor - the new
+     * size shows up the next time a page is opened.
+     */
+    private record Screen(Inventory inventory, int page, int pageCount, int offset, int slots, int navStart) {
+    }
+
+    public AccessoryBagService(Plugin plugin, ItemTierService tiers, CollectionsProgressService collectionsProgress, Consumer<Player> back) {
         this.plugin = plugin;
         this.tiers = tiers;
+        this.collectionsProgress = collectionsProgress;
         this.back = back;
+    }
+
+    /** {@value #BASE_STORAGE_SIZE} plus {@value #BONUS_PER_MILESTONE} per Redstone Collection milestone crossed from M2 on (M1 is Mining XP only). */
+    public int storageSize(Player p) {
+        int achieved = this.collectionsProgress.achieved(p, redstoneEntry());
+        return BASE_STORAGE_SIZE + BONUS_PER_MILESTONE * Math.max(0, achieved - 1);
+    }
+
+    private static CollectionsEntry redstoneEntry() {
+        return CollectionsCatalog.find(Material.REDSTONE_ORE).orElseThrow();
     }
 
     /** Wired in after construction - see {@link #openPowers}. */
@@ -133,48 +163,117 @@ public final class AccessoryBagService {
         return true;
     }
 
-    public boolean isStorageSlot(int slot) {
-        return slot >= 0 && slot < STORAGE_SIZE;
+    /** Whether {@code slot} (a raw top-inventory slot) is one of the open page's real storage slots, rather than the navigation row. */
+    public boolean isStorageSlot(Player p, int slot) {
+        Screen s = this.screens.get(p.getUniqueId());
+        return s != null && slot >= 0 && slot < s.slots();
     }
 
-    public boolean isCloseSlot(int slot) {
-        return slot == CLOSE_SLOT;
+    public boolean isCloseSlot(Player p, int slot) {
+        return this.isNavSlot(p, slot, CLOSE_COLUMN);
     }
 
-    public boolean isPowersSlot(int slot) {
-        return slot == POWERS_SLOT;
+    public boolean isPowersSlot(Player p, int slot) {
+        return this.isNavSlot(p, slot, POWERS_COLUMN);
+    }
+
+    public boolean isPreviousSlot(Player p, int slot) {
+        Screen s = this.screens.get(p.getUniqueId());
+        return s != null && s.page() > 0 && this.isNavSlot(p, slot, PREVIOUS_COLUMN);
+    }
+
+    public boolean isNextSlot(Player p, int slot) {
+        Screen s = this.screens.get(p.getUniqueId());
+        return s != null && s.page() < s.pageCount() - 1 && this.isNavSlot(p, slot, NEXT_COLUMN);
+    }
+
+    private boolean isNavSlot(Player p, int slot, int column) {
+        Screen s = this.screens.get(p.getUniqueId());
+        return s != null && slot == s.navStart() + column;
     }
 
     public void powersButtonClicked(Player p) {
         this.openPowers.accept(p);
     }
 
+    public void previousPage(Player p) {
+        Screen s = this.screens.get(p.getUniqueId());
+        if (s != null) {
+            this.open(p, s.page() - 1);
+        }
+    }
+
+    public void nextPage(Player p) {
+        Screen s = this.screens.get(p.getUniqueId());
+        if (s != null) {
+            this.open(p, s.page() + 1);
+        }
+    }
+
     public void open(Player p) {
-        Inventory inv = this.inventoryFor(p);
+        this.open(p, 0);
+    }
+
+    /**
+     * Opens page {@code page} (clamped to the pages {@code p} currently has). Any page already
+     * open is synced and persisted first and dropped from {@link #screens} before the new one
+     * opens, so the close event vanilla fires for the old screen finds nothing to do.
+     */
+    private void open(Player p, int page) {
+        this.persist(p);
+        this.screens.remove(p.getUniqueId());
+        ItemStack[] contents = this.contentsFor(p);
+        int pageCount = Math.max(1, (contents.length + PAGE_SIZE - 1) / PAGE_SIZE);
+        int current = Math.max(0, Math.min(page, pageCount - 1));
+        int offset = current * PAGE_SIZE;
+        int slots = Math.min(PAGE_SIZE, contents.length - offset);
+        int navStart = (slots + 8) / 9 * 9;
+        String title = pageCount > 1 ? "Accessory Bag (" + (current + 1) + "/" + pageCount + ")" : "Accessory Bag";
+        Inventory inv = Bukkit.createInventory(null, navStart + 9, title);
+        for (int i = 0; i < slots; i++) {
+            inv.setItem(i, contents[offset + i]);
+        }
+        ItemStack filler = this.filler();
+        for (int i = slots; i < inv.getSize(); i++) {
+            inv.setItem(i, filler);
+        }
+        inv.setItem(navStart + CLOSE_COLUMN, this.closeButton(Language.of(p)));
+        inv.setItem(navStart + POWERS_COLUMN, this.powersButton(p));
+        if (current > 0) {
+            inv.setItem(navStart + PREVIOUS_COLUMN, this.pageButton("Previous page", current, pageCount));
+        }
+        if (current < pageCount - 1) {
+            inv.setItem(navStart + NEXT_COLUMN, this.pageButton("Next page", current + 2, pageCount));
+        }
         p.openInventory(inv);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, STORAGE_SLOTS);
-        this.viewing.add(p.getUniqueId());
+        this.screens.put(p.getUniqueId(), new Screen(inv, current, pageCount, offset, slots, navStart));
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, java.util.stream.IntStream.range(0, slots).toArray());
     }
 
     public boolean viewing(Player p) {
-        return this.viewing.contains(p.getUniqueId());
+        return this.screens.containsKey(p.getUniqueId());
     }
 
-    public void close(Player p) {
-        this.viewing.remove(p.getUniqueId());
+    /** Vanilla closed {@code inventory} - only acts if that's the page screen {@code p} still has open (see {@link #open(Player, int)} on why a page switch's own close event must be ignored). */
+    public void close(Player p, Inventory inventory) {
+        Screen s = this.screens.get(p.getUniqueId());
+        if (s == null || s.inventory() != inventory) {
+            return;
+        }
         this.persist(p);
+        this.screens.remove(p.getUniqueId());
     }
 
     public void handleQuit(Player p) {
-        this.viewing.remove(p.getUniqueId());
         this.persist(p);
+        this.screens.remove(p.getUniqueId());
         this.cache.remove(p.getUniqueId());
         this.loaded.remove(p.getUniqueId());
     }
 
     public void backButtonClicked(Player p) {
-        this.viewing.remove(p.getUniqueId());
         this.persist(p);
+        this.screens.remove(p.getUniqueId());
         this.back.accept(p);
     }
 
@@ -266,37 +365,42 @@ public final class AccessoryBagService {
      */
     public void scheduleFilterSweep(Player p) {
         Bukkit.getScheduler().runTask(this.plugin, () -> {
-            if (!this.viewing(p) || !p.isOnline()) {
+            Screen s = this.screens.get(p.getUniqueId());
+            ItemStack[] contents = this.cache.get(p.getUniqueId());
+            if (s == null || contents == null || !p.isOnline()) {
                 return;
             }
-            Inventory top = p.getOpenInventory().getTopInventory();
-            if (top.getSize() < SIZE) {
-                return;
-            }
+            this.syncScreen(p);
+            // Across every page, not just the open one - a family already kept on page 1
+            // still rules out a duplicate placed on page 2.
             Set<String> keptFamilies = new HashSet<>();
-            for (int i = 0; i < STORAGE_SIZE; i++) {
-                ItemStack item = top.getItem(i);
+            for (int i = 0; i < contents.length; i++) {
+                ItemStack item = contents[i];
                 if (item == null || item.isEmpty()) {
                     continue;
                 }
-                if (this.isFiller(item)) {
-                    top.setItem(i, null);
-                    continue;
-                }
                 if (AccessoryItems.type(item) == null) {
-                    this.eject(p, top, i, item);
+                    this.eject(p, contents, i);
                     continue;
                 }
                 String family = AccessoryItems.family(item);
                 if (family != null && !keptFamilies.add(family)) {
-                    this.eject(p, top, i, item);
+                    this.eject(p, contents, i);
                 }
+            }
+            for (int i = 0; i < s.slots(); i++) {
+                s.inventory().setItem(i, contents[s.offset() + i]);
             }
         });
     }
 
-    private void eject(Player p, Inventory top, int slot, ItemStack item) {
-        top.setItem(slot, null);
+    private void eject(Player p, ItemStack[] contents, int index) {
+        ItemStack item = contents[index];
+        contents[index] = null;
+        give(p, item);
+    }
+
+    private static void give(Player p, ItemStack item) {
         for (ItemStack overflow : p.getInventory().addItem(item).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), overflow);
         }
@@ -484,8 +588,8 @@ public final class AccessoryBagService {
     }
 
     /**
-     * {@code p}'s own {@value #STORAGE_SIZE} storage slots - from the live cached screen if {@code
-     * p} has one (so a change lands immediately, before the bag is ever closed/persisted),
+     * {@code p}'s own storage slots, every page - from the live cached bag if {@code p} has one
+     * (synced from the open page first, so a change lands immediately, before the bag is ever closed/persisted),
      * otherwise from their last-persisted PDC state. Read-only for every caller: the items
      * themselves may be shared with {@link #loaded}.
      *
@@ -497,19 +601,20 @@ public final class AccessoryBagService {
      * new string, so the next read naturally reloads.
      */
     private ItemStack[] stored(Player p) {
-        Inventory cached = this.cache.get(p.getUniqueId());
+        ItemStack[] cached = this.cache.get(p.getUniqueId());
         if (cached != null) {
-            return Arrays.copyOfRange(cached.getContents(), 0, STORAGE_SIZE);
+            this.syncScreen(p);
+            return cached.clone();
         }
         String data = p.getPersistentDataContainer().get(this.contentsKey, PersistentDataType.STRING);
         if (data == null || data.isEmpty()) {
-            return new ItemStack[STORAGE_SIZE];
+            return new ItemStack[0];
         }
         LoadedContents previous = this.loaded.get(p.getUniqueId());
         if (previous == null || !previous.data().equals(data)) {
             ItemStack[] saved = this.load(p);
             if (saved == null) {
-                return new ItemStack[STORAGE_SIZE];
+                return new ItemStack[0];
             }
             previous = new LoadedContents(data, saved);
             this.loaded.put(p.getUniqueId(), previous);
@@ -518,35 +623,57 @@ public final class AccessoryBagService {
     }
 
     /**
-     * Rebuilds (not just reuses) whenever the cached {@link Inventory}'s own size doesn't
-     * match {@value #SIZE} - guards against a stale in-memory object left over from an
-     * earlier, now-replaced canvas size (e.g. a plugin update whose server process wasn't
-     * fully restarted since a player last opened this) - see {@code
-     * QuiverService#inventoryFor}'s own doc on the exact same risk.
+     * {@code p}'s whole bag, resized to their current {@link #storageSize} - loaded from PDC the
+     * first time, cached after. Growing keeps every item in place. Shrinking (only possible if
+     * Collections progress is ever reset) hands anything past the new size back to the player
+     * instead of deleting it.
      */
-    private Inventory inventoryFor(Player p) {
-        Language l = Language.of(p);
-        Inventory cached = this.cache.get(p.getUniqueId());
-        if (cached != null && cached.getSize() == SIZE) {
-            return cached;
-        }
-        Inventory inv = Bukkit.createInventory(null, SIZE, "Accessory Bag");
-        ItemStack[] saved = cached != null
-                ? Arrays.copyOfRange(cached.getContents(), 0, Math.min(cached.getSize(), STORAGE_SIZE))
-                : this.load(p);
-        if (saved != null) {
-            for (int i = 0; i < Math.min(saved.length, STORAGE_SIZE); i++) {
-                inv.setItem(i, this.isFiller(saved[i]) ? null : saved[i]);
+    private ItemStack[] contentsFor(Player p) {
+        int size = this.storageSize(p);
+        ItemStack[] contents = this.cache.get(p.getUniqueId());
+        if (contents == null) {
+            ItemStack[] saved = this.load(p);
+            contents = saved == null ? new ItemStack[0] : saved;
+            for (int i = 0; i < contents.length; i++) {
+                if (this.isFiller(contents[i])) {
+                    contents[i] = null;
+                }
             }
         }
-        ItemStack filler = this.filler();
-        for (int i = STORAGE_SIZE; i < SIZE; i++) {
-            inv.setItem(i, filler);
+        if (contents.length != size) {
+            ItemStack[] resized = Arrays.copyOf(contents, size);
+            for (int i = size; i < contents.length; i++) {
+                if (contents[i] != null && !contents[i].isEmpty()) {
+                    give(p, contents[i]);
+                }
+            }
+            contents = resized;
         }
-        inv.setItem(CLOSE_SLOT, this.closeButton(l));
-        inv.setItem(POWERS_SLOT, this.powersButton(p));
-        this.cache.put(p.getUniqueId(), inv);
-        return inv;
+        this.cache.put(p.getUniqueId(), contents);
+        return contents;
+    }
+
+    /** Copies the open page's storage slots back into {@link #cache} - a no-op if {@code p} has no page open. */
+    private void syncScreen(Player p) {
+        Screen s = this.screens.get(p.getUniqueId());
+        ItemStack[] contents = this.cache.get(p.getUniqueId());
+        if (s == null || contents == null) {
+            return;
+        }
+        for (int i = 0; i < s.slots() && s.offset() + i < contents.length; i++) {
+            ItemStack item = s.inventory().getItem(i);
+            contents[s.offset() + i] = this.isFiller(item) ? null : item;
+        }
+    }
+
+    private ItemStack pageButton(String label, int targetPage, int pageCount) {
+        ItemStack i = ItemStack.of(Material.ARROW);
+        ItemMeta m = i.getItemMeta();
+        m.displayName(Component.text(label, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        m.lore(List.of(Component.text("Page " + targetPage + "/" + pageCount, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
+        m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        i.setItemMeta(m);
+        return i;
     }
 
     private ItemStack powersButton(Player p) {
@@ -563,12 +690,12 @@ public final class AccessoryBagService {
     }
 
     private void persist(Player p) {
-        Inventory inv = this.cache.get(p.getUniqueId());
-        if (inv == null) {
+        ItemStack[] contents = this.cache.get(p.getUniqueId());
+        if (contents == null) {
             return;
         }
-        ItemStack[] storage = Arrays.copyOfRange(inv.getContents(), 0, STORAGE_SIZE);
-        p.getPersistentDataContainer().set(this.contentsKey, PersistentDataType.STRING, this.serialize(storage));
+        this.syncScreen(p);
+        p.getPersistentDataContainer().set(this.contentsKey, PersistentDataType.STRING, this.serialize(contents));
     }
 
     private ItemStack closeButton(Language l) {

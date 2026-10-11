@@ -201,6 +201,8 @@ public final class CollectionsCatalog {
     public static final NamespacedKey TELEPORT_PAD_RECIPE = new NamespacedKey("foodtooltips", "teleport_pad");
     public static final NamespacedKey ASPECT_OF_THE_END_RECIPE = new NamespacedKey("foodtooltips", "aspect_of_the_end");
     public static final NamespacedKey SAVING_GRACE_RECIPE = new NamespacedKey("foodtooltips", "saving_grace");
+    public static final NamespacedKey REDSTONE_CORE_RECIPE = new NamespacedKey("foodtooltips", "redstone_core");
+    public static final NamespacedKey WEATHER_WAND_RECIPE = new NamespacedKey("foodtooltips", "weather_wand");
 
     /**
      * The threshold ladder every Combat Collection entry uses (the player's own explicit
@@ -261,6 +263,12 @@ public final class CollectionsCatalog {
                     "Recompensa em breve", "Reward coming soon"));
         }
         return list;
+    }
+
+    /** A rung whose only reward is +9 Accessory Bag slots - nothing to apply here, {@code skills.AccessoryBagService#storageSize} counts the milestone itself (same no-recipe RECIPE_UNLOCK shape String's own "+9 Quiver slots" rungs use). */
+    private static CollectionsMilestone accessoryBagSlots(int threshold) {
+        return new CollectionsMilestone(threshold, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
+                "+9 espaços na Accessory Bag", "+9 Accessory Bag slots");
     }
 
     private static java.util.Map.Entry<Integer, CollectionsMilestone> at(int milestoneNumber, CollectionsMilestone milestone) {
@@ -434,7 +442,7 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.BREEZE_ROD, Material.BREEZE_ROD, CollectionsCategory.COMBAT, "Bastão de Brisa", "Breeze Rod", List.of()),
             new CollectionsEntry(Material.PHANTOM_MEMBRANE, Material.PHANTOM_MEMBRANE, CollectionsCategory.COMBAT, "Membrana de Phantom", "Phantom Membrane", List.of()),
             new CollectionsEntry(Material.WITHER_SKELETON_SKULL, Material.WITHER_SKELETON_SKULL, CollectionsCategory.COMBAT, "Crânio de Esqueleto Wither", "Wither Skeleton Skull", List.of()),
-            // Mining (rewards still to be defined - every rung is a placeholderLadder() for now,
+            // Mining (rewards still to be defined except Redstone - the rest are placeholderLadder()s for now,
             // counting and completing with no reward of its own) - block -> drop,
             // the same pair skills.GeneralSkillListener credits: an ore by its real drop (raw
             // metal/gem, Fortune copies included - a Smelting Touch ingot still counts as its raw
@@ -446,7 +454,24 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.COPPER_ORE, Material.RAW_COPPER, CollectionsCategory.MINING, "Cobre", "Copper", placeholderLadder()),
             new CollectionsEntry(Material.IRON_ORE, Material.RAW_IRON, CollectionsCategory.MINING, "Ferro", "Iron", placeholderLadder()),
             new CollectionsEntry(Material.GOLD_ORE, Material.RAW_GOLD, CollectionsCategory.MINING, "Ouro", "Gold", placeholderLadder()),
-            new CollectionsEntry(Material.REDSTONE_ORE, Material.REDSTONE, CollectionsCategory.MINING, "Redstone", "Redstone", placeholderLadder()),
+            // Redstone: M2 onward each add +9 Accessory Bag slots (see
+            // skills.AccessoryBagService#storageSize, which reads this entry's own achieved count).
+            new CollectionsEntry(Material.REDSTONE_ORE, Material.REDSTONE, CollectionsCategory.MINING, "Redstone", "Redstone", List.of(
+                    CollectionsMilestone.miningXp(DEFAULT_THRESHOLDS[0], 1000,
+                            "+1000 XP de Mineração", "+1000 Mining XP"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[1],
+                            "Desbloqueia a receita do Redstone Core e +9 espaços na Accessory Bag", "Unlocks the Redstone Core recipe and +9 Accessory Bag slots",
+                            REDSTONE_CORE_RECIPE),
+                    CollectionsMilestone.vanillaEnchantDiscount(DEFAULT_THRESHOLDS[2], NamespacedKey.minecraft("efficiency"), 25.0,
+                            "-25% de custo em XP para Eficiência e +9 espaços na Accessory Bag", "-25% XP cost for Efficiency and +9 Accessory Bag slots"),
+                    CollectionsMilestone.recipeUnlock(DEFAULT_THRESHOLDS[3],
+                            "Desbloqueia a receita da Weather Wand e +9 espaços na Accessory Bag", "Unlocks the Weather Wand recipe and +9 Accessory Bag slots",
+                            WEATHER_WAND_RECIPE),
+                    accessoryBagSlots(DEFAULT_THRESHOLDS[4]),
+                    accessoryBagSlots(DEFAULT_THRESHOLDS[5]),
+                    accessoryBagSlots(DEFAULT_THRESHOLDS[6]),
+                    accessoryBagSlots(DEFAULT_THRESHOLDS[7]),
+                    accessoryBagSlots(DEFAULT_THRESHOLDS[8]))),
             new CollectionsEntry(Material.LAPIS_ORE, Material.LAPIS_LAZULI, CollectionsCategory.MINING, "Lápis-Lazúli", "Lapis Lazuli", placeholderLadder()),
             new CollectionsEntry(Material.DIAMOND_ORE, Material.DIAMOND, CollectionsCategory.MINING, "Diamante", "Diamond", placeholderLadder()),
             new CollectionsEntry(Material.EMERALD_ORE, Material.EMERALD, CollectionsCategory.MINING, "Esmeralda", "Emerald", placeholderLadder()),

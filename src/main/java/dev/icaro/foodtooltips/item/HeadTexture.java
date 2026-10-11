@@ -187,6 +187,8 @@ public final class HeadTexture {
     public static final String INTIMIDATION_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjgxMTdjMjA5YjY5ZWVhZjI2ODQ4MTZlMTZiZWQyNWU2NjUwMDhlNzMyOTYzMmZkZmNhNjUyMzc5OWNkN2Y3MSJ9fX0=";
     /** "Redstone (yellow)" (mcheads.ru Head ID 48834) - the Scavenger Talisman - see {@code CombatTalismanService}. */
     public static final String SCAVENGER_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzkzM2VlMjM2NTg4OGZkOTZhZDg4MzNlMTNjMjI0NzVmMGVmNjEzYWRkNzU0MWI3MmMyYWMzYzVmZTQyOGUyMSJ9fX0=";
+    /** The Redstone Core crafting item (Redstone Collection M2) - see {@code MiningCollectionsItemsService}. */
+    public static final String REDSTONE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWUwY2E1OTI2ODU1ZTRjYTg3ZTEwNmJkYzZiNTczYzZmYzE0MjAxODI2Mjg3ODFhOTNjYjg0ZTg2ZWIxMGJmNiJ9fX0=";
     /** Every constant above, in one place - {@code GeyserSkullExport} reads this so a texture never has to be added there by hand (and risk being forgotten) each time a new one is added here. */
     public static final Set<String> ALL = Set.of(PLANET, TRASH_CAN, ARROW_RIGHT, ARROW_LEFT, BACK, CLOSE, QUIVER, SUPER_MUSHROOM, ZOMBIE_MINER, SKELETON_MINER,
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
@@ -199,7 +201,7 @@ public final class HeadTexture {
             BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, WHEAT_SEEDS_CORE, PITCHER_POD_CORE, BONE_CORE, PILE_OF_BONE_CORE,
             ROTTEN_FLESH_CORE, ZOMBIES_HEART, SPIDER_HAT, SPIDER_EYE_CORE, FERMENTED_SPIDER_EYE_CORE, STRING_CORE, GUNPOWDER_CORE, FIREWORK_CORE,
             ENDER_PEARL_CORE, EYE_OF_ENDER_CORE, VILLAGE_AFFINITY_TALISMAN, MINE_AFFINITY_TALISMAN, INTIMIDATION_TALISMAN,
-            SCAVENGER_TALISMAN);
+            SCAVENGER_TALISMAN, REDSTONE_CORE);
 
     private HeadTexture() {
     }

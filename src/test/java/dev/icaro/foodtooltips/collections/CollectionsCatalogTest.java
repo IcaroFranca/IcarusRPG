@@ -384,4 +384,21 @@ final class CollectionsCatalogTest {
         assertEquals(RewardKind.FORAGING_XP, m.get(8).kind());
         assertEquals(25000, m.get(8).xpAmount());
     }
+
+    @Test
+    void redstoneRewards() {
+        List<CollectionsMilestone> m = CollectionsCatalog.find(Material.REDSTONE_ORE).orElseThrow().milestones();
+        assertEquals(9, m.size());
+        assertEquals(RewardKind.MINING_XP, m.get(0).kind());
+        assertEquals(1000, m.get(0).xpAmount());
+        assertEquals(List.of(CollectionsCatalog.REDSTONE_CORE_RECIPE), m.get(1).recipes());
+        assertEquals(RewardKind.VANILLA_ENCHANT_DISCOUNT, m.get(2).kind());
+        assertEquals(org.bukkit.NamespacedKey.minecraft("efficiency"), m.get(2).vanillaDiscountEnchant());
+        assertEquals(25.0, m.get(2).discountPercent());
+        assertEquals(List.of(CollectionsCatalog.WEATHER_WAND_RECIPE), m.get(3).recipes());
+        // M2-M9 each add +9 Accessory Bag slots (AccessoryBagService#storageSize counts them).
+        for (int i = 1; i < 9; i++) {
+            assertTrue(m.get(i).rewardEn().contains("+9 Accessory Bag slots"), "Redstone milestone " + (i + 1));
+        }
+    }
 }
