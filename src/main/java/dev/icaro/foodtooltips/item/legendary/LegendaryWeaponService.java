@@ -99,6 +99,8 @@ public final class LegendaryWeaponService {
     private static final String DURABILITY_MULTIPLIED_KEY = "durability_multiplied";
     /** The IcarusTexture resource pack's own item model for the Undead's Sword ({@code assets/icarus/items/undead_sword.json}) - a Java client with the pack installed renders this instead of the plain {@link LegendaryWeapon#material()} icon; everyone else just sees the underlying material (Iron Sword) unaffected, same graceful-fallback shape every other resource-pack-only cosmetic in this plugin uses. */
     private static final Key UNDEAD_SWORD_MODEL = Key.key("icarus", "undead_sword");
+    /** The IcarusTexture pack's own item model for the Knight Killer ({@code assets/icarus/items/knight_killer.json}) - same fallback as {@link #UNDEAD_SWORD_MODEL}: without the pack it's a plain Diamond Sword. */
+    private static final Key KNIGHT_KILLER_MODEL = Key.key("icarus", "knight_killer");
     /** Every vanilla EntityType the game itself treats as "undead" (same set Smite and Instant Health/Harming target). */
     private static final Set<EntityType> UNDEAD_TYPES = Set.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER, EntityType.HUSK,
             EntityType.DROWNED, EntityType.SKELETON, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.ZOMBIFIED_PIGLIN,
@@ -134,6 +136,15 @@ public final class LegendaryWeaponService {
     }
 
     // ---- Identity ---------------------------------------------------------
+
+    /** The resource-pack item model {@code w} renders with, or null for one that keeps its plain material icon. */
+    private static Key modelOf(LegendaryWeapon w) {
+        return switch (w) {
+            case UNDEAD_SWORD -> UNDEAD_SWORD_MODEL;
+            case KNIGHT_KILLER -> KNIGHT_KILLER_MODEL;
+            default -> null;
+        };
+    }
 
     /** The {@link LegendaryWeapon} {@code item} is tagged as, or null if it isn't one. */
     public static LegendaryWeapon of(ItemStack item) {
@@ -249,8 +260,9 @@ public final class LegendaryWeaponService {
         }
         meta.lore(lore);
         item.setItemMeta(meta);
-        if (w == LegendaryWeapon.UNDEAD_SWORD) {
-            item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
+        Key model = modelOf(w);
+        if (model != null) {
+            item.setData(DataComponentTypes.ITEM_MODEL, model);
         }
         ItemStack tiered = this.tiers.applyTier(item, l);
         return tiered != null ? tiered : item;
@@ -405,8 +417,8 @@ public final class LegendaryWeaponService {
         }
         ItemMeta meta = item.getItemMeta();
         boolean changed = false;
-        boolean missingUndeadModel = weapon == LegendaryWeapon.UNDEAD_SWORD
-                && !UNDEAD_SWORD_MODEL.equals(item.getData(DataComponentTypes.ITEM_MODEL));
+        Key model = modelOf(weapon);
+        boolean missingModel = model != null && !model.equals(item.getData(DataComponentTypes.ITEM_MODEL));
         if (!this.hasBaseZero(meta)) {
             // See SwordDamageService#rewrite's identical comment on why this needs to
             // live on the item itself.
@@ -435,17 +447,17 @@ public final class LegendaryWeaponService {
                 }
             }
         }
-        if (!changed && !missingUndeadModel) {
+        if (!changed && !missingModel) {
             return null;
         }
         if (changed) {
             item.setItemMeta(meta);
         }
         // Apply this after ItemMeta: several tooltip/enchantment passes rewrite meta,
-        // and old Undead's Swords may predate the component entirely. Checking the
+        // and old Undead's Swords/Knight Killers may predate the component entirely. Checking the
         // actual component here makes the resource-pack binding self-healing.
-        if (missingUndeadModel) {
-            item.setData(DataComponentTypes.ITEM_MODEL, UNDEAD_SWORD_MODEL);
+        if (missingModel) {
+            item.setData(DataComponentTypes.ITEM_MODEL, model);
         }
         return item;
     }
