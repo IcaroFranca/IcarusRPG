@@ -931,14 +931,19 @@ extends JavaPlugin {
     }
 
     public void onDisable() {
-        if (this.lavaFishing != null) {
-            this.lavaFishing.clearAll();
-        }
-        if (this.tomatoCrop != null) {
-            this.tomatoCrop.clearAll();
-        }
-        if (this.diamondCollection != null) {
-            this.diamondCollection.clearAll();
+        // These only remove display entities, all non-persistent (never saved with the chunk).
+        // A crash shutdown runs onDisable off the main thread, where Paper refuses entity
+        // removal - and there's nothing to clean up then anyway.
+        if (Bukkit.isPrimaryThread()) {
+            if (this.lavaFishing != null) {
+                this.lavaFishing.clearAll();
+            }
+            if (this.tomatoCrop != null) {
+                this.tomatoCrop.clearAll();
+            }
+            if (this.diamondCollection != null) {
+                this.diamondCollection.clearAll();
+            }
         }
         if (this.creakingSight != null) {
             this.creakingSight.stop();
