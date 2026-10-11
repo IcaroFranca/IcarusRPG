@@ -83,14 +83,18 @@ public final class CustomCropService implements Listener, CommandExecutor {
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjc3YWQ3YjBlYmZiM2MyZWVhM2Y5Y2Q0NTI5ZTExNTMxOWFiYTNlNzEyZTMzMzU1MGM5OWQ1Y2YyNGIwODkifX19",
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDE4Njg2M2ZkZjNmM2UyOTc5ZWM2ZDk3OGEwODhkOGE0Zjg2NjRjNTBiNWI2ZDI5YWQ0YTdhYzI2NGEwMTcifX19",
                 new Vector3f(0.45f, 0.45f, 0.45f),
-                new double[][]{{0.28, 0.30, 0.32}, {0.70, 0.40, 0.55}, {0.42, 0.50, 0.74}}),
-        /** Corn: the Pitcher crop, 2 blocks tall at age 3 (before it flowers); 4 long ears up its sides. */
-        CORN("corn", "Corn", NamedTextColor.YELLOW, Material.PITCHER_POD, null, Material.PITCHER_CROP, Material.PITCHER_CROP,
-                3, 3, 3, 2, 4, 4, 4.8f,
+                new double[][]{{0.28, 0.30, 0.32}, {0.70, 0.40, 0.55}, {0.42, 0.50, 0.74}}, null),
+        /**
+         * Corn: a Fern sprout that grows into a Large Fern (2 tall, the corn stalk), then ripens - grown
+         * by this class itself (see {@link #growManual}), since neither fern grows on its own. 4 long
+         * ears up the stalk. Its seed is still a Pitcher Pod (the ones already sold keep working).
+         */
+        CORN("corn", "Corn", NamedTextColor.YELLOW, Material.PITCHER_POD, Key.key("icarus", "corn_seeds"), Material.PITCHER_CROP, Material.LARGE_FERN,
+                1, 1, 1, 2, 4, 4, 4.8f,
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2VjZDZkZWIzODAyNWUzMjJjZWFlYzc2OWYxMzU1MWVhYTgwMzhjN2ZlYzMxYTg1Y2U2ZDk0MTdiMWM3Njk5NCJ9fX0=",
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDM5MWRmZmJlYTJmYzNmMmFkNzhhNjIzZjQ5YmY3ZTExMjE2OTQxMTJjMzc1OWZlZWQ0MTU2ZmMyYmE0NmMwIn19fQ==",
-                new Vector3f(0.32f, 0.6f, 0.32f),
-                new double[][]{{0.22, 0.55, 0.30}, {0.78, 0.80, 0.62}, {0.30, 1.15, 0.72}, {0.72, 1.40, 0.36}});
+                new Vector3f(0.28f, 0.52f, 0.28f),
+                new double[][]{{0.36, 0.62, 0.50}, {0.64, 0.86, 0.52}, {0.50, 1.10, 0.36}, {0.50, 1.34, 0.64}}, Material.FERN);
 
         final String id;
         final String name;
@@ -120,10 +124,15 @@ public final class CustomCropService implements Listener, CommandExecutor {
         final NamespacedKey fruitKey;
         /** A chunk's plants of this crop: "x,y,z,ripe" entries (world coordinates) joined by ";". */
         final NamespacedKey chunkKey;
+        /**
+         * Non-null for a crop this class grows itself instead of vanilla: the 1-block sprout it starts
+         * as, which becomes {@link #base} (a 2-tall plant), which then ripens. Ages don't apply.
+         */
+        final Material sprout;
 
         Crop(String id, String name, NamedTextColor color, Material seedMaterial, Key seedModel, Material plantedAs, Material base,
                 int fruitAge, int maxAge, int harvestAge, int minHarvest, int maxHarvest, int nutrition, float saturation,
-                String greenTexture, String ripeTexture, Vector3f fruitScale, double[][] fruitSpots) {
+                String greenTexture, String ripeTexture, Vector3f fruitScale, double[][] fruitSpots, Material sprout) {
             this.id = id;
             this.name = name;
             this.color = color;
@@ -145,6 +154,7 @@ public final class CustomCropService implements Listener, CommandExecutor {
             this.seedKey = new NamespacedKey("foodtooltips", id + "_seed");
             this.fruitKey = new NamespacedKey("foodtooltips", id);
             this.chunkKey = new NamespacedKey("foodtooltips", id + "_plants");
+            this.sprout = sprout;
         }
     }
 
@@ -271,8 +281,9 @@ public final class CustomCropService implements Listener, CommandExecutor {
             }
             if (has(hand, crop.seedKey) && e.getBlockPlaced().getType() == crop.plantedAs) {
                 Block b = e.getBlockPlaced();
-                if (crop.plantedAs != crop.base) {
-                    b.setType(crop.base);
+                Material start = crop.sprout != null ? crop.sprout : crop.base;
+                if (b.getType() != start) {
+                    b.setType(start);
                 }
                 this.plants.put(Pos.of(b), new Plant(crop, false));
                 this.save(b.getChunk());
@@ -288,7 +299,22 @@ public final class CustomCropService implements Listener, CommandExecutor {
         }
         Block b = lowerHalf(e.getClickedBlock());
         Plant plant = this.plants.get(Pos.of(b));
-        if (plant == null || !plant.ripe) {
+        if (plant == null) {
+            return;
+        }
+        if (!plant.ripe) {
+            ItemStack item = e.getItem();
+            if (plant.crop.sprout != null && item != null && item.getType() == Material.BONE_MEAL) {
+                e.setCancelled(true);
+                if (this.advance(b, plant)) {
+                    if (e.getPlayer().getGameMode() != org.bukkit.GameMode.CREATIVE) {
+                        item.subtract();
+                    }
+                    b.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, b.getLocation().add(0.5, 0.6, 0.5), 10, 0.3, 0.4, 0.3);
+                    b.getWorld().playSound(b.getLocation(), Sound.ITEM_BONE_MEAL_USE, 1.0f, 1.0f);
+                    this.refresh(Pos.of(b), plant, b);
+                }
+            }
             return;
         }
         e.setCancelled(true);
@@ -345,6 +371,13 @@ public final class CustomCropService implements Listener, CommandExecutor {
         for (BlockState state : e.getBlocks()) {
             Block b = state.getBlockData() instanceof Bisected half && half.getHalf() == Bisected.Half.TOP ? state.getBlock().getRelative(0, -1, 0) : state.getBlock();
             Plant plant = this.plants.get(Pos.of(b));
+            if (plant == null) {
+                plant = this.plants.get(Pos.of(e.getBlock()));
+            }
+            if (plant != null && plant.crop.sprout != null) {
+                e.setCancelled(true);
+                return;
+            }
             if (plant != null && state.getBlockData() instanceof Ageable age && age.getAge() > plant.crop.maxAge) {
                 age.setAge(plant.crop.maxAge);
                 state.setBlockData(age);
@@ -381,6 +414,13 @@ public final class CustomCropService implements Listener, CommandExecutor {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void farmlandFade(org.bukkit.event.block.BlockFadeEvent e) {
+        if (e.getBlock().getType() == Material.FARMLAND && this.plants.containsKey(Pos.of(e.getBlock().getRelative(0, 1, 0)))) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void water(BlockFromToEvent e) {
         Block to = e.getToBlock();
         if (this.plants.containsKey(Pos.of(to)) || this.plants.containsKey(Pos.of(to.getRelative(0, -1, 0))) && isBase(to)) {
@@ -404,14 +444,24 @@ public final class CustomCropService implements Listener, CommandExecutor {
                 continue;
             }
             Plant plant = entry.getValue();
-            if (b.getType() != plant.crop.base) {
+            if (plant.crop == Crop.CORN && b.getType() == Material.PITCHER_CROP) {
+                // Corn planted while it was still grown on the Pitcher crop.
+                if (b.getBlockData() instanceof Ageable age && age.getAge() >= 3) {
+                    setTall(b, plant.crop.base);
+                } else {
+                    b.setType(plant.crop.sprout);
+                }
+            }
+            if (b.getType() != plant.crop.base && b.getType() != plant.crop.sprout) {
                 // Gone some other way (creative break, piston, explosion...).
                 removeFruits(plant);
                 it.remove();
                 this.save(b.getChunk());
                 continue;
             }
-            if (b.getBlockData() instanceof Ageable age && age.getAge() > plant.crop.maxAge) {
+            if (plant.crop.sprout != null) {
+                this.growManual(b, plant);
+            } else if (b.getBlockData() instanceof Ageable age && age.getAge() > plant.crop.maxAge) {
                 setAge(b, plant.crop.maxAge);
                 this.ripen(b, plant);
             }
@@ -421,7 +471,9 @@ public final class CustomCropService implements Listener, CommandExecutor {
 
     private void refresh(Pos pos, Plant plant, Block b) {
         Crop crop = plant.crop;
-        int want = plant.ripe ? 2 : b.getBlockData() instanceof Ageable age && age.getAge() >= crop.fruitAge ? 1 : 0;
+        int want = plant.ripe ? 2
+                : crop.sprout != null ? (b.getType() == crop.base ? 1 : 0)
+                : b.getBlockData() instanceof Ageable age && age.getAge() >= crop.fruitAge ? 1 : 0;
         boolean missing = plant.fruits.stream().anyMatch(d -> !d.isValid());
         if (want == plant.shown && !missing) {
             return;
@@ -447,6 +499,49 @@ public final class CustomCropService implements Listener, CommandExecutor {
                         new Vector3f(crop.fruitScale), new AxisAngle4f()));
             }));
         }
+    }
+
+    /** Average {@link #tick} passes (10 ticks each) a manual crop takes per stage on wet farmland - 6 minutes; twice that on dry. */
+    static final int MANUAL_STAGE_PASSES = 720;
+    /** Light a manual crop needs to grow - vanilla crops' own minimum. */
+    static final int MANUAL_MIN_LIGHT = 9;
+
+    /** A manual crop's own growth - vanilla never grows a Fern or Large Fern. Needs light, faster on wet farmland. */
+    private void growManual(Block b, Plant plant) {
+        if (plant.ripe || b.getLightLevel() < MANUAL_MIN_LIGHT) {
+            return;
+        }
+        boolean wet = b.getRelative(0, -1, 0).getBlockData() instanceof org.bukkit.block.data.type.Farmland soil && soil.getMoisture() > 0;
+        if (ThreadLocalRandom.current().nextInt(wet ? MANUAL_STAGE_PASSES : MANUAL_STAGE_PASSES * 2) == 0) {
+            this.advance(b, plant);
+        }
+    }
+
+    /** One stage up for a manual crop: sprout -> 2-tall plant (green fruit) -> ripe. False when there's nothing to grow, or no room above the sprout. */
+    private boolean advance(Block b, Plant plant) {
+        Crop crop = plant.crop;
+        if (b.getType() == crop.sprout) {
+            if (!b.getRelative(0, 1, 0).getType().isAir()) {
+                return false;
+            }
+            setTall(b, crop.base);
+            return true;
+        }
+        if (b.getType() == crop.base && !plant.ripe) {
+            this.ripen(b, plant);
+            return true;
+        }
+        return false;
+    }
+
+    /** Puts a 2-tall plant ({@code tall}, a double plant like the Large Fern) on {@code lower} and the block above it. */
+    private static void setTall(Block lower, Material tall) {
+        Bisected bottom = (Bisected) tall.createBlockData();
+        bottom.setHalf(Bisected.Half.BOTTOM);
+        Bisected top = (Bisected) tall.createBlockData();
+        top.setHalf(Bisected.Half.TOP);
+        lower.setBlockData(bottom, false);
+        lower.getRelative(0, 1, 0).setBlockData(top, false);
     }
 
     private static void removeFruits(Plant plant) {
