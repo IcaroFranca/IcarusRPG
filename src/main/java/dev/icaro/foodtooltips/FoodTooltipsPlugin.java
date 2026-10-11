@@ -203,6 +203,7 @@ extends JavaPlugin {
     private AccessoryBagService accessoryBag;
     private dev.icaro.foodtooltips.item.DiamondCollectionService diamondCollection;
     private dev.icaro.foodtooltips.item.LavaFishingService lavaFishing;
+    private dev.icaro.foodtooltips.item.TomatoCropService tomatoCrop;
     private dev.icaro.foodtooltips.creaking.CreakingSightService creakingSight;
     private dev.icaro.foodtooltips.heat.HeatService heatService;
     private PersonalStorageService storage;
@@ -757,6 +758,11 @@ extends JavaPlugin {
             s.sendMessage((Component)Component.text((String)(this.text(s, "Prismapump entregue a ", "Prismapump given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
             return true;
         });
+        // Tomato - prototype custom crop (seeds by admin command for now).
+        this.tomatoCrop = new dev.icaro.foodtooltips.item.TomatoCropService((Plugin)this);
+        this.getServer().getPluginManager().registerEvents((Listener)this.tomatoCrop, (Plugin)this);
+        this.tomatoCrop.start();
+        this.getCommand("tomatoseed").setExecutor(this.tomatoCrop);
         this.getCommand("megasponge").setExecutor((s, c, l, a) -> {
             Player target;
             if (a.length >= 1) {
@@ -927,6 +933,9 @@ extends JavaPlugin {
     public void onDisable() {
         if (this.lavaFishing != null) {
             this.lavaFishing.clearAll();
+        }
+        if (this.tomatoCrop != null) {
+            this.tomatoCrop.clearAll();
         }
         if (this.diamondCollection != null) {
             this.diamondCollection.clearAll();
