@@ -592,6 +592,11 @@ extends JavaPlugin {
         dev.icaro.foodtooltips.economy.CoinRewardService coinRewards = new dev.icaro.foodtooltips.economy.CoinRewardService((Plugin)this, this.visuals::effectiveMaxHealth);
         coinRewards.scavenger(p -> enchants.customLevel(p.getInventory().getItemInMainHand(), dev.icaro.foodtooltips.enchant.IcarusEnchant.SCAVENGER), this.visuals::level);
         coinRewards.scavengerTalisman(combatTalismans::scavengerCoinsPerMobLevel);
+        // Tomato - custom crop; built before the shops, whose Farm Merchant sells its seed.
+        this.tomatoCrop = new dev.icaro.foodtooltips.item.TomatoCropService((Plugin)this);
+        this.getServer().getPluginManager().registerEvents((Listener)this.tomatoCrop, (Plugin)this);
+        this.tomatoCrop.start();
+        this.getCommand("tomatoseed").setExecutor(this.tomatoCrop);
         // NPC shops (shops.yml) - opened by a Citizens NPC running "/shop open <shop> <p>" from the console.
         dev.icaro.foodtooltips.shop.ShopService shops = new dev.icaro.foodtooltips.shop.ShopService((Plugin)this);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.ZOMBIE, combatTalismans::createZombieTalisman);
@@ -600,6 +605,7 @@ extends JavaPlugin {
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.MINE_AFFINITY, combatTalismans::createMineAffinityTalisman);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.INTIMIDATION, combatTalismans::createIntimidationTalisman);
         shops.registerItem(dev.icaro.foodtooltips.item.CombatTalismanService.SCAVENGER, combatTalismans::createScavengerTalisman);
+        shops.registerItem("tomato_seed", () -> this.tomatoCrop.seed(1));
         shops.registerItem("knight_killer", () -> legendary.create(dev.icaro.foodtooltips.item.legendary.LegendaryWeapon.KNIGHT_KILLER, dev.icaro.foodtooltips.i18n.Language.EN));
         shops.load();
         pm.registerEvents((Listener)shops, (Plugin)this);
@@ -758,11 +764,6 @@ extends JavaPlugin {
             s.sendMessage((Component)Component.text((String)(this.text(s, "Prismapump entregue a ", "Prismapump given to ") + target.getName() + "."), (TextColor)NamedTextColor.GREEN));
             return true;
         });
-        // Tomato - prototype custom crop (seeds by admin command for now).
-        this.tomatoCrop = new dev.icaro.foodtooltips.item.TomatoCropService((Plugin)this);
-        this.getServer().getPluginManager().registerEvents((Listener)this.tomatoCrop, (Plugin)this);
-        this.tomatoCrop.start();
-        this.getCommand("tomatoseed").setExecutor(this.tomatoCrop);
         this.getCommand("megasponge").setExecutor((s, c, l, a) -> {
             Player target;
             if (a.length >= 1) {

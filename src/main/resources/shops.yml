@@ -42,3 +42,23 @@ combat_merchant:
       price: 10000
     - item: icarus:knight_killer
       price: 280000
+
+# Farm Merchant: the Tomato Seed and vanilla's own seeds - the custom crops still to come go
+# here too (as "icarus:<id>").
+farm_merchant:
+  title: "Farm Merchant"
+  items:
+    - item: icarus:tomato_seed
+      price: 10
+    - item: WHEAT_SEEDS
+      price: 5
+    - item: BEETROOT_SEEDS
+      price: 5
+    - item: MELON_SEEDS
+      price: 8
+    - item: PUMPKIN_SEEDS
+      price: 8
+    - item: TORCHFLOWER_SEEDS
+      price: 20
+    - item: PITCHER_POD
+      price: 20
