@@ -40,7 +40,12 @@ public final class SpawnerTouchListener implements Listener {
         this.upgrades = upgrades;
     }
 
-    @EventHandler(ignoreCancelled = true)
+    /**
+     * HIGHEST, not the default NORMAL: a protection plugin cancelling the break at NORMAL/HIGH must
+     * get its say first - this drops the spawner item right away, so running before a later
+     * cancel handed out a spawner (upgrades and all) while the block stayed.
+     */
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
     public void breakSpawner(BlockBreakEvent e) {
         Block block = e.getBlock();
         if (block.getType() != Material.SPAWNER) {

@@ -17,7 +17,7 @@ class SpawnerDataTest {
         d.set(SpawnerModifier.CHORUS_FRUIT, 1);
         d.set(SpawnerModifier.WOOL, 1);
         d.wool = Material.RED_WOOL;
-        d.off.add(SpawnerModifier.Toggle.NO_AI);
+        d.flipped.add(SpawnerModifier.Toggle.NO_AI);
         d.base = new int[]{200, 800, 4, 6, 16, 4};
 
         SpawnerData back = SpawnerData.decode(d.encode());
@@ -52,5 +52,24 @@ class SpawnerDataTest {
     @Test
     void oldConduitBecomesGlowstone() {
         assertEquals(1, SpawnerData.decode("mods=CONDUIT:1").count(SpawnerModifier.GLOWSTONE));
+    }
+
+    @Test
+    void redstoneStartsOffOthersStartOn() {
+        SpawnerData d = new SpawnerData();
+        d.set(SpawnerModifier.COMPARATOR, 1);
+        d.set(SpawnerModifier.CHORUS_FRUIT, 1);
+        assertFalse(d.active(SpawnerModifier.Toggle.REDSTONE));
+        assertTrue(d.active(SpawnerModifier.Toggle.NO_AI));
+        d.flipped.add(SpawnerModifier.Toggle.REDSTONE);
+        assertTrue(SpawnerData.decode(d.encode()).active(SpawnerModifier.Toggle.REDSTONE));
+    }
+
+    @Test
+    void legacyOffKeepsMeaning() {
+        // Saved before toggles had defaults: "off" listed switched-off ones, redstone included.
+        SpawnerData d = SpawnerData.decode("mods=COMPARATOR:1,CHORUS_FRUIT:1;off=REDSTONE,NO_AI");
+        assertFalse(d.active(SpawnerModifier.Toggle.REDSTONE));
+        assertFalse(d.active(SpawnerModifier.Toggle.NO_AI));
     }
 }

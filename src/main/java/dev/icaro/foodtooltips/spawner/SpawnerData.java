@@ -9,7 +9,7 @@ import org.bukkit.Material;
 
 /**
  * What one spawner holds: how many of each {@link SpawnerModifier}, which {@link
- * SpawnerModifier.Toggle}s were switched off, the Wool's color (so the exact item comes back
+ * SpawnerModifier.Toggle}s were switched away from their default, the Wool's color (so the exact item comes back
  * out) and the spawner's own stats from before any upgrade ({@link #base}), which every
  * recompute starts from. Encoded as one string so the same value lives in the block's PDC and,
  * after a Spawner Touch break, in the dropped item's.
@@ -19,7 +19,8 @@ final class SpawnerData {
     static final int BASE_STATS = 6;
 
     final Map<SpawnerModifier, Integer> counts = new EnumMap<>(SpawnerModifier.class);
-    final EnumSet<SpawnerModifier.Toggle> off = EnumSet.noneOf(SpawnerModifier.Toggle.class);
+    /** Toggles switched away from their {@link SpawnerModifier.Toggle#defaultOn} state. */
+    final EnumSet<SpawnerModifier.Toggle> flipped = EnumSet.noneOf(SpawnerModifier.Toggle.class);
     Material wool = Material.WHITE_WOOL;
     int[] base;
 
@@ -35,9 +36,9 @@ final class SpawnerData {
         }
     }
 
-    /** Whether {@code t}'s effect is on right now - its item is in and it wasn't switched off. */
+    /** Whether {@code t}'s effect is on right now - its item is in and the switch is on. */
     boolean active(SpawnerModifier.Toggle t) {
-        return this.count(t.unlockedBy()) > 0 && !this.off.contains(t);
+        return this.count(t.unlockedBy()) > 0 && t.defaultOn != this.flipped.contains(t);
     }
 
     boolean hasModifiers() {
@@ -63,13 +64,13 @@ final class SpawnerData {
             mods.append(e.getKey().name()).append(':').append(e.getValue());
         }
         StringBuilder offs = new StringBuilder();
-        for (SpawnerModifier.Toggle t : this.off) {
+        for (SpawnerModifier.Toggle t : this.flipped) {
             if (offs.length() > 0) {
                 offs.append(',');
             }
             offs.append(t.name());
         }
-        StringBuilder out = new StringBuilder("mods=").append(mods).append(";off=").append(offs).append(";wool=").append(this.wool.name());
+        StringBuilder out = new StringBuilder("mods=").append(mods).append(";flip=").append(offs).append(";wool=").append(this.wool.name());
         if (this.base != null) {
             out.append(";base=");
             for (int i = 0; i < this.base.length; i++) {
@@ -108,10 +109,16 @@ final class SpawnerData {
                         }
                     }
                 }
-                case "off" -> {
+                case "flip", "off" -> {
                     for (String t : value.split(",")) {
                         try {
-                            d.off.add(SpawnerModifier.Toggle.valueOf(t));
+                            SpawnerModifier.Toggle toggle = SpawnerModifier.Toggle.valueOf(t);
+                            // Older saves listed toggles switched OFF - for a default-off toggle
+                            // (redstone) that's just its default now, nothing to flip.
+                            if (key.equals("off") && !toggle.defaultOn) {
+                                continue;
+                            }
+                            d.flipped.add(toggle);
                         } catch (IllegalArgumentException ignored) {
                             // Unknown toggle.
                         }

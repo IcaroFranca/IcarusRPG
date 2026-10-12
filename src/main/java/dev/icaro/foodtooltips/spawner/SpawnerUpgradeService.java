@@ -264,12 +264,51 @@ public final class SpawnerUpgradeService implements Listener {
             for (SpawnerModifier.Toggle t : SpawnerModifier.Toggle.values()) {
                 lore.add(line(t.label + ": " + toggleState(t, data), data.active(t) ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
             }
+            lore.add(Component.empty());
+            String paused = pausedReason(block, s, data);
+            lore.add(paused == null ? line("Status: spawning", NamedTextColor.GREEN) : line("Status: paused - " + paused, NamedTextColor.RED));
         }
         meta.displayName(Component.text("Spawner: " + mob, NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Why the spawner isn't spawning right now, or null when nothing obvious stops it - the
+     * menu shows it so a stopped spawner explains itself (an unpowered redstone-controlled one
+     * looked just like a broken one). Same checks vanilla runs: a player in range, then the
+     * nearby-mob cap counted over the same box vanilla counts.
+     */
+    static String pausedReason(Block block, CreatureSpawner s, SpawnerData data) {
+        if (s.getSpawnedType() == null) {
+            return "no mob set (use a spawn egg)";
+        }
+        if (data.active(SpawnerModifier.Toggle.REDSTONE) && !block.isBlockIndirectlyPowered()) {
+            return "needs a redstone signal";
+        }
+        int range = s.getRequiredPlayerRange();
+        if (range > 0) {
+            Location center = block.getLocation().add(0.5, 0.5, 0.5);
+            boolean near = false;
+            for (Player p : block.getWorld().getPlayers()) {
+                if (!p.isDead() && p.getGameMode() != org.bukkit.GameMode.SPECTATOR && p.getLocation().distanceSquared(center) <= (double) range * range) {
+                    near = true;
+                    break;
+                }
+            }
+            if (!near) {
+                return "no player within " + range + " blocks";
+            }
+        }
+        int r = s.getSpawnRange();
+        org.bukkit.util.BoundingBox box = org.bukkit.util.BoundingBox.of(block).expand(r);
+        long nearby = block.getWorld().getNearbyEntities(box, en -> en.getType() == s.getSpawnedType()).size();
+        if (nearby >= s.getMaxNearbyEntities()) {
+            return "too many mobs nearby (" + nearby + "/" + s.getMaxNearbyEntities() + ")";
+        }
+        return null;
     }
 
     private static String toggleState(SpawnerModifier.Toggle t, SpawnerData data) {
@@ -319,6 +358,9 @@ public final class SpawnerUpgradeService implements Listener {
         List<Component> lore = new ArrayList<>();
         lore.add(line(t.description, NamedTextColor.AQUA));
         lore.add(Component.empty());
+        if (t == SpawnerModifier.Toggle.REDSTONE && unlocked && !on) {
+            lore.add(line("While on, the spawner stops without a signal", NamedTextColor.GRAY));
+        }
         lore.add(unlocked ? line("Click to turn " + (on ? "off" : "on"), NamedTextColor.YELLOW)
                 : line("Put a " + t.unlockedBy().label + " in the spawner to unlock", NamedTextColor.YELLOW));
         meta.lore(lore);
@@ -350,6 +392,11 @@ public final class SpawnerUpgradeService implements Listener {
             return;
         }
         e.setCancelled(true);
+        ClickType type = e.getClick();
+        if (type != ClickType.LEFT && type != ClickType.RIGHT && type != ClickType.SHIFT_LEFT && type != ClickType.SHIFT_RIGHT) {
+            // Number keys, Q, middle click... would each pull stored items out in their own odd way.
+            return;
+        }
         if (raw == CLOSE_SLOT) {
             p.closeInventory();
             return;
@@ -442,8 +489,8 @@ public final class SpawnerUpgradeService implements Listener {
             p.sendActionBar(Component.text("Put a " + t.unlockedBy().label + " in the spawner first.", NamedTextColor.RED));
             return;
         }
-        if (!data.off.remove(t)) {
-            data.off.add(t);
+        if (!data.flipped.remove(t)) {
+            data.flipped.add(t);
         }
         this.save(menu.block, data);
         this.refresh(menu.block);

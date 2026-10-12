@@ -24,18 +24,26 @@ public enum SpawnerModifier {
     CHORUS_FRUIT(Material.CHORUS_FRUIT, 1, "Chorus Fruit", "Unlocks mobs with No AI", Toggle.NO_AI),
     WOOL(Material.WHITE_WOOL, 1, "Wool", "Unlocks silent mobs", Toggle.SILENT);
 
-    /** The menu switches - each only works while its unlocking item ({@link #unlockedBy}) is in the spawner. */
+    /**
+     * The menu switches - each only works while its unlocking item ({@link #unlockedBy}) is in the
+     * spawner. Redstone control starts off: switching it on stops the spawner until it's powered,
+     * so it waits for the player to wire it up instead of silently halting the moment the
+     * Comparator goes in.
+     */
     public enum Toggle {
-        REDSTONE("Redstone control", "Only spawns while powered by redstone"),
-        NO_AI("Mobs with No AI", "Spawned mobs don't move or attack"),
-        SILENT("Silent mobs", "Spawned mobs make no sound");
+        REDSTONE("Redstone control", "Only spawns while powered by redstone", false),
+        NO_AI("Mobs with No AI", "Spawned mobs don't move or attack", true),
+        SILENT("Silent mobs", "Spawned mobs make no sound", true);
 
         public final String label;
         public final String description;
+        /** Whether it's on as soon as its item goes in. */
+        public final boolean defaultOn;
 
-        Toggle(String label, String description) {
+        Toggle(String label, String description, boolean defaultOn) {
             this.label = label;
             this.description = description;
+            this.defaultOn = defaultOn;
         }
 
         public SpawnerModifier unlockedBy() {
