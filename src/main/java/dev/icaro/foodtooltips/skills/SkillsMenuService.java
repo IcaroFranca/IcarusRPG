@@ -296,7 +296,10 @@ public final class SkillsMenuService {
                 passiveLore.add(this.text(part, NamedTextColor.GRAY));
             }
             passiveLore.add(this.click(l));
-            v.setItem(PASSIVE_ABILITIES_SLOT, this.customHead(HeadTexture.SUPER_MUSHROOM, "Passive Abilities", passiveLore));
+            ItemStack passiveButton = this.customHead(HeadTexture.SUPER_MUSHROOM, "Passive Abilities", passiveLore);
+            // The flat pixel-art mushroom from IcarusTexture on Java; Bedrock (no item models) keeps the head.
+            passiveButton.setData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_MODEL, net.kyori.adventure.key.Key.key("icarus", "passive_abilities"));
+            v.setItem(PASSIVE_ABILITIES_SLOT, passiveButton);
         }
         if ((this.quiver != null && this.quiver.unlocked(p)) || (this.potionBag != null && this.potionBag.unlocked(p))) {
             List<Component> bagsLore = new ArrayList<>();
