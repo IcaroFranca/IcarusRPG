@@ -72,7 +72,7 @@ public final class SpawnerUpgradeService implements Listener {
     private static final int CLOSE_SLOT = 49;
     /** Neither delay goes below this (2 seconds), whatever Sugar/Clock do - a default spawner (200-800) reaches it with 32 Sugar and 32 Clocks. */
     static final int MIN_DELAY_FLOOR = 40;
-    /** Mob health each Pointed Dripstone takes - 20 (the limit) leave mobs at 20%. */
+    /** Health each Pointed Dripstone takes off a mob as it spawns (Max Health stays) - 20 (the limit) leave it at 20%. */
     static final int DRIPSTONE_PERCENT = 4;
 
     private final Plugin plugin;
@@ -258,7 +258,7 @@ public final class SpawnerUpgradeService implements Listener {
             lore.add(line("Max nearby mobs: " + s.getMaxNearbyEntities(), NamedTextColor.GRAY));
             lore.add(line("Player range: " + (s.getRequiredPlayerRange() <= 0 ? "any distance" : s.getRequiredPlayerRange() + " blocks"), NamedTextColor.GRAY));
             lore.add(line("Spawn area: " + s.getSpawnRange() + " blocks", NamedTextColor.GRAY));
-            lore.add(line("Mob health: " + (100 - DRIPSTONE_PERCENT * data.count(SpawnerModifier.POINTED_DRIPSTONE)) + "%", NamedTextColor.GRAY));
+            lore.add(line("Mobs spawn at: " + (100 - DRIPSTONE_PERCENT * data.count(SpawnerModifier.POINTED_DRIPSTONE)) + "% health", NamedTextColor.GRAY));
             lore.add(line("Ignores spawn conditions: " + (data.count(SpawnerModifier.GLOWSTONE) > 0 ? "yes" : "no"), NamedTextColor.GRAY));
             lore.add(Component.empty());
             for (SpawnerModifier.Toggle t : SpawnerModifier.Toggle.values()) {
@@ -493,7 +493,7 @@ public final class SpawnerUpgradeService implements Listener {
             double factor = 1.0 - DRIPSTONE_PERCENT / 100.0 * dripstone;
             Bukkit.getScheduler().runTask(this.plugin, () -> {
                 if (living.isValid()) {
-                    this.difficulty.scaleSpawnedHealth(living, factor);
+                    this.difficulty.startDamaged(living, factor);
                 }
             });
         }

@@ -218,23 +218,26 @@ public final class MobDifficultyService {
     }
 
     /**
-     * Multiplies a freshly spawned (already {@link #scale}d) mob's whole health - the real Max
-     * Health attribute and the bonus HP pool past {@code real-health-cap} alike - by {@code
-     * factor}, leaving it at full health. Used by the spawner's Pointed Dripstone upgrade.
+     * Leaves a freshly spawned (already {@link #scale}d) mob at {@code fraction} of its total
+     * health - Max Health untouched, it just starts damaged. Taken from the bonus HP pool past
+     * {@code real-health-cap} first, same order real damage drains it. Used by the spawner's
+     * Pointed Dripstone upgrade.
      */
-    public void scaleSpawnedHealth(LivingEntity e, double factor) {
+    public void startDamaged(LivingEntity e, double fraction) {
         AttributeInstance attribute = e.getAttribute(Attribute.MAX_HEALTH);
-        if (attribute == null || factor <= 0.0) {
+        if (attribute == null || fraction >= 1.0) {
             return;
         }
-        attribute.setBaseValue(attribute.getBaseValue() * factor);
-        e.setHealth(attribute.getValue());
         PersistentDataContainer pdc = e.getPersistentDataContainer();
-        Double bonusMax = pdc.get(this.bonusMaxHpKey, PersistentDataType.DOUBLE);
-        if (bonusMax != null) {
-            pdc.set(this.bonusMaxHpKey, PersistentDataType.DOUBLE, bonusMax * factor);
-            pdc.set(this.bonusHpKey, PersistentDataType.DOUBLE, bonusMax * factor);
+        double bonus = pdc.getOrDefault(this.bonusHpKey, PersistentDataType.DOUBLE, 0.0);
+        double total = e.getHealth() + bonus;
+        double missing = total * (1.0 - Math.max(0.0, fraction));
+        double fromBonus = Math.min(bonus, missing);
+        if (fromBonus > 0.0) {
+            pdc.set(this.bonusHpKey, PersistentDataType.DOUBLE, bonus - fromBonus);
         }
+        // Never 0 - that would kill it on the spot.
+        e.setHealth(Math.max(1.0, e.getHealth() - (missing - fromBonus)));
     }
 
     /**
