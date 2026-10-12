@@ -24,19 +24,19 @@ final class SpawnerDelayTest {
 
     @Test
     void fullStacksReachForty() {
-        assertEquals(40, delays(32, 38)[0]);
-        assertEquals(40, delays(32, 38)[1]);
+        assertEquals(40, delays(32, 32)[0]);
+        assertEquals(40, delays(32, 32)[1]);
     }
 
     @Test
     void perItemSteps() {
         assertEquals(150, delays(10, 0)[0]);
-        assertEquals(600, delays(0, 10)[1]);
+        assertEquals(560, delays(0, 10)[1]);
     }
 
     @Test
     void maxNeverBelowMin() {
-        // 38 Clocks alone would make it 40, but the max can't go under the untouched 200 min.
-        assertEquals(200, delays(0, 38)[1]);
+        // 32 Clocks alone would make it 40, but the max can't go under the untouched 200 min.
+        assertEquals(200, delays(0, 32)[1]);
     }
 }

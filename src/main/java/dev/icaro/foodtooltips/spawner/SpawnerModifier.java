@@ -12,7 +12,7 @@ import org.bukkit.inventory.ItemStack;
  */
 public enum SpawnerModifier {
     SUGAR(Material.SUGAR, 32, "Sugar", "Min spawn delay: -5 ticks per item (down to 40)", null),
-    CLOCK(Material.CLOCK, 38, "Clock", "Max spawn delay: -20 ticks per item (down to 40)", null),
+    CLOCK(Material.CLOCK, 32, "Clock", "Max spawn delay: -24 ticks per item (down to 40)", null),
     FERMENTED_SPIDER_EYE(Material.FERMENTED_SPIDER_EYE, 4, "Fermented Spider Eye", "Mobs per spawn: +1 per item", null),
     GHAST_TEAR(Material.GHAST_TEAR, 5, "Ghast Tear", "Max nearby mobs: +2 per item", null),
     PRISMARINE_CRYSTALS(Material.PRISMARINE_CRYSTALS, 5, "Prismarine Crystals", "Player range: +4 blocks per item", null),
