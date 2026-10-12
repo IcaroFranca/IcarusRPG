@@ -327,6 +327,69 @@ public final class ReforgeService {
     }
 
     /**
+     * Keeps every reforged item in {@code player}'s inventory rolled at its own current tier - a
+     * Smithing Table upgrade (Diamond -> Netherite, Tier C -> B) keeps the reforge (its PDC is
+     * copied) but its stored tier, lore and attributes were still the old tier's. The prefix
+     * itself never changes, only its stats move up to the new tier.
+     */
+    public void syncReforgeTiers(Player player) {
+        PlayerInventory inv = player.getInventory();
+        Language l = Language.of(player);
+        ItemStack[] storage = inv.getStorageContents();
+        for (int i = 0; i < storage.length; i++) {
+            if (this.syncTier(storage[i], l)) {
+                inv.setItem(i, storage[i]);
+            }
+        }
+        if (this.syncTier(inv.getHelmet(), l)) inv.setHelmet(inv.getHelmet());
+        if (this.syncTier(inv.getChestplate(), l)) inv.setChestplate(inv.getChestplate());
+        if (this.syncTier(inv.getLeggings(), l)) inv.setLeggings(inv.getLeggings());
+        if (this.syncTier(inv.getBoots(), l)) inv.setBoots(inv.getBoots());
+        if (this.syncTier(inv.getItemInOffHand(), l)) inv.setItemInOffHand(inv.getItemInOffHand());
+    }
+
+    /** Re-rolls {@code item}'s existing reforge's stats at its current tier if they were stored for another one - mutates it in place, true if anything changed. */
+    boolean syncTier(ItemStack item, Language l) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        PersistentDataContainer d = meta.getPersistentDataContainer();
+        ItemTier tier = this.tierOf(item);
+        try {
+            String armor = d.get(ARMOR_PREFIX_KEY, PersistentDataType.STRING);
+            if (armor != null && !tier.name().equals(d.get(ARMOR_TIER_KEY, PersistentDataType.STRING))) {
+                ArmorReforgeStats stats = ArmorReforgePrefix.valueOf(armor).stats(tier);
+                this.applyArmorLore(meta, stats, l);
+                this.applyArmorAttributeModifiers(item, meta, stats);
+                d.set(ARMOR_TIER_KEY, PersistentDataType.STRING, tier.name());
+                item.setItemMeta(meta);
+                return true;
+            }
+            String bow = d.get(BOW_PREFIX_KEY, PersistentDataType.STRING);
+            if (bow != null && !tier.name().equals(d.get(BOW_TIER_KEY, PersistentDataType.STRING))) {
+                this.applyBowLore(meta, BowReforgePrefix.valueOf(bow).stats(tier), l);
+                d.set(BOW_TIER_KEY, PersistentDataType.STRING, tier.name());
+                item.setItemMeta(meta);
+                return true;
+            }
+            String sword = d.get(PREFIX_KEY, PersistentDataType.STRING);
+            if (sword != null && !tier.name().equals(d.get(TIER_KEY, PersistentDataType.STRING))) {
+                this.applySwordLore(item, meta, ReforgePrefix.valueOf(sword).stats(tier), l);
+                d.set(TIER_KEY, PersistentDataType.STRING, tier.name());
+                item.setItemMeta(meta);
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Unknown prefix name (removed from the catalog) - leave the item alone, statsOf already treats it as none.
+        }
+        return false;
+    }
+
+    /**
      * Wraps the item's current name in a new prefix {@link Component} carrying the exact same
      * style (color/bold from {@code ItemTierService}) - see the class doc for why this never
      * needs to read the name back out as plain text. On a reroll, the previous prefix wrapper

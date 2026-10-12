@@ -322,23 +322,57 @@ public final class ItemTierService {
                 break;
             }
         }
-        if (tierIndex < 0 || PLAIN.serialize(lore.get(tierIndex)).equals(text)) {
+        boolean loreStale = tierIndex >= 0 && !PLAIN.serialize(lore.get(tierIndex)).equals(text);
+        Component name = meta.hasDisplayName() ? meta.displayName() : null;
+        // Checked on its own too: a reforged item's name is "<prefix> " wrapping the original
+        // material name as a child (ReforgeService#applyName), which 0.76.295 left as "Diamond ...".
+        boolean nameStale = name != null && hasOtherMaterialName(name, item.getType());
+        if (!loreStale && !nameStale) {
             return null;
         }
-        lore.set(tierIndex, Component.text(text, tier.color())
-                .decoration(TextDecoration.BOLD, true)
-                .decoration(TextDecoration.ITALIC, false));
-        meta.lore(lore);
-        Component base = meta.hasDisplayName() ? meta.displayName() : null;
-        if (base == null || (base instanceof net.kyori.adventure.text.TranslatableComponent tc && tc.key().startsWith("item.minecraft.")
-                && !tc.key().equals(item.getType().translationKey()))) {
-            base = Component.translatable(item.getType().translationKey());
+        if (loreStale) {
+            lore.set(tierIndex, Component.text(text, tier.color())
+                    .decoration(TextDecoration.BOLD, true)
+                    .decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
         }
+        Component base = name == null ? Component.translatable(item.getType().translationKey()) : renamed(name, item.getType(), tier);
         meta.displayName(base.color(tier.color())
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Whether {@code name} (or any child of it) is a vanilla item name other than {@code type}'s own - e.g. "Diamond Sword" on a Netherite Sword. */
+    private static boolean hasOtherMaterialName(Component name, Material type) {
+        if (name instanceof net.kyori.adventure.text.TranslatableComponent tc && tc.key().startsWith("item.minecraft.")
+                && !tc.key().equals(type.translationKey())) {
+            return true;
+        }
+        for (Component child : name.children()) {
+            if (hasOtherMaterialName(child, type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** {@code name} with every other-material vanilla name swapped for {@code type}'s, and every explicitly colored part recolored to {@code tier} (the reforge prefix's inner name carries its own copy of the old tier color). */
+    private static Component renamed(Component name, Material type, ItemTier tier) {
+        Component out = name;
+        if (name instanceof net.kyori.adventure.text.TranslatableComponent tc && tc.key().startsWith("item.minecraft.")
+                && !tc.key().equals(type.translationKey())) {
+            out = Component.translatable(type.translationKey()).style(name.style());
+        }
+        if (out.color() != null) {
+            out = out.color(tier.color());
+        }
+        List<Component> children = new ArrayList<>();
+        for (Component child : name.children()) {
+            children.add(renamed(child, type, tier));
+        }
+        return out.children(children);
     }
 
     /**

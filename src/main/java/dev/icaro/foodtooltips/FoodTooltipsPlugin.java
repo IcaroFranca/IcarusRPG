@@ -837,6 +837,7 @@ extends JavaPlugin {
             armorEnchants.applyGrowthHealth((Player)p);
             customEnchants.applyBowDamageTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            reforgeService.syncReforgeTiers((Player)p);
             enchants.applyToInventory((Player)p);
             durability.applyDurability((Player)p);
             spidersBoots.resetIfGrounded((Player)p);
@@ -902,6 +903,7 @@ extends JavaPlugin {
             armor.neutralizeVanillaArmor((Player)p);
             armor.applyDefenseTooltip((Player)p);
             tiers.applyItemTiers((Player)p);
+            reforgeService.syncReforgeTiers((Player)p);
             durability.applyDurability((Player)p);
             swordDamage.applySwordDamage((Player)p);
             toolDamage.applyToolDamage((Player)p);
