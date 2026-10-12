@@ -33,9 +33,11 @@ import org.bukkit.persistence.PersistentDataType;
 public final class SpawnerTouchListener implements Listener {
     private static final NamespacedKey ENTITY_KEY = new NamespacedKey("foodtooltips", "spawner_entity");
     private final EnchantService enchants;
+    private final dev.icaro.foodtooltips.spawner.SpawnerUpgradeService upgrades;
 
-    public SpawnerTouchListener(EnchantService enchants) {
+    public SpawnerTouchListener(EnchantService enchants, dev.icaro.foodtooltips.spawner.SpawnerUpgradeService upgrades) {
         this.enchants = enchants;
+        this.upgrades = upgrades;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -57,7 +59,10 @@ public final class SpawnerTouchListener implements Listener {
         // just guards against a future datapack/plugin change adding one, which would
         // otherwise double up with the tagged item below.
         e.setDropItems(false);
-        block.getWorld().dropItemNaturally(block.getLocation(), this.spawnerItem(type, Language.of(p)));
+        ItemStack item = this.spawnerItem(type, Language.of(p));
+        // Its upgrades (stored items and all) travel inside the item - see SpawnerUpgradeService.
+        this.upgrades.carryInto(state, item);
+        block.getWorld().dropItemNaturally(block.getLocation(), item);
     }
 
     @EventHandler(ignoreCancelled = true)

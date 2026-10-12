@@ -218,6 +218,26 @@ public final class MobDifficultyService {
     }
 
     /**
+     * Multiplies a freshly spawned (already {@link #scale}d) mob's whole health - the real Max
+     * Health attribute and the bonus HP pool past {@code real-health-cap} alike - by {@code
+     * factor}, leaving it at full health. Used by the spawner's Pointed Dripstone upgrade.
+     */
+    public void scaleSpawnedHealth(LivingEntity e, double factor) {
+        AttributeInstance attribute = e.getAttribute(Attribute.MAX_HEALTH);
+        if (attribute == null || factor <= 0.0) {
+            return;
+        }
+        attribute.setBaseValue(attribute.getBaseValue() * factor);
+        e.setHealth(attribute.getValue());
+        PersistentDataContainer pdc = e.getPersistentDataContainer();
+        Double bonusMax = pdc.get(this.bonusMaxHpKey, PersistentDataType.DOUBLE);
+        if (bonusMax != null) {
+            pdc.set(this.bonusMaxHpKey, PersistentDataType.DOUBLE, bonusMax * factor);
+            pdc.set(this.bonusHpKey, PersistentDataType.DOUBLE, bonusMax * factor);
+        }
+    }
+
+    /**
      * {@code mob}'s own outgoing-damage multiplier, computed once at spawn by {@link
      * #scale} - 1.0 (no change) for anything spawned before this system existed, or that
      * {@link #scales} excluded.

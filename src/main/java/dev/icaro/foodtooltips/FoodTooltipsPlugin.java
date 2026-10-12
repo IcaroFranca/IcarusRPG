@@ -547,7 +547,9 @@ extends JavaPlugin {
         new CombatCollectionsItemsService(hurricaneBow, skeletonHat, skeletonsHelmet, zombiePickaxe, zombieHat, zombiesHeart, zombieSword, zombieArmor,
                 spiderSword, spiderHat, leapingSword, grapplingHook, spidersBoots, creeperHat, creeperPants, explosiveBow,
                 enderBow, aspectOfTheEnd, savingGrace).registerRecipes();
-        pm.registerEvents((Listener)new SpawnerTouchListener(enchants), (Plugin)this);
+        dev.icaro.foodtooltips.spawner.SpawnerUpgradeService spawnerUpgrades = new dev.icaro.foodtooltips.spawner.SpawnerUpgradeService((Plugin)this, difficulty);
+        pm.registerEvents((Listener)spawnerUpgrades, (Plugin)this);
+        pm.registerEvents((Listener)new SpawnerTouchListener(enchants, spawnerUpgrades), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);
         GeneralSkillListener generalSkillListener = new GeneralSkillListener((Plugin)this, general, this.progressBar, global, enchants, passives, collectionsService);
