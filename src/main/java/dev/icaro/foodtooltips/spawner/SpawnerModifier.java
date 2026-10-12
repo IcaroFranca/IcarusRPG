@@ -19,7 +19,7 @@ public enum SpawnerModifier {
     BLAZE_ROD(Material.BLAZE_ROD, 4, "Blaze Rod", "Spawn area: +1 block per item", null),
     POINTED_DRIPSTONE(Material.POINTED_DRIPSTONE, 20, "Pointed Dripstone", "Mob health: -4% per item", null),
     NETHER_STAR(Material.NETHER_STAR, 1, "Nether Star", "Works with no players nearby", null),
-    CONDUIT(Material.CONDUIT, 1, "Conduit", "Ignores light and spawn conditions", null),
+    GLOWSTONE(Material.GLOWSTONE, 1, "Glowstone", "Ignores light and spawn conditions", null),
     COMPARATOR(Material.COMPARATOR, 1, "Comparator", "Unlocks redstone control", Toggle.REDSTONE),
     CHORUS_FRUIT(Material.CHORUS_FRUIT, 1, "Chorus Fruit", "Unlocks mobs with No AI", Toggle.NO_AI),
     WOOL(Material.WHITE_WOOL, 1, "Wool", "Unlocks silent mobs", Toggle.SILENT);

@@ -146,7 +146,7 @@ public final class SpawnerUpgradeService implements Listener {
         if (snapshot != null) {
             // Custom spawn rules replace the mob's own placement checks (light, ground block)
             // entirely - only "is there room" is still checked.
-            if (data.count(SpawnerModifier.CONDUIT) > 0) {
+            if (data.count(SpawnerModifier.GLOWSTONE) > 0) {
                 state.setSpawnedEntity(new SpawnerEntry(snapshot, 1, new SpawnRule(0, 15, 0, 15)));
             } else {
                 state.setSpawnedEntity(snapshot);
@@ -166,7 +166,7 @@ public final class SpawnerUpgradeService implements Listener {
         Player p = e.getPlayer();
         ItemStack item = e.getItem();
         if (item != null && item.getType().name().endsWith("_SPAWN_EGG")) {
-            // Vanilla's own mob swap - Conduit's spawn rules are re-applied right after it, see #eggUsed.
+            // Vanilla's own mob swap - Glowstone's spawn rules are re-applied right after it, see #eggUsed.
             return;
         }
         if (p.isSneaking() && item != null && item.getType().isBlock()) {
@@ -178,7 +178,7 @@ public final class SpawnerUpgradeService implements Listener {
         }
     }
 
-    /** A spawn egg swap rebuilds the spawner's spawn data from scratch, dropping Conduit's rules - put them back. */
+    /** A spawn egg swap rebuilds the spawner's spawn data from scratch, dropping Glowstone's rules - put them back. */
     @EventHandler(priority = EventPriority.MONITOR)
     public void eggUsed(PlayerInteractEvent e) {
         Block block = e.getClickedBlock();
@@ -259,7 +259,7 @@ public final class SpawnerUpgradeService implements Listener {
             lore.add(line("Player range: " + (s.getRequiredPlayerRange() <= 0 ? "any distance" : s.getRequiredPlayerRange() + " blocks"), NamedTextColor.GRAY));
             lore.add(line("Spawn area: " + s.getSpawnRange() + " blocks", NamedTextColor.GRAY));
             lore.add(line("Mob health: " + (100 - DRIPSTONE_PERCENT * data.count(SpawnerModifier.POINTED_DRIPSTONE)) + "%", NamedTextColor.GRAY));
-            lore.add(line("Ignores spawn conditions: " + (data.count(SpawnerModifier.CONDUIT) > 0 ? "yes" : "no"), NamedTextColor.GRAY));
+            lore.add(line("Ignores spawn conditions: " + (data.count(SpawnerModifier.GLOWSTONE) > 0 ? "yes" : "no"), NamedTextColor.GRAY));
             lore.add(Component.empty());
             for (SpawnerModifier.Toggle t : SpawnerModifier.Toggle.values()) {
                 lore.add(line(t.label + ": " + toggleState(t, data), data.active(t) ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
@@ -479,7 +479,7 @@ public final class SpawnerUpgradeService implements Listener {
             return;
         }
         if (e.getEntity() instanceof Mob mob && data.active(SpawnerModifier.Toggle.NO_AI)) {
-            // Not setAI(false): vanilla's NoAI also turns gravity off, so mobs Conduit lets spawn
+            // Not setAI(false): vanilla's NoAI also turns gravity off, so mobs Glowstone lets spawn
             // in mid-air just floated there. Unaware mobs never move, target or attack, but still
             // fall and get pushed by water - what a kill chamber needs.
             mob.setAware(false);

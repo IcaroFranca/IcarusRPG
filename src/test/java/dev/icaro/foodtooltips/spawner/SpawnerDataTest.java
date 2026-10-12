@@ -48,4 +48,9 @@ class SpawnerDataTest {
         assertEquals(Material.WHITE_WOOL, d.wool);
         assertNull(d.base);
     }
+
+    @Test
+    void oldConduitBecomesGlowstone() {
+        assertEquals(1, SpawnerData.decode("mods=CONDUIT:1").count(SpawnerModifier.GLOWSTONE));
+    }
 }

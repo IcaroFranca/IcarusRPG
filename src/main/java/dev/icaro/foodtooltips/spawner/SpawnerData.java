@@ -100,7 +100,9 @@ final class SpawnerData {
                     for (String entry : value.split(",")) {
                         String[] kv = entry.split(":");
                         try {
-                            d.set(SpawnerModifier.valueOf(kv[0]), Integer.parseInt(kv[1]));
+                            // Glowstone took the Conduit's place - a spawner saved with one keeps the effect.
+                            String name = kv[0].equals("CONDUIT") ? "GLOWSTONE" : kv[0];
+                            d.set(SpawnerModifier.valueOf(name), Integer.parseInt(kv[1]));
                         } catch (RuntimeException ignored) {
                             // Unknown modifier (removed from the catalog) or bad number.
                         }
