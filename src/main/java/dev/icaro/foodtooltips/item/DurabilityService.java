@@ -125,6 +125,8 @@ public final class DurabilityService {
             damageable.setDamage((int) Math.round(currentDamage * (targetMax / (double) vanillaMax)));
             meta.getPersistentDataContainer().set(this.appliedKey, PersistentDataType.BYTE, (byte) 1);
             changed = true;
+        } else if (this.fixSmithedMax(item.getType(), damageable)) {
+            changed = true;
         }
         if (this.syncDurabilityLore(meta, damageable)) {
             changed = true;
@@ -133,6 +135,26 @@ public final class DurabilityService {
             item.setItemMeta(meta);
         }
         return changed;
+    }
+
+    /**
+     * A Smithing Table upgrade (Diamond -> Netherite) copies the whole meta - {@link #appliedKey}
+     * and the Diamond's multiplied Max Durability included - so the Netherite piece was stuck at
+     * the Diamond's number. A Netherite item below its own multiplied max can only have come from
+     * that: its max is scaled by Netherite/Diamond (keeping any Anvil boost on top), damage kept as is.
+     */
+    private boolean fixSmithedMax(Material type, Damageable damageable) {
+        if (!type.name().startsWith("NETHERITE_") || !damageable.hasMaxDamage()) {
+            return false;
+        }
+        Material diamond = Material.matchMaterial(type.name().replace("NETHERITE_", "DIAMOND_"));
+        int target = type.getMaxDurability() * this.multiplier;
+        int max = damageable.getMaxDamage();
+        if (diamond == null || diamond.getMaxDurability() <= 0 || max >= target) {
+            return false;
+        }
+        damageable.setMaxDamage((int) Math.round(max * (target / (double) (diamond.getMaxDurability() * this.multiplier))));
+        return true;
     }
 
     /** Rebuilds {@code meta}'s "Durability: X / Y" lore line from {@code damageable}'s current state; returns true if the lore actually changed. */

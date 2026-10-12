@@ -8,6 +8,7 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -335,8 +336,11 @@ public final class ArmorDefenseService {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
-        if (meta == null || meta.getPersistentDataContainer().has(this.tooltipKey, PersistentDataType.BYTE)) {
+        if (meta == null) {
             return null;
+        }
+        if (meta.getPersistentDataContainer().has(this.tooltipKey, PersistentDataType.BYTE)) {
+            return this.fixStaleDefenseLine(item, meta, def);
         }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         if (!meta.getPersistentDataContainer().has(OWN_DEFENSE_LORE_KEY, PersistentDataType.BYTE)) {
@@ -347,6 +351,33 @@ public final class ArmorDefenseService {
         meta.getPersistentDataContainer().set(this.tooltipKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * A Smithing Table upgrade (Diamond -> Netherite) copies the whole meta, {@link #tooltipKey}
+     * included, so the piece kept showing the Diamond "Defense: +N" line (the real Defense is
+     * already right - {@link #pieceDefense} reads the Material). Rewrites that line when it no
+     * longer matches; returns null when nothing changed or the item bakes its own line.
+     */
+    private ItemStack fixStaleDefenseLine(ItemStack item, ItemMeta meta, int def) {
+        if (meta.getPersistentDataContainer().has(OWN_DEFENSE_LORE_KEY, PersistentDataType.BYTE) || !meta.hasLore()) {
+            return null;
+        }
+        List<Component> lore = new ArrayList<>(meta.lore());
+        String expected = "Defense: +" + def;
+        for (int i = 0; i < lore.size(); i++) {
+            String text = PlainTextComponentSerializer.plainText().serialize(lore.get(i));
+            if (text.startsWith("Defense:")) {
+                if (text.equals(expected)) {
+                    return null;
+                }
+                lore.set(i, Component.text(expected, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                meta.lore(lore);
+                item.setItemMeta(meta);
+                return item;
+            }
+        }
+        return null;
     }
 
     /** Zeroes ARMOR and ARMOR_TOUGHNESS so only {@link #defense(LivingEntity)} matters for damage reduction. */

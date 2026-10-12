@@ -266,12 +266,12 @@ public final class ItemTierService {
             // there's nothing to do.
             return alreadyTagged ? this.stripTier(item, meta) : null;
         }
-        if (alreadyTagged) {
-            return null;
-        }
         ItemTier tier = this.tierOf(meta, item.getType());
         String kind = kindOf(item.getType());
         String text = kind == null ? tier.label() : tier.label() + " " + kind;
+        if (alreadyTagged) {
+            return this.retier(item, meta, tier, text);
+        }
         List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         // Whether there's real content before the tier line decides the separating blank
         // line - deliberately NOT just "is lore non-empty right now" (see
@@ -299,6 +299,44 @@ public final class ItemTierService {
         // every Ring/Artifact upgrade and the Lapis recipes silently refused real ingredients
         // (reported: "não está conseguindo fazer o mangrove sweep ring").
         meta.getPersistentDataContainer().set(this.spacingRepairedKey, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * An already-tagged item whose tier line no longer matches what it should be - a Smithing
+     * Table upgrade (Diamond -> Netherite) copies every component, {@link #tierKey} included,
+     * so the new item kept the Diamond's "TIER C ..." line and "Diamond Sword" name forever.
+     * Rewrites just that line and the name (to the new Material's own name, unless the player
+     * renamed it), or returns null when the line is already right.
+     */
+    private ItemStack retier(ItemStack item, ItemMeta meta, ItemTier tier, String text) {
+        if (!meta.hasLore()) {
+            return null;
+        }
+        List<Component> lore = new ArrayList<>(meta.lore());
+        int tierIndex = -1;
+        for (int i = lore.size() - 1; i >= 0; i--) {
+            if (PLAIN.serialize(lore.get(i)).startsWith("TIER ")) {
+                tierIndex = i;
+                break;
+            }
+        }
+        if (tierIndex < 0 || PLAIN.serialize(lore.get(tierIndex)).equals(text)) {
+            return null;
+        }
+        lore.set(tierIndex, Component.text(text, tier.color())
+                .decoration(TextDecoration.BOLD, true)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        Component base = meta.hasDisplayName() ? meta.displayName() : null;
+        if (base == null || (base instanceof net.kyori.adventure.text.TranslatableComponent tc && tc.key().startsWith("item.minecraft.")
+                && !tc.key().equals(item.getType().translationKey()))) {
+            base = Component.translatable(item.getType().translationKey());
+        }
+        meta.displayName(base.color(tier.color())
+                .decoration(TextDecoration.BOLD, true)
+                .decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }

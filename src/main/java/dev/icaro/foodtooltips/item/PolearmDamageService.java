@@ -176,8 +176,12 @@ public final class PolearmDamageService {
         // forever, with no way for it to ever self-correct - see SwordDamageService's
         // own hasBaseZero, the same fix this mirrors.
         boolean needsBaseZero = !this.hasBaseZero(meta);
+        // A Smithing Table upgrade (Diamond -> Netherite) copies this item's whole meta, marker
+        // and Diamond damage modifier included - so an applied item whose modifier no longer
+        // matches its own Material gets it (and its lore line) swapped below.
+        boolean staleDamage = applied && this.damageModifierStale(meta, total);
         List<Component> currentLore = meta.hasLore() ? meta.lore() : null;
-        if (applied && !needsBaseZero && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
+        if (applied && !staleDamage && !needsBaseZero && currentLore != null && currentLore.size() > 1 && speedLine.equals(currentLore.get(1))) {
             return null;
         }
         List<Component> lore = currentLore == null ? new ArrayList<>() : new ArrayList<>(currentLore);
@@ -193,6 +197,13 @@ public final class PolearmDamageService {
             meta.getPersistentDataContainer().set(this.appliedKey, PersistentDataType.BYTE, (byte) 1);
         } else {
             lore.set(1, speedLine);
+        }
+        if (staleDamage) {
+            this.replaceModifier(meta, Attribute.ATTACK_DAMAGE, this.damageKey, total);
+            this.replaceModifier(meta, Attribute.ATTACK_SPEED, this.speedKey, baseAttackSpeed(item.getType()) - SwordDamageService.BASE_ATTACK_SPEED_REFERENCE);
+            if (!lore.isEmpty()) {
+                lore.set(0, this.damageLine(total, l));
+            }
         }
         if (needsBaseZero) {
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
@@ -215,6 +226,32 @@ public final class PolearmDamageService {
             }
         }
         return false;
+    }
+
+    /** Whether {@code meta}'s own Attack Damage modifier is missing or no longer equals {@code total} - see {@link #rewrite}'s Smithing Table comment. */
+    private boolean damageModifierStale(ItemMeta meta, double total) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE);
+        if (modifiers != null) {
+            for (AttributeModifier m : modifiers) {
+                if (m.getKey().equals(this.damageKey)) {
+                    return Math.abs(m.getAmount() - total) > 1.0E-4;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Swaps {@code meta}'s {@code key} modifier on {@code attribute} for one of {@code amount}. */
+    private void replaceModifier(ItemMeta meta, Attribute attribute, NamespacedKey key, double amount) {
+        Collection<AttributeModifier> modifiers = meta.getAttributeModifiers(attribute);
+        if (modifiers != null) {
+            for (AttributeModifier m : List.copyOf(modifiers)) {
+                if (m.getKey().equals(key)) {
+                    meta.removeAttributeModifier(attribute, m);
+                }
+            }
+        }
+        meta.addAttributeModifier(attribute, new AttributeModifier(key, amount, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
     }
 
     private Component damageLine(double total, Language l) {
