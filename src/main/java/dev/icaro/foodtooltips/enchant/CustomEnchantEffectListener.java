@@ -349,8 +349,11 @@ public final class CustomEnchantEffectListener implements Listener {
             return;
         }
         int lvl = Math.min(level, FIRE_ASPECT_DURATION.length - 1);
-        this.burn(attacker, target, e.getFinalDamage(), FIRE_ASPECT_DURATION[lvl], FIRE_ASPECT_PERCENT[lvl]);
+        // Tagged BEFORE #burn: its first tick is dealt right now, and with a strong hit (3-9% of
+        // a big number) that tick alone kills the mob - its death (and #cookFireAspectDrops)
+        // then ran before the tag existed, so high-damage players got raw meat.
         target.getPersistentDataContainer().set(this.fireAspectCookedKey, PersistentDataType.BYTE, (byte) 1);
+        this.burn(attacker, target, e.getFinalDamage(), FIRE_ASPECT_DURATION[lvl], FIRE_ASPECT_PERCENT[lvl]);
     }
 
     /**
