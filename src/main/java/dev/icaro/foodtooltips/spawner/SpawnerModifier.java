@@ -17,7 +17,7 @@ public enum SpawnerModifier {
     GHAST_TEAR(Material.GHAST_TEAR, 5, "Ghast Tear", "Max nearby mobs: +2 per item", null),
     PRISMARINE_CRYSTALS(Material.PRISMARINE_CRYSTALS, 5, "Prismarine Crystals", "Player range: +4 blocks per item", null),
     BLAZE_ROD(Material.BLAZE_ROD, 4, "Blaze Rod", "Spawn area: +1 block per item", null),
-    POINTED_DRIPSTONE(Material.POINTED_DRIPSTONE, 10, "Pointed Dripstone", "Mob health: -5% per item", null),
+    POINTED_DRIPSTONE(Material.POINTED_DRIPSTONE, 20, "Pointed Dripstone", "Mob health: -4% per item", null),
     NETHER_STAR(Material.NETHER_STAR, 1, "Nether Star", "Works with no players nearby", null),
     CONDUIT(Material.CONDUIT, 1, "Conduit", "Ignores light and spawn conditions", null),
     COMPARATOR(Material.COMPARATOR, 1, "Comparator", "Unlocks redstone control", Toggle.REDSTONE),
