@@ -344,14 +344,14 @@ final class CollectionsCatalogTest {
         List<CollectionsMilestone> m = paleOakLog().milestones();
         assertEquals(RewardKind.FORAGING_XP, m.get(0).kind());
         assertEquals(1000, m.get(0).xpAmount());
-        assertEquals(List.of(CollectionsCatalog.PALE_CORE_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE), m.get(1).recipes());
         assertEquals(List.of(CollectionsCatalog.CREAKING_SIGHT_TALISMAN_RECIPE), m.get(2).recipes());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
         assertTrue(m.get(3).recipes().isEmpty()); // M4: the Pale Garden teleport, no real recipe to gate.
         assertEquals(List.of(CollectionsCatalog.CREAKING_SIGHT_RING_RECIPE), m.get(4).recipes());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(5).kind());
         assertTrue(m.get(5).recipes().isEmpty()); // M6: the Biome's Wand unlock, no real recipe to gate.
-        assertEquals(List.of(CollectionsCatalog.AWAKENED_PALE_CORE_RECIPE), m.get(6).recipes());
+        assertEquals(List.of(CollectionsCatalog.ENCHANTED_PALE_OAK_PLANKS_RECIPE), m.get(6).recipes());
         assertEquals(List.of(CollectionsCatalog.CREAKING_SIGHT_ARTIFACT_RECIPE), m.get(7).recipes());
         assertEquals(RewardKind.FORAGING_XP, m.get(8).kind());
         assertEquals(25000, m.get(8).xpAmount());

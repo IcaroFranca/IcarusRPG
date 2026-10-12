@@ -143,10 +143,10 @@ public final class CollectionsCatalog {
     public static final NamespacedKey CHERRY_FORTUNE_RING_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_ring");
     public static final NamespacedKey PINK_CHERRY_CORE_RECIPE = new NamespacedKey("foodtooltips", "pink_cherry_core");
     public static final NamespacedKey CHERRY_FORTUNE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_artifact");
-    public static final NamespacedKey PALE_CORE_RECIPE = new NamespacedKey("foodtooltips", "pale_core");
+    public static final NamespacedKey ENCHANTED_PALE_OAK_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_pale_oak_log");
     public static final NamespacedKey CREAKING_SIGHT_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_talisman");
     public static final NamespacedKey CREAKING_SIGHT_RING_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_ring");
-    public static final NamespacedKey AWAKENED_PALE_CORE_RECIPE = new NamespacedKey("foodtooltips", "awakened_pale_core");
+    public static final NamespacedKey ENCHANTED_PALE_OAK_PLANKS_RECIPE = new NamespacedKey("foodtooltips", "enchanted_pale_oak_planks");
     public static final NamespacedKey CREAKING_SIGHT_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_artifact");
     public static final NamespacedKey CRIMSON_CORE_RECIPE = new NamespacedKey("foodtooltips", "crimson_core");
     public static final NamespacedKey EMBER_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "ember_talisman");
@@ -1227,8 +1227,8 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.PALE_OAK_LOG, Material.PALE_OAK_LOG, CollectionsCategory.FORAGING, "Tora de Carvalho Pálido", "Pale Oak Log", List.of(
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(100,
-                            "Desbloqueia a receita do Pale Core", "Unlocks the Pale Core recipe",
-                            PALE_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Pale Oak Log", "Unlocks the Enchanted Pale Oak Log recipe",
+                            ENCHANTED_PALE_OAK_LOG_RECIPE),
                     CollectionsMilestone.recipeUnlock(250,
                             "Desbloqueia a receita do Creaking Sight Talisman", "Unlocks the Creaking Sight Talisman recipe",
                             CREAKING_SIGHT_TALISMAN_RECIPE),
@@ -1240,8 +1240,8 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Bosque Pálido na Varinha de Biomas", "Unlocks Pale Garden on the Biome's Wand"),
                     CollectionsMilestone.recipeUnlock(5000,
-                            "Desbloqueia a receita do Awakened Pale Core", "Unlocks the Awakened Pale Core recipe",
-                            AWAKENED_PALE_CORE_RECIPE),
+                            "Desbloqueia a receita das Enchanted Pale Oak Planks", "Unlocks the Enchanted Pale Oak Planks recipe",
+                            ENCHANTED_PALE_OAK_PLANKS_RECIPE),
                     CollectionsMilestone.recipeUnlock(10000,
                             "Desbloqueia a receita do Creaking Sight Artifact", "Unlocks the Creaking Sight Artifact recipe",
                             CREAKING_SIGHT_ARTIFACT_RECIPE),

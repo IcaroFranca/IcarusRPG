@@ -18,10 +18,20 @@ import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -55,7 +65,7 @@ import org.bukkit.plugin.Plugin;
  * for every Collections-reward item (recipes are registered once at startup, long before
  * any specific player/language is known).
  */
-public final class ForagingCollectionsItemsService {
+public final class ForagingCollectionsItemsService implements Listener {
     private static final UUID OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:oak_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID BIRCH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:birch_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID SPRUCE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spruce_core".getBytes(StandardCharsets.UTF_8));
@@ -95,6 +105,11 @@ public final class ForagingCollectionsItemsService {
     private static final int EMBER_TALISMAN_HEAT_RESISTANCE = 1;
     private static final int EMBER_RING_HEAT_RESISTANCE = 3;
     private static final int EMBER_ARTIFACT_HEAT_RESISTANCE = 5;
+    /** Enchanted Pale Oak Log: {@value #ENCHANTED_LOG_SLOTS} slots of {@value #ENCHANTED_LOG_STACK} Pale Oak Logs each (160 total). */
+    static final int ENCHANTED_LOG_SLOTS = 5;
+    static final int ENCHANTED_LOG_STACK = 32;
+    private static final org.bukkit.NamespacedKey ENCHANTED_PALE_OAK_LOG_KEY = new org.bukkit.NamespacedKey("foodtooltips", "enchanted_pale_oak_log");
+    private static final org.bukkit.NamespacedKey ENCHANTED_PALE_OAK_PLANKS_KEY = new org.bukkit.NamespacedKey("foodtooltips", "enchanted_pale_oak_planks");
 
     private final Plugin plugin;
     private final BiomeWandService biomeWand;
@@ -291,11 +306,12 @@ public final class ForagingCollectionsItemsService {
                     r.setIngredient('P', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.pinkCherryCore()));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryFortuneRing()));
                 });
-        this.newShapedRecipe(CollectionsCatalog.PALE_CORE_RECIPE, this.paleCore(),
-                new String[]{"PPP", "PDP", "PPP"}, r -> {
-                    r.setIngredient('P', Material.PALE_OAK_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
-                });
+        // 5 Pale Oak Logs in any slots, but each stack needs ENCHANTED_LOG_STACK of them -
+        // a vanilla recipe always takes one per slot, so #prepare/#craft enforce the amount.
+        Bukkit.removeRecipe(CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE);
+        ShapelessRecipe enchantedLog = new ShapelessRecipe(CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE, this.enchantedPaleOakLog());
+        enchantedLog.addIngredient(ENCHANTED_LOG_SLOTS, Material.PALE_OAK_LOG);
+        Bukkit.addRecipe(enchantedLog);
         this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_TALISMAN_RECIPE, this.creakingSightTalisman(),
                 new String[]{"PPP", "PEP", "PPP"}, r -> {
                     r.setIngredient('P', Material.PALE_OAK_LOG);
@@ -303,17 +319,17 @@ public final class ForagingCollectionsItemsService {
                 });
         this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_RING_RECIPE, this.creakingSightRing(),
                 new String[]{"CCC", "CTC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.paleCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPaleOakLog()));
                     r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightTalisman()));
                 });
-        this.newShapedRecipe(CollectionsCatalog.AWAKENED_PALE_CORE_RECIPE, this.awakenedPaleCore(),
-                new String[]{"CCC", "CHC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.paleCore()));
-                    r.setIngredient('H', Material.CREAKING_HEART);
+        this.newShapedRecipe(CollectionsCatalog.ENCHANTED_PALE_OAK_PLANKS_RECIPE, this.enchantedPaleOakPlanks(),
+                new String[]{"CCC", "CDC", "CCC"}, r -> {
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPaleOakLog()));
+                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_ARTIFACT_RECIPE, this.creakingSightArtifact(),
                 new String[]{"AAA", "ARA", "AAA"}, r -> {
-                    r.setIngredient('A', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.awakenedPaleCore()));
+                    r.setIngredient('A', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPaleOakPlanks()));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightRing()));
                 });
         this.newShapedRecipe(CollectionsCatalog.CRIMSON_CORE_RECIPE, this.crimsonCore(),
@@ -507,29 +523,96 @@ public final class ForagingCollectionsItemsService {
         return this.tagged(item);
     }
 
-    /**
-     * Pale Oak Log Collection M2's own Core - unlike every other wood-log Core in this class,
-     * no minecraft-heads.com custom head texture was given for this one yet, so it's left as
-     * a plain, textureless {@link Material#PLAYER_HEAD} (a real Steve/Alex skin shows in-game)
-     * rather than guessing a texture value - swap in a real {@code HeadTexture.PALE_CORE}
-     * constant plus {@link #applyProfile} here (same shape as {@link #cherryCore}/{@link
-     * #mangroveCore}) the moment one is provided.
-     */
-    private ItemStack paleCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        meta.displayName(Component.text("Pale Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+    /** Pale Oak Log Collection M2: a glinting Pale Oak Log, crafted from {@value #ENCHANTED_LOG_SLOTS} stacks of {@value #ENCHANTED_LOG_STACK} Pale Oak Logs - the Creaking Sight Ring's ingredient. */
+    private ItemStack enchantedPaleOakLog() {
+        return enchantedIngredient(Material.PALE_OAK_LOG, ENCHANTED_PALE_OAK_LOG_KEY, "Enchanted Pale Oak Log");
+    }
+
+    /** Pale Oak Log Collection M7: glinting Pale Oak Planks, 8 {@link #enchantedPaleOakLog} around a Diamond Block - the Creaking Sight Artifact's ingredient. */
+    private ItemStack enchantedPaleOakPlanks() {
+        return enchantedIngredient(Material.PALE_OAK_PLANKS, ENCHANTED_PALE_OAK_PLANKS_KEY, "Enchanted Pale Oak Planks");
+    }
+
+    private static ItemStack enchantedIngredient(Material material, org.bukkit.NamespacedKey key, String name) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
+        meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        meta.setEnchantmentGlintOverride(true);
         item.setItemMeta(meta);
         return item;
     }
 
-    /** Pale Oak Log Collection M7's own upgrade to {@link #paleCore} - same "8 of the base Core around a power ingredient" shape {@link #floweredMangroveCore}/{@link #pinkCherryCore} already use, here with a real vanilla Creaking Heart instead of a Netherite Ingot - the Creaking Sight Artifact's own power ingredient. No custom head texture given yet either - see {@link #paleCore}'s own doc. */
-    private ItemStack awakenedPaleCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        meta.displayName(Component.text("Awakened Pale Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
+    /** Neither enchanted Pale Oak ingredient is meant to be placed. */
+    @EventHandler(ignoreCancelled = true)
+    public void place(BlockPlaceEvent e) {
+        ItemStack item = e.getItemInHand();
+        if (item.hasItemMeta()) {
+            var pdc = item.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ENCHANTED_PALE_OAK_LOG_KEY, PersistentDataType.BYTE) || pdc.has(ENCHANTED_PALE_OAK_PLANKS_KEY, PersistentDataType.BYTE)) {
+                e.setCancelled(true);
+            }
+        }
+    }
+
+    /** Hides the Enchanted Pale Oak Log result until every filled slot has {@value #ENCHANTED_LOG_STACK} logs. */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void prepare(PrepareItemCraftEvent e) {
+        if (isEnchantedLogRecipe(e.getRecipe()) && !hasFullStacks(e.getInventory().getMatrix())) {
+            e.getInventory().setResult(null);
+        }
+    }
+
+    /** Crafts the Enchanted Pale Oak Log by hand, taking {@value #ENCHANTED_LOG_STACK} logs from each filled slot instead of vanilla's one - same approach as {@code CobblestoneCollectionService#craft}. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void craft(CraftItemEvent e) {
+        if (!isEnchantedLogRecipe(e.getRecipe()) || !(e.getWhoClicked() instanceof Player p)) {
+            return;
+        }
+        e.setCancelled(true);
+        CraftingInventory inv = e.getInventory();
+        ItemStack[] matrix = inv.getMatrix();
+        if (!hasFullStacks(matrix) || inv.getResult() == null) {
+            return;
+        }
+        ItemStack result = inv.getResult().clone();
+        for (int i = 0; i < matrix.length; i++) {
+            if (matrix[i] == null || matrix[i].isEmpty()) {
+                continue;
+            }
+            int left = matrix[i].getAmount() - ENCHANTED_LOG_STACK;
+            matrix[i] = left > 0 ? matrix[i].asQuantity(left) : null;
+        }
+        inv.setMatrix(matrix);
+        ItemStack cursor = e.getView().getCursor();
+        if (!e.isShiftClick() && (cursor == null || cursor.isEmpty())) {
+            e.getView().setCursor(result);
+        } else if (!e.isShiftClick() && cursor.isSimilar(result) && cursor.getAmount() < cursor.getMaxStackSize()) {
+            e.getView().setCursor(cursor.add(result.getAmount()));
+        } else {
+            for (ItemStack overflow : p.getInventory().addItem(result).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), overflow);
+            }
+        }
+    }
+
+    private static boolean isEnchantedLogRecipe(Recipe recipe) {
+        return recipe instanceof org.bukkit.Keyed keyed && CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE.equals(keyed.getKey());
+    }
+
+    /** Whether {@code matrix} holds exactly {@value #ENCHANTED_LOG_SLOTS} filled slots of at least {@value #ENCHANTED_LOG_STACK} items each (the recipe itself already checks which item). */
+    static boolean hasFullStacks(ItemStack[] matrix) {
+        int filled = 0;
+        for (ItemStack stack : matrix) {
+            if (stack == null || stack.isEmpty()) {
+                continue;
+            }
+            if (stack.getAmount() < ENCHANTED_LOG_STACK) {
+                return false;
+            }
+            filled++;
+        }
+        return filled == ENCHANTED_LOG_SLOTS;
     }
 
     /**

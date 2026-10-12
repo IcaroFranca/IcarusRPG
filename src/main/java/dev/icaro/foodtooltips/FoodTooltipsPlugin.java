@@ -370,6 +370,7 @@ extends JavaPlugin {
         TreecapitatorService treecapitator = new TreecapitatorService();
         ForagingCollectionsItemsService foragingItems = new ForagingCollectionsItemsService((Plugin)this, biomeWand, sculptorsAxe, spruceAxe, woodcuttingCrystal, savannaBow, treecapitator, tiers);
         foragingItems.registerRecipes();
+        this.getServer().getPluginManager().registerEvents((Listener)foragingItems, (Plugin)this);
         this.storage = new PersonalStorageService((Plugin)this, collectionsProgress);
         menus.storage(this.storage);
         PassiveAbilityService passives = new PassiveAbilityService();
