@@ -72,4 +72,17 @@ class SpawnerDataTest {
         assertFalse(d.active(SpawnerModifier.Toggle.REDSTONE));
         assertFalse(d.active(SpawnerModifier.Toggle.NO_AI));
     }
+
+    @Test
+    void nameAndColorRoundTrip() {
+        SpawnerData d = new SpawnerData();
+        assertFalse(d.customized());
+        d.name = "Farm; zombies=1, #2";
+        d.color = org.bukkit.DyeColor.LIME;
+        assertTrue(d.customized());
+        SpawnerData back = SpawnerData.decode(d.encode());
+        assertEquals("Farm; zombies=1, #2", back.name);
+        assertEquals(org.bukkit.DyeColor.LIME, back.color);
+        assertFalse(back.hasModifiers());
+    }
 }

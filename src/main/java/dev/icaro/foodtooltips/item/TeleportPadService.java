@@ -730,7 +730,8 @@ public final class TeleportPadService implements Listener {
     // ---- Helpers ----
 
     /** Text color of a dye - its own RGB, except Black, nudged up so the name stays readable. */
-    static TextColor textColor(DyeColor color) {
+    /** {@code color} as a text color (black lightened so it reads on dark tooltips) - shared with the spawner menu's own names. */
+    public static TextColor textColor(DyeColor color) {
         if (color == DyeColor.BLACK) {
             return TextColor.color(0x3A3A3A);
         }

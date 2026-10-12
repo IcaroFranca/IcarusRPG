@@ -70,6 +70,12 @@ public final class SpawnerUpgradeService implements Listener {
     private static final Map<SpawnerModifier.Toggle, Integer> TOGGLE_SLOTS = Map.of(
             SpawnerModifier.Toggle.REDSTONE, 38, SpawnerModifier.Toggle.NO_AI, 40, SpawnerModifier.Toggle.SILENT, 42);
     private static final int CLOSE_SLOT = 49;
+    private static final int RENAME_SLOT = 47;
+    private static final int COLOR_SLOT = 51;
+    /** Color screen: the 16 dye colors and its back button. */
+    private static final int[] COLOR_SLOTS = {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17};
+    private static final int COLOR_BACK_SLOT = 31;
+    private static final int MAX_NAME_LENGTH = 32;
     /** Neither delay goes below this (2 seconds), whatever Sugar/Clock do - a default spawner (200-800) reaches it with 32 Sugar and 32 Clocks. */
     static final int MIN_DELAY_FLOOR = 40;
     /** Health each Pointed Dripstone takes off a mob as it spawns (Max Health stays) - 20 (the limit) leave it at 20%. */
@@ -79,6 +85,27 @@ public final class SpawnerUpgradeService implements Listener {
     private final MobDifficultyService difficulty;
     /** Spawners whose data {@link #carryInto} just moved into a Spawner Touch item - {@link #broken} mustn't drop their items too. */
     private final Set<Location> carried = new HashSet<>();
+
+    /** Player -> spawner they're renaming, plus where their fake sign is - same trick as the Teleport Pad's own rename. */
+    private final Map<java.util.UUID, Rename> renaming = new java.util.HashMap<>();
+
+    private record Rename(Block block, Location signAt, org.bukkit.block.data.BlockData realBlock) {
+    }
+
+    /** The color screen, and which spawner it's for. */
+    static final class ColorMenu implements InventoryHolder {
+        private final Block block;
+        private Inventory inventory;
+
+        ColorMenu(Block block) {
+            this.block = block;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return this.inventory;
+        }
+    }
 
     /** Marks the menu, and which spawner it shows. */
     static final class Menu implements InventoryHolder {
@@ -199,7 +226,7 @@ public final class SpawnerUpgradeService implements Listener {
         menu.inventory = Bukkit.createInventory(menu, SIZE, "Spawner Upgrades");
         this.render(menu);
         p.openInventory(menu.inventory);
-        int[] persistent = new int[MODIFIER_SLOTS.length + TOGGLE_SLOTS.size() + 2];
+        int[] persistent = new int[MODIFIER_SLOTS.length + TOGGLE_SLOTS.size() + 4];
         int i = 0;
         for (int slot : MODIFIER_SLOTS) {
             persistent[i++] = slot;
@@ -208,6 +235,8 @@ public final class SpawnerUpgradeService implements Listener {
             persistent[i++] = slot;
         }
         persistent[i++] = INFO_SLOT;
+        persistent[i++] = RENAME_SLOT;
+        persistent[i++] = COLOR_SLOT;
         persistent[i] = CLOSE_SLOT;
         dev.icaro.foodtooltips.menu.MenuBackground.apply(p, persistent);
     }
@@ -231,6 +260,144 @@ public final class SpawnerUpgradeService implements Listener {
         }
         ItemStack close = named(Material.BARRIER, "Close", NamedTextColor.RED);
         inv.setItem(CLOSE_SLOT, close);
+        ItemStack rename = named(Material.NAME_TAG, "Rename", NamedTextColor.YELLOW);
+        ItemMeta renameMeta = rename.getItemMeta();
+        renameMeta.lore(List.of(line("Current: ", NamedTextColor.GRAY).append(displayName(menu.block, data)),
+                line("Only shown in menus - nothing floats over the spawner.", NamedTextColor.DARK_GRAY),
+                line("Click to rename.", NamedTextColor.YELLOW)));
+        rename.setItemMeta(renameMeta);
+        inv.setItem(RENAME_SLOT, rename);
+        ItemStack color = named(dyeOf(data.color), "Change Color", NamedTextColor.AQUA);
+        ItemMeta colorMeta = color.getItemMeta();
+        colorMeta.lore(List.of(line("Color of this spawner's name.", NamedTextColor.GRAY),
+                line("Current: ", NamedTextColor.GRAY).append(Component.text(pretty(data.color.name()), dev.icaro.foodtooltips.item.TeleportPadService.textColor(data.color))),
+                line("Click to change.", NamedTextColor.YELLOW)));
+        color.setItemMeta(colorMeta);
+        inv.setItem(COLOR_SLOT, color);
+    }
+
+    /** The spawner's name in its color - the player's own name if it has one, else "Spawner: <mob>". */
+    static Component displayName(Block block, SpawnerData data) {
+        String text = data.name;
+        if (text == null) {
+            EntityType type = block.getState(false) instanceof CreatureSpawner s ? s.getSpawnedType() : null;
+            text = "Spawner: " + (type == null ? "Empty" : mobName(type));
+        }
+        return Component.text(text, dev.icaro.foodtooltips.item.TeleportPadService.textColor(data.color)).decoration(TextDecoration.ITALIC, false);
+    }
+
+    // ---- Name and color ----
+
+    private void openColors(Player p, Block block) {
+        SpawnerData data = read(block);
+        ColorMenu menu = new ColorMenu(block);
+        menu.inventory = Bukkit.createInventory(menu, 36, "Change Color");
+        ItemStack filler = named(Material.GRAY_STAINED_GLASS_PANE, " ", NamedTextColor.WHITE);
+        for (int i = 0; i < 36; i++) {
+            menu.inventory.setItem(i, filler);
+        }
+        org.bukkit.DyeColor[] colors = org.bukkit.DyeColor.values();
+        for (int i = 0; i < colors.length && i < COLOR_SLOTS.length; i++) {
+            org.bukkit.DyeColor c = colors[i];
+            ItemStack dye = new ItemStack(dyeOf(c));
+            ItemMeta meta = dye.getItemMeta();
+            meta.displayName(Component.text(pretty(c.name()), dev.icaro.foodtooltips.item.TeleportPadService.textColor(c)).decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(c == data.color ? line("Current color", NamedTextColor.GREEN) : line("Click to use this color.", NamedTextColor.YELLOW)));
+            if (c == data.color) {
+                meta.setEnchantmentGlintOverride(true);
+            }
+            dye.setItemMeta(meta);
+            menu.inventory.setItem(COLOR_SLOTS[i], dye);
+        }
+        menu.inventory.setItem(COLOR_BACK_SLOT, named(Material.ARROW, "Back", NamedTextColor.GRAY));
+        p.openInventory(menu.inventory);
+        int[] persistent = new int[COLOR_SLOTS.length + 1];
+        System.arraycopy(COLOR_SLOTS, 0, persistent, 0, COLOR_SLOTS.length);
+        persistent[COLOR_SLOTS.length] = COLOR_BACK_SLOT;
+        dev.icaro.foodtooltips.menu.MenuBackground.apply(p, persistent);
+    }
+
+    @EventHandler
+    public void colorClick(InventoryClickEvent e) {
+        if (!(e.getWhoClicked() instanceof Player p) || !(e.getView().getTopInventory().getHolder() instanceof ColorMenu menu)) {
+            return;
+        }
+        e.setCancelled(true);
+        int raw = e.getRawSlot();
+        if (menu.block.getType() != Material.SPAWNER) {
+            p.closeInventory();
+            return;
+        }
+        if (raw == COLOR_BACK_SLOT) {
+            this.open(p, menu.block);
+            return;
+        }
+        for (int i = 0; i < COLOR_SLOTS.length; i++) {
+            if (COLOR_SLOTS[i] == raw && i < org.bukkit.DyeColor.values().length) {
+                SpawnerData data = read(menu.block);
+                data.color = org.bukkit.DyeColor.values()[i];
+                this.save(menu.block, data);
+                this.refresh(menu.block);
+                this.openColors(p, menu.block);
+                return;
+            }
+        }
+    }
+
+    /** Opens the client's own sign editor on a sign that only exists for {@code p}, two blocks under their feet - its text becomes the name (see {@link #renamed}). */
+    private void startRename(Player p, Block block) {
+        p.closeInventory();
+        Location at = p.getLocation().getBlock().getLocation().subtract(0, 2, 0);
+        if (at.getY() < p.getWorld().getMinHeight()) {
+            at.setY(p.getWorld().getMinHeight());
+        }
+        this.renaming.put(p.getUniqueId(), new Rename(block, at, at.getBlock().getBlockData()));
+        SpawnerData data = read(block);
+        p.sendBlockChange(at, Material.OAK_SIGN.createBlockData());
+        p.sendSignChange(at, List.of(Component.text(data.name == null ? "" : data.name), Component.empty(), Component.empty(), Component.empty()));
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            if (p.isOnline() && this.renaming.containsKey(p.getUniqueId())) {
+                p.openVirtualSign(io.papermc.paper.math.Position.block(at), org.bukkit.block.sign.Side.FRONT);
+            }
+        }, 2L);
+    }
+
+    @EventHandler
+    public void renamed(io.papermc.paper.event.packet.UncheckedSignChangeEvent e) {
+        Player p = e.getPlayer();
+        Rename rename = this.renaming.remove(p.getUniqueId());
+        if (rename == null) {
+            return;
+        }
+        e.setCancelled(true);
+        p.sendBlockChange(rename.signAt(), rename.realBlock());
+        StringBuilder typed = new StringBuilder();
+        for (Component part : e.lines()) {
+            String text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(part).trim();
+            if (!text.isEmpty()) {
+                typed.append(typed.length() > 0 ? " " : "").append(text);
+            }
+        }
+        Block block = rename.block();
+        if (block.getType() != Material.SPAWNER) {
+            return;
+        }
+        SpawnerData data = read(block);
+        String name = typed.toString().trim();
+        // An empty sign clears the name back to "Spawner: <mob>".
+        data.name = name.isEmpty() ? null : name.length() > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name;
+        this.save(block, data);
+        p.sendActionBar(Component.text("Renamed to ", NamedTextColor.LIGHT_PURPLE).append(displayName(block, data)));
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            if (p.isOnline() && block.getType() == Material.SPAWNER) {
+                this.open(p, block);
+            }
+        });
+    }
+
+    @EventHandler
+    public void quit(org.bukkit.event.player.PlayerQuitEvent e) {
+        this.renaming.remove(e.getPlayer().getUniqueId());
     }
 
     /** Re-renders every open menu showing {@code block}. */
@@ -268,7 +435,10 @@ public final class SpawnerUpgradeService implements Listener {
             String paused = pausedReason(block, s, data);
             lore.add(paused == null ? line("Status: spawning", NamedTextColor.GREEN) : line("Status: paused - " + paused, NamedTextColor.RED));
         }
-        meta.displayName(Component.text("Spawner: " + mob, NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(displayName(block, data));
+        if (data.name != null) {
+            lore.add(0, line("Mob: " + mob, NamedTextColor.GRAY));
+        }
         meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         item.setItemMeta(meta);
@@ -401,6 +571,14 @@ public final class SpawnerUpgradeService implements Listener {
             p.closeInventory();
             return;
         }
+        if (raw == RENAME_SLOT) {
+            this.startRename(p, menu.block);
+            return;
+        }
+        if (raw == COLOR_SLOT) {
+            this.openColors(p, menu.block);
+            return;
+        }
         for (Map.Entry<SpawnerModifier.Toggle, Integer> t : TOGGLE_SLOTS.entrySet()) {
             if (t.getValue() == raw) {
                 this.flip(p, menu, t.getKey());
@@ -498,7 +676,8 @@ public final class SpawnerUpgradeService implements Listener {
 
     @EventHandler
     public void drag(InventoryDragEvent e) {
-        if (e.getView().getTopInventory().getHolder() instanceof Menu && e.getRawSlots().stream().anyMatch(s -> s < SIZE)) {
+        InventoryHolder holder = e.getView().getTopInventory().getHolder();
+        if ((holder instanceof Menu || holder instanceof ColorMenu) && e.getRawSlots().stream().anyMatch(s -> s < e.getView().getTopInventory().getSize())) {
             e.setCancelled(true);
         }
     }
@@ -555,17 +734,22 @@ public final class SpawnerUpgradeService implements Listener {
      */
     public void carryInto(CreatureSpawner state, ItemStack item) {
         SpawnerData data = read(state.getPersistentDataContainer());
-        if (!data.hasModifiers()) {
+        if (!data.customized()) {
             return;
         }
         this.carried.add(state.getLocation());
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(DATA_KEY, PersistentDataType.STRING, data.encode());
         List<Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
-        lore.add(line("Upgrades:", NamedTextColor.GRAY));
-        for (SpawnerModifier m : SpawnerModifier.values()) {
-            if (data.count(m) > 0) {
-                lore.add(line(" " + m.label + " x" + data.count(m), NamedTextColor.AQUA));
+        if (data.name != null) {
+            lore.add(line("Name: ", NamedTextColor.GRAY).append(Component.text(data.name, dev.icaro.foodtooltips.item.TeleportPadService.textColor(data.color))));
+        }
+        if (data.hasModifiers()) {
+            lore.add(line("Upgrades:", NamedTextColor.GRAY));
+            for (SpawnerModifier m : SpawnerModifier.values()) {
+                if (data.count(m) > 0) {
+                    lore.add(line(" " + m.label + " x" + data.count(m), NamedTextColor.AQUA));
+                }
             }
         }
         meta.lore(lore);
@@ -628,6 +812,19 @@ public final class SpawnerUpgradeService implements Listener {
     private static String mobName(EntityType type) {
         String v = type.key().value().replace('_', ' ');
         return Character.toUpperCase(v.charAt(0)) + v.substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    private static Material dyeOf(org.bukkit.DyeColor c) {
+        return Material.valueOf(c.name() + "_DYE");
+    }
+
+    /** "LIGHT_BLUE" -> "Light Blue". */
+    private static String pretty(String enumName) {
+        StringBuilder sb = new StringBuilder();
+        for (String w : enumName.toLowerCase(Locale.ROOT).split("_")) {
+            sb.append(sb.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        }
+        return sb.toString();
     }
 
     private static Component line(String text, NamedTextColor color) {

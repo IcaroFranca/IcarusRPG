@@ -23,6 +23,9 @@ final class SpawnerData {
     final EnumSet<SpawnerModifier.Toggle> flipped = EnumSet.noneOf(SpawnerModifier.Toggle.class);
     Material wool = Material.WHITE_WOOL;
     int[] base;
+    /** The player-given name (null = none, the menu shows the mob instead) and its color - menu-only, never shown over the block. */
+    String name;
+    org.bukkit.DyeColor color = org.bukkit.DyeColor.WHITE;
 
     int count(SpawnerModifier m) {
         return this.counts.getOrDefault(m, 0);
@@ -43,6 +46,11 @@ final class SpawnerData {
 
     boolean hasModifiers() {
         return !this.counts.isEmpty();
+    }
+
+    /** Anything worth keeping on the block or carrying in a Spawner Touch item - upgrades, a name or a color. */
+    boolean customized() {
+        return this.hasModifiers() || this.name != null || this.color != org.bukkit.DyeColor.WHITE;
     }
 
     /** The real items stored in the spawner, as they'd come back out. */
@@ -71,6 +79,13 @@ final class SpawnerData {
             offs.append(t.name());
         }
         StringBuilder out = new StringBuilder("mods=").append(mods).append(";flip=").append(offs).append(";wool=").append(this.wool.name());
+        if (this.name != null) {
+            // Base64 so a name can hold the separators this format uses.
+            out.append(";name=").append(java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(this.name.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        }
+        if (this.color != org.bukkit.DyeColor.WHITE) {
+            out.append(";color=").append(this.color.name());
+        }
         if (this.base != null) {
             out.append(";base=");
             for (int i = 0; i < this.base.length; i++) {
@@ -128,6 +143,20 @@ final class SpawnerData {
                     Material m = Material.matchMaterial(value);
                     if (m != null && m.name().endsWith("_WOOL")) {
                         d.wool = m;
+                    }
+                }
+                case "name" -> {
+                    try {
+                        d.name = new String(java.util.Base64.getUrlDecoder().decode(value), java.nio.charset.StandardCharsets.UTF_8);
+                    } catch (IllegalArgumentException ignored) {
+                        // Corrupt name - leave it unnamed.
+                    }
+                }
+                case "color" -> {
+                    try {
+                        d.color = org.bukkit.DyeColor.valueOf(value);
+                    } catch (IllegalArgumentException ignored) {
+                        // Unknown color - keep white.
                     }
                 }
                 case "base" -> {
