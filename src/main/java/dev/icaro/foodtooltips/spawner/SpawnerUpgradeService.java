@@ -70,8 +70,8 @@ public final class SpawnerUpgradeService implements Listener {
     private static final Map<SpawnerModifier.Toggle, Integer> TOGGLE_SLOTS = Map.of(
             SpawnerModifier.Toggle.REDSTONE, 38, SpawnerModifier.Toggle.NO_AI, 40, SpawnerModifier.Toggle.SILENT, 42);
     private static final int CLOSE_SLOT = 49;
-    /** Never below one second, whatever Sugar does. */
-    private static final int MIN_DELAY_FLOOR = 20;
+    /** Neither delay goes below this (2 seconds), whatever Sugar/Clock do - a default spawner (200-800) reaches it with 32 Sugar and 38 Clocks. */
+    static final int MIN_DELAY_FLOOR = 40;
 
     private final Plugin plugin;
     private final MobDifficultyService difficulty;
@@ -126,7 +126,7 @@ public final class SpawnerUpgradeService implements Listener {
     static void apply(CreatureSpawner state, SpawnerData data) {
         int[] b = data.base;
         int min = Math.max(MIN_DELAY_FLOOR, b[0] - 5 * data.count(SpawnerModifier.SUGAR));
-        int max = Math.max(min, b[1] - 10 * data.count(SpawnerModifier.CLOCK));
+        int max = Math.max(min, Math.max(MIN_DELAY_FLOOR, b[1] - 20 * data.count(SpawnerModifier.CLOCK)));
         // Bukkit refuses a min above the current max (and vice versa), so order the two writes.
         if (min > state.getMaxSpawnDelay()) {
             state.setMaxSpawnDelay(max);
