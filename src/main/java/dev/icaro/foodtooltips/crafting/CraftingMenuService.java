@@ -132,8 +132,9 @@ public final class CraftingMenuService {
     }
 
     /**
-     * Takes whatever's in the output slot: gives it to {@code p} and consumes one of
-     * each non-empty ingredient from the grid, vanilla-style, then recomputes in case
+     * Takes whatever's in the output slot: gives it to {@code p} and consumes each
+     * non-empty ingredient from the grid (one, or the recipe's own {@link SlotAmounts}
+     * amount), then recomputes in case
      * there's enough left for another craft (so repeatedly clicking draws the stack
      * down one craft at a time, same as a real table). No-op if the output is empty.
      */
@@ -146,18 +147,27 @@ public final class CraftingMenuService {
         if (result == null || result.isEmpty()) {
             return;
         }
+        // Most recipes take one per slot; a SlotAmounts one (an Enchanted Log's 32 logs per slot,
+        // the Personal Compactor 4000/5000's 2/4) takes its own amount - read from the recipe
+        // the grid actually matches before anything is consumed.
+        ItemStack[] matrix = new ItemStack[MATRIX_SLOTS.length];
+        for (int i = 0; i < MATRIX_SLOTS.length; i++) {
+            ItemStack item = v.getItem(MATRIX_SLOTS[i]);
+            matrix[i] = item == null ? ItemStack.of(Material.AIR) : item;
+        }
+        org.bukkit.NamespacedKey recipe = SlotAmounts.keyOf(Bukkit.getCraftingRecipe(matrix, p.getWorld()));
+        if (!SlotAmounts.satisfied(recipe, matrix)) {
+            this.recompute(p);
+            return;
+        }
         this.grantAccessoryCraftXp(p, result);
         Map<Integer, ItemStack> overflow = p.getInventory().addItem(result.clone());
         for (ItemStack leftover : overflow.values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), leftover);
         }
-        for (int slot : MATRIX_SLOTS) {
-            ItemStack item = v.getItem(slot);
-            if (item == null || item.isEmpty()) {
-                continue;
-            }
-            item.setAmount(item.getAmount() - 1);
-            v.setItem(slot, item.getAmount() <= 0 ? null : item);
+        ItemStack[] left = SlotAmounts.consume(recipe, matrix);
+        for (int i = 0; i < MATRIX_SLOTS.length; i++) {
+            v.setItem(MATRIX_SLOTS[i], left[i]);
         }
         this.recompute(p);
     }

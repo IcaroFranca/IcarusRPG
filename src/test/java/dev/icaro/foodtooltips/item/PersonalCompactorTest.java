@@ -1,9 +1,12 @@
 package dev.icaro.foodtooltips.item;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.icaro.foodtooltips.crafting.SlotAmounts;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,15 +30,17 @@ final class PersonalCompactorTest {
 
     @Test
     void ringNeedsTheAmountInEverySurroundingSlot() {
+        NamespacedKey key = new NamespacedKey("test", "ring");
+        SlotAmounts.register(key, i -> i == 4 ? 1 : 2);
         ItemStack[] matrix = new ItemStack[9];
         for (int i = 0; i < 9; i++) {
             matrix[i] = stack(i == 4 ? 1 : 2);
         }
-        assertTrue(CobblestoneCollectionService.hasRing(matrix, 2));
-        assertFalse(CobblestoneCollectionService.hasRing(matrix, 4));
+        assertTrue(SlotAmounts.satisfied(key, matrix));
         matrix[7] = stack(1);
-        assertFalse(CobblestoneCollectionService.hasRing(matrix, 2));
-        matrix[7] = null;
-        assertFalse(CobblestoneCollectionService.hasRing(matrix, 2));
+        assertFalse(SlotAmounts.satisfied(key, matrix));
+        assertEquals(1, SlotAmounts.amount(new NamespacedKey("test", "plain"), 3));
+        assertEquals(2, SlotAmounts.amount(key, 3));
+        assertEquals(1, SlotAmounts.amount(key, 4));
     }
 }

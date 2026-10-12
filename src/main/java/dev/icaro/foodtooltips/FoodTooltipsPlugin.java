@@ -549,6 +549,7 @@ extends JavaPlugin {
                 enderBow, aspectOfTheEnd, savingGrace).registerRecipes();
         dev.icaro.foodtooltips.spawner.SpawnerUpgradeService spawnerUpgrades = new dev.icaro.foodtooltips.spawner.SpawnerUpgradeService((Plugin)this, difficulty);
         pm.registerEvents((Listener)spawnerUpgrades, (Plugin)this);
+        pm.registerEvents((Listener)new dev.icaro.foodtooltips.crafting.SlotAmounts(), (Plugin)this);
         pm.registerEvents((Listener)new SpawnerTouchListener(enchants, spawnerUpgrades), (Plugin)this);
         pm.registerEvents((Listener)new SkillsStarListener((Plugin)this, skillsStar, menus), (Plugin)this);
         pm.registerEvents((Listener)new CombatTreeListener(treeMenu), (Plugin)this);

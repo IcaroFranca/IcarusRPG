@@ -429,7 +429,7 @@ public final class RecipeBookMenuService {
                     RecipeChoice choice = choices.get(line.charAt(col));
                     ItemStack sample = choice == null ? null : this.sample(recipe, choice);
                     if (sample != null && !sample.isEmpty()) {
-                        grid[row * 3 + col] = sample.clone();
+                        grid[row * 3 + col] = sample.asQuantity(SlotAmounts.amount(recipe.getKey(), row * 3 + col));
                     }
                 }
             }
@@ -438,7 +438,7 @@ public final class RecipeBookMenuService {
             for (int i = 0; i < choices.size() && i < 9; i++) {
                 ItemStack sample = this.sample(recipe, choices.get(i));
                 if (sample != null && !sample.isEmpty()) {
-                    grid[i] = sample.clone();
+                    grid[i] = sample.asQuantity(SlotAmounts.amount(recipe.getKey(), i));
                 }
             }
         }

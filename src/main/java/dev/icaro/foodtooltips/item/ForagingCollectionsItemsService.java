@@ -18,18 +18,12 @@ import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.inventory.CraftItemEvent;
-import org.bukkit.event.inventory.PrepareItemCraftEvent;
-import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -52,7 +46,7 @@ import org.bukkit.plugin.Plugin;
  *   own model), not a custom head texture. Health only, no forced Defense (kept as plain
  *   Leather/Oak Leaves' own default) - see {@link #leafletPiece}/{@link #leafletHelmet}.
  *   <li>Enchanted Logs (one per wood, see {@link Wood}): the log, glinting - 5 slots of 32 logs,
- *   enforced by {@link #prepare}/{@link #craft}. Some woods also get Enchanted Planks.
+ *   enforced by {@code crafting.SlotAmounts}. Some woods also get Enchanted Planks.
  *   <li>Biome's Wand (restricted): the one crafting recipe for {@link BiomeWandService} in
  *   the whole plugin (the admin one is command-only, no recipe at all) - which biomes it
  *   can actually paint is checked live per player, not baked in here, see {@link
@@ -126,15 +120,6 @@ public final class ForagingCollectionsItemsService implements Listener {
             this.logRecipe = logRecipe;
             this.planksRecipe = planksRecipe;
         }
-
-        static Wood ofLogRecipe(org.bukkit.NamespacedKey key) {
-            for (Wood w : values()) {
-                if (w.logRecipe.equals(key)) {
-                    return w;
-                }
-            }
-            return null;
-        }
     }
 
     private final Plugin plugin;
@@ -180,11 +165,12 @@ public final class ForagingCollectionsItemsService implements Listener {
     public void registerRecipes() {
         for (Wood wood : Wood.values()) {
             // 5 logs in any slots, but each stack needs ENCHANTED_LOG_STACK of them - a
-            // vanilla recipe always takes one per slot, so #prepare/#craft enforce the amount.
+            // vanilla recipe always takes one per slot, so SlotAmounts enforces the amount.
             Bukkit.removeRecipe(wood.logRecipe);
             ShapelessRecipe enchantedLog = new ShapelessRecipe(wood.logRecipe, this.enchantedLog(wood));
             enchantedLog.addIngredient(ENCHANTED_LOG_SLOTS, wood.log);
             Bukkit.addRecipe(enchantedLog);
+            dev.icaro.foodtooltips.crafting.SlotAmounts.register(wood.logRecipe, i -> ENCHANTED_LOG_STACK);
             if (wood.planksRecipe != null) {
                 this.newShapedRecipe(wood.planksRecipe, this.enchantedPlanks(wood),
                         new String[]{"CCC", "CDC", "CCC"}, r -> {
@@ -482,66 +468,6 @@ public final class ForagingCollectionsItemsService implements Listener {
                 return;
             }
         }
-    }
-
-    /** Hides an Enchanted Log result until every filled slot has {@value #ENCHANTED_LOG_STACK} logs. */
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void prepare(PrepareItemCraftEvent e) {
-        if (isEnchantedLogRecipe(e.getRecipe()) && !hasFullStacks(e.getInventory().getMatrix())) {
-            e.getInventory().setResult(null);
-        }
-    }
-
-    /** Crafts an Enchanted Log by hand, taking {@value #ENCHANTED_LOG_STACK} logs from each filled slot instead of vanilla's one - same approach as {@code CobblestoneCollectionService#craft}. */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void craft(CraftItemEvent e) {
-        if (!isEnchantedLogRecipe(e.getRecipe()) || !(e.getWhoClicked() instanceof Player p)) {
-            return;
-        }
-        e.setCancelled(true);
-        CraftingInventory inv = e.getInventory();
-        ItemStack[] matrix = inv.getMatrix();
-        if (!hasFullStacks(matrix) || inv.getResult() == null) {
-            return;
-        }
-        ItemStack result = inv.getResult().clone();
-        for (int i = 0; i < matrix.length; i++) {
-            if (matrix[i] == null || matrix[i].isEmpty()) {
-                continue;
-            }
-            int left = matrix[i].getAmount() - ENCHANTED_LOG_STACK;
-            matrix[i] = left > 0 ? matrix[i].asQuantity(left) : null;
-        }
-        inv.setMatrix(matrix);
-        ItemStack cursor = e.getView().getCursor();
-        if (!e.isShiftClick() && (cursor == null || cursor.isEmpty())) {
-            e.getView().setCursor(result);
-        } else if (!e.isShiftClick() && cursor.isSimilar(result) && cursor.getAmount() < cursor.getMaxStackSize()) {
-            e.getView().setCursor(cursor.add(result.getAmount()));
-        } else {
-            for (ItemStack overflow : p.getInventory().addItem(result).values()) {
-                p.getWorld().dropItemNaturally(p.getLocation(), overflow);
-            }
-        }
-    }
-
-    private static boolean isEnchantedLogRecipe(Recipe recipe) {
-        return recipe instanceof org.bukkit.Keyed keyed && Wood.ofLogRecipe(keyed.getKey()) != null;
-    }
-
-    /** Whether {@code matrix} holds exactly {@value #ENCHANTED_LOG_SLOTS} filled slots of at least {@value #ENCHANTED_LOG_STACK} items each (the recipe itself already checks which item). */
-    static boolean hasFullStacks(ItemStack[] matrix) {
-        int filled = 0;
-        for (ItemStack stack : matrix) {
-            if (stack == null || stack.isEmpty()) {
-                continue;
-            }
-            if (stack.getAmount() < ENCHANTED_LOG_STACK) {
-                return false;
-            }
-            filled++;
-        }
-        return filled == ENCHANTED_LOG_SLOTS;
     }
 
     /**

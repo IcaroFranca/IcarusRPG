@@ -21,12 +21,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -59,8 +56,8 @@ import org.bukkit.plugin.Plugin;
  * cursor - only a ghost copy, the player keeps theirs - and clicking a filled slot clears it.
  *
  * <p>The 4000 and 5000 recipes need 2 and 4 Enchanted Cobblestone per slot, which a vanilla recipe
- * can't express (it always takes one): {@link #prepare} hides the result until every surrounding
- * slot has enough, and {@link #craft} does the craft by hand, taking the right amounts.
+ * can't express (it always takes one) - registered with {@code crafting.SlotAmounts}, which
+ * enforces it on every crafting surface.
  */
 public final class CobblestoneCollectionService implements Listener {
     public static final String COMPACTOR_FAMILY = "personal_compactor";
@@ -68,10 +65,6 @@ public final class CobblestoneCollectionService implements Listener {
     private static final NamespacedKey CONFIG_KEY = new NamespacedKey("foodtooltips", "personal_compactor_blocks");
     private static final NamespacedKey ENCHANTED_COBBLESTONE_KEY = new NamespacedKey("foodtooltips", "enchanted_cobblestone");
     private static final NamespacedKey GHOST_KEY = new NamespacedKey("foodtooltips", "personal_compactor_ghost");
-    /** Enchanted Cobblestone needed in each of the 8 surrounding slots, per recipe - see this class's own doc. */
-    private static final Map<NamespacedKey, Integer> RING_AMOUNTS = Map.of(
-            CollectionsCatalog.PERSONAL_COMPACTOR_4000_RECIPE, 2,
-            CollectionsCatalog.PERSONAL_COMPACTOR_5000_RECIPE, 4);
     private static final int MAX_SLOTS = 12;
 
     private final Plugin plugin;
@@ -111,6 +104,9 @@ public final class CobblestoneCollectionService implements Listener {
         this.shaped(CollectionsCatalog.PERSONAL_COMPACTOR_3000_RECIPE, this.compactor(3000), 'E', enchanted, new RecipeChoice.ExactChoice(this.compactor(1)));
         this.shaped(CollectionsCatalog.PERSONAL_COMPACTOR_4000_RECIPE, this.compactor(4000), 'E', enchanted, new RecipeChoice.ExactChoice(this.compactor(3000)));
         this.shaped(CollectionsCatalog.PERSONAL_COMPACTOR_5000_RECIPE, this.compactor(5000), 'E', enchanted, new RecipeChoice.ExactChoice(this.compactor(4000)));
+        // Enchanted Cobblestone needed in each of the 8 surrounding slots (the center compactor stays 1).
+        dev.icaro.foodtooltips.crafting.SlotAmounts.register(CollectionsCatalog.PERSONAL_COMPACTOR_4000_RECIPE, i -> i == 4 ? 1 : 2);
+        dev.icaro.foodtooltips.crafting.SlotAmounts.register(CollectionsCatalog.PERSONAL_COMPACTOR_5000_RECIPE, i -> i == 4 ? 1 : 4);
     }
 
     /** "8 of {@code ring} around 1 {@code center}". */
@@ -493,65 +489,6 @@ public final class CobblestoneCollectionService implements Listener {
                 p.getWorld().dropItemNaturally(p.getLocation(), overflow);
             }
         }
-    }
-
-    // ---- Crafts needing 2/4 per slot ----
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void prepare(PrepareItemCraftEvent e) {
-        Integer need = ringAmount(e.getRecipe());
-        if (need != null && !hasRing(e.getInventory().getMatrix(), need)) {
-            e.getInventory().setResult(null);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void craft(CraftItemEvent e) {
-        Integer need = ringAmount(e.getRecipe());
-        if (need == null || !(e.getWhoClicked() instanceof Player p)) {
-            return;
-        }
-        e.setCancelled(true);
-        CraftingInventory inv = e.getInventory();
-        ItemStack[] matrix = inv.getMatrix();
-        if (!hasRing(matrix, need) || inv.getResult() == null) {
-            return;
-        }
-        ItemStack result = inv.getResult().clone();
-        for (int i = 0; i < matrix.length; i++) {
-            if (matrix[i] == null) {
-                continue;
-            }
-            int take = i == 4 ? 1 : need;
-            int left = matrix[i].getAmount() - take;
-            matrix[i] = left > 0 ? matrix[i].asQuantity(left) : null;
-        }
-        inv.setMatrix(matrix);
-        ItemStack cursor = e.getView().getCursor();
-        if (!e.isShiftClick() && (cursor == null || cursor.isEmpty())) {
-            e.getView().setCursor(result);
-        } else {
-            for (ItemStack overflow : p.getInventory().addItem(result).values()) {
-                p.getWorld().dropItemNaturally(p.getLocation(), overflow);
-            }
-        }
-    }
-
-    private static Integer ringAmount(Recipe recipe) {
-        return recipe instanceof org.bukkit.Keyed keyed ? RING_AMOUNTS.get(keyed.getKey()) : null;
-    }
-
-    /** Whether all 8 slots around the center of the 3x3 {@code matrix} hold at least {@code need} items. */
-    static boolean hasRing(ItemStack[] matrix, int need) {
-        if (matrix.length != 9) {
-            return false;
-        }
-        for (int i = 0; i < 9; i++) {
-            if (i != 4 && (matrix[i] == null || matrix[i].getAmount() < need)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     // ---- Helpers ----
