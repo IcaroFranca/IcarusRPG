@@ -21,7 +21,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -235,7 +234,7 @@ public final class DeepslateCollectionService implements Listener {
             // The glass block on the head: its model, and no armor asset so the item itself is drawn there.
             item.setData(DataComponentTypes.ITEM_MODEL, GLASS_MODEL);
             item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(org.bukkit.inventory.EquipmentSlot.HEAD)
-                    .equipSound(Sound.BLOCK_GLASS_PLACE.key()).build());
+                    .equipSound(net.kyori.adventure.key.Key.key("block.glass.place")).build());
         }
         ItemStack tiered = this.tiers.applyTier(item, Language.EN);
         return tiered != null ? tiered : item;
