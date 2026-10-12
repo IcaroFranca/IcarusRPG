@@ -51,9 +51,8 @@ import org.bukkit.plugin.Plugin;
  *   same component {@code combat.MinerVariantService} already uses to swap Miner's Armor's
  *   own model), not a custom head texture. Health only, no forced Defense (kept as plain
  *   Leather/Oak Leaves' own default) - see {@link #leafletPiece}/{@link #leafletHelmet}.
- *   <li>Oak Core: 8 Oak Log around a Diamond Block, a custom head (minecraft-heads.com
- *   Custom Head ID 89446) - same shape every other Core item in {@code
- *   FarmingCollectionsItemsService} uses.
+ *   <li>Enchanted Logs (one per wood, see {@link Wood}): the log, glinting - 5 slots of 32 logs,
+ *   enforced by {@link #prepare}/{@link #craft}. Some woods also get Enchanted Planks.
  *   <li>Biome's Wand (restricted): the one crafting recipe for {@link BiomeWandService} in
  *   the whole plugin (the admin one is command-only, no recipe at all) - which biomes it
  *   can actually paint is checked live per player, not baked in here, see {@link
@@ -66,18 +65,6 @@ import org.bukkit.plugin.Plugin;
  * any specific player/language is known).
  */
 public final class ForagingCollectionsItemsService implements Listener {
-    private static final UUID OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:oak_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID BIRCH_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:birch_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID SPRUCE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:spruce_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID DARK_OAK_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:dark_oak_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID ACACIA_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:acacia_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID JUNGLE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:jungle_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:mangrove_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID FLOWERED_MANGROVE_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:flowered_mangrove_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID CHERRY_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:cherry_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID PINK_CHERRY_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:pink_cherry_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID CRIMSON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:crimson_core".getBytes(StandardCharsets.UTF_8));
-    private static final UUID TRUE_CRIMSON_CORE_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:true_crimson_core".getBytes(StandardCharsets.UTF_8));
     private static final UUID EMBER_TALISMAN_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ember_talisman".getBytes(StandardCharsets.UTF_8));
     private static final UUID EMBER_RING_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ember_ring".getBytes(StandardCharsets.UTF_8));
     private static final UUID EMBER_ARTIFACT_PROFILE = UUID.nameUUIDFromBytes("icarusrpg:ember_artifact".getBytes(StandardCharsets.UTF_8));
@@ -105,11 +92,50 @@ public final class ForagingCollectionsItemsService implements Listener {
     private static final int EMBER_TALISMAN_HEAT_RESISTANCE = 1;
     private static final int EMBER_RING_HEAT_RESISTANCE = 3;
     private static final int EMBER_ARTIFACT_HEAT_RESISTANCE = 5;
-    /** Enchanted Pale Oak Log: {@value #ENCHANTED_LOG_SLOTS} slots of {@value #ENCHANTED_LOG_STACK} Pale Oak Logs each (160 total). */
+    /** Every Enchanted Log: {@value #ENCHANTED_LOG_SLOTS} slots of {@value #ENCHANTED_LOG_STACK} of its log each (160 total). */
     static final int ENCHANTED_LOG_SLOTS = 5;
     static final int ENCHANTED_LOG_STACK = 32;
-    private static final org.bukkit.NamespacedKey ENCHANTED_PALE_OAK_LOG_KEY = new org.bukkit.NamespacedKey("foodtooltips", "enchanted_pale_oak_log");
-    private static final org.bukkit.NamespacedKey ENCHANTED_PALE_OAK_PLANKS_KEY = new org.bukkit.NamespacedKey("foodtooltips", "enchanted_pale_oak_planks");
+
+    /**
+     * One wood Collection's enchanted ingredients: the Enchanted Log (its M2 reward, replacing
+     * the old "&lt;Wood&gt; Core" head) and, for the woods that had an upgraded Core, the Enchanted
+     * Planks (8 Enchanted Logs around a Diamond Block). Each item's PDC marker uses the same
+     * name as its recipe key ({@code enchanted_<material>}).
+     */
+    enum Wood {
+        OAK(Material.OAK_LOG, Material.OAK_PLANKS, CollectionsCatalog.ENCHANTED_OAK_LOG_RECIPE, null),
+        BIRCH(Material.BIRCH_LOG, Material.BIRCH_PLANKS, CollectionsCatalog.ENCHANTED_BIRCH_LOG_RECIPE, null),
+        SPRUCE(Material.SPRUCE_LOG, Material.SPRUCE_PLANKS, CollectionsCatalog.ENCHANTED_SPRUCE_LOG_RECIPE, null),
+        DARK_OAK(Material.DARK_OAK_LOG, Material.DARK_OAK_PLANKS, CollectionsCatalog.ENCHANTED_DARK_OAK_LOG_RECIPE, null),
+        ACACIA(Material.ACACIA_LOG, Material.ACACIA_PLANKS, CollectionsCatalog.ENCHANTED_ACACIA_LOG_RECIPE, null),
+        JUNGLE(Material.JUNGLE_LOG, Material.JUNGLE_PLANKS, CollectionsCatalog.ENCHANTED_JUNGLE_LOG_RECIPE, null),
+        MANGROVE(Material.MANGROVE_LOG, Material.MANGROVE_PLANKS, CollectionsCatalog.ENCHANTED_MANGROVE_LOG_RECIPE, CollectionsCatalog.ENCHANTED_MANGROVE_PLANKS_RECIPE),
+        CHERRY(Material.CHERRY_LOG, Material.CHERRY_PLANKS, CollectionsCatalog.ENCHANTED_CHERRY_LOG_RECIPE, CollectionsCatalog.ENCHANTED_CHERRY_PLANKS_RECIPE),
+        PALE_OAK(Material.PALE_OAK_LOG, Material.PALE_OAK_PLANKS, CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE, CollectionsCatalog.ENCHANTED_PALE_OAK_PLANKS_RECIPE),
+        CRIMSON(Material.CRIMSON_STEM, Material.CRIMSON_PLANKS, CollectionsCatalog.ENCHANTED_CRIMSON_STEM_RECIPE, CollectionsCatalog.ENCHANTED_CRIMSON_PLANKS_RECIPE);
+
+        final Material log;
+        final Material planks;
+        final org.bukkit.NamespacedKey logRecipe;
+        /** Null for a wood with no Enchanted Planks. */
+        final org.bukkit.NamespacedKey planksRecipe;
+
+        Wood(Material log, Material planks, org.bukkit.NamespacedKey logRecipe, org.bukkit.NamespacedKey planksRecipe) {
+            this.log = log;
+            this.planks = planks;
+            this.logRecipe = logRecipe;
+            this.planksRecipe = planksRecipe;
+        }
+
+        static Wood ofLogRecipe(org.bukkit.NamespacedKey key) {
+            for (Wood w : values()) {
+                if (w.logRecipe.equals(key)) {
+                    return w;
+                }
+            }
+            return null;
+        }
+    }
 
     private final Plugin plugin;
     private final BiomeWandService biomeWand;
@@ -150,13 +176,23 @@ public final class ForagingCollectionsItemsService implements Listener {
         return item;
     }
 
-    /** Registers every recipe this class owns - Oak/Birch/Spruce Core, the 4 Leaflet Armor pieces, the restricted Biome's Wand, both Foraging axes, and the Woodcutting Crystal. */
+    /** Registers every recipe this class owns - every wood's Enchanted Log/Planks, the 4 Leaflet Armor pieces, the restricted Biome's Wand, both Foraging axes, and the Woodcutting Crystal. */
     public void registerRecipes() {
-        this.newShapedRecipe(CollectionsCatalog.OAK_CORE_RECIPE, this.oakCore(),
-                new String[]{"XXX", "XDX", "XXX"}, r -> {
-                    r.setIngredient('X', Material.OAK_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
-                });
+        for (Wood wood : Wood.values()) {
+            // 5 logs in any slots, but each stack needs ENCHANTED_LOG_STACK of them - a
+            // vanilla recipe always takes one per slot, so #prepare/#craft enforce the amount.
+            Bukkit.removeRecipe(wood.logRecipe);
+            ShapelessRecipe enchantedLog = new ShapelessRecipe(wood.logRecipe, this.enchantedLog(wood));
+            enchantedLog.addIngredient(ENCHANTED_LOG_SLOTS, wood.log);
+            Bukkit.addRecipe(enchantedLog);
+            if (wood.planksRecipe != null) {
+                this.newShapedRecipe(wood.planksRecipe, this.enchantedPlanks(wood),
+                        new String[]{"CCC", "CDC", "CCC"}, r -> {
+                            r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(wood)));
+                            r.setIngredient('D', Material.DIAMOND_BLOCK);
+                        });
+            }
+        }
         this.newShapedRecipe(CollectionsCatalog.LEAFLET_HELMET_RECIPE, this.leafletHelmet(),
                 new String[]{"XXX", "X X"}, r -> r.setIngredient('X', Material.OAK_LEAVES));
         this.newShapedRecipe(CollectionsCatalog.LEAFLET_CHESTPLATE_RECIPE, this.leafletPiece(Material.LEATHER_CHESTPLATE, "Leaflet Chestplate", LEAFLET_CHESTPLATE_HEALTH),
@@ -176,90 +212,59 @@ public final class ForagingCollectionsItemsService implements Listener {
                     r.setIngredient('L', Material.BIRCH_LOG);
                     r.setIngredient('S', Material.STICK);
                 });
-        this.newShapedRecipe(CollectionsCatalog.BIRCH_CORE_RECIPE, this.birchCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.BIRCH_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
-                });
         this.newShapedRecipe(CollectionsCatalog.SPRUCE_AXE_RECIPE, this.spruceAxe.create(),
                 new String[]{"LL", "LS", " S"}, r -> {
                     r.setIngredient('L', Material.SPRUCE_LOG);
                     r.setIngredient('S', Material.STICK);
                 });
-        this.newShapedRecipe(CollectionsCatalog.SPRUCE_CORE_RECIPE, this.spruceCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.SPRUCE_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
-                });
         this.newShapedRecipe(CollectionsCatalog.WOODCUTTING_CRYSTAL_RECIPE, this.woodcuttingCrystal.createItem(),
                 new String[]{"CCC", "CDC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.SPRUCE)));
                     r.setIngredient('D', Material.DIAMOND);
-                });
-        this.newShapedRecipe(CollectionsCatalog.DARK_OAK_CORE_RECIPE, this.darkOakCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.DARK_OAK_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
         // Same "vanilla-empty center slot filled with the set's own power ingredient"
         // trick LapisArmorService uses for its own Diamond-piece center - here it's a
-        // single Dark Oak Core per piece instead, the same custom head every recipe
-        // above reuses via RecipeChoice.ExactChoice.
+        // single Enchanted Dark Oak Log per piece instead.
         this.newShapedRecipe(CollectionsCatalog.GROWTH_HELMET_RECIPE,
                 this.growthPiece(Material.LEATHER_HELMET, "Growth Helmet", GROWTH_HELMET_HEALTH, GROWTH_HELMET_DEFENSE),
                 new String[]{"XXX", "XCX"}, r -> {
                     r.setIngredient('X', Material.LEATHER);
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.DARK_OAK)));
                 });
         this.newShapedRecipe(CollectionsCatalog.GROWTH_CHESTPLATE_RECIPE,
                 this.growthPiece(Material.LEATHER_CHESTPLATE, "Growth Chestplate", GROWTH_CHESTPLATE_HEALTH, GROWTH_CHESTPLATE_DEFENSE),
                 new String[]{"XCX", "XXX", "XXX"}, r -> {
                     r.setIngredient('X', Material.LEATHER);
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.DARK_OAK)));
                 });
         this.newShapedRecipe(CollectionsCatalog.GROWTH_LEGGINGS_RECIPE,
                 this.growthPiece(Material.LEATHER_LEGGINGS, "Growth Leggings", GROWTH_LEGGINGS_HEALTH, GROWTH_LEGGINGS_DEFENSE),
                 new String[]{"XXX", "XCX", "X X"}, r -> {
                     r.setIngredient('X', Material.LEATHER);
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.DARK_OAK)));
                 });
         this.newShapedRecipe(CollectionsCatalog.GROWTH_BOOTS_RECIPE,
                 this.growthPiece(Material.LEATHER_BOOTS, "Growth Boots", GROWTH_BOOTS_HEALTH, GROWTH_BOOTS_DEFENSE),
                 new String[]{"X X", "XCX"}, r -> {
                     r.setIngredient('X', Material.LEATHER);
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.darkOakCore()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.ACACIA_CORE_RECIPE, this.acaciaCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.ACACIA_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.DARK_OAK)));
                 });
         // Vanilla's own bow shape (3 Stick + 3 String, in the same diagonal zigzag) with
-        // the Acacia Core standing in for every Stick - same "power ingredient replaces
+        // the Enchanted Acacia Log standing in for every Stick - same "power ingredient replaces
         // the plain one" idea as this class's own Growth Armor/Woodcutting Crystal
         // recipes above, just applied to a weapon instead of an armor piece/block.
         this.newShapedRecipe(CollectionsCatalog.SAVANNA_BOW_RECIPE, this.savannaBow.create(),
                 new String[]{" CT", "C T", " CT"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.acaciaCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.ACACIA)));
                     r.setIngredient('T', Material.STRING);
                 });
-        this.newShapedRecipe(CollectionsCatalog.JUNGLE_CORE_RECIPE, this.jungleCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.JUNGLE_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
-                });
-        // Explicit request: a Spruce Axe in the center surrounded by 8 Jungle Cores,
+        // Explicit request: a Spruce Axe in the center surrounded by 8 Enchanted Jungle Logs,
         // not the "vanilla-empty center slot" trick every other axe/armor recipe in
         // this class uses - Treecapitator's own power ingredient IS the previous axe.
         this.newShapedRecipe(CollectionsCatalog.TREECAPITATOR_RECIPE, this.treecapitator.create(),
                 new String[]{"JJJ", "JSJ", "JJJ"}, r -> {
-                    r.setIngredient('J', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.jungleCore()));
+                    r.setIngredient('J', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.JUNGLE)));
                     r.setIngredient('S', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceAxe.create()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.MANGROVE_CORE_RECIPE, this.mangroveCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.MANGROVE_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE, this.mangroveSweepTalisman(),
                 new String[]{"LLL", "LIL", "LLL"}, r -> {
@@ -268,23 +273,13 @@ public final class ForagingCollectionsItemsService implements Listener {
                 });
         this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_RING_RECIPE, this.mangroveSweepRing(),
                 new String[]{"CCC", "CTC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.MANGROVE)));
                     r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepTalisman()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.FLOWERED_MANGROVE_CORE_RECIPE, this.floweredMangroveCore(),
-                new String[]{"CCC", "CNC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveCore()));
-                    r.setIngredient('N', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_ARTIFACT_RECIPE, this.mangroveSweepArtifact(),
                 new String[]{"FFF", "FRF", "FFF"}, r -> {
-                    r.setIngredient('F', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.floweredMangroveCore()));
+                    r.setIngredient('F', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPlanks(Wood.MANGROVE)));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.mangroveSweepRing()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.CHERRY_CORE_RECIPE, this.cherryCore(),
-                new String[]{"LLL", "LDL", "LLL"}, r -> {
-                    r.setIngredient('L', Material.CHERRY_LOG);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.CHERRY_FORTUNE_TALISMAN_RECIPE, this.cherryFortuneTalisman(),
                 new String[]{"LLL", "LIL", "LLL"}, r -> {
@@ -293,25 +288,14 @@ public final class ForagingCollectionsItemsService implements Listener {
                 });
         this.newShapedRecipe(CollectionsCatalog.CHERRY_FORTUNE_RING_RECIPE, this.cherryFortuneRing(),
                 new String[]{"CCC", "CTC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.CHERRY)));
                     r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryFortuneTalisman()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.PINK_CHERRY_CORE_RECIPE, this.pinkCherryCore(),
-                new String[]{"CCC", "CNC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryCore()));
-                    r.setIngredient('N', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.CHERRY_FORTUNE_ARTIFACT_RECIPE, this.cherryFortuneArtifact(),
                 new String[]{"PPP", "PRP", "PPP"}, r -> {
-                    r.setIngredient('P', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.pinkCherryCore()));
+                    r.setIngredient('P', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPlanks(Wood.CHERRY)));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.cherryFortuneRing()));
                 });
-        // 5 Pale Oak Logs in any slots, but each stack needs ENCHANTED_LOG_STACK of them -
-        // a vanilla recipe always takes one per slot, so #prepare/#craft enforce the amount.
-        Bukkit.removeRecipe(CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE);
-        ShapelessRecipe enchantedLog = new ShapelessRecipe(CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE, this.enchantedPaleOakLog());
-        enchantedLog.addIngredient(ENCHANTED_LOG_SLOTS, Material.PALE_OAK_LOG);
-        Bukkit.addRecipe(enchantedLog);
         this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_TALISMAN_RECIPE, this.creakingSightTalisman(),
                 new String[]{"PPP", "PEP", "PPP"}, r -> {
                     r.setIngredient('P', Material.PALE_OAK_LOG);
@@ -319,23 +303,13 @@ public final class ForagingCollectionsItemsService implements Listener {
                 });
         this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_RING_RECIPE, this.creakingSightRing(),
                 new String[]{"CCC", "CTC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPaleOakLog()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.PALE_OAK)));
                     r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightTalisman()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.ENCHANTED_PALE_OAK_PLANKS_RECIPE, this.enchantedPaleOakPlanks(),
-                new String[]{"CCC", "CDC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPaleOakLog()));
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.CREAKING_SIGHT_ARTIFACT_RECIPE, this.creakingSightArtifact(),
                 new String[]{"AAA", "ARA", "AAA"}, r -> {
-                    r.setIngredient('A', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPaleOakPlanks()));
+                    r.setIngredient('A', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPlanks(Wood.PALE_OAK)));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.creakingSightRing()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.CRIMSON_CORE_RECIPE, this.crimsonCore(),
-                new String[]{"CCC", "CDC", "CCC"}, r -> {
-                    r.setIngredient('C', Material.CRIMSON_STEM);
-                    r.setIngredient('D', Material.DIAMOND_BLOCK);
                 });
         this.newShapedRecipe(CollectionsCatalog.EMBER_TALISMAN_RECIPE, this.emberTalisman(),
                 new String[]{"CCC", "CIC", "CCC"}, r -> {
@@ -344,56 +318,14 @@ public final class ForagingCollectionsItemsService implements Listener {
                 });
         this.newShapedRecipe(CollectionsCatalog.EMBER_RING_RECIPE, this.emberRing(),
                 new String[]{"CCC", "CTC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.crimsonCore()));
+                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.CRIMSON)));
                     r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.emberTalisman()));
-                });
-        this.newShapedRecipe(CollectionsCatalog.TRUE_CRIMSON_CORE_RECIPE, this.trueCrimsonCore(),
-                new String[]{"CCC", "CNC", "CCC"}, r -> {
-                    r.setIngredient('C', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.crimsonCore()));
-                    r.setIngredient('N', Material.NETHERITE_INGOT);
                 });
         this.newShapedRecipe(CollectionsCatalog.EMBER_ARTIFACT_RECIPE, this.emberArtifact(),
                 new String[]{"TTT", "TRT", "TTT"}, r -> {
-                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.trueCrimsonCore()));
+                    r.setIngredient('T', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedPlanks(Wood.CRIMSON)));
                     r.setIngredient('R', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.emberRing()));
                 });
-    }
-
-    private ItemStack acaciaCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.ACACIA_CORE, ACACIA_CORE_PROFILE);
-        meta.displayName(Component.text("Acacia Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private ItemStack jungleCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.JUNGLE_CORE, JUNGLE_CORE_PROFILE);
-        meta.displayName(Component.text("Jungle Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private ItemStack mangroveCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.MANGROVE_CORE, MANGROVE_CORE_PROFILE);
-        meta.displayName(Component.text("Mangrove Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    /** Mangrove Log Collection M7's own upgrade to {@link #mangroveCore} - same "8 of the base Core around a Netherite Ingot" shape {@code FarmingCollectionsItemsService#trueChocolateCore}/{@code #flowerCactusCore}/{@code #goldenCarrotCore} already use - the Mangrove Sweep Artifact's own power ingredient. */
-    private ItemStack floweredMangroveCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.FLOWERED_MANGROVE_CORE, FLOWERED_MANGROVE_CORE_PROFILE);
-        meta.displayName(Component.text("Flowered Mangrove Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
     }
 
     /**
@@ -447,25 +379,6 @@ public final class ForagingCollectionsItemsService implements Listener {
                 Component.text("Only one Mangrove Sweep accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
-    }
-
-    private ItemStack cherryCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.CHERRY_CORE, CHERRY_CORE_PROFILE);
-        meta.displayName(Component.text("Cherry Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    /** Cherry Log Collection M7's own upgrade to {@link #cherryCore} - same "8 of the base Core around a Netherite Ingot" shape {@link #floweredMangroveCore} already uses - the Cherry Fortune Artifact's own power ingredient. */
-    private ItemStack pinkCherryCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.PINK_CHERRY_CORE, PINK_CHERRY_CORE_PROFILE);
-        meta.displayName(Component.text("Pink Cherry Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
     }
 
     /**
@@ -523,14 +436,26 @@ public final class ForagingCollectionsItemsService implements Listener {
         return this.tagged(item);
     }
 
-    /** Pale Oak Log Collection M2: a glinting Pale Oak Log, crafted from {@value #ENCHANTED_LOG_SLOTS} stacks of {@value #ENCHANTED_LOG_STACK} Pale Oak Logs - the Creaking Sight Ring's ingredient. */
-    private ItemStack enchantedPaleOakLog() {
-        return enchantedIngredient(Material.PALE_OAK_LOG, ENCHANTED_PALE_OAK_LOG_KEY, "Enchanted Pale Oak Log");
+    /** A wood Collection's M2 reward: its log, glinting - crafted from {@value #ENCHANTED_LOG_SLOTS} stacks of {@value #ENCHANTED_LOG_STACK} logs. */
+    private ItemStack enchantedLog(Wood wood) {
+        return enchantedIngredient(wood.log, wood.logRecipe, "Enchanted " + pretty(wood.log));
     }
 
-    /** Pale Oak Log Collection M7: glinting Pale Oak Planks, 8 {@link #enchantedPaleOakLog} around a Diamond Block - the Creaking Sight Artifact's ingredient. */
-    private ItemStack enchantedPaleOakPlanks() {
-        return enchantedIngredient(Material.PALE_OAK_PLANKS, ENCHANTED_PALE_OAK_PLANKS_KEY, "Enchanted Pale Oak Planks");
+    /** {@link #enchantedLog}'s upgrade: the wood's planks, glinting - 8 Enchanted Logs around a Diamond Block. */
+    private ItemStack enchantedPlanks(Wood wood) {
+        return enchantedIngredient(wood.planks, wood.planksRecipe, "Enchanted " + pretty(wood.planks));
+    }
+
+    /** "DARK_OAK_LOG" -> "Dark Oak Log". */
+    private static String pretty(Material m) {
+        StringBuilder sb = new StringBuilder();
+        for (String w : m.name().toLowerCase(java.util.Locale.ROOT).split("_")) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        }
+        return sb.toString();
     }
 
     private static ItemStack enchantedIngredient(Material material, org.bukkit.NamespacedKey key, String name) {
@@ -543,19 +468,23 @@ public final class ForagingCollectionsItemsService implements Listener {
         return item;
     }
 
-    /** Neither enchanted Pale Oak ingredient is meant to be placed. */
+    /** No Enchanted Log/Planks is meant to be placed. */
     @EventHandler(ignoreCancelled = true)
     public void place(BlockPlaceEvent e) {
         ItemStack item = e.getItemInHand();
-        if (item.hasItemMeta()) {
-            var pdc = item.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ENCHANTED_PALE_OAK_LOG_KEY, PersistentDataType.BYTE) || pdc.has(ENCHANTED_PALE_OAK_PLANKS_KEY, PersistentDataType.BYTE)) {
+        if (!item.hasItemMeta()) {
+            return;
+        }
+        var pdc = item.getItemMeta().getPersistentDataContainer();
+        for (Wood wood : Wood.values()) {
+            if (pdc.has(wood.logRecipe, PersistentDataType.BYTE) || (wood.planksRecipe != null && pdc.has(wood.planksRecipe, PersistentDataType.BYTE))) {
                 e.setCancelled(true);
+                return;
             }
         }
     }
 
-    /** Hides the Enchanted Pale Oak Log result until every filled slot has {@value #ENCHANTED_LOG_STACK} logs. */
+    /** Hides an Enchanted Log result until every filled slot has {@value #ENCHANTED_LOG_STACK} logs. */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void prepare(PrepareItemCraftEvent e) {
         if (isEnchantedLogRecipe(e.getRecipe()) && !hasFullStacks(e.getInventory().getMatrix())) {
@@ -563,7 +492,7 @@ public final class ForagingCollectionsItemsService implements Listener {
         }
     }
 
-    /** Crafts the Enchanted Pale Oak Log by hand, taking {@value #ENCHANTED_LOG_STACK} logs from each filled slot instead of vanilla's one - same approach as {@code CobblestoneCollectionService#craft}. */
+    /** Crafts an Enchanted Log by hand, taking {@value #ENCHANTED_LOG_STACK} logs from each filled slot instead of vanilla's one - same approach as {@code CobblestoneCollectionService#craft}. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void craft(CraftItemEvent e) {
         if (!isEnchantedLogRecipe(e.getRecipe()) || !(e.getWhoClicked() instanceof Player p)) {
@@ -597,7 +526,7 @@ public final class ForagingCollectionsItemsService implements Listener {
     }
 
     private static boolean isEnchantedLogRecipe(Recipe recipe) {
-        return recipe instanceof org.bukkit.Keyed keyed && CollectionsCatalog.ENCHANTED_PALE_OAK_LOG_RECIPE.equals(keyed.getKey());
+        return recipe instanceof org.bukkit.Keyed keyed && Wood.ofLogRecipe(keyed.getKey()) != null;
     }
 
     /** Whether {@code matrix} holds exactly {@value #ENCHANTED_LOG_SLOTS} filled slots of at least {@value #ENCHANTED_LOG_STACK} items each (the recipe itself already checks which item). */
@@ -670,26 +599,6 @@ public final class ForagingCollectionsItemsService implements Listener {
                 Component.text("Only one Creaking Sight accessory at a time.", NamedTextColor.DARK_GRAY));
         item.setItemMeta(meta);
         return this.tagged(item);
-    }
-
-    /** Crimson Stem Collection M2's own Core - 8 Crimson Stem around a Diamond Block, same shape every other wood-log Core in this class uses. */
-    private ItemStack crimsonCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.CRIMSON_CORE, CRIMSON_CORE_PROFILE);
-        meta.displayName(Component.text("Crimson Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    /** Crimson Stem Collection M7's own upgrade to {@link #crimsonCore} - same "8 of the base Core around a Netherite Ingot" shape {@link #floweredMangroveCore}/{@link #pinkCherryCore} already use - the Ember Artifact's own power ingredient. */
-    private ItemStack trueCrimsonCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.TRUE_CRIMSON_CORE, TRUE_CRIMSON_CORE_PROFILE);
-        meta.displayName(Component.text("True Crimson Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
     }
 
     /**
@@ -787,15 +696,6 @@ public final class ForagingCollectionsItemsService implements Listener {
         return item;
     }
 
-    private ItemStack darkOakCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.DARK_OAK_CORE, DARK_OAK_CORE_PROFILE);
-        meta.displayName(Component.text("Dark Oak Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
     /** One piece of Leaflet Armor: dyed-green leather, {@code health} forced (a real {@link Attribute#MAX_HEALTH} modifier) plus +3 Foraging Fortune ({@link LeafletArmorService}) - no forced Defense, kept as plain Leather's own default. */
     private ItemStack leafletPiece(Material material, String name, int health) {
         ItemStack item = new ItemStack(material);
@@ -840,33 +740,6 @@ public final class ForagingCollectionsItemsService implements Listener {
         item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(EquipmentSlot.HEAD)
                 .equipOnInteract(true)
                 .swappable(true));
-        return item;
-    }
-
-    private ItemStack oakCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.OAK_CORE, OAK_CORE_PROFILE);
-        meta.displayName(Component.text("Oak Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private ItemStack birchCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.BIRCH_CORE, BIRCH_CORE_PROFILE);
-        meta.displayName(Component.text("Birch Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
-        return item;
-    }
-
-    private ItemStack spruceCore() {
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        applyProfile(meta, HeadTexture.SPRUCE_CORE, SPRUCE_CORE_PROFILE);
-        meta.displayName(Component.text("Spruce Core", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        item.setItemMeta(meta);
         return item;
     }
 

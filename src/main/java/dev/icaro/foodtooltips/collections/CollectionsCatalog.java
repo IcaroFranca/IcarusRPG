@@ -116,42 +116,42 @@ public final class CollectionsCatalog {
     public static final NamespacedKey SPEEDSTER_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "speedster_chestplate");
     public static final NamespacedKey SPEEDSTER_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "speedster_leggings");
     public static final NamespacedKey SPEEDSTER_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "speedster_boots");
-    public static final NamespacedKey OAK_CORE_RECIPE = new NamespacedKey("foodtooltips", "oak_core");
+    public static final NamespacedKey ENCHANTED_OAK_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_oak_log");
     public static final NamespacedKey LEAFLET_HELMET_RECIPE = new NamespacedKey("foodtooltips", "leaflet_helmet");
     public static final NamespacedKey LEAFLET_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "leaflet_chestplate");
     public static final NamespacedKey LEAFLET_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "leaflet_leggings");
     public static final NamespacedKey LEAFLET_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "leaflet_boots");
     public static final NamespacedKey BIOME_WAND_FOREST_PLAINS_RECIPE = new NamespacedKey("foodtooltips", "biome_wand_forest_plains");
     public static final NamespacedKey SCULPTORS_AXE_RECIPE = new NamespacedKey("foodtooltips", "sculptors_axe");
-    public static final NamespacedKey BIRCH_CORE_RECIPE = new NamespacedKey("foodtooltips", "birch_core");
+    public static final NamespacedKey ENCHANTED_BIRCH_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_birch_log");
     public static final NamespacedKey SPRUCE_AXE_RECIPE = new NamespacedKey("foodtooltips", "spruce_axe");
-    public static final NamespacedKey SPRUCE_CORE_RECIPE = new NamespacedKey("foodtooltips", "spruce_core");
+    public static final NamespacedKey ENCHANTED_SPRUCE_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_spruce_log");
     public static final NamespacedKey WOODCUTTING_CRYSTAL_RECIPE = new NamespacedKey("foodtooltips", "woodcutting_crystal");
-    public static final NamespacedKey DARK_OAK_CORE_RECIPE = new NamespacedKey("foodtooltips", "dark_oak_core");
+    public static final NamespacedKey ENCHANTED_DARK_OAK_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_dark_oak_log");
     public static final NamespacedKey GROWTH_HELMET_RECIPE = new NamespacedKey("foodtooltips", "growth_helmet");
     public static final NamespacedKey GROWTH_CHESTPLATE_RECIPE = new NamespacedKey("foodtooltips", "growth_chestplate");
     public static final NamespacedKey GROWTH_LEGGINGS_RECIPE = new NamespacedKey("foodtooltips", "growth_leggings");
     public static final NamespacedKey GROWTH_BOOTS_RECIPE = new NamespacedKey("foodtooltips", "growth_boots");
-    public static final NamespacedKey ACACIA_CORE_RECIPE = new NamespacedKey("foodtooltips", "acacia_core");
+    public static final NamespacedKey ENCHANTED_ACACIA_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_acacia_log");
     public static final NamespacedKey SAVANNA_BOW_RECIPE = new NamespacedKey("foodtooltips", "savanna_bow");
-    public static final NamespacedKey JUNGLE_CORE_RECIPE = new NamespacedKey("foodtooltips", "jungle_core");
+    public static final NamespacedKey ENCHANTED_JUNGLE_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_jungle_log");
     public static final NamespacedKey TREECAPITATOR_RECIPE = new NamespacedKey("foodtooltips", "treecapitator");
-    public static final NamespacedKey MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "mangrove_core");
-    public static final NamespacedKey FLOWERED_MANGROVE_CORE_RECIPE = new NamespacedKey("foodtooltips", "flowered_mangrove_core");
-    public static final NamespacedKey CHERRY_CORE_RECIPE = new NamespacedKey("foodtooltips", "cherry_core");
+    public static final NamespacedKey ENCHANTED_MANGROVE_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_mangrove_log");
+    public static final NamespacedKey ENCHANTED_MANGROVE_PLANKS_RECIPE = new NamespacedKey("foodtooltips", "enchanted_mangrove_planks");
+    public static final NamespacedKey ENCHANTED_CHERRY_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_cherry_log");
     public static final NamespacedKey CHERRY_FORTUNE_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_talisman");
     public static final NamespacedKey CHERRY_FORTUNE_RING_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_ring");
-    public static final NamespacedKey PINK_CHERRY_CORE_RECIPE = new NamespacedKey("foodtooltips", "pink_cherry_core");
+    public static final NamespacedKey ENCHANTED_CHERRY_PLANKS_RECIPE = new NamespacedKey("foodtooltips", "enchanted_cherry_planks");
     public static final NamespacedKey CHERRY_FORTUNE_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "cherry_fortune_artifact");
     public static final NamespacedKey ENCHANTED_PALE_OAK_LOG_RECIPE = new NamespacedKey("foodtooltips", "enchanted_pale_oak_log");
     public static final NamespacedKey CREAKING_SIGHT_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_talisman");
     public static final NamespacedKey CREAKING_SIGHT_RING_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_ring");
     public static final NamespacedKey ENCHANTED_PALE_OAK_PLANKS_RECIPE = new NamespacedKey("foodtooltips", "enchanted_pale_oak_planks");
     public static final NamespacedKey CREAKING_SIGHT_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "creaking_sight_artifact");
-    public static final NamespacedKey CRIMSON_CORE_RECIPE = new NamespacedKey("foodtooltips", "crimson_core");
+    public static final NamespacedKey ENCHANTED_CRIMSON_STEM_RECIPE = new NamespacedKey("foodtooltips", "enchanted_crimson_stem");
     public static final NamespacedKey EMBER_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "ember_talisman");
     public static final NamespacedKey EMBER_RING_RECIPE = new NamespacedKey("foodtooltips", "ember_ring");
-    public static final NamespacedKey TRUE_CRIMSON_CORE_RECIPE = new NamespacedKey("foodtooltips", "true_crimson_core");
+    public static final NamespacedKey ENCHANTED_CRIMSON_PLANKS_RECIPE = new NamespacedKey("foodtooltips", "enchanted_crimson_planks");
     public static final NamespacedKey EMBER_ARTIFACT_RECIPE = new NamespacedKey("foodtooltips", "ember_artifact");
     public static final NamespacedKey MANGROVE_SWEEP_TALISMAN_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_talisman");
     public static final NamespacedKey MANGROVE_SWEEP_RING_RECIPE = new NamespacedKey("foodtooltips", "mangrove_sweep_ring");
@@ -1082,8 +1082,8 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita da Leaflet Armor", "Unlocks the Leaflet Armor recipe",
                             LEAFLET_HELMET_RECIPE, LEAFLET_CHESTPLATE_RECIPE, LEAFLET_LEGGINGS_RECIPE, LEAFLET_BOOTS_RECIPE),
                     CollectionsMilestone.recipeUnlock(250,
-                            "Desbloqueia a receita do Oak Core", "Unlocks the Oak Core recipe",
-                            OAK_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Oak Log", "Unlocks the Enchanted Oak Log recipe",
+                            ENCHANTED_OAK_LOG_RECIPE),
                     new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o Armazenamento Pessoal (9 slots)", "Unlocks Personal Storage (9 slots)"),
                     CollectionsMilestone.recipeUnlock(1000,
@@ -1103,8 +1103,8 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Spruce Axe", "Unlocks the Spruce Axe recipe",
                             SPRUCE_AXE_RECIPE),
                     CollectionsMilestone.recipeUnlock(250,
-                            "Desbloqueia a receita do Spruce Core", "Unlocks the Spruce Core recipe",
-                            SPRUCE_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Spruce Log", "Unlocks the Enchanted Spruce Log recipe",
+                            ENCHANTED_SPRUCE_LOG_RECIPE),
                     new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o teleporte para o Taiga mais próximo", "Unlocks fast travel to the nearest Taiga"),
                     new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
@@ -1124,8 +1124,8 @@ public final class CollectionsCatalog {
                             "Desbloqueia a receita do Sculptor's Axe", "Unlocks the Sculptor's Axe recipe",
                             SCULPTORS_AXE_RECIPE),
                     CollectionsMilestone.recipeUnlock(1000,
-                            "Desbloqueia a receita do Birch Core", "Unlocks the Birch Core recipe",
-                            BIRCH_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Birch Log", "Unlocks the Enchanted Birch Log recipe",
+                            ENCHANTED_BIRCH_LOG_RECIPE),
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Floresta de Bétulas na Varinha de Biomas", "Unlocks Birch Forest on the Biome's Wand"),
                     CollectionsMilestone.foragingXp(5000, 5000, "+5000 XP de Coleta", "+5000 Foraging XP"),
@@ -1135,8 +1135,8 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(250,
-                            "Desbloqueia a receita do Jungle Core", "Unlocks the Jungle Core recipe",
-                            JUNGLE_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Jungle Log", "Unlocks the Enchanted Jungle Log recipe",
+                            ENCHANTED_JUNGLE_LOG_RECIPE),
                     new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o teleporte para o Jungle mais próximo", "Unlocks fast travel to the nearest Jungle"),
                     new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
@@ -1151,8 +1151,8 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(250,
-                            "Desbloqueia a receita do Acacia Core", "Unlocks the Acacia Core recipe",
-                            ACACIA_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Acacia Log", "Unlocks the Enchanted Acacia Log recipe",
+                            ENCHANTED_ACACIA_LOG_RECIPE),
                     new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o teleporte para o Savana mais próximo", "Unlocks fast travel to the nearest Savanna"),
                     CollectionsMilestone.recipeUnlock(1000,
@@ -1167,8 +1167,8 @@ public final class CollectionsCatalog {
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.foragingXp(100, 2000, "+2000 XP de Coleta", "+2000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(250,
-                            "Desbloqueia a receita do Dark Oak Core", "Unlocks the Dark Oak Core recipe",
-                            DARK_OAK_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Dark Oak Log", "Unlocks the Enchanted Dark Oak Log recipe",
+                            ENCHANTED_DARK_OAK_LOG_RECIPE),
                     new CollectionsMilestone(500, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Desbloqueia o teleporte para a Floresta Sombria mais próxima", "Unlocks fast travel to the nearest Dark Forest"),
                     new CollectionsMilestone(1000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
@@ -1183,8 +1183,8 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.MANGROVE_LOG, Material.MANGROVE_LOG, CollectionsCategory.FORAGING, "Tora de Mangue", "Mangrove Log", List.of(
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(100,
-                            "Desbloqueia a receita do Mangrove Core", "Unlocks the Mangrove Core recipe",
-                            MANGROVE_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Mangrove Log", "Unlocks the Enchanted Mangrove Log recipe",
+                            ENCHANTED_MANGROVE_LOG_RECIPE),
                     CollectionsMilestone.recipeUnlock(250,
                             "Desbloqueia a receita do Mangrove Sweep Talisman", "Unlocks the Mangrove Sweep Talisman recipe",
                             MANGROVE_SWEEP_TALISMAN_RECIPE),
@@ -1196,8 +1196,8 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Pântano de Mangue na Varinha de Biomas", "Unlocks Mangrove Swamp on the Biome's Wand"),
                     CollectionsMilestone.recipeUnlock(5000,
-                            "Desbloqueia a receita do Flowered Mangrove Core", "Unlocks the Flowered Mangrove Core recipe",
-                            FLOWERED_MANGROVE_CORE_RECIPE),
+                            "Desbloqueia a receita das Enchanted Mangrove Planks", "Unlocks the Enchanted Mangrove Planks recipe",
+                            ENCHANTED_MANGROVE_PLANKS_RECIPE),
                     CollectionsMilestone.recipeUnlock(10000,
                             "Desbloqueia a receita do Mangrove Sweep Artifact", "Unlocks the Mangrove Sweep Artifact recipe",
                             MANGROVE_SWEEP_ARTIFACT_RECIPE),
@@ -1205,8 +1205,8 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.CHERRY_LOG, Material.CHERRY_LOG, CollectionsCategory.FORAGING, "Tora de Cerejeira", "Cherry Log", List.of(
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(100,
-                            "Desbloqueia a receita do Cherry Core", "Unlocks the Cherry Core recipe",
-                            CHERRY_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Cherry Log", "Unlocks the Enchanted Cherry Log recipe",
+                            ENCHANTED_CHERRY_LOG_RECIPE),
                     CollectionsMilestone.recipeUnlock(250,
                             "Desbloqueia a receita do Cherry Fortune Talisman", "Unlocks the Cherry Fortune Talisman recipe",
                             CHERRY_FORTUNE_TALISMAN_RECIPE),
@@ -1218,8 +1218,8 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Cherry Grove na Varinha de Biomas", "Unlocks Cherry Grove on the Biome's Wand"),
                     CollectionsMilestone.recipeUnlock(5000,
-                            "Desbloqueia a receita do Pink Cherry Core", "Unlocks the Pink Cherry Core recipe",
-                            PINK_CHERRY_CORE_RECIPE),
+                            "Desbloqueia a receita das Enchanted Cherry Planks", "Unlocks the Enchanted Cherry Planks recipe",
+                            ENCHANTED_CHERRY_PLANKS_RECIPE),
                     CollectionsMilestone.recipeUnlock(10000,
                             "Desbloqueia a receita do Cherry Fortune Artifact", "Unlocks the Cherry Fortune Artifact recipe",
                             CHERRY_FORTUNE_ARTIFACT_RECIPE),
@@ -1249,8 +1249,8 @@ public final class CollectionsCatalog {
             new CollectionsEntry(Material.CRIMSON_STEM, Material.CRIMSON_STEM, CollectionsCategory.FORAGING, "Talo Carmesim", "Crimson Stem", List.of(
                     CollectionsMilestone.foragingXp(50, 1000, "+1000 XP de Coleta", "+1000 Foraging XP"),
                     CollectionsMilestone.recipeUnlock(100,
-                            "Desbloqueia a receita do Crimson Core", "Unlocks the Crimson Core recipe",
-                            CRIMSON_CORE_RECIPE),
+                            "Desbloqueia a receita do Enchanted Crimson Stem", "Unlocks the Enchanted Crimson Stem recipe",
+                            ENCHANTED_CRIMSON_STEM_RECIPE),
                     CollectionsMilestone.recipeUnlock(250,
                             "Desbloqueia a receita do Ember Talisman", "Unlocks the Ember Talisman recipe",
                             EMBER_TALISMAN_RECIPE),
@@ -1262,8 +1262,8 @@ public final class CollectionsCatalog {
                     new CollectionsMilestone(2000, RewardKind.RECIPE_UNLOCK, 0, List.of(), null, 0.0,
                             "Libera Crimson Forest na Varinha de Biomas", "Unlocks Crimson Forest on the Biome's Wand"),
                     CollectionsMilestone.recipeUnlock(5000,
-                            "Desbloqueia a receita do True Crimson Core", "Unlocks the True Crimson Core recipe",
-                            TRUE_CRIMSON_CORE_RECIPE),
+                            "Desbloqueia a receita das Enchanted Crimson Planks", "Unlocks the Enchanted Crimson Planks recipe",
+                            ENCHANTED_CRIMSON_PLANKS_RECIPE),
                     CollectionsMilestone.recipeUnlock(10000,
                             "Desbloqueia a receita do Ember Artifact", "Unlocks the Ember Artifact recipe",
                             EMBER_ARTIFACT_RECIPE),

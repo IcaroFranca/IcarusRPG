@@ -372,14 +372,14 @@ final class CollectionsCatalogTest {
         List<CollectionsMilestone> m = crimsonStem().milestones();
         assertEquals(RewardKind.FORAGING_XP, m.get(0).kind());
         assertEquals(1000, m.get(0).xpAmount());
-        assertEquals(List.of(CollectionsCatalog.CRIMSON_CORE_RECIPE), m.get(1).recipes());
+        assertEquals(List.of(CollectionsCatalog.ENCHANTED_CRIMSON_STEM_RECIPE), m.get(1).recipes());
         assertEquals(List.of(CollectionsCatalog.EMBER_TALISMAN_RECIPE), m.get(2).recipes());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(3).kind());
         assertTrue(m.get(3).recipes().isEmpty()); // M4: the Crimson Forest teleport, no real recipe to gate.
         assertEquals(List.of(CollectionsCatalog.EMBER_RING_RECIPE), m.get(4).recipes());
         assertEquals(RewardKind.RECIPE_UNLOCK, m.get(5).kind());
         assertTrue(m.get(5).recipes().isEmpty()); // M6: the Biome's Wand unlock, no real recipe to gate.
-        assertEquals(List.of(CollectionsCatalog.TRUE_CRIMSON_CORE_RECIPE), m.get(6).recipes());
+        assertEquals(List.of(CollectionsCatalog.ENCHANTED_CRIMSON_PLANKS_RECIPE), m.get(6).recipes());
         assertEquals(List.of(CollectionsCatalog.EMBER_ARTIFACT_RECIPE), m.get(7).recipes());
         assertEquals(RewardKind.FORAGING_XP, m.get(8).kind());
         assertEquals(25000, m.get(8).xpAmount());

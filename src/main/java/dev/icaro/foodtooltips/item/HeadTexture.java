@@ -84,34 +84,10 @@ public final class HeadTexture {
     public static final String RABBIT_ARMOR_HELMET = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGEwY2EyYjkwZDgzMWYxN2Y3YzhiNzcxZmIzOTczY2NhMmQ3NmE0NTZiYjdiNDdiODBkNjg3MmIwNWIyNTFmNSJ9fX0=";
     /** "Sugar Cane" (minecraft-heads.com ID 20) - the Sugar Cane Core crafting item, see {@code FarmingCollectionsItemsService}. */
     public static final String SUGAR_CANE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODYyNGJhY2I1ZjE5ODZlNjQ3N2FiY2U0YWU3ZGNhMTgyMGE1MjYwYjYyMzNiNTViYTFkOWJhOTM2Yzg0YiJ9fX0=";
-    /** "Oak Log" (minecraft-heads.com Custom Head ID 89446) - the Oak Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String OAK_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzI3ODU5YjdjZWEzODgzNjJjMTkyOThiZjIyMWFlZDAzOWVlNzQ5MDMzNWIyYTJlMmJhNmJlOGQxM2M0NTNhNyJ9fX0=";
-    /** "Birch Log" (minecraft-heads.com Custom Head ID 89448) - the Birch Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String BIRCH_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWY5ZGI4ZDY3NTE2NjA2ZmNiM2I2NGYzODlhZGY2MTYxM2FhZDY5Yzk1MThhNmNlMjc3ZjlmYTZmYmJlZWU3MyJ9fX0=";
-    /** "Spruce Log" (minecraft-heads.com Custom Head ID 89447) - the Spruce Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String SPRUCE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGFjYzU4ODhmMDc2MDQyY2QyMDM0MmM4MzVmOWQ2Y2I4YjgzN2UzNTAyYjRiZWUzYzhkMDI2MDQ4OTFjNzE1NSJ9fX0=";
     /** "Woodcutting Crystal" (minecraft-heads.com Custom Head ID 128316) - the Woodcutting Crystal item and its own floating/spinning placed representation, see {@code WoodcuttingCrystalService}. */
     public static final String WOODCUTTING_CRYSTAL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWRjM2I5YTRjNTkxY2Q3YmJlZDNlMTZiMzRhZDhkNTA3NjA4ZmJlNDRkYzcyOGE3ZWQxNDFmMmUxNzI5ZDgyIn19fQ==";
     /** "Wheat Crystal" on minecraft-heads.com (Custom Head ID 128322) - that's the head's own name on that site, not the item's; it's used in-game as the Animal Crystal item and its own floating/spinning placed representation, see {@code AnimalCrystalService}. */
     public static final String ANIMAL_CRYSTAL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTgzMDJmZjIyYTIzMmUxMGQ2Y2Y2MGJkZDRkMjgwNjFjYWFhOTc0Y2FmOTA3YTBkYzNkZjk3ZTA3MWU0MmQzMSJ9fX0=";
-    /** "Dark Oak Log" (minecraft-heads.com Custom Head ID 89451) - the Dark Oak Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String DARK_OAK_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzM2ZGZiNGM4ZDY5NzFkZDk2ZjVhMWZlNGI0NzIwYTM5NTE2MTcwMmQ2YzI5YWI4NzE0MjJlNjYwNjNkYmIwYSJ9fX0=";
-    /** "Acacia Log" (minecraft-heads.com Custom Head ID 89450) - the Acacia Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String ACACIA_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmY4MDJhMjc4NGYxOWQ5MTFjMzczZDM3Y2Q5ZWYzOTlkYzIyM2UxNmQxODg2NGE2YTdiZmUwNzZhY2YwM2NjYiJ9fX0=";
-    /** "Jungle Log" (minecraft-heads.com Custom Head ID 89449) - the Jungle Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String JUNGLE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTljNmM0MmU2OTFhZWIwNzhiMGQ4NDg5NGIxMGI2NDNiYTM2YThiY2I4YjZiZWQ5MTE5YWUyYmRmYTg3YTlhNiJ9fX0=";
-    /** "Mangrove Log" (minecraft-heads.com Custom Head ID 89452) - the Mangrove Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String MANGROVE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTEyOGYzMjlhYzhkYWM2YTcxMGZhNzUyNDg2MGJjOWNhZmRmMjljNTNiODMwNjg1ZTFhMzZhYjNiMTBiYjBkYSJ9fX0=";
-    /** "Mangrove Log (spring, rounded, sideways)" (minecraft-heads.com Custom Head ID 51564) - the Flowered Mangrove Core crafting item (the Mangrove Sweep Artifact's own power ingredient), see {@code ForagingCollectionsItemsService}. */
-    public static final String FLOWERED_MANGROVE_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWEyY2FiODlmNTlmOWQ5YTVlM2EwMDhjNDY4NTBkMzlkMzE5ZjQyOTY5MDk1MTljZTEyYjZmNzBiOTFlNjQ0MCJ9fX0=";
-    /** "Cherry Log" (minecraft-heads.com Custom Head ID 89453) - the Cherry Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String CHERRY_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTAzZDEzNTMzM2ZkOWViOWZmMDM5YzEwMzY0Yjk3YjE2ZDllNzc5NzQ4Y2FhMWJlYWYxYjc1ZWRmMDBjOWE0OCJ9fX0=";
-    /** "Stripped Cherry Log" (minecraft-heads.com Custom Head ID 89465) - the Pink Cherry Core crafting item (the Cherry Fortune Artifact's own power ingredient), see {@code ForagingCollectionsItemsService}. */
-    public static final String PINK_CHERRY_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTJjZTQ4Mzc3N2ZmYWUyNDZlNjAxMDU2NGNkZjlhYTJiZGYwODFjZDI0MzYyZmFlNzVmZTRlMWEwMjgzODdkYiJ9fX0=";
-    /** "Crimson Stem" (minecraft-heads.com Custom Head ID 89455) - the Crimson Core crafting item, see {@code ForagingCollectionsItemsService}. */
-    public static final String CRIMSON_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTJlNmJiY2QyMjgyMjU5NGUxNDIyZTM0NWQ4MWVhODEzMjA0ODBmOTBlODU3MzcyY2ZjNDU4NjU3ZDFkNGI0ZiJ9fX0=";
-    /** "Crimson Tree" (minecraft-heads.com Custom Head ID 51044) - the True Crimson Core crafting item (the Ember Artifact's own power ingredient), see {@code ForagingCollectionsItemsService}. */
-    public static final String TRUE_CRIMSON_CORE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2IwMzFjZTVhMjk2YWRiOTZhMzUzNjM0MTJkYmEyMTVkZTYxYzI1Zjc3NjhiMmQ4NmYyYzcyZDI3OTZkNjQ2In19fQ==";
     /** "Smoldering Embers" (minecraft-heads.com Custom Head ID 127561) - the Crimson Stem Collection's Ember Talisman accessory, see {@code ForagingCollectionsItemsService}. */
     public static final String EMBER_TALISMAN = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmEwYjQ1YjM5YTdiYjY2Zjg0YzE3MjM0ZjgzMDUwY2NhNDU2Zjk4NjE2NjIzMGFmMWQyOTI3MDliOGE3N2U1MSJ9fX0=";
     /** "Embers" (minecraft-heads.com Custom Head ID 89573) - the Crimson Stem Collection's Ember Ring accessory, see {@code ForagingCollectionsItemsService}. */
@@ -216,8 +192,8 @@ public final class HeadTexture {
             SCROLL_UP, SCROLL_DOWN, LAPIS_CORE, TRUE_LAPIS_CORE, BUNDLE, CACTUS_CORE, CARROT_CORE, CHOCOLATE_CORE, FEATHER_CORE, MUSHROOM_CORE,
             MELON_CORE, POTATO_CORE, PUMPKIN_CORE, WHEAT_CORE, POTION_BAG, MUSHROOM_SOUP, MYSTICAL_MUSHROOM_SOUP, FARM_CRYSTAL,
             COW_HAT, MILK_CORE, MILKSHAKE_CORE, WOOL_CORE, RAINBOW_WOOL_CORE, NETHER_WART_CORE, MUTANT_NETHER_WART_CORE, LANTERN_HELMET,
-            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, OAK_CORE, BIRCH_CORE, SPRUCE_CORE, WOODCUTTING_CRYSTAL, ANIMAL_CRYSTAL, DARK_OAK_CORE, ACACIA_CORE, JUNGLE_CORE, MANGROVE_CORE, FLOWERED_MANGROVE_CORE,
-            CHERRY_CORE, PINK_CHERRY_CORE, CRIMSON_CORE, TRUE_CRIMSON_CORE, EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
+            RABBIT_ARMOR_HELMET, SUGAR_CANE_CORE, WOODCUTTING_CRYSTAL, ANIMAL_CRYSTAL,
+            EMBER_TALISMAN, EMBER_RING, EMBER_ARTIFACT,
             FLOWER_CACTUS_CORE, GOLDEN_CARROT_CORE, TRUE_CHOCOLATE_CORE, VACCINE_RING, BAKED_POTATO_CORE, VACCINE_ARTIFACT,
             FARMER_ORB, NIGHT_VISION_CHARM, POTION_AFFINITY_TALISMAN, POTION_AFFINITY_RING_AND_ARTIFACT,
             BEETROOT_CORE, PICNIC_BASKET, TORCHFLOWER_CORE, RADIANT_TORCHFLOWER_CORE, WHEAT_SEEDS_CORE, PITCHER_POD_CORE, BONE_CORE, PILE_OF_BONE_CORE,
