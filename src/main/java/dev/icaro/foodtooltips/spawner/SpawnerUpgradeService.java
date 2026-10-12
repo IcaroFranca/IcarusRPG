@@ -477,7 +477,10 @@ public final class SpawnerUpgradeService implements Listener {
             return;
         }
         if (e.getEntity() instanceof Mob mob && data.active(SpawnerModifier.Toggle.NO_AI)) {
-            mob.setAI(false);
+            // Not setAI(false): vanilla's NoAI also turns gravity off, so mobs Conduit lets spawn
+            // in mid-air just floated there. Unaware mobs never move, target or attack, but still
+            // fall and get pushed by water - what a kill chamber needs.
+            mob.setAware(false);
         }
         if (data.active(SpawnerModifier.Toggle.SILENT)) {
             e.getEntity().setSilent(true);
