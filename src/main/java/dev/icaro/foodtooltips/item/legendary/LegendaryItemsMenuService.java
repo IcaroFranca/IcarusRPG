@@ -59,6 +59,8 @@ public final class LegendaryItemsMenuService {
     private java.util.function.Consumer<Player> collectionsItems = p -> {};
     /** {@code grapple.GrapplingHookService::create} - same idea as {@link #minerArmor}, a single-item "set" like {@link #grandBottle}/{@link #titanicBottle}. */
     private Function<Player, List<ItemStack>> grapplingHook = p -> List.of();
+    /** {@code mob.CustomMobService::eggs} - one spawn egg per custom 3D-model mob. */
+    private Function<Player, List<ItemStack>> customMobEggs = p -> List.of();
 
     public LegendaryItemsMenuService(LegendaryWeaponService weapons) {
         this.weapons = weapons;
@@ -89,6 +91,11 @@ public final class LegendaryItemsMenuService {
         this.collectionsItems = collectionsItems;
     }
 
+    /** Wired in after construction - see {@link #customMobEggs}. */
+    public void customMobEggs(Function<Player, List<ItemStack>> customMobEggs) {
+        this.customMobEggs = customMobEggs;
+    }
+
     /** Wired in after construction - see {@link #grapplingHook}. */
     public void grapplingHook(Function<Player, List<ItemStack>> grapplingHook) {
         this.grapplingHook = grapplingHook;
@@ -106,7 +113,7 @@ public final class LegendaryItemsMenuService {
         buttons.put(slots.get(0), Category.WEAPONS);
         inv.setItem(slots.get(1), this.item(Material.DIAMOND_CHESTPLATE, "Armor & Potions", List.of(
                 this.text("Armor sets, Experience Bottles,", NamedTextColor.GRAY),
-                this.text("and the Grappling Hook.", NamedTextColor.GRAY),
+                this.text("the Grappling Hook and custom mob eggs.", NamedTextColor.GRAY),
                 this.text("Click to open!", NamedTextColor.YELLOW))));
         buttons.put(slots.get(1), Category.SETS);
         inv.setItem(slots.get(2), this.collectionsItemsTile());
@@ -217,6 +224,7 @@ public final class LegendaryItemsMenuService {
             case GRAND_BOTTLE -> this.grandBottle;
             case TITANIC_BOTTLE -> this.titanicBottle;
             case GRAPPLING_HOOK -> this.grapplingHook;
+            case CUSTOM_MOB_EGGS -> this.customMobEggs;
         };
     }
 
@@ -227,6 +235,7 @@ public final class LegendaryItemsMenuService {
             case GRAND_BOTTLE -> "Grand Experience Bottle";
             case TITANIC_BOTTLE -> "Titanic Experience Bottle";
             case GRAPPLING_HOOK -> "Grappling Hook";
+            case CUSTOM_MOB_EGGS -> "Custom Mob Eggs";
         };
     }
 
@@ -354,7 +363,7 @@ public final class LegendaryItemsMenuService {
     }
 
     private enum SetItem {
-        MINER_ARMOR, LAPIS_ARMOR, GRAND_BOTTLE, TITANIC_BOTTLE, GRAPPLING_HOOK
+        MINER_ARMOR, LAPIS_ARMOR, GRAND_BOTTLE, TITANIC_BOTTLE, GRAPPLING_HOOK, CUSTOM_MOB_EGGS
     }
 
     private record View(ViewType type, Map<Integer, Category> categoryButtons, Map<Integer, LegendaryWeapon> weaponButtons,

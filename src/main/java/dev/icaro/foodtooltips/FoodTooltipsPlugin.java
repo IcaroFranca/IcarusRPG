@@ -432,6 +432,12 @@ extends JavaPlugin {
         legendaryItemsMenu.grandBottle(lapisExperience::grandBottleGift);
         legendaryItemsMenu.titanicBottle(lapisExperience::titanicBottleGift);
         legendaryItemsMenu.grapplingHook(p -> java.util.List.of(grapplingHook.create(Language.of((Player)p))));
+        dev.icaro.foodtooltips.mob.CustomMobService customMobs = new dev.icaro.foodtooltips.mob.CustomMobService((Plugin)this, difficulty, this.visuals);
+        this.getServer().getPluginManager().registerEvents((Listener)customMobs, (Plugin)this);
+        customMobs.start();
+        legendaryItemsMenu.customMobEggs(p -> customMobs.eggs());
+        this.getCommand("rpgmob").setExecutor((s, c, l, a) -> customMobs.command(s, a));
+        this.getCommand("rpgmob").setTabCompleter((s, c, l, a) -> customMobs.complete(a));
         CollectionsItemsMenuService collectionsItemsMenu = new CollectionsItemsMenuService(legendaryItemsMenu::open);
         legendaryItemsMenu.collectionsItems(collectionsItemsMenu::open);
         EnchantMilestoneService enchantMilestones = new EnchantMilestoneService();

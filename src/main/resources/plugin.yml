@@ -1,5 +1,5 @@
 name: IcarusRPG
-version: '0.76.311'
+version: '0.76.312'
 main: dev.icaro.foodtooltips.FoodTooltipsPlugin
 api-version: '26.2'
 author: icaro
@@ -70,6 +70,10 @@ commands:
   rpgitems:
     description: Opens the admin-only Legendary Items menu.
     usage: /rpgitems
+    permission: foodtooltips.admin
+  rpgmob:
+    description: Summons a custom 3D-model mob where you look.
+    usage: /rpgmob <mob>
     permission: foodtooltips.admin
 permissions:
   foodtooltips.admin:
