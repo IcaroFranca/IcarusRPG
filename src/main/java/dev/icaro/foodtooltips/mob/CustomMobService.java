@@ -63,6 +63,11 @@ import org.joml.Matrix4f;
  * <p>Animations: {@code attack} plays once each time the mob hits something, {@code walk} while
  * it's moving, {@code idle} otherwise. The displays are never saved with the world - they're
  * rebuilt whenever a tagged mob is loaded ({@link #loaded}) and removed with it.
+ *
+ * <p>With BetterModel on the server the same mob is played by it instead, from
+ * {@code mobs/<id>.bbmodel} (IcarusTexture's tools/gltf_to_bbmodel.py) - see
+ * {@link BetterModelBackend}. Its resource pack part ships inside IcarusTexture, which is why
+ * BetterModel's name obfuscation is turned off: the names it generates have to match the pack.
  */
 public final class CustomMobService implements Listener {
     public static final NamespacedKey MOB_KEY = new NamespacedKey("foodtooltips", "custom_mob");
@@ -114,6 +119,8 @@ public final class CustomMobService implements Listener {
         int tick;
         int attackTick = -1;
         Location last;
+        /** Played by BetterModel - no displays of our own. */
+        boolean modeled;
 
         Live(Type type, Mob mob) {
             this.type = type;
@@ -134,6 +141,52 @@ public final class CustomMobService implements Listener {
         for (Type t : Type.values()) {
             this.rigs.put(t, loadRig(plugin, t.id));
         }
+    }
+
+    /**
+     * Copies every mob's .bbmodel into BetterModel's models folder (when it differs) and turns
+     * off its name obfuscation, so the pack it generates matches the one IcarusTexture ships.
+     * Called from onLoad - before BetterModel enables and reads either.
+     */
+    public static void installBetterModelFiles(Plugin plugin) {
+        if (Bukkit.getPluginManager().getPlugin("BetterModel") == null) {
+            return;
+        }
+        java.io.File dir = new java.io.File(plugin.getDataFolder().getParentFile(), "BetterModel");
+        java.io.File models = new java.io.File(dir, "models");
+        try {
+            java.nio.file.Files.createDirectories(models.toPath());
+            for (Type t : Type.values()) {
+                try (InputStream in = plugin.getResource("mobs/" + t.id + ".bbmodel")) {
+                    if (in == null) {
+                        continue;
+                    }
+                    byte[] data = in.readAllBytes();
+                    java.nio.file.Path target = new java.io.File(models, t.id + ".bbmodel").toPath();
+                    if (!java.nio.file.Files.exists(target) || !java.util.Arrays.equals(java.nio.file.Files.readAllBytes(target), data)) {
+                        java.nio.file.Files.write(target, data);
+                        plugin.getLogger().info("Installed BetterModel model " + t.id + ".bbmodel");
+                    }
+                }
+            }
+            java.io.File config = new java.io.File(dir, "config.yml");
+            if (config.exists()) {
+                org.bukkit.configuration.file.YamlConfiguration yaml = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(config);
+                if (yaml.getBoolean("pack.use-obfuscation", true)) {
+                    yaml.set("pack.use-obfuscation", false);
+                    yaml.save(config);
+                    plugin.getLogger().info("Turned off BetterModel's pack.use-obfuscation - IcarusTexture ships the custom mob models under their real names.");
+                }
+            } else {
+                plugin.getLogger().warning("BetterModel has no config.yml yet - restart once after its first start so IcarusRPG can turn off pack.use-obfuscation.");
+            }
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Couldn't install the BetterModel models: " + e);
+        }
+    }
+
+    private static boolean betterModel() {
+        return Bukkit.getPluginManager().isPluginEnabled("BetterModel");
     }
 
     static Rig loadRig(Plugin plugin, String id) {
@@ -225,6 +278,14 @@ public final class CustomMobService implements Listener {
     private void attach(Type type, Mob mob) {
         Rig rig = this.rigs.get(type);
         Live l = new Live(type, mob);
+        if (betterModel() && BetterModelBackend.attach(mob, type.id)) {
+            mob.setInvisible(false); // BetterModel hides the base itself - and hides the model too on an invisible mob
+            l.modeled = true;
+            l.last = mob.getLocation();
+            this.live.put(mob.getUniqueId(), l);
+            return;
+        }
+        mob.setInvisible(true);
         for (Key model : rig.parts()) {
             ItemDisplay d = mob.getWorld().spawn(mob.getLocation(), ItemDisplay.class, disp -> {
                 ItemStack item = new ItemStack(Material.PAPER);
@@ -253,6 +314,9 @@ public final class CustomMobService implements Listener {
             if (!l.mob.isValid() || l.mob.isDead()) {
                 l.parts.forEach(Entity::remove);
                 it.remove();
+                continue;
+            }
+            if (l.modeled) {
                 continue;
             }
             Rig rig = this.rigs.get(l.type);
@@ -294,7 +358,9 @@ public final class CustomMobService implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void hit(EntityDamageByEntityEvent e) {
         Live l = this.live.get(e.getDamager().getUniqueId());
-        if (l != null) {
+        if (l != null && l.modeled) {
+            BetterModelBackend.attack(l.mob, l.type.id);
+        } else if (l != null) {
             l.attackTick = 0;
         }
     }

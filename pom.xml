@@ -5,7 +5,7 @@
 
   <groupId>dev.icaro</groupId>
   <artifactId>icarusrpg</artifactId>
-  <version>0.76.312</version>
+  <version>0.76.313</version>
   <packaging>jar</packaging>
 
   <name>IcarusRPG</name>
@@ -59,6 +59,15 @@
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
       <version>${paper.api.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Optional soft-depend: mob.BetterModelBackend plays the custom 3D mobs through
+         BetterModel when it's on the server (mob.CustomMobService falls back to its own item
+         displays otherwise). Only touched once the plugin is confirmed enabled. -->
+    <dependency>
+      <groupId>io.github.toxicity188</groupId>
+      <artifactId>bettermodel-bukkit-api</artifactId>
+      <version>3.5.1</version>
       <scope>provided</scope>
     </dependency>
     <!-- Optional soft-depend, same story as WorldGuard below: economy.CoinRewardService deposits

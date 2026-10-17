@@ -208,6 +208,12 @@ extends JavaPlugin {
     private dev.icaro.foodtooltips.heat.HeatService heatService;
     private PersonalStorageService storage;
 
+    @Override
+    public void onLoad() {
+        // onLoad runs before any plugin enables, so BetterModel finds our .bbmodel files when it loads its models.
+        dev.icaro.foodtooltips.mob.CustomMobService.installBetterModelFiles((Plugin)this);
+    }
+
     public void onEnable() {
         this.saveDefaultConfig();
         this.mergeConfigDefaults();
