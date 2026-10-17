@@ -704,7 +704,11 @@ public final class SkillsMenuService {
 
     private void open(Player p, Inventory v, View view) {
         p.openInventory(v);
-        dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        if (view.type() == Type.MAIN) {
+            dev.icaro.foodtooltips.menu.MenuBackground.applyThemed(p, dev.icaro.foodtooltips.menu.MenuBackground.SKILLS_THEME);
+        } else {
+            dev.icaro.foodtooltips.menu.MenuBackground.apply(p);
+        }
         this.views.put(p.getUniqueId(), view);
     }
 

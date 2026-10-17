@@ -85,6 +85,30 @@ public final class MenuBackground {
         view.setTitle(title.toString());
     }
 
+    /** The "Icarus" themed main Skills menu ({@code menu_theme_skills.png}, drawn by IcarusTexture's create_icarus_theme.py). */
+    public static final char SKILLS_THEME = '';
+    /** -48: puts a theme glyph's left edge 40 px left of the window, room for its wings. */
+    private static final char THEME_SHIFT = '';
+
+    /**
+     * Replaces the title with one full-window theme glyph - frame, title plaque, the player's
+     * inventory and every slot frame are all baked into that image, so unlike {@link #apply}
+     * no per-slot glyphs are added and no title text is drawn (the plaque carries it). Filler
+     * panes are still hidden the same way, so only the image's own slots show.
+     */
+    public static void applyThemed(Player player, char theme) {
+        InventoryView view = player.getOpenInventory();
+        Inventory inventory = view.getTopInventory();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (item != null && item.getType() == Material.GRAY_STAINED_GLASS_PANE && !isVisibleControl(item)) {
+                item.setData(DataComponentTypes.ITEM_MODEL, BACKGROUND_ITEM_MODEL);
+                inventory.setItem(slot, item);
+            }
+        }
+        view.setTitle("§f" + THEME_SHIFT + theme);
+    }
+
     private static String undecoratedTitle(String title) {
         int textMarker = title.lastIndexOf("\u00A78");
         if (title.indexOf(LEAD_SHIFT) >= 0 && textMarker >= 0) {
