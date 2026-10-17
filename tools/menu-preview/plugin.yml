@@ -1,0 +1,5 @@
+name: MenuDump
+version: 1
+main: rtest.MenuDump
+api-version: '26.2'
+depend: [IcarusRPG]
