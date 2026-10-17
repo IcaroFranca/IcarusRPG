@@ -3,6 +3,7 @@ package dev.icaro.foodtooltips.item;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -114,7 +115,7 @@ public final class DurabilityService {
         // just once) so a shield already in someone's inventory from before this shipped -
         // appliedKey already set from its own durability multiplier - still gets flagged,
         // no re-crafting/re-looting needed.
-        if (item.getType() == Material.SHIELD && !meta.isUnbreakable()) {
+        if ((item.getType() == Material.SHIELD || isPluginItem(meta)) && !meta.isUnbreakable()) {
             meta.setUnbreakable(true);
             changed = true;
         }
@@ -157,9 +158,47 @@ public final class DurabilityService {
         return true;
     }
 
-    /** Rebuilds {@code meta}'s "Durability: X / Y" lore line from {@code damageable}'s current state; returns true if the lore actually changed. */
+    /** Flags the periodic sweeps put on ANY item, vanilla ones included - never a sign of a plugin item on their own. */
+    private static final Set<String> GENERIC_FLAGS = Set.of("item_tier_applied", "item_tier_spacing_repaired", "durability_multiplied",
+            "sword_damage_applied", "tool_damage_applied", "polearm_damage_applied", "defense_tooltip_applied", "bow_damage_tooltip_applied");
+    private static final Set<String> NAMESPACES = Set.of("foodtooltips", "icarusrpg");
+
+    /**
+     * Whether {@code meta} belongs to an item IcarusRPG made itself (custom weapons, armor, tools,
+     * rods, bows...) - every one of them is stamped with its own byte flag at creation (Spruce
+     * Axe, Growth Armor piece...), a legendary weapon id or a forced tier. Vanilla gear only ever
+     * carries {@link #GENERIC_FLAGS}, plus reforge/enchant data that isn't a byte flag, so it never
+     * counts - those keep their durability (x5, Anvil repairs).
+     */
+    public static boolean isPluginItem(ItemMeta meta) {
+        var pdc = meta.getPersistentDataContainer();
+        for (NamespacedKey key : pdc.getKeys()) {
+            if (!NAMESPACES.contains(key.getNamespace())) {
+                continue;
+            }
+            String name = key.getKey();
+            if (name.equals("legendary_weapon") || name.equals("item_tier_forced") || name.equals("miner_piece_name_en")) {
+                return true;
+            }
+            if (!GENERIC_FLAGS.contains(name) && pdc.has(key, PersistentDataType.BYTE)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Rebuilds {@code meta}'s "Durability: X / Y" lore line from {@code damageable}'s current state (none on an unbreakable item); returns true if the lore actually changed. */
     private boolean syncDurabilityLore(ItemMeta meta, Damageable damageable) {
         List<Component> original = Objects.requireNonNullElse(meta.lore(), List.of());
+        if (meta.isUnbreakable()) {
+            ArrayList<Component> lore = new ArrayList<>(original);
+            removeDurabilityLine(lore);
+            if (lore.equals(original)) {
+                return false;
+            }
+            meta.lore(lore);
+            return true;
+        }
         int max = damageable.getMaxDamage();
         int damage = damageable.hasDamage() ? damageable.getDamage() : 0;
         List<Component> lore = withDurabilityLine(original, Math.max(0, max - damage), max);

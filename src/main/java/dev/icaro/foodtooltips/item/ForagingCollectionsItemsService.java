@@ -247,10 +247,13 @@ public final class ForagingCollectionsItemsService implements Listener {
         // Explicit request: a Spruce Axe in the center surrounded by 8 Enchanted Jungle Logs,
         // not the "vanilla-empty center slot" trick every other axe/armor recipe in
         // this class uses - Treecapitator's own power ingredient IS the previous axe.
+        // The center takes any Iron Axe and #spruceAxeOnly checks it's the real Spruce Axe: an
+        // ExactChoice of a freshly built one never matched the player's own copy, which the
+        // inventory sweeps had already changed (tier line, durability, unbreakable).
         this.newShapedRecipe(CollectionsCatalog.TREECAPITATOR_RECIPE, this.treecapitator.create(),
                 new String[]{"JJJ", "JSJ", "JJJ"}, r -> {
                     r.setIngredient('J', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.enchantedLog(Wood.JUNGLE)));
-                    r.setIngredient('S', new org.bukkit.inventory.RecipeChoice.ExactChoice(this.spruceAxe.create()));
+                    r.setIngredient('S', Material.IRON_AXE);
                 });
         this.newShapedRecipe(CollectionsCatalog.MANGROVE_SWEEP_TALISMAN_RECIPE, this.mangroveSweepTalisman(),
                 new String[]{"LLL", "LIL", "LLL"}, r -> {
@@ -452,6 +455,22 @@ public final class ForagingCollectionsItemsService implements Listener {
         meta.setEnchantmentGlintOverride(true);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private static final org.bukkit.NamespacedKey SPRUCE_AXE_KEY = new org.bukkit.NamespacedKey("foodtooltips", "spruce_axe");
+
+    /** The Treecapitator's center slot only takes the real Spruce Axe (see its recipe in {@link #registerRecipes}), not any Iron Axe. */
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
+    public void spruceAxeOnly(org.bukkit.event.inventory.PrepareItemCraftEvent e) {
+        if (!(e.getRecipe() instanceof org.bukkit.Keyed keyed) || !CollectionsCatalog.TREECAPITATOR_RECIPE.equals(keyed.getKey())) {
+            return;
+        }
+        ItemStack center = e.getInventory().getMatrix().length == 9 ? e.getInventory().getMatrix()[4] : null;
+        boolean spruceAxe = center != null && center.hasItemMeta()
+                && center.getItemMeta().getPersistentDataContainer().has(SPRUCE_AXE_KEY, PersistentDataType.BYTE);
+        if (!spruceAxe) {
+            e.getInventory().setResult(null);
+        }
     }
 
     /** No Enchanted Log/Planks is meant to be placed. */

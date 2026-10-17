@@ -502,8 +502,17 @@ extends JavaPlugin {
         // Zombie's Heart recipes take a plain Player Head ingredient (see ZombiesHeartService#RECIPES) -
         // without this the recipe book showed just that generic head, not the item actually required.
         org.bukkit.inventory.ItemStack zombiesHeartPreview = zombiesHeart.createItem();
-        recipeBook.ingredientDisplay((recipeKey, sample) -> ZombiesHeartService.RECIPES.contains(recipeKey)
-                && sample.getType() == org.bukkit.Material.PLAYER_HEAD ? zombiesHeartPreview.clone() : sample);
+        // Same for the Treecapitator's center, an Iron Axe slot that only takes the Spruce Axe.
+        org.bukkit.inventory.ItemStack spruceAxePreview = spruceAxe.create();
+        recipeBook.ingredientDisplay((recipeKey, sample) -> {
+            if (ZombiesHeartService.RECIPES.contains(recipeKey) && sample.getType() == org.bukkit.Material.PLAYER_HEAD) {
+                return zombiesHeartPreview.clone();
+            }
+            if (dev.icaro.foodtooltips.collections.CollectionsCatalog.TREECAPITATOR_RECIPE.equals(recipeKey) && sample.getType() == org.bukkit.Material.IRON_AXE) {
+                return spruceAxePreview.clone();
+            }
+            return sample;
+        });
         ZombieSwordService zombieSword = new ZombieSwordService(tiers, stats);
         pm.registerEvents((Listener)zombieSword, (Plugin)this);
         pm.registerEvents((Listener)new dev.icaro.foodtooltips.item.ArmorUpgradeRecipeGuard(), (Plugin)this);
